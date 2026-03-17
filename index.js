@@ -1,4 +1,4 @@
-// ScenePulse v4.9.42 — Side Panel Architecture
+// ScenePulse v4.9.43 — Side Panel Architecture
 const MODULE_NAME='scenepulse';const LOG='[ScenePulse]';
 
 const MASCOT_SVG=`<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.2" opacity="0.25" class="sp-mascot-pulse"/><circle cx="12" cy="12" r="6.5" stroke="currentColor" stroke-width="1" opacity="0.4" class="sp-mascot-pulse"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="0.8" opacity="0.6"/><circle cx="12" cy="12" r="1.4" fill="currentColor" opacity="0.9"/><line x1="12" y1="2" x2="12" y2="5.5" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><line x1="12" y1="18.5" x2="12" y2="22" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><line x1="2" y1="12" x2="5.5" y2="12" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><line x1="18.5" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><path d="M12 5.5 L14 10 L12 8.5 L10 10 Z" fill="currentColor" opacity="0.5"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="8s" repeatCount="indefinite"/></path></svg>`;
@@ -1555,7 +1555,7 @@ function createPanel(){
     const panel=document.createElement('div');panel.id='sp-panel';
     panel.innerHTML=`
     <div class="sp-toolbar">
-        <div class="sp-brand-icon" id="sp-brand-icon" title="ScenePulse v4.9.42">${MASCOT_SVG}</div>
+        <div class="sp-brand-icon" id="sp-brand-icon" title="ScenePulse v4.9.43">${MASCOT_SVG}</div>
         <div class="sp-brand-title">Scene<span class="sp-brand-accent">Pulse</span></div>
         <span class="sp-toolbar-spacer"></span>
         <button class="sp-toolbar-btn" id="sp-tb-regen" title="Regenerate all"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M13.5 8a5.5 5.5 0 1 1-1.3-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M13.5 3v2.5h-2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
@@ -2378,7 +2378,7 @@ function clearTimeTint(){
 }
 
 // ── Scene Transition Animation ──
-let prevLocation='',prevTimePeriod='';
+let prevLocation='',prevTimePeriod='',_isTimelineScrub=false;
 function checkSceneTransition(d){
     const loc=d.location||'';const timeStr=d.time||'';
     const h=parseInt(timeStr.match(/(\d+):/)?.[1]||'-1');
@@ -2393,7 +2393,7 @@ function checkSceneTransition(d){
     prevLocation=loc;prevTimePeriod=period;
     if(!majorLocChange&&!majorTimeChange)return;
     // Check if scene transitions are enabled
-    if(getSettings().sceneTransitions===false)return;
+    if(getSettings().sceneTransitions===false||_isTimelineScrub)return;
     // Build transition card
     const lines=[];
     if(majorLocChange){
@@ -2522,12 +2522,16 @@ function renderTimeline(){
         const lbl=document.createElement('div');lbl.className='sp-tl-label'+(isSelected?' sp-tl-label-active':'');
         lbl.textContent='#'+k;
         wrap.appendChild(lbl);
+        let _tlDebounce=null;
         wrap.addEventListener('click',()=>{
             const snap=all.snapshots[String(k)];if(!snap)return;
+            _isTimelineScrub=true;
+            if(_tlDebounce)clearTimeout(_tlDebounce);
             currentSnapshotMesIdx=k;
             const norm=normalizeTracker(snap);
             updatePanel(norm);
             showPanel();
+            _tlDebounce=setTimeout(()=>{_isTimelineScrub=false},500);
         });
         bar.appendChild(wrap);
     }
@@ -2537,10 +2541,12 @@ function renderTimeline(){
         disc.innerHTML=`<span class="sp-tl-disc-icon">⚠</span> Viewing scene from an older message (msg #${selectedKey}) — not the current scene. <button class="sp-tl-disc-btn">Jump to latest</button>`;
         disc.querySelector('.sp-tl-disc-btn').addEventListener('click',()=>{
             const latestSnap=all.snapshots[String(latest)];if(!latestSnap)return;
+            _isTimelineScrub=true;
             currentSnapshotMesIdx=latest;
             const _norm=normalizeTracker(latestSnap);
             updatePanel(_norm);
             showPanel();
+            setTimeout(()=>{_isTimelineScrub=false},500);
         });
         tl.appendChild(disc);
     }
@@ -3657,50 +3663,40 @@ function createThoughtPanel(){
         const cb=document.getElementById('sp-show-thoughts');if(cb)cb.checked=false;
     });
 
-    // Drag support
+    // Drag support (mouse + touch)
     const drag=tp.querySelector('#sp-tp-drag');
     let dragging=false,dx=0,dy=0;
-    drag.addEventListener('mousedown',(e)=>{
+    function dragStart(cx,cy,e){
         if(e.target.closest('.sp-tp-close')||e.target.closest('.sp-tp-regen')||e.target.closest('.sp-tp-snapleft')||e.target.closest('.sp-tp-ghost'))return;
-        dragging=true;dx=e.clientX-tp.offsetLeft;dy=e.clientY-tp.offsetTop;
+        dragging=true;dx=cx-tp.offsetLeft;dy=cy-tp.offsetTop;
         e.preventDefault();
-    });
-    document.addEventListener('mousemove',(e)=>{
-        if(!dragging)return;
-        tp.style.left=Math.max(0,e.clientX-dx)+'px';
-        tp.style.top=Math.max(0,e.clientY-dy)+'px';
-    });
-    document.addEventListener('mouseup',()=>{
+    }
+    function dragMove(cx,cy){if(!dragging)return;tp.style.left=Math.max(0,cx-dx)+'px';tp.style.top=Math.max(0,cy-dy)+'px'}
+    function dragEnd(){
         if(!dragging)return;dragging=false;
         const st=getSettings();st.thoughtPos={x:tp.offsetLeft,y:tp.offsetTop};
-        // Manual drag disables snap-left
-        if(st.thoughtSnapLeft){
-            st.thoughtSnapLeft=false;
-            const slBtn=tp.querySelector('.sp-tp-snapleft');if(slBtn)slBtn.classList.remove('sp-tb-active');
-        }
+        if(st.thoughtSnapLeft){st.thoughtSnapLeft=false;const slBtn=tp.querySelector('.sp-tp-snapleft');if(slBtn)slBtn.classList.remove('sp-tb-active')}
         saveSettings();
-    });
+    }
+    drag.addEventListener('mousedown',(e)=>dragStart(e.clientX,e.clientY,e));
+    document.addEventListener('mousemove',(e)=>dragMove(e.clientX,e.clientY));
+    document.addEventListener('mouseup',dragEnd);
+    drag.addEventListener('touchstart',(e)=>{const t=e.touches[0];dragStart(t.clientX,t.clientY,e)},{passive:false});
+    document.addEventListener('touchmove',(e)=>{if(!dragging)return;const t=e.touches[0];dragMove(t.clientX,t.clientY)},{passive:true});
+    document.addEventListener('touchend',dragEnd);
 
-    // Resize handle
+    // Resize handle (mouse + touch)
     const resizeHandle=tp.querySelector('.sp-tp-resize');
     let resizing=false,rStartX=0,rStartY=0,rStartW=0,rStartH=0;
-    resizeHandle.addEventListener('mousedown',(e)=>{
-        resizing=true;rStartX=e.clientX;rStartY=e.clientY;
-        rStartW=tp.offsetWidth;rStartH=tp.offsetHeight;
-        e.preventDefault();e.stopPropagation();
-    });
-    document.addEventListener('mousemove',(e)=>{
-        if(!resizing)return;
-        const w=Math.max(180,rStartW+(e.clientX-rStartX));
-        const h=Math.max(100,rStartH+(e.clientY-rStartY));
-        tp.style.width=w+'px';tp.style.height=h+'px';
-    });
-    document.addEventListener('mouseup',()=>{
-        if(!resizing)return;resizing=false;
-        const st=getSettings();
-        st.thoughtSize={w:tp.offsetWidth,h:tp.offsetHeight};
-        saveSettings();
-    });
+    function resizeStart(cx,cy,e){resizing=true;rStartX=cx;rStartY=cy;rStartW=tp.offsetWidth;rStartH=tp.offsetHeight;e.preventDefault();e.stopPropagation()}
+    function resizeMove(cx,cy){if(!resizing)return;tp.style.width=Math.max(180,rStartW+(cx-rStartX))+'px';tp.style.height=Math.max(100,rStartH+(cy-rStartY))+'px'}
+    function resizeEnd(){if(!resizing)return;resizing=false;const st=getSettings();st.thoughtSize={w:tp.offsetWidth,h:tp.offsetHeight};saveSettings()}
+    resizeHandle.addEventListener('mousedown',(e)=>resizeStart(e.clientX,e.clientY,e));
+    document.addEventListener('mousemove',(e)=>resizeMove(e.clientX,e.clientY));
+    document.addEventListener('mouseup',resizeEnd);
+    resizeHandle.addEventListener('touchstart',(e)=>{const t=e.touches[0];resizeStart(t.clientX,t.clientY,e)},{passive:false});
+    document.addEventListener('touchmove',(e)=>{if(!resizing)return;const t=e.touches[0];resizeMove(t.clientX,t.clientY)},{passive:true});
+    document.addEventListener('touchend',resizeEnd);
     log('Thought panel created');
 }
 
@@ -4471,7 +4467,7 @@ function createSettings(){
     try{po=getConnectionProfiles().map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}catch{}
     try{pre=getChatPresets().map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}catch{}
     try{lo=getLorebooks().map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}catch{}
-    const html=`<div id="scenepulse-settings" class="extension_settings"><div class="inline-drawer"><div class="inline-drawer-toggle inline-drawer-header"><div class="sp-drawer-header-content"><span class="sp-drawer-icon-wrap">${MASCOT_SVG}</span><div class="sp-drawer-title-block"><span class="sp-drawer-title">Scene<span style="color:var(--sp-accent)">Pulse</span></span><span class="sp-drawer-version">v4.9.42 — Scene Intelligence</span></div><span class="sp-drawer-badge sp-on" id="sp-badge"><span class="sp-drawer-badge-dot"></span>Active</span></div><div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div></div><div class="inline-drawer-content">
+    const html=`<div id="scenepulse-settings" class="extension_settings"><div class="inline-drawer"><div class="inline-drawer-toggle inline-drawer-header"><div class="sp-drawer-header-content"><span class="sp-drawer-icon-wrap">${MASCOT_SVG}</span><div class="sp-drawer-title-block"><span class="sp-drawer-title">Scene<span style="color:var(--sp-accent)">Pulse</span></span><span class="sp-drawer-version">v4.9.43 — Scene Intelligence</span></div><span class="sp-drawer-badge sp-on" id="sp-badge"><span class="sp-drawer-badge-dot"></span>Active</span></div><div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div></div><div class="inline-drawer-content">
 <div class="sp-sh">General</div><label class="sp-ck"><input type="checkbox" id="sp-enabled"> Enable ScenePulse</label><label class="sp-ck"><input type="checkbox" id="sp-auto-gen"> Auto-generate on AI messages</label><label class="sp-ck"><input type="checkbox" id="sp-show-thoughts"> Show thought bubbles</label><label class="sp-ck"><input type="checkbox" id="sp-show-weather"> Weather overlay effects</label><label class="sp-ck"><input type="checkbox" id="sp-show-timetint"> Time-of-day ambience</label><label class="sp-ck"><input type="checkbox" id="sp-show-devbtns"> Show developer tools</label><div id="sp-separate-settings"><div class="sp-fi"><label>Context msgs</label><input type="number" id="sp-ctx" min="1" max="30"></div><div class="sp-hint sp-ctx-hint">How many recent messages to include when generating tracker updates. <em>Separate mode only — Together mode uses ST's full context automatically.</em><br><span class="sp-ctx-range"><strong>3–4</strong> · Fastest. Good for simple 1-on-1 scenes (~5K token prompt)</span><br><span class="sp-ctx-range"><strong>5–8</strong> · Balanced. Recommended for most scenes (~8–12K tokens)</span><br><span class="sp-ctx-range"><strong>8–15</strong> · Better continuity for complex multi-character scenes (~12–20K tokens)</span><br><span class="sp-ctx-range"><strong>15+</strong> · Maximum context but significantly slower and more expensive</span><br><span class="sp-ctx-note">⚠ This is the biggest factor in Separate mode speed. At 8 msgs your tracker prompt is ~10K tokens — doubling roughly doubles generation time. Lower values (3–4) can cut tracker time by 40–60%.</span></div><div class="sp-fi"><label>Max retries</label><input type="number" id="sp-retries" min="0" max="5"></div><div class="sp-hint sp-ctx-hint"><em>Separate mode only.</em> How many times to retry if the tracker API call returns invalid JSON.</div></div>
 <div class="sp-sh">Injection Method</div><div class="sp-fs"><label>Mode</label><select id="sp-injection-method"><option value="inline">Together (AI appends tracker to its response)</option><option value="separate">Separate (dedicated API call after AI response)</option></select></div>
 <div id="sp-method-inline"><div class="sp-hint">The AI writes its normal response, then appends tracker JSON at the end. ScenePulse automatically extracts and hides the JSON. <strong>Recommended for most setups.</strong></div><div class="sp-hint sp-pros-cons"><span class="sp-pro">✓ Single API call — typically ~100–120s total</span><br><span class="sp-pro">✓ No profile switching — eliminates message deletion risk</span><br><span class="sp-pro">✓ AI has full narrative context for accurate tracking</span><br><span class="sp-pro">✓ 2–3× faster than Separate mode in practice</span><br><span class="sp-con">✗ Uses tokens from the main response budget (~1,700 tokens for tracker)</span><br><span class="sp-con">✗ May slightly reduce narrative length on token-limited models</span></div>
@@ -4807,7 +4803,7 @@ eventSource.on(event_types.APP_READY,()=>{try{
     if(!_s.setupDismissed){
         setTimeout(()=>showSetupGuide(),2000);
     }
-    log('v4.9.42 ready');
+    log('v4.9.43 ready');
     // One-time migration: reset stale sub-field toggles from old Disable All
     if(_s.fieldToggles){
         const _ft=_s.fieldToggles;const _p=_s.panels||DEFAULTS.panels;
@@ -4920,4 +4916,4 @@ eventSource.on(event_types.CHAT_CHANGED,async()=>{
         if(msgs.length===0)setTimeout(renderExisting,500);
     },200);
 });
-log('v4.9.42 init');
+log('v4.9.43 init');

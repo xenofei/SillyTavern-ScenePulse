@@ -1763,6 +1763,138 @@
     .sp-char-name { font-size: 16px; }
 }
 
+/* ═══ MOBILE — phones ≤768px ═══ */
+@media (max-width: 768px) {
+    /* Panel: full width, no fixed positioning quirks */
+    #sp-panel {
+        width: 100vw !important; right: 0 !important; left: 0 !important;
+        border-left: none; border-radius: 0;
+        font-size: 14px;
+    }
+    /* Toolbar: larger touch targets, wrap if needed */
+    .sp-toolbar {
+        padding: 8px 10px; gap: 4px; flex-wrap: wrap;
+    }
+    .sp-toolbar-btn {
+        width: 40px; height: 40px; min-width: 40px;
+        border-radius: 10px;
+    }
+    .sp-toolbar-btn svg { width: 18px; height: 18px; }
+    .sp-toolbar-title { font-size: 14px; }
+    .sp-toolbar-title svg { width: 20px; height: 20px; }
+    /* Dashboard */
+    .sp-dashboard { gap: 6px; padding: 8px; }
+    .sp-dashboard .sp-dash-card { flex: 1 1 calc(50% - 4px); min-height: 80px; padding: 10px 6px; border-radius: 12px; }
+    .sp-dash-day { font-size: 24px; }
+    .sp-dash-value { font-size: 12px; }
+    .sp-dash-sub { font-size: 10px; }
+    .sp-wx-svg { width: 44px; height: 44px; }
+    .sp-dash-location { padding: 10px 12px; gap: 8px; }
+    .sp-dash-loc-icon { width: 32px; height: 32px; }
+    .sp-dash-loc-icon svg { width: 32px; height: 32px; }
+    .sp-dash-loc-text { font-size: 14px; }
+    .sp-temp-bar-label { font-size: 11px; }
+    /* Sections */
+    .sp-section-header { padding: 10px 12px; min-height: 44px; }
+    .sp-section-title { font-size: 12px; }
+    .sp-section-badge { font-size: 9px; padding: 1px 6px; min-width: 18px; }
+    .sp-section-chevron { font-size: 10px; }
+    .sp-section-content { max-height: 50vh; }
+    /* Scene Details */
+    .sp-row { padding: 5px 0; }
+    .sp-row-label { font-size: 12px; min-width: 60px; }
+    .sp-row-value { font-size: 13px; }
+    /* Quest Journal */
+    .sp-plot-tier-title { font-size: 11px; padding: 8px 8px; min-height: 40px; }
+    .sp-plot-name { font-size: 13px; }
+    .sp-quest-header { padding: 8px 4px 8px 8px; min-height: 40px; }
+    .sp-quest-detail { font-size: 12px; padding: 4px 0 6px 20px; }
+    .sp-quest-star { font-size: 13px; padding: 6px 8px; }
+    .sp-tier-chevron, .sp-quest-chevron { font-size: 9px; }
+    /* Relationships */
+    .sp-rel-header { padding: 8px 10px; min-height: 44px; }
+    .sp-rel-name { font-size: 14px; }
+    .sp-rel-type-badge, .sp-rel-phase-badge { font-size: 9px; padding: 2px 6px; }
+    .sp-rel-meta-row { padding: 4px 0; }
+    .sp-rel-meta-label { font-size: 10px; min-width: 70px; }
+    .sp-rel-meta-value { font-size: 12px; }
+    .sp-meter-row { grid-template-columns: 55px 1fr 46px; gap: 5px; }
+    .sp-meter-label { font-size: 10px; }
+    .sp-meter-bar-wrap { height: 12px; border-radius: 6px; }
+    .sp-meter-value { font-size: 10px; }
+    .sp-meter-tag { font-size: 10px; }
+    .sp-meter-delta { font-size: 9px; }
+    /* Characters */
+    .sp-char-header { padding: 8px 10px; min-height: 44px; }
+    .sp-char-name { font-size: 14px; }
+    .sp-char-role-badge { font-size: 9px; max-width: 180px; }
+    .sp-char-grid { gap: 4px 8px; }
+    .sp-char-field { font-size: 11px; }
+    .sp-char-val { font-size: 12px; }
+    /* Story Ideas */
+    .sp-idea-header { padding: 8px 10px; min-height: 44px; }
+    .sp-idea-name { font-size: 13px; }
+    .sp-idea-hook { font-size: 12px; padding: 6px 10px; }
+    .sp-idea-type { font-size: 9px; }
+    .sp-idea-paste, .sp-idea-inject { width: 28px; height: 28px; }
+    /* Thought Panel — full width at bottom */
+    #sp-thought-panel {
+        width: 100vw !important; left: 0 !important; right: 0 !important;
+        top: auto !important; bottom: 0 !important;
+        max-height: 40vh; min-width: unset;
+        border-radius: 12px 12px 0 0;
+    }
+    .sp-tp-header { padding: 10px 12px; min-height: 44px; }
+    .sp-tp-header button { width: 32px; height: 32px; }
+    .sp-tp-name { font-size: 16px; }
+    .sp-tp-monologue { font-size: 14px; line-height: 1.5; padding: 8px 12px; }
+    /* Timeline */
+    .sp-timeline { padding: 10px 8px; }
+    .sp-tl-dot { width: 12px; height: 12px; }
+    .sp-tl-label { font-size: 9px; }
+    .sp-tl-disc-btn { padding: 6px 12px; font-size: 11px; }
+    /* Scene Transition — smaller on mobile */
+    #sp-scene-transition { font-size: 28px; padding: 30px 20px; }
+    .sp-st-sep { font-size: 18px; }
+    #sp-scene-transition .sp-st-rule { width: 60px; }
+    /* Footer */
+    .sp-gen-footer { font-size: 10px; padding: 6px 10px; flex-wrap: wrap; gap: 4px; }
+    .sp-gen-footer .sp-gen-stat { font-size: 9px; }
+    /* Custom Panels */
+    .sp-cp-field-row { gap: 4px; }
+    .sp-cp-field-key, .sp-cp-field-label, .sp-cp-field-desc { font-size: 11px; height: 28px; }
+    .sp-cp-field-type { height: 28px; font-size: 11px; }
+    .sp-cp-field-rm { width: 28px; height: 28px; }
+    .sp-cp-add-field { padding: 8px 12px; }
+    .sp-cp-drag-handle { font-size: 16px; width: 24px; }
+    /* Setup/Tour */
+    .sp-setup-dialog { max-width: 96vw; }
+    .sp-tour-card { width: 90vw; max-width: 340px; }
+    /* Settings drawer */
+    .sp-btn { padding: 6px 12px; font-size: 11px; min-height: 36px; }
+    .sp-ck { padding: 8px 0; font-size: 12px; min-height: 36px; }
+    .sp-fs select, .sp-fi input { font-size: 12px; padding: 6px 8px; min-height: 36px; }
+    /* Confirm dialog */
+    .sp-confirm-dialog { min-width: 280px; max-width: 92vw; }
+    .sp-confirm-ok, .sp-confirm-cancel { min-height: 40px; font-size: 12px; }
+}
+
+/* ═══ MOBILE — small phones ≤420px ═══ */
+@media (max-width: 420px) {
+    .sp-toolbar { padding: 6px 6px; }
+    .sp-toolbar-btn { width: 36px; height: 36px; min-width: 36px; }
+    .sp-toolbar-title { font-size: 12px; }
+    .sp-dashboard .sp-dash-card { flex: 1 1 100%; min-height: 70px; }
+    .sp-dash-location { padding: 8px 10px; }
+    .sp-dash-loc-text { font-size: 13px; }
+    .sp-meter-row { grid-template-columns: 48px 1fr 40px; }
+    .sp-rel-header, .sp-char-header, .sp-idea-header { padding: 8px 8px; }
+    .sp-char-grid { grid-template-columns: 1fr; }
+    .sp-char-field { text-align: left; }
+    #sp-scene-transition { font-size: 22px; padding: 20px 14px; }
+    .sp-tour-card { width: 94vw; }
+}
+
 /* ═══ SETUP GUIDE TUTORIAL ═══ */
 .sp-setup-overlay {
     position: fixed; inset: 0; z-index: 10000;
