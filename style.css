@@ -1893,9 +1893,30 @@
 #sp-panel.sp-mode-mobile .sp-timeline { padding: 12px 10px; }
 #sp-panel.sp-mode-mobile .sp-tl-dot { width: 14px; height: 14px; }
 #sp-panel.sp-mode-mobile .sp-tl-label { font-size: 9px; }
-#sp-panel.sp-mode-mobile .sp-tl-disc-btn { padding: 8px 14px; font-size: 12px; }
+#sp-panel.sp-mode-mobile .sp-tl-disc-btn { padding: 6px 12px; font-size: 11px; }
+/* Timeline disclaimer text bigger on mobile */
+#sp-panel.sp-mode-mobile .sp-tl-disclaimer { font-size: 12px; line-height: 1.5; padding: 10px 12px; }
+#sp-panel.sp-mode-mobile .sp-tl-disc-icon { font-size: 14px; }
 /* Footer */
 #sp-panel.sp-mode-mobile .sp-gen-footer { font-size: 10px; padding: 8px 12px; flex-wrap: wrap; }
+/* Partial regen buttons — always visible on mobile */
+#sp-panel.sp-mode-mobile .sp-section-refresh { opacity: 0.7 !important; width: 32px; height: 32px; }
+#sp-panel.sp-mode-mobile .sp-section-refresh svg { width: 16px; height: 16px; }
+/* Section loading overlay text — bigger on mobile */
+#sp-panel.sp-mode-mobile .sp-regen-text { font-size: 14px; font-weight: 700; }
+#sp-panel.sp-mode-mobile .sp-regen-inline .sp-regen-text { font-size: 13px; }
+#sp-panel.sp-mode-mobile .sp-regen-inline .sp-regen-spinner { width: 28px; height: 28px; }
+#sp-panel.sp-mode-mobile .sp-overlay-label { font-size: 13px; }
+#sp-panel.sp-mode-mobile .sp-inline-wait { font-size: 12px; padding: 10px 14px; }
+#sp-panel.sp-mode-mobile .sp-inline-wait-spinner { width: 14px; height: 14px; }
+/* Top-right bleed prevention */
+#sp-panel:not(.sp-visible) { display: none !important; }
+#sp-panel:not(.sp-visible) + #sp-thought-panel,
+#sp-panel:not(.sp-visible) ~ #sp-thought-panel { display: none !important; }
+#sp-thought-panel { pointer-events: none; }
+#sp-thought-panel.sp-tp-visible { pointer-events: auto; }
+#sp-panel.sp-mode-mobile::-webkit-scrollbar { width: 0; }
+#sp-panel.sp-mode-mobile { scrollbar-width: none; }
 /* Custom Panels */
 #sp-panel.sp-mode-mobile .sp-cp-field-key, #sp-panel.sp-mode-mobile .sp-cp-field-label,
 #sp-panel.sp-mode-mobile .sp-cp-field-desc { font-size: 12px; height: 36px; }
