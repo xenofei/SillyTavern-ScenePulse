@@ -1,10 +1,54 @@
-// ScenePulse v4.9.43 — Side Panel Architecture
+// ScenePulse v4.9.44 — Side Panel Architecture
 const MODULE_NAME='scenepulse';const LOG='[ScenePulse]';
 
 const MASCOT_SVG=`<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.2" opacity="0.25" class="sp-mascot-pulse"/><circle cx="12" cy="12" r="6.5" stroke="currentColor" stroke-width="1" opacity="0.4" class="sp-mascot-pulse"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="0.8" opacity="0.6"/><circle cx="12" cy="12" r="1.4" fill="currentColor" opacity="0.9"/><line x1="12" y1="2" x2="12" y2="5.5" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><line x1="12" y1="18.5" x2="12" y2="22" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><line x1="2" y1="12" x2="5.5" y2="12" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><line x1="18.5" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><path d="M12 5.5 L14 10 L12 8.5 L10 10 Z" fill="currentColor" opacity="0.5"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="8s" repeatCount="indefinite"/></path></svg>`;
 const MES_ICON_SVG=`<svg viewBox="0 0 18 18" fill="none" width="16" height="16" xmlns="http://www.w3.org/2000/svg"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1" opacity="0.3"/><circle cx="9" cy="9" r="4" stroke="currentColor" stroke-width="0.8" opacity="0.5"/><circle cx="9" cy="9" r="1.2" fill="currentColor"/><path d="M9 2 L10.2 7 L9 5.8 L7.8 7 Z" fill="currentColor" opacity="0.6"/></svg>`;
 
 const DEFAULTS=Object.freeze({enabled:true,autoGenerate:true,maxRetries:2,contextMessages:8,promptMode:'json',embedSnapshots:1,embedRole:'system',injectionMethod:'inline',connectionProfile:'',chatPreset:'',fallbackProfile:'',fallbackPreset:'',fallbackEnabled:true,setupDismissed:false,lorebookMode:'character_attached',lorebookAllowlist:[],openSections:{scene:true,quests:true,relationships:true,characters:true,branches:false},schema:null,systemPrompt:null,showThoughts:true,thoughtPos:{x:10,y:80},devButtons:false,sceneTransitions:true,panels:{dashboard:true,scene:true,quests:true,relationships:true,characters:true,storyIdeas:true},dashCards:{date:true,time:true,weather:true,temperature:true,location:true},fieldToggles:{},customPanels:[]});
+
+// ── Mobile/Tablet detection ──
+const SP_MOBILE_MAX=600;  // phones: width ≤ 600
+const SP_TABLET_MAX=1024; // tablets: 601–1024
+function spDetectMode(){
+    const w=window.innerWidth;
+    if(w<=SP_MOBILE_MAX)return'mobile';
+    if(w<=SP_TABLET_MAX)return'tablet';
+    return'desktop';
+}
+function spApplyMode(){
+    const p=document.getElementById('sp-panel');if(!p)return;
+    const mode=spDetectMode();
+    p.classList.remove('sp-mode-mobile','sp-mode-tablet');
+    if(mode==='mobile')p.classList.add('sp-mode-mobile');
+    else if(mode==='tablet')p.classList.add('sp-mode-tablet');
+    // Show/hide the minimize button
+    const minBtn=document.getElementById('sp-tb-minimize');
+    if(minBtn)minBtn.style.display=(mode==='mobile'||mode==='tablet')?'inline-flex':'none';
+    // Show/hide FAB based on panel visibility
+    spUpdateFab();
+    return mode;
+}
+function spUpdateFab(){
+    const fab=document.getElementById('sp-mobile-fab');if(!fab)return;
+    const p=document.getElementById('sp-panel');
+    const mode=spDetectMode();
+    if((mode==='mobile'||mode==='tablet')&&p&&!p.classList.contains('sp-visible')){
+        fab.classList.add('sp-fab-visible');
+    }else{
+        fab.classList.remove('sp-fab-visible');
+    }
+}
+function spMinimizePanel(){
+    const p=document.getElementById('sp-panel');if(!p)return;
+    hidePanel();
+    spUpdateFab();
+    log('Mobile: panel minimized');
+}
+function spRestorePanel(){
+    showPanel();
+    spUpdateFab();
+    log('Mobile: panel restored');
+}
 
 // Built-in panel → schema field mapping (used for dynamic schema + prompt generation)
 const BUILTIN_PANELS={
@@ -1505,29 +1549,38 @@ async function generateTracker(mesIdx,partKey,opts){
 function showPanel(){
     const p=document.getElementById('sp-panel');if(!p)return;
     if(!getSettings().enabled){p.classList.remove('sp-visible');return}
-    // Dynamically measure ST's top bar to eliminate gap
-    const topBar=document.getElementById('top-bar')||document.getElementById('top-settings-holder')||document.querySelector('.header,.nav-bar,header');
-    if(topBar){
-        const tbH=topBar.getBoundingClientRect().bottom;
-        p.style.top=tbH+'px';
-        p.style.height=`calc(100vh - ${tbH}px)`;
-    }
-    // Don't recalculate width if compact
-    if(!p.classList.contains('sp-compact')){
-        const sheld=document.getElementById('sheld');
-        if(sheld){
-            const rect=sheld.getBoundingClientRect();
-            const panelW=Math.max(300,window.innerWidth-rect.right);
-            p.style.width=panelW+'px';
-        }
+    const mode=spApplyMode();
+    if(mode==='mobile'){
+        // Full-screen overlay on phones
+        p.style.top='0';p.style.height='100vh';p.style.width='100vw';p.style.right='0';
+    }else if(mode==='tablet'){
+        // ~70% width overlay on tablets
+        const tbW=Math.min(Math.round(window.innerWidth*0.7),600);
+        p.style.top='0';p.style.height='100vh';p.style.width=tbW+'px';p.style.right='0';
     }else{
-        // Compact mode: use clamp matching CSS
-        const compactW=Math.max(240,Math.min(Math.round(window.innerWidth*0.22),280));
-        p.style.width=compactW+'px';
+        // Desktop: measure ST's top bar
+        const topBar=document.getElementById('top-bar')||document.getElementById('top-settings-holder')||document.querySelector('.header,.nav-bar,header');
+        if(topBar){
+            const tbH=topBar.getBoundingClientRect().bottom;
+            p.style.top=tbH+'px';
+            p.style.height=`calc(100vh - ${tbH}px)`;
+        }
+        if(!p.classList.contains('sp-compact')){
+            const sheld=document.getElementById('sheld');
+            if(sheld){
+                const rect=sheld.getBoundingClientRect();
+                const panelW=Math.max(300,window.innerWidth-rect.right);
+                p.style.width=panelW+'px';
+            }
+        }else{
+            const compactW=Math.max(240,Math.min(Math.round(window.innerWidth*0.22),280));
+            p.style.width=compactW+'px';
+        }
     }
     p.classList.add('sp-visible');
     syncThoughts();
-    log('Panel shown, width:',p.style.width,'top:',p.style.top);
+    spUpdateFab();
+    log('Panel shown, width:',p.style.width,'top:',p.style.top,'mode:',mode);
 }
 function hidePanel(){
     const p=document.getElementById('sp-panel');if(!p)return;
@@ -1536,6 +1589,7 @@ function hidePanel(){
     if(tp)tp.classList.remove('sp-tp-visible');
     clearWeatherOverlay();
     clearTimeTint();
+    spUpdateFab();
     log('Panel hidden');
 }
 function syncThoughts(){
@@ -1555,7 +1609,7 @@ function createPanel(){
     const panel=document.createElement('div');panel.id='sp-panel';
     panel.innerHTML=`
     <div class="sp-toolbar">
-        <div class="sp-brand-icon" id="sp-brand-icon" title="ScenePulse v4.9.43">${MASCOT_SVG}</div>
+        <div class="sp-brand-icon" id="sp-brand-icon" title="ScenePulse v4.9.44">${MASCOT_SVG}</div>
         <div class="sp-brand-title">Scene<span class="sp-brand-accent">Pulse</span></div>
         <span class="sp-toolbar-spacer"></span>
         <button class="sp-toolbar-btn" id="sp-tb-regen" title="Regenerate all"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M13.5 8a5.5 5.5 0 1 1-1.3-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M13.5 3v2.5h-2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
@@ -1572,12 +1626,23 @@ function createPanel(){
         <button class="sp-toolbar-btn" id="sp-tb-edit" title="Toggle edit mode"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M11.5 1.5l3 3-8.5 8.5H3v-3l8.5-8.5z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><line x1="9.5" y1="3.5" x2="12.5" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.4"/><line x1="3" y1="14.5" x2="13" y2="14.5" stroke="currentColor" stroke-width="1" opacity="0.3" stroke-linecap="round"/></svg></button>
         <div class="sp-dev-wrap" id="sp-dev-wx-wrap" style="display:none"><button class="sp-toolbar-btn sp-tb-dev" id="sp-tb-dev-wx" title="DEV: Weather overlays"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M4 12c-1.8 0-3-1-3-2.5S2 7.5 3.5 7C4 4.5 6 3 8.5 3c2.2 0 4 1.5 4.2 3.5C14 6.8 15 8 15 9.5S13.5 12 12 12z" stroke="currentColor" stroke-width="1.1" fill="currentColor" opacity="0.15"/><path d="M6 8l2-3 2 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/><line x1="8" y1="8" x2="8" y2="13" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/></svg></button><div class="sp-dev-dropdown" id="sp-dev-wx-menu"></div></div>
         <div class="sp-dev-wrap" id="sp-dev-time-wrap" style="display:none"><button class="sp-toolbar-btn sp-tb-dev" id="sp-tb-dev-time" title="DEV: Time-of-day tints"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><circle cx="8" cy="8" r="5.5" stroke="currentColor" stroke-width="1.2"/><line x1="8" y1="8" x2="8" y2="4.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><line x1="8" y1="8" x2="11" y2="9.5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/><circle cx="8" cy="8" r="0.8" fill="currentColor"/></svg></button><div class="sp-dev-dropdown" id="sp-dev-time-menu"></div></div>
+        <button class="sp-toolbar-btn" id="sp-tb-minimize" title="Hide panel" style="display:none"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><line x1="2" y1="13" x2="14" y2="13" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity="0.4"/></svg></button>
     </div>
     <div id="sp-panel-body"><div class="sp-empty-state"><div class="sp-empty-icon">📡</div><div class="sp-empty-title">No scene data yet</div><div class="sp-empty-sub">Send a message or click <strong>⟳</strong> to generate.</div></div></div>`;
     document.body.appendChild(panel);
     log('Panel appended to body');
-    // Recalculate panel width on resize
-    window.addEventListener('resize',()=>{const p=document.getElementById('sp-panel');if(p?.classList.contains('sp-visible'))showPanel()});
+
+    // ── Mobile FAB (floating action button to restore panel) ──
+    if(!document.getElementById('sp-mobile-fab')){
+        const fab=document.createElement('button');fab.id='sp-mobile-fab';fab.className='sp-mobile-fab';
+        fab.title='Show ScenePulse';fab.innerHTML=MASCOT_SVG;
+        fab.addEventListener('click',spRestorePanel);
+        document.body.appendChild(fab);
+    }
+    // ── Minimize button handler ──
+    document.getElementById('sp-tb-minimize').addEventListener('click',spMinimizePanel);
+    // Recalculate panel width on resize + apply mode
+    window.addEventListener('resize',()=>{const p=document.getElementById('sp-panel');if(p?.classList.contains('sp-visible'))showPanel();spApplyMode()});
 
     // Easter egg: click the icon for a surprise spin
     let eggClicks=0;
@@ -4467,7 +4532,7 @@ function createSettings(){
     try{po=getConnectionProfiles().map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}catch{}
     try{pre=getChatPresets().map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}catch{}
     try{lo=getLorebooks().map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}catch{}
-    const html=`<div id="scenepulse-settings" class="extension_settings"><div class="inline-drawer"><div class="inline-drawer-toggle inline-drawer-header"><div class="sp-drawer-header-content"><span class="sp-drawer-icon-wrap">${MASCOT_SVG}</span><div class="sp-drawer-title-block"><span class="sp-drawer-title">Scene<span style="color:var(--sp-accent)">Pulse</span></span><span class="sp-drawer-version">v4.9.43 — Scene Intelligence</span></div><span class="sp-drawer-badge sp-on" id="sp-badge"><span class="sp-drawer-badge-dot"></span>Active</span></div><div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div></div><div class="inline-drawer-content">
+    const html=`<div id="scenepulse-settings" class="extension_settings"><div class="inline-drawer"><div class="inline-drawer-toggle inline-drawer-header"><div class="sp-drawer-header-content"><span class="sp-drawer-icon-wrap">${MASCOT_SVG}</span><div class="sp-drawer-title-block"><span class="sp-drawer-title">Scene<span style="color:var(--sp-accent)">Pulse</span></span><span class="sp-drawer-version">v4.9.44 — Scene Intelligence</span></div><span class="sp-drawer-badge sp-on" id="sp-badge"><span class="sp-drawer-badge-dot"></span>Active</span></div><div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div></div><div class="inline-drawer-content">
 <div class="sp-sh">General</div><label class="sp-ck"><input type="checkbox" id="sp-enabled"> Enable ScenePulse</label><label class="sp-ck"><input type="checkbox" id="sp-auto-gen"> Auto-generate on AI messages</label><label class="sp-ck"><input type="checkbox" id="sp-show-thoughts"> Show thought bubbles</label><label class="sp-ck"><input type="checkbox" id="sp-show-weather"> Weather overlay effects</label><label class="sp-ck"><input type="checkbox" id="sp-show-timetint"> Time-of-day ambience</label><label class="sp-ck"><input type="checkbox" id="sp-show-devbtns"> Show developer tools</label><div id="sp-separate-settings"><div class="sp-fi"><label>Context msgs</label><input type="number" id="sp-ctx" min="1" max="30"></div><div class="sp-hint sp-ctx-hint">How many recent messages to include when generating tracker updates. <em>Separate mode only — Together mode uses ST's full context automatically.</em><br><span class="sp-ctx-range"><strong>3–4</strong> · Fastest. Good for simple 1-on-1 scenes (~5K token prompt)</span><br><span class="sp-ctx-range"><strong>5–8</strong> · Balanced. Recommended for most scenes (~8–12K tokens)</span><br><span class="sp-ctx-range"><strong>8–15</strong> · Better continuity for complex multi-character scenes (~12–20K tokens)</span><br><span class="sp-ctx-range"><strong>15+</strong> · Maximum context but significantly slower and more expensive</span><br><span class="sp-ctx-note">⚠ This is the biggest factor in Separate mode speed. At 8 msgs your tracker prompt is ~10K tokens — doubling roughly doubles generation time. Lower values (3–4) can cut tracker time by 40–60%.</span></div><div class="sp-fi"><label>Max retries</label><input type="number" id="sp-retries" min="0" max="5"></div><div class="sp-hint sp-ctx-hint"><em>Separate mode only.</em> How many times to retry if the tracker API call returns invalid JSON.</div></div>
 <div class="sp-sh">Injection Method</div><div class="sp-fs"><label>Mode</label><select id="sp-injection-method"><option value="inline">Together (AI appends tracker to its response)</option><option value="separate">Separate (dedicated API call after AI response)</option></select></div>
 <div id="sp-method-inline"><div class="sp-hint">The AI writes its normal response, then appends tracker JSON at the end. ScenePulse automatically extracts and hides the JSON. <strong>Recommended for most setups.</strong></div><div class="sp-hint sp-pros-cons"><span class="sp-pro">✓ Single API call — typically ~100–120s total</span><br><span class="sp-pro">✓ No profile switching — eliminates message deletion risk</span><br><span class="sp-pro">✓ AI has full narrative context for accurate tracking</span><br><span class="sp-pro">✓ 2–3× faster than Separate mode in practice</span><br><span class="sp-con">✗ Uses tokens from the main response budget (~1,700 tokens for tracker)</span><br><span class="sp-con">✗ May slightly reduce narrative length on token-limited models</span></div>
@@ -4803,7 +4868,7 @@ eventSource.on(event_types.APP_READY,()=>{try{
     if(!_s.setupDismissed){
         setTimeout(()=>showSetupGuide(),2000);
     }
-    log('v4.9.43 ready');
+    log('v4.9.44 ready');
     // One-time migration: reset stale sub-field toggles from old Disable All
     if(_s.fieldToggles){
         const _ft=_s.fieldToggles;const _p=_s.panels||DEFAULTS.panels;
@@ -4916,4 +4981,4 @@ eventSource.on(event_types.CHAT_CHANGED,async()=>{
         if(msgs.length===0)setTimeout(renderExisting,500);
     },200);
 });
-log('v4.9.43 init');
+log('v4.9.44 init');
