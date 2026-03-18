@@ -1,5 +1,5 @@
-// ScenePulse v4.9.74 — Side Panel Architecture
-const MODULE_NAME='scenepulse';const LOG='[ScenePulse]';const SP_LS_KEY='scenepulse_profiles';
+// ScenePulse v4.9.75 — Side Panel Architecture
+const MODULE_NAME='scenepulse';const LOG='[ScenePulse]';const SP_LS_KEY='scenepulse_config';
 
 const MASCOT_SVG=`<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.2" opacity="0.25" class="sp-mascot-pulse"/><circle cx="12" cy="12" r="6.5" stroke="currentColor" stroke-width="1" opacity="0.4" class="sp-mascot-pulse"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="0.8" opacity="0.6"/><circle cx="12" cy="12" r="1.4" fill="currentColor" opacity="0.9"/><line x1="12" y1="2" x2="12" y2="5.5" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><line x1="12" y1="18.5" x2="12" y2="22" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><line x1="2" y1="12" x2="5.5" y2="12" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><line x1="18.5" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><path d="M12 5.5 L14 10 L12 8.5 L10 10 Z" fill="currentColor" opacity="0.5"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="8s" repeatCount="indefinite"/></path></svg>`;
 const MES_ICON_SVG=`<svg viewBox="0 0 18 18" fill="none" width="16" height="16" xmlns="http://www.w3.org/2000/svg"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1" opacity="0.3"/><circle cx="9" cy="9" r="4" stroke="currentColor" stroke-width="0.8" opacity="0.5"/><circle cx="9" cy="9" r="1.2" fill="currentColor"/><path d="M9 2 L10.2 7 L9 5.8 L7.8 7 Z" fill="currentColor" opacity="0.6"/></svg>`;
@@ -1731,7 +1731,7 @@ async function generateTracker(mesIdx,partKey,opts){
         log('  northStar:',result.northStar?'"'+result.northStar.substring(0,60)+'"':'(empty)');
         log('  scene:',result.sceneTopic?'topic=✓':'topic=✗',result.sceneMood?'mood=✓':'mood=✗',result.sceneTension?'tension=✓':'tension=✗');
         if(result.characters?.length){for(const ch of result.characters)log('  char:',ch.name,'role=',ch.role?'✓':'✗','thought=',ch.innerThought?'✓':'✗','hair=',ch.hair?'✓':'✗')}
-        if(result.relationships?.length){for(const r of result.relationships)log('  rel:',r.name,'aff=',r.affection,'trust=',r.trust,'desire=',r.desire)}
+        if(result.relationships?.length){for(const r of result.relationships)log('  rel:',r.name,'aff=',r.affection,'trust=',r.trust,'desire=',r.desire,'compat=',r.compatibility)}
         currentSnapshotMesIdx=mesIdx;
         // Embed generation metadata into snapshot for persistence
         result._spMeta={promptTokens:genMeta.promptTokens,completionTokens:genMeta.completionTokens,elapsed:genMeta.elapsed,source:lastGenSource,injectionMethod:getSettings().injectionMethod||'inline'};
@@ -1814,7 +1814,7 @@ function createPanel(){
     const panel=document.createElement('div');panel.id='sp-panel';
     panel.innerHTML=`
     <div class="sp-toolbar">
-        <div class="sp-brand-icon" id="sp-brand-icon" title="ScenePulse v4.9.74">${MASCOT_SVG}</div>
+        <div class="sp-brand-icon" id="sp-brand-icon" title="ScenePulse v4.9.75">${MASCOT_SVG}</div>
         <div class="sp-brand-title">Scene<span class="sp-brand-accent">Pulse</span></div>
         <span class="sp-toolbar-spacer"></span>
         <button class="sp-toolbar-btn" id="sp-tb-regen" title="Regenerate all"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M13.5 8a5.5 5.5 0 1 1-1.3-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M13.5 3v2.5h-2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
@@ -3683,13 +3683,34 @@ function updatePanel(d,_force=false){
             if(_showFert||_isEdit){const fertDiv=document.createElement('div');fertDiv.className='sp-fert-section';fertDiv.dataset.ft='char_fertility';
                 if(ch.fertStatus==='N/A'&&!_isEdit)fertDiv.innerHTML=`<div class="sp-fert-na">Fertility: N/A \u2014 ${esc(ch.fertReason||'n/a')}</div>`;
                 else{const fg=document.createElement('div');fg.className='sp-char-grid';
-                    const fertFields=[['Status','fertStatus'],['Reason','fertReason'],['Cycle','fertCyclePhase'],['Day','fertCycleDay'],['Window','fertWindow'],['Pregnancy','fertPregnancy'],['Week','fertPregWeek'],['Notes','fertNotes']];
+                    // Group fertility fields: status+reason, cycle+day, window+pregnancy+week, notes
+                    const fertFields=[['Status','fertStatus'],['Reason','fertReason'],['Cycle','fertCyclePhase']];
+                    // Compact row for day + window on one line
+                    const fertInline=[['Day','fertCycleDay'],['Window','fertWindow'],['Pregnancy','fertPregnancy'],['Week','fertPregWeek']];
                     for(const[l,key]of fertFields){
                         const v=String(ch[key]||'');
                         const fd=document.createElement('div');fd.className='sp-char-field';fd.textContent=l;
                         const vd=document.createElement('div');vd.className='sp-char-val';vd.textContent=v||'\u2014';
                         if(!v){vd.classList.add('sp-empty-field');vd.dataset.placeholder=l}
                         mkEditable(vd,()=>String(ch[key]||''),nv=>{ch[key]=nv;const snap=getLatestSnapshot();if(snap?.characters?.[ci])snap.characters[ci][key]=nv});
+                        fg.appendChild(fd);fg.appendChild(vd);
+                    }
+                    // Inline compact row for short fields (Day/Window/Pregnancy/Week)
+                    const inlineLabel=document.createElement('div');inlineLabel.className='sp-char-field';inlineLabel.style.cssText='grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap;padding:2px 0';
+                    for(const[l,key]of fertInline){
+                        const v=String(ch[key]||'');if(!v&&!_isEdit)continue;
+                        const span=document.createElement('span');span.className='sp-fert-inline';
+                        span.innerHTML=`<span class="sp-fert-inline-label">${esc(l)}</span> <span class="sp-fert-inline-val">${esc(v||'\u2014')}</span>`;
+                        mkEditable(span.querySelector('.sp-fert-inline-val'),()=>String(ch[key]||''),nv=>{ch[key]=nv;const snap=getLatestSnapshot();if(snap?.characters?.[ci])snap.characters[ci][key]=nv});
+                        inlineLabel.appendChild(span);
+                    }
+                    if(inlineLabel.children.length)fg.appendChild(inlineLabel);
+                    // Notes as full-width row
+                    if(ch.fertNotes||_isEdit){
+                        const fd=document.createElement('div');fd.className='sp-char-field';fd.textContent='Notes';
+                        const vd=document.createElement('div');vd.className='sp-char-val';vd.textContent=ch.fertNotes||'\u2014';
+                        if(!ch.fertNotes){vd.classList.add('sp-empty-field');vd.dataset.placeholder='Notes'}
+                        mkEditable(vd,()=>String(ch.fertNotes||''),nv=>{ch.fertNotes=nv;const snap=getLatestSnapshot();if(snap?.characters?.[ci])snap.characters[ci].fertNotes=nv});
                         fg.appendChild(fd);fg.appendChild(vd);
                     }
                     fertDiv.appendChild(fg)}
@@ -4165,7 +4186,7 @@ async function onCharMsg(idx){
             log('  ideas:',norm.plotBranches?.length||0,'northStar:',JSON.stringify(norm.northStar||'').substring(0,50));
             log('  scene: topic='+(norm.sceneTopic?'✓':'✗'),'mood='+(norm.sceneMood?'✓':'✗'),'tension='+(norm.sceneTension?'✓':'✗'));
             if(norm.characters?.length)for(const c of norm.characters)log('  char:',c.name,'role=',c.role?'✓':'✗','thought=',c.innerThought?'✓':'✗');
-            if(norm.relationships?.length)for(const r of norm.relationships)log('  rel:',r.name,'aff=',r.affection,'trust=',r.trust,'desire=',r.desire);
+            if(norm.relationships?.length)for(const r of norm.relationships)log('  rel:',r.name,'aff=',r.affection,'trust=',r.trust,'desire=',r.desire,'compat=',r.compatibility);
             currentSnapshotMesIdx=idx;
             extracted._spMeta={promptTokens:genMeta.promptTokens,completionTokens:genMeta.completionTokens,elapsed:genMeta.elapsed,source:lastGenSource,injectionMethod:'inline'};
             saveSnapshot(idx,extracted);
@@ -4297,8 +4318,8 @@ async function renderExisting(){
     if(latest){
         log('renderExisting: latest snapshot has chars=',latest.characters?.length||0,'rels=',latest.relationships?.length||0);
         try{updatePanel(latest,true);log('renderExisting: panel updated')}catch(e){err('updatePanel:',e)}
+        spAutoShow(); // Show panel BEFORE thoughts so syncThoughts sees it as visible
         try{updateThoughts(latest);log('renderExisting: thoughts updated')}catch(e){err('updateThoughts:',e)}
-        spAutoShow();
     } else {
         // No data yet — show empty panel with centered waiting message
         spAutoShow();
@@ -4522,7 +4543,7 @@ function showSetupGuide(){
             const pre=ov.querySelector('#sp-setup-fb-preset')?.value||'';
             const enabled=ov.querySelector('input[name="sp-setup-fb-enable"]:checked')?.value!=='no';
             s.fallbackProfile=prof;s.fallbackPreset=pre;s.fallbackEnabled=enabled;s.setupDismissed=true;
-            saveSettings();_spSaveProfilesLS();loadUI();
+            saveSettings();_spSaveLS();loadUI();
             ov.remove();
             if(enabled&&prof)toastr.success('Fallback configured with profile: '+prof,'ScenePulse Setup');
             else if(enabled)toastr.info('Fallback enabled (using current profile)','ScenePulse Setup');
@@ -4535,7 +4556,7 @@ function showSetupGuide(){
             const pre=ov.querySelector('#sp-setup-fb-preset')?.value||'';
             const enabled=ov.querySelector('input[name="sp-setup-fb-enable"]:checked')?.value!=='no';
             s.fallbackProfile=prof;s.fallbackPreset=pre;s.fallbackEnabled=enabled;s.setupDismissed=true;
-            saveSettings();_spSaveProfilesLS();loadUI();ov.remove();
+            saveSettings();_spSaveLS();loadUI();ov.remove();
             startGuidedTour();
         }
     });
@@ -4777,7 +4798,7 @@ function createSettings(){
     try{po=getConnectionProfiles().map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}catch{}
     try{pre=getChatPresets().map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}catch{}
     try{lo=getLorebooks().map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}catch{}
-    const html=`<div id="scenepulse-settings" class="extension_settings"><div class="inline-drawer"><div class="inline-drawer-toggle inline-drawer-header"><div class="sp-drawer-header-content"><span class="sp-drawer-icon-wrap">${MASCOT_SVG}</span><div class="sp-drawer-title-block"><span class="sp-drawer-title">Scene<span style="color:var(--sp-accent)">Pulse</span></span><span class="sp-drawer-version">v4.9.74 — Scene Intelligence</span></div><span class="sp-drawer-badge sp-on" id="sp-badge"><span class="sp-drawer-badge-dot"></span>Active</span></div><div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div></div><div class="inline-drawer-content">
+    const html=`<div id="scenepulse-settings" class="extension_settings"><div class="inline-drawer"><div class="inline-drawer-toggle inline-drawer-header"><div class="sp-drawer-header-content"><span class="sp-drawer-icon-wrap">${MASCOT_SVG}</span><div class="sp-drawer-title-block"><span class="sp-drawer-title">Scene<span style="color:var(--sp-accent)">Pulse</span></span><span class="sp-drawer-version">v4.9.75 — Scene Intelligence</span></div><span class="sp-drawer-badge sp-on" id="sp-badge"><span class="sp-drawer-badge-dot"></span>Active</span></div><div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div></div><div class="inline-drawer-content">
 <div class="sp-sh">General</div><label class="sp-ck"><input type="checkbox" id="sp-enabled"> Enable ScenePulse</label><label class="sp-ck"><input type="checkbox" id="sp-auto-gen"> Auto-generate on AI messages</label><label class="sp-ck"><input type="checkbox" id="sp-show-thoughts"> Show thought bubbles</label><label class="sp-ck"><input type="checkbox" id="sp-show-weather"> Weather overlay effects</label><label class="sp-ck"><input type="checkbox" id="sp-show-timetint"> Time-of-day ambience</label><label class="sp-ck"><input type="checkbox" id="sp-show-devbtns"> Show developer tools</label><div style="margin-top:6px;display:flex;gap:6px"><button class="sp-btn" id="sp-btn-setup">📋 Setup Guide</button><button class="sp-btn" id="sp-btn-tour">✦ Guided Tour</button></div><div id="sp-separate-settings"><div class="sp-fi"><label>Context msgs</label><input type="number" id="sp-ctx" min="1" max="30"></div><div class="sp-hint sp-ctx-hint">How many recent messages to include when generating tracker updates. <em>Separate mode only — Together mode uses ST's full context automatically.</em><br><span class="sp-ctx-range"><strong>3–4</strong> · Fastest. Good for simple 1-on-1 scenes (~5K token prompt)</span><br><span class="sp-ctx-range"><strong>5–8</strong> · Balanced. Recommended for most scenes (~8–12K tokens)</span><br><span class="sp-ctx-range"><strong>8–15</strong> · Better continuity for complex multi-character scenes (~12–20K tokens)</span><br><span class="sp-ctx-range"><strong>15+</strong> · Maximum context but significantly slower and more expensive</span><br><span class="sp-ctx-note">⚠ This is the biggest factor in Separate mode speed. At 8 msgs your tracker prompt is ~10K tokens — doubling roughly doubles generation time. Lower values (3–4) can cut tracker time by 40–60%.</span></div><div class="sp-fi"><label>Max retries</label><input type="number" id="sp-retries" min="0" max="5"></div><div class="sp-hint sp-ctx-hint"><em>Separate mode only.</em> How many times to retry if the tracker API call returns invalid JSON.</div></div>
 <div class="sp-sh">Injection Method</div><div class="sp-fs"><label>Mode</label><select id="sp-injection-method"><option value="inline">Together (AI appends tracker to its response)</option><option value="separate">Separate (dedicated API call after AI response)</option></select></div>
 <div id="sp-method-inline"><div class="sp-hint">The AI writes its normal response, then appends tracker JSON at the end. ScenePulse automatically extracts and hides the JSON. <strong>Recommended for most setups.</strong></div><div class="sp-hint sp-pros-cons"><span class="sp-pro">✓ Single API call — typically ~100–120s total</span><br><span class="sp-pro">✓ No profile switching — eliminates message deletion risk</span><br><span class="sp-pro">✓ AI has full narrative context for accurate tracking</span><br><span class="sp-pro">✓ 2–3× faster than Separate mode in practice</span><br><span class="sp-con">✗ Uses tokens from the main response budget (~1,700 tokens for tracker)</span><br><span class="sp-con">✗ May slightly reduce narrative length on token-limited models</span></div>
@@ -4962,21 +4983,48 @@ function updateBadge(){const on=getSettings().enabled;const b=document.getElemen
 function loadUI(){const s=getSettings();$('#sp-enabled').prop('checked',s.enabled);$('#sp-auto-gen').prop('checked',s.autoGenerate);$('#sp-show-thoughts').prop('checked',s.showThoughts!==false);$('#sp-show-weather').prop('checked',s.weatherOverlay!==false);$('#sp-show-timetint').prop('checked',s.timeTint!==false);$('#sp-show-devbtns').prop('checked',s.devButtons===true);$('#sp-ctx').val(s.contextMessages);$('#sp-retries').val(s.maxRetries);$('#sp-mode').val(s.promptMode||'json');$('#sp-embed-n').val(s.embedSnapshots);$('#sp-embed-role').val(s.embedRole);$('#sp-lore-mode').val(s.lorebookMode||'character_attached');
     // Rebuild profile/preset dropdowns from current DOM (ST may load them late)
     const profiles=getConnectionProfiles();const presets=getChatPresets();
-    // ── localStorage is the source of truth for profile/preset selections ──
+    // ── localStorage is the source of truth for config persistence ──
     // ST's extensionSettings save pipeline has race conditions with CHAT_CHANGED during init.
     // localStorage is synchronous and completely independent.
-    const _lsLoad=()=>{try{return JSON.parse(localStorage.getItem(SP_LS_KEY)||'{}')}catch{return{}}};
+    const _lsLoad=()=>{
+        try{
+            let raw=localStorage.getItem(SP_LS_KEY);
+            // Migrate from old key name
+            if(!raw){raw=localStorage.getItem('scenepulse_profiles');if(raw)localStorage.removeItem('scenepulse_profiles')}
+            return raw?JSON.parse(raw):{}
+        }catch{return{}}
+    };
     const ls=_lsLoad();
     // On first run or upgrade, seed from extensionSettings if localStorage is empty
-    if(!ls.connectionProfile&&s.connectionProfile)ls.connectionProfile=s.connectionProfile;
-    if(!ls.chatPreset&&s.chatPreset)ls.chatPreset=s.chatPreset;
-    if(!ls.fallbackProfile&&s.fallbackProfile)ls.fallbackProfile=s.fallbackProfile;
-    if(!ls.fallbackPreset&&s.fallbackPreset)ls.fallbackPreset=s.fallbackPreset;
+    const _seed=(key)=>{if(ls[key]===undefined&&s[key]!==undefined&&s[key]!=='')ls[key]=s[key]};
+    _seed('connectionProfile');_seed('chatPreset');_seed('fallbackProfile');_seed('fallbackPreset');
+    _seed('fallbackEnabled');_seed('injectionMethod');_seed('lorebookMode');
+    _seed('contextMessages');_seed('maxRetries');_seed('promptMode');
+    _seed('embedSnapshots');_seed('embedRole');_seed('showThoughts');
+    _seed('weatherOverlay');_seed('timeTint');
     // Apply localStorage values back to settings (overrides whatever ST loaded from disk)
-    if(ls.connectionProfile)s.connectionProfile=ls.connectionProfile;
-    if(ls.chatPreset)s.chatPreset=ls.chatPreset;
-    if(ls.fallbackProfile)s.fallbackProfile=ls.fallbackProfile;
-    if(ls.fallbackPreset)s.fallbackPreset=ls.fallbackPreset;
+    if(ls.connectionProfile!==undefined)s.connectionProfile=ls.connectionProfile;
+    if(ls.chatPreset!==undefined)s.chatPreset=ls.chatPreset;
+    if(ls.fallbackProfile!==undefined)s.fallbackProfile=ls.fallbackProfile;
+    if(ls.fallbackPreset!==undefined)s.fallbackPreset=ls.fallbackPreset;
+    if(ls.fallbackEnabled!==undefined)s.fallbackEnabled=ls.fallbackEnabled;
+    if(ls.injectionMethod!==undefined)s.injectionMethod=ls.injectionMethod;
+    if(ls.lorebookMode!==undefined)s.lorebookMode=ls.lorebookMode;
+    if(ls.contextMessages!==undefined)s.contextMessages=ls.contextMessages;
+    if(ls.maxRetries!==undefined)s.maxRetries=ls.maxRetries;
+    if(ls.promptMode!==undefined)s.promptMode=ls.promptMode;
+    if(ls.embedSnapshots!==undefined)s.embedSnapshots=ls.embedSnapshots;
+    if(ls.embedRole!==undefined)s.embedRole=ls.embedRole;
+    if(ls.showThoughts!==undefined)s.showThoughts=ls.showThoughts;
+    if(ls.weatherOverlay!==undefined)s.weatherOverlay=ls.weatherOverlay;
+    if(ls.timeTint!==undefined)s.timeTint=ls.timeTint;
+    // Re-apply form values after localStorage override
+    $('#sp-show-thoughts').prop('checked',s.showThoughts!==false);
+    $('#sp-show-weather').prop('checked',s.weatherOverlay!==false);
+    $('#sp-show-timetint').prop('checked',s.timeTint!==false);
+    $('#sp-ctx').val(s.contextMessages);$('#sp-retries').val(s.maxRetries);
+    $('#sp-mode').val(s.promptMode||'json');$('#sp-embed-n').val(s.embedSnapshots);$('#sp-embed-role').val(s.embedRole);
+    $('#sp-lore-mode').val(s.lorebookMode||'character_attached');
     // Smart val: resolve saved value (may be UUID or legacy name) to an option value
     const _smartVal=(sel,val,list,label)=>{
         const $el=$(sel);
@@ -5030,39 +5078,47 @@ function loadUI(){const s=getSettings();$('#sp-enabled').prop('checked',s.enable
     $('#sp-schema').val(schemaStr);
     updateBadge();$('#sp-lore-section').toggle(s.lorebookMode==='allowlist');$('#scenepulse-settings .inline-drawer-content').toggleClass('sp-disabled',!s.enabled);
     // Save resolved UUIDs back to localStorage (synchronous, immune to ST race conditions)
-    _spSaveProfilesLS();
+    _spSaveLS();
 }
-// ── localStorage helper for profile/preset persistence ──
+// ── localStorage helper for config persistence ──
 // ST's extensionSettings save has race conditions with CHAT_CHANGED. localStorage is synchronous + reliable.
-function _spSaveProfilesLS(){
+function _spSaveLS(){
     const s=getSettings();
     try{localStorage.setItem(SP_LS_KEY,JSON.stringify({
         connectionProfile:s.connectionProfile||'',chatPreset:s.chatPreset||'',
-        fallbackProfile:s.fallbackProfile||'',fallbackPreset:s.fallbackPreset||''
+        fallbackProfile:s.fallbackProfile||'',fallbackPreset:s.fallbackPreset||'',
+        fallbackEnabled:s.fallbackEnabled!==false,
+        injectionMethod:s.injectionMethod||'inline',
+        lorebookMode:s.lorebookMode||'character_attached',
+        contextMessages:s.contextMessages||8,maxRetries:s.maxRetries??2,
+        promptMode:s.promptMode||'json',
+        embedSnapshots:s.embedSnapshots??1,embedRole:s.embedRole||'system',
+        showThoughts:s.showThoughts!==false,
+        weatherOverlay:s.weatherOverlay!==false,timeTint:s.timeTint!==false
     }))}catch(e){warn('localStorage save:',e)}
 }
 function bindUI(){const s=getSettings();
     $('#sp-enabled').on('change',function(){s.enabled=this.checked;saveSettings();updateBadge();$('#scenepulse-settings .inline-drawer-content').toggleClass('sp-disabled',!this.checked);if(!this.checked){hidePanel();const tp=document.getElementById('sp-thought-panel');if(tp)tp.classList.remove('sp-tp-visible')}else{renderExisting()}});
     $('#sp-auto-gen').on('change',function(){s.autoGenerate=this.checked;saveSettings()});
-    $('#sp-injection-method').on('change',function(){s.injectionMethod=this.value;saveSettings();$('#sp-method-inline').toggle(this.value==='inline');$('#sp-method-separate').toggle(this.value!=='inline');$('#sp-embed-section').toggle(this.value!=='inline');$('#sp-separate-settings').toggle(this.value!=='inline');updateLorebookRec()});
-    $('#sp-show-thoughts').on('change',function(){s.showThoughts=this.checked;saveSettings();const tp=document.getElementById('sp-thought-panel');if(tp){if(this.checked){const snap=getLatestSnapshot();if(snap)updateThoughts(normalizeTracker(snap))}else tp.classList.remove('sp-tp-visible')}});
-    $('#sp-show-weather').on('change',function(){s.weatherOverlay=this.checked;saveSettings();const btn=document.getElementById('sp-tb-weather');if(btn)btn.classList.toggle('sp-tb-active',this.checked);if(!this.checked)clearWeatherOverlay();else{const snap=getLatestSnapshot();if(snap){const n=normalizeTracker(snap);updateWeatherOverlay(n.weather)}}});
-    $('#sp-show-timetint').on('change',function(){s.timeTint=this.checked;saveSettings();const btn=document.getElementById('sp-tb-timeTint');if(btn)btn.classList.toggle('sp-tb-active',this.checked);if(!this.checked)clearTimeTint();else{const snap=getLatestSnapshot();if(snap){const n=normalizeTracker(snap);updateTimeTint(n.time)}}});
+    $('#sp-injection-method').on('change',function(){s.injectionMethod=this.value;saveSettings();_spSaveLS();$('#sp-method-inline').toggle(this.value==='inline');$('#sp-method-separate').toggle(this.value!=='inline');$('#sp-embed-section').toggle(this.value!=='inline');$('#sp-separate-settings').toggle(this.value!=='inline');updateLorebookRec()});
+    $('#sp-show-thoughts').on('change',function(){s.showThoughts=this.checked;saveSettings();_spSaveLS();const tp=document.getElementById('sp-thought-panel');if(tp){if(this.checked){const snap=getLatestSnapshot();if(snap)updateThoughts(normalizeTracker(snap))}else tp.classList.remove('sp-tp-visible')}});
+    $('#sp-show-weather').on('change',function(){s.weatherOverlay=this.checked;saveSettings();_spSaveLS();const btn=document.getElementById('sp-tb-weather');if(btn)btn.classList.toggle('sp-tb-active',this.checked);if(!this.checked)clearWeatherOverlay();else{const snap=getLatestSnapshot();if(snap){const n=normalizeTracker(snap);updateWeatherOverlay(n.weather)}}});
+    $('#sp-show-timetint').on('change',function(){s.timeTint=this.checked;saveSettings();_spSaveLS();const btn=document.getElementById('sp-tb-timeTint');if(btn)btn.classList.toggle('sp-tb-active',this.checked);if(!this.checked)clearTimeTint();else{const snap=getLatestSnapshot();if(snap){const n=normalizeTracker(snap);updateTimeTint(n.time)}}});
     $('#sp-show-devbtns').on('change',function(){s.devButtons=this.checked;saveSettings();const dv=this.checked?'':'none';const dw=document.getElementById('sp-dev-wx-wrap');if(dw)dw.style.display=dv;const dt=document.getElementById('sp-dev-time-wrap');if(dt)dt.style.display=dv});
-    $('#sp-ctx').on('change',function(){s.contextMessages=clamp(+this.value,1,30);saveSettings()});
-    $('#sp-retries').on('change',function(){s.maxRetries=clamp(+this.value,0,5);saveSettings()});
-    $('#sp-profile').on('change',function(){s.connectionProfile=this.value;saveSettings();_spSaveProfilesLS()});
-    $('#sp-preset').on('change',function(){s.chatPreset=this.value;saveSettings();_spSaveProfilesLS();$('#sp-preset-info').toggle(!this.value)});
-    $('#sp-mode').on('change',function(){s.promptMode=this.value;saveSettings()});
+    $('#sp-ctx').on('change',function(){s.contextMessages=clamp(+this.value,1,30);saveSettings();_spSaveLS()});
+    $('#sp-retries').on('change',function(){s.maxRetries=clamp(+this.value,0,5);saveSettings();_spSaveLS()});
+    $('#sp-profile').on('change',function(){s.connectionProfile=this.value;saveSettings();_spSaveLS()});
+    $('#sp-preset').on('change',function(){s.chatPreset=this.value;saveSettings();_spSaveLS();$('#sp-preset-info').toggle(!this.value)});
+    $('#sp-mode').on('change',function(){s.promptMode=this.value;saveSettings();_spSaveLS()});
     // Fallback settings
-    $('#sp-fallback-enabled').on('change',function(){s.fallbackEnabled=this.checked;saveSettings();$('#sp-fallback-settings').toggle(this.checked);$('#sp-fallback-warn').toggle(this.checked&&!s.fallbackProfile)});
-    $('#sp-fallback-profile').on('change',function(){s.fallbackProfile=this.value;saveSettings();_spSaveProfilesLS();$('#sp-fallback-warn').toggle(s.fallbackEnabled&&!this.value)});
-    $('#sp-fallback-preset').on('change',function(){s.fallbackPreset=this.value;saveSettings();_spSaveProfilesLS()});
+    $('#sp-fallback-enabled').on('change',function(){s.fallbackEnabled=this.checked;saveSettings();_spSaveLS();$('#sp-fallback-settings').toggle(this.checked);$('#sp-fallback-warn').toggle(this.checked&&!s.fallbackProfile)});
+    $('#sp-fallback-profile').on('change',function(){s.fallbackProfile=this.value;saveSettings();_spSaveLS();$('#sp-fallback-warn').toggle(s.fallbackEnabled&&!this.value)});
+    $('#sp-fallback-preset').on('change',function(){s.fallbackPreset=this.value;saveSettings();_spSaveLS()});
     $('#sp-btn-setup').on('click',()=>showSetupGuide());
     $('#sp-btn-tour').on('click',()=>startGuidedTour());
-    $('#sp-embed-n').on('change',function(){s.embedSnapshots=clamp(+this.value,0,5);saveSettings()});
-    $('#sp-embed-role').on('change',function(){s.embedRole=this.value;saveSettings()});
-    $('#sp-lore-mode').on('change',function(){s.lorebookMode=this.value;saveSettings();$('#sp-lore-section').toggle(this.value==='allowlist');refreshLorebookDisplay();updateLorebookRec()});
+    $('#sp-embed-n').on('change',function(){s.embedSnapshots=clamp(+this.value,0,5);saveSettings();_spSaveLS()});
+    $('#sp-embed-role').on('change',function(){s.embedRole=this.value;saveSettings();_spSaveLS()});
+    $('#sp-lore-mode').on('change',function(){s.lorebookMode=this.value;saveSettings();_spSaveLS();$('#sp-lore-section').toggle(this.value==='allowlist');refreshLorebookDisplay();updateLorebookRec()});
     $('#sp-sysprompt').on('change',function(){const v=this.value.trim();const dynamicPrompt=buildDynamicPrompt(s).trim();s.systemPrompt=(v===dynamicPrompt)?null:v||null;saveSettings()});
     $('#sp-schema').on('change',function(){const v=this.value.trim();const dynamicStr=JSON.stringify(buildDynamicSchema(s),null,2);if(v===dynamicStr){s.schema=null;saveSettings();return}if(v){try{JSON.parse(v);s.schema=v}catch{toastr.error('Invalid JSON');return}}else s.schema=null;saveSettings()});
     // Default and Copy buttons
@@ -5107,7 +5163,7 @@ function bindUI(){const s=getSettings();
     });
     $('#sp-btn-reset').on('click',async()=>{
         if(!await spConfirm('Reset Settings','Reset all ScenePulse settings to defaults? Tracker data is preserved.'))return;
-        SillyTavern.getContext().extensionSettings[MODULE_NAME]=structuredClone(DEFAULTS);saveSettings();loadUI();toastr.info('Settings reset to defaults');
+        SillyTavern.getContext().extensionSettings[MODULE_NAME]=structuredClone(DEFAULTS);saveSettings();try{localStorage.removeItem(SP_LS_KEY)}catch(e){}loadUI();toastr.info('Settings reset to defaults');
     });
     $('#sp-btn-debug').on('click',()=>{const t='ScenePulse Debug ('+new Date().toISOString()+')\n'+debugLog.join('\n');navigator.clipboard.writeText(t).then(()=>toastr.success('SP Log copied ('+debugLog.length+' entries)')).catch(()=>{const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);toastr.success('Copied')})});
     $('#sp-btn-copy-console').on('click',()=>{
@@ -5179,7 +5235,7 @@ eventSource.on(event_types.APP_READY,()=>{try{
     if(!_s.setupDismissed){
         setTimeout(()=>showSetupGuide(),2000);
     }
-    log('v4.9.74 ready');
+    log('v4.9.75 ready');
     // One-time migration: reset stale sub-field toggles from old Disable All
     if(_s.fieldToggles){
         const _ft=_s.fieldToggles;const _p=_s.panels||DEFAULTS.panels;
@@ -5233,7 +5289,7 @@ eventSource.on(event_types.GENERATION_ENDED,async()=>{
                 log('  ideas:',norm.plotBranches?.length||0,'northStar:',JSON.stringify(norm.northStar||'').substring(0,50));
                 log('  scene: topic='+(norm.sceneTopic?'✓':'✗'),'mood='+(norm.sceneMood?'✓':'✗'),'tension='+(norm.sceneTension?'✓':'✗'));
                 if(norm.characters?.length)for(const c of norm.characters)log('  char:',c.name,'role=',c.role?'✓':'✗','thought=',c.innerThought?'✓':'✗');
-                if(norm.relationships?.length)for(const r of norm.relationships)log('  rel:',r.name,'aff=',r.affection,'trust=',r.trust,'desire=',r.desire);
+                if(norm.relationships?.length)for(const r of norm.relationships)log('  rel:',r.name,'aff=',r.affection,'trust=',r.trust,'desire=',r.desire,'compat=',r.compatibility);
                 extracted._spMeta={promptTokens:0,completionTokens:genMeta.completionTokens,elapsed:genMeta.elapsed,source:'auto:together',injectionMethod:'inline'};
                 saveSnapshot(targetIdx,extracted);
                 updatePanel(norm);spPostGenShow();
@@ -5308,4 +5364,4 @@ if(event_types.MESSAGE_UPDATED){
     eventSource.on(event_types.MESSAGE_UPDATED,()=>{setTimeout(renderExisting,300)});
 }
 // ST generation started — handled internally via generateTracker's generating=true flag
-log('v4.9.74 init');
+log('v4.9.75 init');

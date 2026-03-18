@@ -705,7 +705,7 @@ body:has(#sp-panel.sp-mode-mobile) .sp-loading-glass-fixed {
 .sp-meter-face { position: absolute; right: -16px; top: 50%; transform: translateY(-50%); width: 13px; height: 13px; z-index: 3; }
 .sp-meter-value { font-size: 9px; font-weight: 700; font-family: var(--sp-font-mono); color: var(--sp-text-dim); text-align: right; min-width: 22px; display: flex; align-items: center; justify-content: flex-end; gap: 2px; }
 .sp-meter-value-na { font-size: 9px; color: var(--sp-text-dim); font-style: italic; text-align: right; }
-.sp-meter-tag { grid-column: 2 / -1; grid-row: 1; font-size: 8.5px; font-style: italic; color: var(--sp-text-dim); opacity: 0.6; text-align: right; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 1px; margin-bottom: -1px; }
+.sp-meter-tag { grid-column: 2 / 3; grid-row: 1; font-size: 8.5px; font-style: italic; color: var(--sp-text-dim); opacity: 0.6; text-align: right; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 1px; margin-bottom: -1px; }
 /* Delta indicators */
 .sp-meter-delta { font-size: 8px; font-weight: 700; font-family: var(--sp-font-mono); line-height: 1; white-space: nowrap; display: inline-flex; align-items: center; gap: 1px; animation: sp-delta-pop 0.4s ease-out; }
 .sp-meter-delta-up { color: #4ade80; text-shadow: 0 0 6px rgba(74,222,128,0.4); }
@@ -738,6 +738,9 @@ body:has(#sp-panel.sp-mode-mobile) .sp-loading-glass-fixed {
 .sp-char-goal-item strong { color: var(--sp-text); }
 .sp-fert-section { margin-top: 4px; padding-top: 4px; border-top: 1px dashed var(--sp-border); }
 .sp-fert-na { font-size: 10px; color: var(--sp-text-dim); font-style: italic; }
+.sp-fert-inline { display: inline-flex; align-items: baseline; gap: 3px; }
+.sp-fert-inline-label { font-size: 8px; font-weight: 600; color: var(--sp-text-dim); text-transform: uppercase; letter-spacing: 0.03em; }
+.sp-fert-inline-val { font-size: 10px; color: var(--sp-text); }
 
 /* ═══ THOUGHT PANEL (draggable, thought-bubble aesthetic) ═══ */
 #sp-thought-panel {
