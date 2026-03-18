@@ -12,7 +12,9 @@
 <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square&labelColor=1a1c24" alt="License">
 <img src="https://img.shields.io/badge/platform-SillyTavern%201.12%2B-orange?style=flat-square&labelColor=1a1c24" alt="Platform">
 
-# 🔮 ScenePulse
+# <img width="1024" height="338" alt="image" src="https://github.com/user-attachments/assets/64238162-a78a-47bb-a9c3-e60d3ed775e4" />
+
+
 
 **AI-Powered Scene Intelligence for SillyTavern**
 
@@ -30,6 +32,8 @@ ScenePulse is a SillyTavern extension that automatically extracts and tracks sce
 - **Environment cards** — time, date, weather, temperature, location with animated weather icons
 - **Scene details** — mood, tension, topic, interaction style, sound environment
 - **Real-time updates** every AI message
+<img width="857" height="390" alt="image" src="https://github.com/user-attachments/assets/7740dada-d740-49d8-8ae3-1ae6d72767d5" />
+
 
 ### 🧑‍🤝‍🧑 Relationship Tracking
 - Animated meter bars for **affection, trust, desire, stress, compatibility** (0–100)
@@ -37,12 +41,16 @@ ScenePulse is a SillyTavern extension that automatically extracts and tracks sce
 - Delta badges showing changes between messages (▲/▼) with previous-value markers
 - Relationship phase, milestones, and time together
 - Confidence-based color matching between character and relationship cards — fuzzy name matching with neutral gray for unresolved identities
+<img width="859" height="423" alt="image" src="https://github.com/user-attachments/assets/7094c6bb-28af-46b5-a7da-54a5f117371d" />
+
 
 ### 🗡️ Quest Journal
 - **North Star** — overarching life purpose
 - **Main Quests, Side Quests, Active Tasks** — tiered and collapsible
 - Urgency indicators and detailed descriptions
 - Perspective enforcement — quests are always framed from the user's point of view using an oppose/align system (hostile NPCs → oppose, allies → support, neutral → decide)
+<img width="856" height="556" alt="image" src="https://github.com/user-attachments/assets/3bf59314-4e69-4635-84e9-8823a68bc32b" />
+
 
 ### 👤 Character Profiles
 - Full appearance tracking: hair, face, outfit, state of dress, posture
@@ -50,15 +58,21 @@ ScenePulse is a SillyTavern extension that automatically extracts and tracks sce
 - Inventory tracking
 - Optional fertility status fields with compact inline layout
 - Smart name resolution when models omit the `name` field — cross-references `{{char}}`, relationships, `charactersPresent`, role text, and object keys with multi-tier confidence scoring
+<img width="860" height="326" alt="image" src="https://github.com/user-attachments/assets/cb314a4e-a6d4-449d-96ad-929556564d40" />
+
 
 ### 💡 Story Ideas
 - 5 AI-generated plot directions per update (dramatic, intense, comedic, twist, exploratory)
 - One-click **paste to edit** or **inject directly** into chat
+<img width="860" height="445" alt="image" src="https://github.com/user-attachments/assets/e2614c4c-0b1c-42db-9761-5f3efbc8dd2a" />
+
 
 ### 💭 Inner Thoughts Panel *(Desktop)*
 - Floating, draggable panel showing each character's inner monologue
 - Characters without thoughts show a subtle `…` placeholder
 - Ghost mode (transparent), snap-to-edge, resizable
+<img width="844" height="287" alt="image" src="https://github.com/user-attachments/assets/660015cd-be56-4456-bee3-f4303d3d2ed4" />
+
 
 ### 🌧️ Immersive Effects *(Desktop)*
 - **Weather overlay** — rain, snow, hail, fog, sandstorm, aurora, ash with particle systems
@@ -69,11 +83,15 @@ ScenePulse is a SillyTavern extension that automatically extracts and tracks sce
 - Every AI message creates a snapshot
 - Click any timeline dot to load historical scene data
 - Compare how relationships, quests, and characters evolved over time
+<img width="850" height="82" alt="image" src="https://github.com/user-attachments/assets/5b46e312-2921-4a24-9781-4c297669ea27" />
+
 
 ### 🛠️ Custom Panels
 - Create panels to track **anything** — health, mana, reputation, faction standings
 - Each field supports text, number, meter, list, or enum types
 - LLM hints tell the AI what to output for each field
+<img width="858" height="472" alt="image" src="https://github.com/user-attachments/assets/6732fa65-dc8b-4390-8445-bbd08d36f9df" />
+
 
 ### 📱 Mobile Support
 - Full-screen panel with slide animations
@@ -81,6 +99,8 @@ ScenePulse is a SillyTavern extension that automatically extracts and tracks sce
 - Touch-optimized 42px tap targets
 - Floating restore icon in ST's send form
 - Post-generation banner notifications
+<img width="473" height="1024" alt="image" src="https://github.com/user-attachments/assets/3bb99fa7-ddf6-408e-8568-e6288cc97a85" />
+
 
 ## 📦 Installation
 
