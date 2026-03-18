@@ -1567,16 +1567,16 @@ body:has(#sp-panel.sp-mode-mobile) .sp-loading-glass-fixed {
     text-shadow: 0 0 80px rgba(77,184,164,0.7), 0 4px 40px rgba(0,0,0,0.8);
     white-space: nowrap;
     transition: none;
-    padding: 80px 160px;
+    padding: 120px 240px;
     background: transparent;
     border-radius: 20px;
-    -webkit-mask-image: radial-gradient(ellipse 85% 75% at center, black 30%, transparent 72%);
-    mask-image: radial-gradient(ellipse 85% 75% at center, black 30%, transparent 72%);
+    -webkit-mask-image: radial-gradient(ellipse 70% 60% at center, black 20%, transparent 65%);
+    mask-image: radial-gradient(ellipse 70% 60% at center, black 20%, transparent 65%);
 }
 #sp-scene-transition.sp-st-show {
     animation: sp-st-fade 4.5s ease-in-out forwards;
-    background: radial-gradient(ellipse 110% 100% at center, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.7) 20%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,0.15) 60%, transparent 80%);
-    backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+    background: radial-gradient(ellipse 130% 120% at center, rgba(0,0,0,0.96) 0%, rgba(0,0,0,0.85) 15%, rgba(0,0,0,0.6) 30%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.1) 65%, transparent 80%);
+    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
 }
 .sp-st-sep {
     font-weight: 100; opacity: 0.4; font-size: 32px;
@@ -2016,8 +2016,11 @@ body:has(#sp-panel.sp-mode-mobile.sp-visible) #top-settings-holder { display: no
 #sp-panel.sp-mode-mobile .sp-ck { padding: 10px 0; font-size: 13px; min-height: 44px; }
 #sp-panel.sp-mode-mobile .sp-fs select, #sp-panel.sp-mode-mobile .sp-fi input { font-size: 13px; padding: 8px 10px; min-height: 44px; }
 /* Scene Transition */
-#sp-panel.sp-mode-mobile ~ #sp-scene-transition, .sp-mode-mobile #sp-scene-transition { font-size: 28px; padding: 30px 20px; }
-@media (max-width: 600px) { #sp-scene-transition { font-size: 28px !important; padding: 30px 20px !important; } }
+#sp-panel.sp-mode-mobile ~ #sp-scene-transition, .sp-mode-mobile #sp-scene-transition { font-size: 28px; padding: 30px 20px; -webkit-mask-image: radial-gradient(ellipse 90% 85% at center, black 25%, transparent 70%); mask-image: radial-gradient(ellipse 90% 85% at center, black 25%, transparent 70%); }
+@media (max-width: 600px) { #sp-scene-transition { font-size: 28px !important; padding: 30px 20px !important; -webkit-mask-image: radial-gradient(ellipse 90% 85% at center, black 25%, transparent 70%) !important; mask-image: radial-gradient(ellipse 90% 85% at center, black 25%, transparent 70%) !important; } }
+/* Fertility inline on mobile */
+#sp-panel.sp-mode-mobile .sp-fert-inline-label { font-size: 9px; }
+#sp-panel.sp-mode-mobile .sp-fert-inline-val { font-size: 11px; }
 /* Thought Panel on mobile */
 .sp-mode-mobile ~ #sp-thought-panel, #sp-panel.sp-mode-mobile ~ #sp-thought-panel {
     width: 100vw !important; left: 0 !important; right: 0 !important;

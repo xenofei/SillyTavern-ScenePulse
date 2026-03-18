@@ -1,4 +1,4 @@
-// ScenePulse v4.9.81 — Side Panel Architecture
+// ScenePulse v4.9.86 — Side Panel Architecture
 const MODULE_NAME='scenepulse';const LOG='[ScenePulse]';const SP_LS_KEY='scenepulse_config';
 
 const MASCOT_SVG=`<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.2" opacity="0.25" class="sp-mascot-pulse"/><circle cx="12" cy="12" r="6.5" stroke="currentColor" stroke-width="1" opacity="0.4" class="sp-mascot-pulse"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="0.8" opacity="0.6"/><circle cx="12" cy="12" r="1.4" fill="currentColor" opacity="0.9"/><line x1="12" y1="2" x2="12" y2="5.5" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><line x1="12" y1="18.5" x2="12" y2="22" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><line x1="2" y1="12" x2="5.5" y2="12" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><line x1="18.5" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><path d="M12 5.5 L14 10 L12 8.5 L10 10 Z" fill="currentColor" opacity="0.5"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="8s" repeatCount="indefinite"/></path></svg>`;
@@ -933,6 +933,7 @@ async function withProfileAndPreset(pid,pre,fn){
 // ── Normalization ──
 function normalizeTracker(d){
     if(!d||typeof d!=='object')return d;
+    const _verbose=!_isTimelineScrub; // Suppress verbose logging during rapid scrubbing
     
     // ── GLM-5 Unwrapper: flatten nested object structures ──
     // GLM-5 often wraps fields in parent objects: {environment:{time,date...}, characters:{CharA:{...}}, questJournal:{mainQuests:[...]}}
@@ -994,7 +995,7 @@ function normalizeTracker(d){
         d.plotBranches=d.plotBranches.map(b=>({type:b.type||'exploratory',name:b.branch||b.name||'',hook:b.description||b.hook||''}));
     }
     
-    log('Raw keys:',Object.entries(d).map(([k,v])=>`${k}(${Array.isArray(v)?'arr':typeof v})`).join(', '));
+    if(_verbose)log('Raw keys:',Object.entries(d).map(([k,v])=>`${k}(${Array.isArray(v)?'arr':typeof v})`).join(', '));
     const flat={};
     function collect(obj,depth){if(!obj||typeof obj!=='object'||depth>5)return;for(const[k,v]of Object.entries(obj)){const lk=k.toLowerCase();if(typeof v==='string'&&v.length>0){if(!flat[lk])flat[lk]=v}else if(typeof v==='number'){if(flat[lk]==null)flat[lk]=v}else if(Array.isArray(v)){if(!flat[lk])flat[lk]=v}else if(typeof v==='object'&&v!==null){if(!flat[lk]){const sv=Object.values(v).filter(x=>typeof x==='string'&&x.length>0);if(sv.length)flat[lk]=sv.join('; ')}if(!['characters','relationships'].includes(k))collect(v,depth+1)}}}
     collect(d,0);
@@ -1146,7 +1147,7 @@ function normalizeTracker(d){
             }
         }
     }
-    if(o.relationships.length)log('Rel[0]:',JSON.stringify(o.relationships[0]).substring(0,300));
+    if(_verbose&&o.relationships.length)log('Rel[0]:',JSON.stringify(o.relationships[0]).substring(0,300));
     // Carry forward: fill empty relationship fields from previous snapshot's matching relationship
     try{const prev=getLatestSnapshot();if(prev?.relationships?.length){
         for(const rel of o.relationships){
@@ -1160,14 +1161,14 @@ function normalizeTracker(d){
 
     // Characters — with comprehensive debugging
     const rawChars=d.characters;
-    log('Char debug: d.characters=',Array.isArray(rawChars)?'array('+rawChars.length+')':typeof rawChars,
+    if(_verbose)log('Char debug: d.characters=',Array.isArray(rawChars)?'array('+rawChars.length+')':typeof rawChars,
         'flat[characters]=',flat['characters']?'array('+flat['characters'].length+')':'missing',
         'd.Characters=',d.Characters?'exists':'missing');
     const chars=rawChars||flat['characters']||d.Characters||d.character||flat['character']||[];
     if(Array.isArray(chars)&&chars.length>0){
-        log('Char debug: first char keys=',Object.keys(chars[0]).join(','),'name=',chars[0].name);
+        if(_verbose)log('Char debug: first char keys=',Object.keys(chars[0]).join(','),'name=',chars[0].name);
         o.characters=chars.map(normalizeChar);
-        log('Char debug: after normalize=',o.characters.length,'first name=',o.characters[0]?.name);
+        if(_verbose)log('Char debug: after normalize=',o.characters.length,'first name=',o.characters[0]?.name);
         // Failsafe: if normalizeChar lost names that existed in raw data, use raw mapping
         const _normLostName=o.characters[0]?.name==='?'&&chars[0]?.name&&chars[0].name!=='?';
         if(!o.characters.length||_normLostName){
@@ -1296,7 +1297,7 @@ function normalizeTracker(d){
     for(const k of Object.keys(d)){
         if(!knownKeys.has(k))o[k]=d[k];
     }
-    auditFields('normalizeTracker',o,['time','date','elapsed','location','weather','temperature','soundEnvironment','sceneTopic','sceneMood','sceneInteraction','sceneTension','sceneSummary','witnesses','charactersPresent','mainQuests','sideQuests','activeTasks','plotBranches','northStar','relationships','characters']);
+    if(_verbose)auditFields('normalizeTracker',o,['time','date','elapsed','location','weather','temperature','soundEnvironment','sceneTopic','sceneMood','sceneInteraction','sceneTension','sceneSummary','witnesses','charactersPresent','mainQuests','sideQuests','activeTasks','plotBranches','northStar','relationships','characters']);
     if(d._spMeta)o._spMeta=d._spMeta;
     return o;
 }
@@ -1316,7 +1317,7 @@ function normalizeChar(ch){
         if(nameFromRole)name=nameFromRole[1];
     }
     if(!name)name='?';
-    log('normalizeChar flat keys for',name,':',Object.keys(flat).join(', '));
+    if(!_isTimelineScrub)log('normalizeChar flat keys for',name,':',Object.keys(flat).join(', '));
     const o={name};
     o.role=g(['role','identity','who','emotion','title']);
     o.innerThought=g(['innerthought','inner_thought','thought','thinking','monologue']);
@@ -1939,7 +1940,7 @@ function createPanel(){
     const panel=document.createElement('div');panel.id='sp-panel';
     panel.innerHTML=`
     <div class="sp-toolbar">
-        <div class="sp-brand-icon" id="sp-brand-icon" title="ScenePulse v4.9.81">${MASCOT_SVG}</div>
+        <div class="sp-brand-icon" id="sp-brand-icon" title="ScenePulse v4.9.86">${MASCOT_SVG}</div>
         <div class="sp-brand-title">Scene<span class="sp-brand-accent">Pulse</span></div>
         <span class="sp-toolbar-spacer"></span>
         <button class="sp-toolbar-btn" id="sp-tb-regen" title="Regenerate all"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M13.5 8a5.5 5.5 0 1 1-1.3-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M13.5 3v2.5h-2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
@@ -2777,7 +2778,7 @@ function clearTimeTint(){
 }
 
 // ── Scene Transition Animation ──
-let prevLocation='',prevTimePeriod='',_isTimelineScrub=false;
+let prevLocation='',prevTimePeriod='',_isTimelineScrub=false,_tlScrubDebounce=null,_tlScrubRaf=null;
 function checkSceneTransition(d){
     const loc=d.location||'';const timeStr=d.time||'';
     const h=parseInt(timeStr.match(/(\d+):/)?.[1]||'-1');
@@ -2796,7 +2797,7 @@ function checkSceneTransition(d){
     // Build transition card
     const lines=[];
     if(majorLocChange){
-        const parts=loc.split('>').map(s=>s.trim()).filter(Boolean).reverse();
+        const parts=loc.split('>').map(s=>s.trim()).filter(Boolean);
         for(const p of parts)lines.push(p);
     }
     if(majorTimeChange){
@@ -2921,20 +2922,25 @@ function renderTimeline(){
         const lbl=document.createElement('div');lbl.className='sp-tl-label'+(isSelected?' sp-tl-label-active':'');
         lbl.textContent='#'+k;
         wrap.appendChild(lbl);
-        let _tlDebounce=null;
         wrap.addEventListener('click',()=>{
             const snap=all.snapshots[String(k)];if(!snap)return;
+            // Skip if already viewing this snapshot
+            if(currentSnapshotMesIdx===k)return;
             _isTimelineScrub=true;
-            if(_tlDebounce)clearTimeout(_tlDebounce);
+            if(_tlScrubDebounce)clearTimeout(_tlScrubDebounce);
+            if(_tlScrubRaf)cancelAnimationFrame(_tlScrubRaf);
             currentSnapshotMesIdx=k;
-            // Visually update selected node without full timeline rebuild
+            // Visually update selected node immediately (no debounce)
             tl.querySelectorAll('.sp-tl-dot').forEach(d=>{d.classList.remove('sp-tl-dot-selected');d.querySelector('.sp-tl-ring')?.remove()});
             const myDot=wrap.querySelector('.sp-tl-dot');
             if(myDot){myDot.classList.add('sp-tl-dot-selected');const ring=document.createElement('div');ring.className='sp-tl-ring';myDot.appendChild(ring)}
-            const norm=normalizeTracker(snap);
-            updatePanel(norm);
-            if(!document.getElementById('sp-panel')?.classList.contains('sp-visible'))showPanel();
-            _tlDebounce=setTimeout(()=>{_isTimelineScrub=false;renderTimeline()},600);
+            // Batch panel update to next animation frame
+            _tlScrubRaf=requestAnimationFrame(()=>{
+                const norm=normalizeTracker(snap);
+                updatePanel(norm);
+                if(!document.getElementById('sp-panel')?.classList.contains('sp-visible'))showPanel();
+            });
+            _tlScrubDebounce=setTimeout(()=>{_isTimelineScrub=false;renderTimeline()},300);
         });
         bar.appendChild(wrap);
     }
@@ -2944,12 +2950,14 @@ function renderTimeline(){
         disc.innerHTML=`<span class="sp-tl-disc-icon">⚠</span> Viewing scene from an older message (msg #${selectedKey}) — not the current scene. <button class="sp-tl-disc-btn">Jump to latest</button>`;
         disc.querySelector('.sp-tl-disc-btn').addEventListener('click',()=>{
             const latestSnap=all.snapshots[String(latest)];if(!latestSnap)return;
+            if(currentSnapshotMesIdx===latest)return;
             _isTimelineScrub=true;
+            if(_tlScrubDebounce)clearTimeout(_tlScrubDebounce);
             currentSnapshotMesIdx=latest;
             const _norm=normalizeTracker(latestSnap);
             updatePanel(_norm);
             if(!document.getElementById('sp-panel')?.classList.contains('sp-visible'))showPanel();
-            setTimeout(()=>{_isTimelineScrub=false;renderTimeline()},400);
+            _tlScrubDebounce=setTimeout(()=>{_isTimelineScrub=false;renderTimeline()},300);
         });
         tl.appendChild(disc);
     }
@@ -3016,10 +3024,10 @@ function updatePanel(d,_force=false){
         if(m.completionTokens>0||m.elapsed>0)genMeta={promptTokens:m.promptTokens||0,completionTokens:m.completionTokens||0,elapsed:m.elapsed||0};
         if(m.source)lastGenSource=m.source;
     }
-    log('updatePanel: chars=',d?.characters?.length||0,'rels=',d?.relationships?.length||0,
+    if(!_isTimelineScrub)log('updatePanel: chars=',d?.characters?.length||0,'rels=',d?.relationships?.length||0,
         'quests=',((d?.mainQuests?.length||0)+(d?.sideQuests?.length||0)+(d?.activeTasks?.length||0)),
         'scene=',d?.sceneTopic?'✓':'✗','time=',d?.time||'?');
-    updateThoughts(d);
+    if(!_isTimelineScrub)updateThoughts(d);
     const body=document.getElementById('sp-panel-body');
     if(!body)return;
     // Preserve panel manager during rebuild
@@ -3075,10 +3083,10 @@ function updatePanel(d,_force=false){
     dash.innerHTML+=`<div class="sp-dash-card sp-dash-card-date" data-card="date">${calSvg}<div class="sp-cal-shimmer-overlay"></div><div class="sp-cal-particles"><div class="sp-cal-particle"></div><div class="sp-cal-particle"></div><div class="sp-cal-particle"></div><div class="sp-cal-particle"></div><div class="sp-cal-particle"></div><div class="sp-cal-particle"></div></div><div class="sp-dash-sub">${esc(mon)} ${esc(String(dayNum||''))}</div><div class="sp-dash-day">${esc(dayName)}</div><div class="sp-dash-sub">${esc(String(year))}</div></div>`;
     const wx=d.weather||'\u2014';
     const wxLow=wx.toLowerCase();
-    // Update full-screen weather overlay
-    updateWeatherOverlay(wx);
-    // Update time-of-day ambient tint
-    updateTimeTint(d.time);
+    // Update full-screen weather overlay (skip during scrub — expensive particle recalc)
+    if(!_isTimelineScrub)updateWeatherOverlay(wx);
+    // Update time-of-day ambient tint (skip during scrub)
+    if(!_isTimelineScrub)updateTimeTint(d.time);
     // Check for major scene transitions
     checkSceneTransition(d);
     // ── HIGH-QUALITY WEATHER SVGs (with gradients and depth) ──
@@ -3468,12 +3476,12 @@ function updatePanel(d,_force=false){
         }
         const loc=document.createElement('div');loc.className='sp-dash-location';loc.dataset.card='location';
         const locParts=(d.location||'').split(/\s*>\s*/);
-        const locDisplay=locParts.length>1?[...locParts].reverse().join(' \u2190 '):d.location;
+        const locDisplay=locParts.length>1?locParts.join(' \u2190 '):d.location;
         loc.innerHTML=`<span class="sp-dash-loc-icon">${locIcon}</span><span class="sp-dash-loc-text">${esc(locDisplay)}</span>`;
         // Click icon to trigger location popup
         const locIconEl=loc.querySelector('.sp-dash-loc-icon');
         if(locIconEl)locIconEl.addEventListener('click',()=>{
-            const parts=(d.location||'').split('>').map(s=>s.trim()).filter(Boolean).reverse();
+            const parts=(d.location||'').split('>').map(s=>s.trim()).filter(Boolean);
             if(!parts.length)return;
             let card=document.getElementById('sp-scene-transition');
             if(!card){card=document.createElement('div');card.id='sp-scene-transition';document.body.appendChild(card)}
@@ -4921,7 +4929,7 @@ function createSettings(){
     try{po=getConnectionProfiles().map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}catch{}
     try{pre=getChatPresets().map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}catch{}
     try{lo=getLorebooks().map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}catch{}
-    const html=`<div id="scenepulse-settings" class="extension_settings"><div class="inline-drawer"><div class="inline-drawer-toggle inline-drawer-header"><div class="sp-drawer-header-content"><span class="sp-drawer-icon-wrap">${MASCOT_SVG}</span><div class="sp-drawer-title-block"><span class="sp-drawer-title">Scene<span style="color:var(--sp-accent)">Pulse</span></span><span class="sp-drawer-version">v4.9.81 — Scene Intelligence</span></div><span class="sp-drawer-badge sp-on" id="sp-badge"><span class="sp-drawer-badge-dot"></span>Active</span></div><div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div></div><div class="inline-drawer-content">
+    const html=`<div id="scenepulse-settings" class="extension_settings"><div class="inline-drawer"><div class="inline-drawer-toggle inline-drawer-header"><div class="sp-drawer-header-content"><span class="sp-drawer-icon-wrap">${MASCOT_SVG}</span><div class="sp-drawer-title-block"><span class="sp-drawer-title">Scene<span style="color:var(--sp-accent)">Pulse</span></span><span class="sp-drawer-version">v4.9.86 — Scene Intelligence</span></div><span class="sp-drawer-badge sp-on" id="sp-badge"><span class="sp-drawer-badge-dot"></span>Active</span></div><div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div></div><div class="inline-drawer-content">
 <div class="sp-sh">General</div><label class="sp-ck"><input type="checkbox" id="sp-enabled"> Enable ScenePulse</label><label class="sp-ck"><input type="checkbox" id="sp-auto-gen"> Auto-generate on AI messages</label><label class="sp-ck"><input type="checkbox" id="sp-show-thoughts"> Show thought bubbles</label><label class="sp-ck"><input type="checkbox" id="sp-show-weather"> Weather overlay effects</label><label class="sp-ck"><input type="checkbox" id="sp-show-timetint"> Time-of-day ambience</label><label class="sp-ck"><input type="checkbox" id="sp-show-devbtns"> Show developer tools</label><div style="margin-top:6px;display:flex;gap:6px"><button class="sp-btn" id="sp-btn-setup">📋 Setup Guide</button><button class="sp-btn" id="sp-btn-tour">✦ Guided Tour</button></div><div id="sp-separate-settings"><div class="sp-fi"><label>Context msgs</label><input type="number" id="sp-ctx" min="1" max="30"></div><div class="sp-hint sp-ctx-hint">How many recent messages to include when generating tracker updates. <em>Separate mode only — Together mode uses ST's full context automatically.</em><br><span class="sp-ctx-range"><strong>3–4</strong> · Fastest. Good for simple 1-on-1 scenes (~5K token prompt)</span><br><span class="sp-ctx-range"><strong>5–8</strong> · Balanced. Recommended for most scenes (~8–12K tokens)</span><br><span class="sp-ctx-range"><strong>8–15</strong> · Better continuity for complex multi-character scenes (~12–20K tokens)</span><br><span class="sp-ctx-range"><strong>15+</strong> · Maximum context but significantly slower and more expensive</span><br><span class="sp-ctx-note">⚠ This is the biggest factor in Separate mode speed. At 8 msgs your tracker prompt is ~10K tokens — doubling roughly doubles generation time. Lower values (3–4) can cut tracker time by 40–60%.</span></div><div class="sp-fi"><label>Max retries</label><input type="number" id="sp-retries" min="0" max="5"></div><div class="sp-hint sp-ctx-hint"><em>Separate mode only.</em> How many times to retry if the tracker API call returns invalid JSON.</div></div>
 <div class="sp-sh">Injection Method</div><div class="sp-fs"><label>Mode</label><select id="sp-injection-method"><option value="inline">Together (AI appends tracker to its response)</option><option value="separate">Separate (dedicated API call after AI response)</option></select></div>
 <div id="sp-method-inline"><div class="sp-hint">The AI writes its normal response, then appends tracker JSON at the end. ScenePulse automatically extracts and hides the JSON. <strong>Recommended for most setups.</strong></div><div class="sp-hint sp-pros-cons"><span class="sp-pro">✓ Single API call — typically ~100–120s total</span><br><span class="sp-pro">✓ No profile switching — eliminates message deletion risk</span><br><span class="sp-pro">✓ AI has full narrative context for accurate tracking</span><br><span class="sp-pro">✓ 2–3× faster than Separate mode in practice</span><br><span class="sp-con">✗ Uses tokens from the main response budget (~1,700 tokens for tracker)</span><br><span class="sp-con">✗ May slightly reduce narrative length on token-limited models</span></div>
@@ -5358,7 +5366,7 @@ eventSource.on(event_types.APP_READY,()=>{try{
     if(!_s.setupDismissed){
         setTimeout(()=>showSetupGuide(),2000);
     }
-    log('v4.9.81 ready');
+    log('v4.9.86 ready');
     // One-time migration: reset stale sub-field toggles from old Disable All
     if(_s.fieldToggles){
         const _ft=_s.fieldToggles;const _p=_s.panels||DEFAULTS.panels;
@@ -5487,4 +5495,4 @@ if(event_types.MESSAGE_UPDATED){
     eventSource.on(event_types.MESSAGE_UPDATED,()=>{setTimeout(renderExisting,300)});
 }
 // ST generation started — handled internally via generateTracker's generating=true flag
-log('v4.9.81 init');
+log('v4.9.86 init');
