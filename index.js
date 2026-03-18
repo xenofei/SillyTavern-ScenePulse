@@ -1,4 +1,4 @@
-// ScenePulse v4.9.60 — Side Panel Architecture
+// ScenePulse v4.9.61 — Side Panel Architecture
 const MODULE_NAME='scenepulse';const LOG='[ScenePulse]';
 
 const MASCOT_SVG=`<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.2" opacity="0.25" class="sp-mascot-pulse"/><circle cx="12" cy="12" r="6.5" stroke="currentColor" stroke-width="1" opacity="0.4" class="sp-mascot-pulse"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="0.8" opacity="0.6"/><circle cx="12" cy="12" r="1.4" fill="currentColor" opacity="0.9"/><line x1="12" y1="2" x2="12" y2="5.5" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><line x1="12" y1="18.5" x2="12" y2="22" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><line x1="2" y1="12" x2="5.5" y2="12" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><line x1="18.5" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><path d="M12 5.5 L14 10 L12 8.5 L10 10 Z" fill="currentColor" opacity="0.5"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="8s" repeatCount="indefinite"/></path></svg>`;
@@ -98,9 +98,6 @@ function spUpdateFab(){
 function spMinimizePanel(){
     const p=document.getElementById('sp-panel');if(!p)return;
     _spMobileMinimized=true;
-    // Clear any loading overlays that might bleed
-    clearLoadingOverlay(document.getElementById('sp-panel-body'));
-    clearThoughtLoading();
     // Animate slide-out
     p.style.transition='transform 0.25s ease-in, opacity 0.25s ease-in';
     p.style.transform='translateY(100%)';p.style.opacity='0';
@@ -1811,7 +1808,7 @@ function createPanel(){
     const panel=document.createElement('div');panel.id='sp-panel';
     panel.innerHTML=`
     <div class="sp-toolbar">
-        <div class="sp-brand-icon" id="sp-brand-icon" title="ScenePulse v4.9.60">${MASCOT_SVG}</div>
+        <div class="sp-brand-icon" id="sp-brand-icon" title="ScenePulse v4.9.61">${MASCOT_SVG}</div>
         <div class="sp-brand-title">Scene<span class="sp-brand-accent">Pulse</span></div>
         <span class="sp-toolbar-spacer"></span>
         <button class="sp-toolbar-btn" id="sp-tb-regen" title="Regenerate all"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M13.5 8a5.5 5.5 0 1 1-1.3-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M13.5 3v2.5h-2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
@@ -2799,11 +2796,14 @@ function renderTimeline(){
             _isTimelineScrub=true;
             if(_tlDebounce)clearTimeout(_tlDebounce);
             currentSnapshotMesIdx=k;
+            // Visually update selected node without full timeline rebuild
+            tl.querySelectorAll('.sp-tl-dot').forEach(d=>{d.classList.remove('sp-tl-dot-selected');d.querySelector('.sp-tl-ring')?.remove()});
+            const myDot=wrap.querySelector('.sp-tl-dot');
+            if(myDot){myDot.classList.add('sp-tl-dot-selected');const ring=document.createElement('div');ring.className='sp-tl-ring';myDot.appendChild(ring)}
             const norm=normalizeTracker(snap);
             updatePanel(norm);
-            // Skip showPanel if already visible — avoids expensive DOM recalcs during rapid scrubbing
             if(!document.getElementById('sp-panel')?.classList.contains('sp-visible'))showPanel();
-            _tlDebounce=setTimeout(()=>{_isTimelineScrub=false},500);
+            _tlDebounce=setTimeout(()=>{_isTimelineScrub=false;renderTimeline()},600);
         });
         bar.appendChild(wrap);
     }
@@ -2818,7 +2818,7 @@ function renderTimeline(){
             const _norm=normalizeTracker(latestSnap);
             updatePanel(_norm);
             if(!document.getElementById('sp-panel')?.classList.contains('sp-visible'))showPanel();
-            setTimeout(()=>{_isTimelineScrub=false},500);
+            setTimeout(()=>{_isTimelineScrub=false;renderTimeline()},400);
         });
         tl.appendChild(disc);
     }
@@ -3771,8 +3771,8 @@ function updatePanel(d,_force=false){
         },s));
     }
 
-    // Timeline scrubber — shows all snapshot positions
-    renderTimeline();
+    // Timeline scrubber — shows all snapshot positions (skip during scrub to avoid rebuilding)
+    if(!_isTimelineScrub)renderTimeline();
 
     // ── Generation stats footer (reads from snapshot metadata, persists across refresh) ──
     const _meta=d._spMeta||{};
@@ -4175,10 +4175,12 @@ async function onCharMsg(idx){
                 const fbPreset=s.fallbackPreset||s.chatPreset||'';
                 if(!fbProfile&&!fbPreset){
                     // No fallback profile configured — show toast nudge, don't silently fail
+                    stopStreamingHider();
                     warn('Together mode: AI omitted tracker ('+msgLen+' chars). No fallback profile configured.');
                     toastr.warning('AI omitted tracker data. Set up a fallback profile in ScenePulse settings for automatic recovery.','ScenePulse',{timeOut:8000});
                 } else {
                     warn('Together mode: AI omitted tracker payload ('+msgLen+' chars narrative, no SP markers). Falling back to separate generation.');
+                    stopStreamingHider(); // Stop the hider since we're switching to separate mode
                     lastGenSource='auto:together:fallback';
                     const panel=document.getElementById('sp-panel');
                     if(panel){spAutoShow();showLoadingOverlay(document.getElementById('sp-panel-body'),'Generating Scene','Together mode missed — running separate');showStopButton();startElapsedTimer()}
@@ -4198,6 +4200,7 @@ async function onCharMsg(idx){
                 }
             } else if(msgLen>100&&!s.fallbackEnabled){
                 log('Together mode: AI omitted tracker, fallback disabled by user');
+                stopStreamingHider();
             }
             // Always show existing data if we didn't successfully generate new data
             const prev=getLatestSnapshot();
@@ -4771,7 +4774,7 @@ function createSettings(){
     try{po=getConnectionProfiles().map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}catch{}
     try{pre=getChatPresets().map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}catch{}
     try{lo=getLorebooks().map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}catch{}
-    const html=`<div id="scenepulse-settings" class="extension_settings"><div class="inline-drawer"><div class="inline-drawer-toggle inline-drawer-header"><div class="sp-drawer-header-content"><span class="sp-drawer-icon-wrap">${MASCOT_SVG}</span><div class="sp-drawer-title-block"><span class="sp-drawer-title">Scene<span style="color:var(--sp-accent)">Pulse</span></span><span class="sp-drawer-version">v4.9.60 — Scene Intelligence</span></div><span class="sp-drawer-badge sp-on" id="sp-badge"><span class="sp-drawer-badge-dot"></span>Active</span></div><div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div></div><div class="inline-drawer-content">
+    const html=`<div id="scenepulse-settings" class="extension_settings"><div class="inline-drawer"><div class="inline-drawer-toggle inline-drawer-header"><div class="sp-drawer-header-content"><span class="sp-drawer-icon-wrap">${MASCOT_SVG}</span><div class="sp-drawer-title-block"><span class="sp-drawer-title">Scene<span style="color:var(--sp-accent)">Pulse</span></span><span class="sp-drawer-version">v4.9.61 — Scene Intelligence</span></div><span class="sp-drawer-badge sp-on" id="sp-badge"><span class="sp-drawer-badge-dot"></span>Active</span></div><div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div></div><div class="inline-drawer-content">
 <div class="sp-sh">General</div><label class="sp-ck"><input type="checkbox" id="sp-enabled"> Enable ScenePulse</label><label class="sp-ck"><input type="checkbox" id="sp-auto-gen"> Auto-generate on AI messages</label><label class="sp-ck"><input type="checkbox" id="sp-show-thoughts"> Show thought bubbles</label><label class="sp-ck"><input type="checkbox" id="sp-show-weather"> Weather overlay effects</label><label class="sp-ck"><input type="checkbox" id="sp-show-timetint"> Time-of-day ambience</label><label class="sp-ck"><input type="checkbox" id="sp-show-devbtns"> Show developer tools</label><div id="sp-separate-settings"><div class="sp-fi"><label>Context msgs</label><input type="number" id="sp-ctx" min="1" max="30"></div><div class="sp-hint sp-ctx-hint">How many recent messages to include when generating tracker updates. <em>Separate mode only — Together mode uses ST's full context automatically.</em><br><span class="sp-ctx-range"><strong>3–4</strong> · Fastest. Good for simple 1-on-1 scenes (~5K token prompt)</span><br><span class="sp-ctx-range"><strong>5–8</strong> · Balanced. Recommended for most scenes (~8–12K tokens)</span><br><span class="sp-ctx-range"><strong>8–15</strong> · Better continuity for complex multi-character scenes (~12–20K tokens)</span><br><span class="sp-ctx-range"><strong>15+</strong> · Maximum context but significantly slower and more expensive</span><br><span class="sp-ctx-note">⚠ This is the biggest factor in Separate mode speed. At 8 msgs your tracker prompt is ~10K tokens — doubling roughly doubles generation time. Lower values (3–4) can cut tracker time by 40–60%.</span></div><div class="sp-fi"><label>Max retries</label><input type="number" id="sp-retries" min="0" max="5"></div><div class="sp-hint sp-ctx-hint"><em>Separate mode only.</em> How many times to retry if the tracker API call returns invalid JSON.</div></div>
 <div class="sp-sh">Injection Method</div><div class="sp-fs"><label>Mode</label><select id="sp-injection-method"><option value="inline">Together (AI appends tracker to its response)</option><option value="separate">Separate (dedicated API call after AI response)</option></select></div>
 <div id="sp-method-inline"><div class="sp-hint">The AI writes its normal response, then appends tracker JSON at the end. ScenePulse automatically extracts and hides the JSON. <strong>Recommended for most setups.</strong></div><div class="sp-hint sp-pros-cons"><span class="sp-pro">✓ Single API call — typically ~100–120s total</span><br><span class="sp-pro">✓ No profile switching — eliminates message deletion risk</span><br><span class="sp-pro">✓ AI has full narrative context for accurate tracking</span><br><span class="sp-pro">✓ 2–3× faster than Separate mode in practice</span><br><span class="sp-con">✗ Uses tokens from the main response budget (~1,700 tokens for tracker)</span><br><span class="sp-con">✗ May slightly reduce narrative length on token-limited models</span></div>
@@ -5107,7 +5110,7 @@ eventSource.on(event_types.APP_READY,()=>{try{
     if(!_s.setupDismissed){
         setTimeout(()=>showSetupGuide(),2000);
     }
-    log('v4.9.60 ready');
+    log('v4.9.61 ready');
     // One-time migration: reset stale sub-field toggles from old Disable All
     if(_s.fieldToggles){
         const _ft=_s.fieldToggles;const _p=_s.panels||DEFAULTS.panels;
@@ -5236,4 +5239,4 @@ if(event_types.MESSAGE_UPDATED){
     eventSource.on(event_types.MESSAGE_UPDATED,()=>{setTimeout(renderExisting,300)});
 }
 // ST generation started — handled internally via generateTracker's generating=true flag
-log('v4.9.60 init');
+log('v4.9.61 init');

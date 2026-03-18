@@ -430,9 +430,14 @@
 /* Full-panel overlay: on document.body, position:fixed to viewport.
    z-index 1001: above #sp-panel(1000), covers the panel exactly. */
 .sp-loading-glass-fixed {
-    position: fixed; z-index: 1001;
+    position: fixed; z-index: 100001;
     border-radius: 0;
     pointer-events: auto;
+}
+/* On mobile, ensure overlay doesn't bleed above the SP topbar */
+body:has(#sp-panel.sp-mode-mobile) .sp-loading-glass-fixed {
+    top: 44px !important; height: calc(100vh - 44px) !important;
+    left: 0 !important; width: 100vw !important;
 }
 .sp-loading-glass-inline {
     border-radius: var(--sp-radius);
