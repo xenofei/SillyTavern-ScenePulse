@@ -1,4 +1,4 @@
-// ScenePulse v4.9.78 — Side Panel Architecture
+// ScenePulse v4.9.79 — Side Panel Architecture
 const MODULE_NAME='scenepulse';const LOG='[ScenePulse]';const SP_LS_KEY='scenepulse_config';
 
 const MASCOT_SVG=`<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.2" opacity="0.25" class="sp-mascot-pulse"/><circle cx="12" cy="12" r="6.5" stroke="currentColor" stroke-width="1" opacity="0.4" class="sp-mascot-pulse"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="0.8" opacity="0.6"/><circle cx="12" cy="12" r="1.4" fill="currentColor" opacity="0.9"/><line x1="12" y1="2" x2="12" y2="5.5" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><line x1="12" y1="18.5" x2="12" y2="22" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><line x1="2" y1="12" x2="5.5" y2="12" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><line x1="18.5" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><path d="M12 5.5 L14 10 L12 8.5 L10 10 Z" fill="currentColor" opacity="0.5"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="8s" repeatCount="indefinite"/></path></svg>`;
@@ -957,7 +957,7 @@ function normalizeTracker(d){
         const vals=Object.entries(d.characters);
         if(vals.length>0&&typeof vals[0][1]==='object'&&vals[0][1]!==null){
             log('Unwrap: characters object → array, keys:',vals.map(v=>v[0]).join(', '));
-            d.characters=vals.map(([k,v])=>{if(!v.name)v.name=k.replace(/_/g,' ');return v});
+            d.characters=vals.map(([k,v])=>{if(!v.name)v.name=k.replace(/_/g,' ');v._spKey=k.replace(/_/g,' ');return v});
         }
     }
     // Relationships: convert object-of-objects or named-key objects to array
@@ -1085,9 +1085,10 @@ function normalizeTracker(d){
         }
         return nr;
     }).filter(Boolean):[];
-    // Name fallback
-    if(o.relationships.length&&!o.relationships[0].name&&o.charactersPresent.length){
-        for(let i=0;i<o.relationships.length;i++){if(!o.relationships[i].name&&i<o.charactersPresent.length)o.relationships[i].name=o.charactersPresent[i]}}
+    // Relationship name fallback: if any relationship is missing a name, try to fill from charactersPresent
+    if(o.relationships.length&&o.charactersPresent.length){
+        for(let i=0;i<o.relationships.length;i++){if(!o.relationships[i].name&&i<o.charactersPresent.length)o.relationships[i].name=o.charactersPresent[i]}
+    }
     // Value estimation from labels — only when model returned 0 and we have a label to infer from
     const lvm={no:0,none:0,cold:5,distant:10,slight:20,mild:25,cautious:35,growing:45,moderate:50,genuine:55,solid:65,strong:70,deep:75,intense:80,high:85,overwhelming:90,desperate:92,absolute:95,consumed:95,complete:98,rebuilding:40,fragile:30,natural:70,excellent:90};
     // Labels that indicate zero desire/attraction — override numeric value to 0
@@ -1158,8 +1159,9 @@ function normalizeTracker(d){
         log('Char debug: first char keys=',Object.keys(chars[0]).join(','),'name=',chars[0].name);
         o.characters=chars.map(normalizeChar);
         log('Char debug: after normalize=',o.characters.length,'first name=',o.characters[0]?.name);
-        // Failsafe: if normalizeChar emptied the objects, use raw data
-        if(!o.characters.length||!o.characters[0]?.name){
+        // Failsafe: if normalizeChar lost names that existed in raw data, use raw mapping
+        const _normLostName=o.characters[0]?.name==='?'&&chars[0]?.name&&chars[0].name!=='?';
+        if(!o.characters.length||_normLostName){
             warn('normalizeChar returned empty, using raw characters');
             o.characters=chars.map(ch=>({
                 name:ch.name||'?',role:ch.role||'',innerThought:ch.innerThought||ch.inner_thought||'',
@@ -1188,7 +1190,9 @@ function normalizeTracker(d){
     // CONFIDENCE RULES — only resolve when we can be certain:
     //   HIGH: 1 unknown char + 1 unmatched relationship = unambiguous
     //   HIGH: charactersPresent has exactly N names matching N characters by position
-    //   LOW:  2+ unknown chars + fewer relationships = CAN'T determine which is which → leave as '?'
+    //   HIGH: {{char}} name matches exactly 1 unknown character (the primary bot)
+    //   MEDIUM: unknown char's role text cross-references a relationship's relType
+    //   LOW:  2+ unknown chars + insufficient clues = leave as '?'
     if(o.characters?.length){
         const cpNames=(o.charactersPresent||[]).filter(n=>n&&n!=='{{user}}');
         const relNames=(o.relationships||[]).map(r=>r.name).filter(Boolean);
@@ -1196,29 +1200,68 @@ function normalizeTracker(d){
         const unknowns=o.characters.filter(c=>c.name==='?');
         const unmatchedRels=relNames.filter(n=>!knownCharNames.has(n.toLowerCase()));
 
+        // HIGH: 1:1 unknown↔relationship
         if(unknowns.length===1&&unmatchedRels.length===1){
-            // HIGH confidence: exactly 1 unknown, exactly 1 unmatched relationship → must be the same person
             unknowns[0].name=unmatchedRels[0];
             log('Char name resolved (1:1 match):',unmatchedRels[0]);
-        } else if(unknowns.length>0&&cpNames.length===o.characters.length){
-            // HIGH confidence: charactersPresent count matches character count → positional match
+        }
+        // HIGH: positional match from charactersPresent
+        else if(unknowns.length>0&&cpNames.length===o.characters.length){
             for(let i=0;i<o.characters.length;i++){
                 if(o.characters[i].name==='?'&&cpNames[i]){
                     o.characters[i].name=cpNames[i];
-                    log('Char name resolved (positional from charactersPresent['+i+']):',cpNames[i]);
+                    log('Char name resolved (positional):',cpNames[i]);
                 }
             }
-        } else if(unknowns.length>=2){
-            // LOW confidence: multiple unknowns, can't safely determine which is which
-            // Leave as '?' — they'll get neutral gray styling
-            log('Char name unresolved:',unknowns.length,'unknown chars,',unmatchedRels.length,'unmatched rels — ambiguous, leaving neutral');
-        } else if(unknowns.length===1&&unmatchedRels.length===0&&cpNames.length>0){
-            // Try charactersPresent: find a name not already used by a known character
-            const availCp=cpNames.filter(n=>!knownCharNames.has(n.toLowerCase()));
-            if(availCp.length===1){
-                unknowns[0].name=availCp[0];
-                log('Char name resolved (only unmatched in charactersPresent):',availCp[0]);
+        }
+        // Additional heuristics for remaining unknowns
+        else if(unknowns.length>0){
+            // HIGH: {{char}} name identifies the primary bot character
+            try{
+                const charName=SillyTavern.getContext().name2||'';
+                if(charName&&!knownCharNames.has(charName.toLowerCase())){
+                    const stillUnk=o.characters.filter(c=>c.name==='?');
+                    if(stillUnk.length===1){
+                        stillUnk[0].name=charName;
+                        log('Char name resolved ({{char}}, sole unknown):',charName);
+                    } else if(stillUnk.length>1){
+                        // Check if one's role/thought references {{char}}
+                        const charLow=charName.toLowerCase();
+                        const match=stillUnk.find(c=>(c.role||'').toLowerCase().includes(charLow)||(c.innerThought||'').toLowerCase().includes(charLow));
+                        if(match){match.name=charName;log('Char name resolved ({{char}} in role/thought):',charName)}
+                    }
+                }
+            }catch(e){}
+            // MEDIUM: cross-reference role text ↔ relationship relType
+            const stillUnknown=o.characters.filter(c=>c.name==='?');
+            const stillKnown=new Set(o.characters.filter(c=>c.name!=='?').map(c=>c.name.toLowerCase()));
+            const stillUnmatched=relNames.filter(n=>!stillKnown.has(n.toLowerCase()));
+            for(const unk of stillUnknown){
+                if(unk.name!=='?')continue;
+                const role=(unk.role||'').toLowerCase().split(/[,\-–]/)[0].trim();
+                if(!role)continue;
+                for(const relName of stillUnmatched){
+                    const rel=o.relationships.find(r=>r.name===relName);
+                    if(!rel)continue;
+                    const relType=(rel.relType||'').toLowerCase();
+                    if(relType&&(role.includes(relType)||relType.includes(role))){
+                        unk.name=relName;
+                        log('Char name resolved (role↔relType):',relName);
+                        break;
+                    }
+                }
             }
+        }
+        // Last-resort pass: if exactly 1 unknown remains after all heuristics
+        const finalUnknowns=o.characters.filter(c=>c.name==='?');
+        if(finalUnknowns.length===1){
+            const finalKnown=new Set(o.characters.filter(c=>c.name!=='?').map(c=>c.name.toLowerCase()));
+            const finalUnmRels=relNames.filter(n=>!finalKnown.has(n.toLowerCase()));
+            const finalUnmCp=cpNames.filter(n=>!finalKnown.has(n.toLowerCase()));
+            if(finalUnmRels.length===1){finalUnknowns[0].name=finalUnmRels[0];log('Char name resolved (last-resort rel):',finalUnmRels[0])}
+            else if(finalUnmCp.length===1){finalUnknowns[0].name=finalUnmCp[0];log('Char name resolved (last-resort cp):',finalUnmCp[0])}
+        } else if(finalUnknowns.length>=2){
+            log('Char names unresolved:',finalUnknowns.length,'unknowns — ambiguous, neutral styling');
         }
     }
     // Post-normalization: infer missing scene fields from available context
@@ -1254,9 +1297,18 @@ function normalizeChar(ch){
     const flat={};
     function collect(obj,d){if(!obj||typeof obj!=='object'||d>5)return;for(const[k,v]of Object.entries(obj)){if(k==='name')continue;const lk=k.toLowerCase();if(typeof v==='string'&&v.length>0){if(!flat[lk])flat[lk]=v}else if(typeof v==='number'){if(flat[lk]==null)flat[lk]=v}else if(Array.isArray(v)){if(!flat[lk])flat[lk]=v}else if(typeof v==='object'&&v!==null){if(!flat[lk]){const sv=Object.values(v).filter(x=>typeof x==='string');if(sv.length)flat[lk]=sv.join('; ')}collect(v,d+1)}}}
     collect(ch,0);
-    log('normalizeChar flat keys for',ch.name||'?',':',Object.keys(flat).join(', '));
     const g=keys=>{for(const k of keys){const v=flat[k];if(v!=null&&v!=='')return typeof v==='string'?v:String(v)}return''};
-    const o={name:ch.name||g(['charactername','character_name','charname','fullname','full_name'])||'?'};
+    // Name resolution: try direct name, then alternate keys, then _spKey (set by object unwrapper)
+    let name=ch.name||g(['charactername','character_name','charname','fullname','full_name'])||ch._spKey||'';
+    // If still no name, check if role text starts with a proper name pattern (e.g. "Yuzuki's co-worker")
+    if(!name){
+        const role=g(['role','identity','who','title']);
+        const nameFromRole=role.match(/^([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)'s\b/);
+        if(nameFromRole)name=nameFromRole[1];
+    }
+    if(!name)name='?';
+    log('normalizeChar flat keys for',name,':',Object.keys(flat).join(', '));
+    const o={name};
     o.role=g(['role','identity','who','emotion','title']);
     o.innerThought=g(['innerthought','inner_thought','thought','thinking','monologue']);
     o.immediateNeed=g(['immediateneed','immediate_need','need','doing','trying','urgentaction']);
@@ -1878,7 +1930,7 @@ function createPanel(){
     const panel=document.createElement('div');panel.id='sp-panel';
     panel.innerHTML=`
     <div class="sp-toolbar">
-        <div class="sp-brand-icon" id="sp-brand-icon" title="ScenePulse v4.9.78">${MASCOT_SVG}</div>
+        <div class="sp-brand-icon" id="sp-brand-icon" title="ScenePulse v4.9.79">${MASCOT_SVG}</div>
         <div class="sp-brand-title">Scene<span class="sp-brand-accent">Pulse</span></div>
         <span class="sp-toolbar-spacer"></span>
         <button class="sp-toolbar-btn" id="sp-tb-regen" title="Regenerate all"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M13.5 8a5.5 5.5 0 1 1-1.3-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M13.5 3v2.5h-2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
@@ -4860,7 +4912,7 @@ function createSettings(){
     try{po=getConnectionProfiles().map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}catch{}
     try{pre=getChatPresets().map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}catch{}
     try{lo=getLorebooks().map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}catch{}
-    const html=`<div id="scenepulse-settings" class="extension_settings"><div class="inline-drawer"><div class="inline-drawer-toggle inline-drawer-header"><div class="sp-drawer-header-content"><span class="sp-drawer-icon-wrap">${MASCOT_SVG}</span><div class="sp-drawer-title-block"><span class="sp-drawer-title">Scene<span style="color:var(--sp-accent)">Pulse</span></span><span class="sp-drawer-version">v4.9.78 — Scene Intelligence</span></div><span class="sp-drawer-badge sp-on" id="sp-badge"><span class="sp-drawer-badge-dot"></span>Active</span></div><div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div></div><div class="inline-drawer-content">
+    const html=`<div id="scenepulse-settings" class="extension_settings"><div class="inline-drawer"><div class="inline-drawer-toggle inline-drawer-header"><div class="sp-drawer-header-content"><span class="sp-drawer-icon-wrap">${MASCOT_SVG}</span><div class="sp-drawer-title-block"><span class="sp-drawer-title">Scene<span style="color:var(--sp-accent)">Pulse</span></span><span class="sp-drawer-version">v4.9.79 — Scene Intelligence</span></div><span class="sp-drawer-badge sp-on" id="sp-badge"><span class="sp-drawer-badge-dot"></span>Active</span></div><div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div></div><div class="inline-drawer-content">
 <div class="sp-sh">General</div><label class="sp-ck"><input type="checkbox" id="sp-enabled"> Enable ScenePulse</label><label class="sp-ck"><input type="checkbox" id="sp-auto-gen"> Auto-generate on AI messages</label><label class="sp-ck"><input type="checkbox" id="sp-show-thoughts"> Show thought bubbles</label><label class="sp-ck"><input type="checkbox" id="sp-show-weather"> Weather overlay effects</label><label class="sp-ck"><input type="checkbox" id="sp-show-timetint"> Time-of-day ambience</label><label class="sp-ck"><input type="checkbox" id="sp-show-devbtns"> Show developer tools</label><div style="margin-top:6px;display:flex;gap:6px"><button class="sp-btn" id="sp-btn-setup">📋 Setup Guide</button><button class="sp-btn" id="sp-btn-tour">✦ Guided Tour</button></div><div id="sp-separate-settings"><div class="sp-fi"><label>Context msgs</label><input type="number" id="sp-ctx" min="1" max="30"></div><div class="sp-hint sp-ctx-hint">How many recent messages to include when generating tracker updates. <em>Separate mode only — Together mode uses ST's full context automatically.</em><br><span class="sp-ctx-range"><strong>3–4</strong> · Fastest. Good for simple 1-on-1 scenes (~5K token prompt)</span><br><span class="sp-ctx-range"><strong>5–8</strong> · Balanced. Recommended for most scenes (~8–12K tokens)</span><br><span class="sp-ctx-range"><strong>8–15</strong> · Better continuity for complex multi-character scenes (~12–20K tokens)</span><br><span class="sp-ctx-range"><strong>15+</strong> · Maximum context but significantly slower and more expensive</span><br><span class="sp-ctx-note">⚠ This is the biggest factor in Separate mode speed. At 8 msgs your tracker prompt is ~10K tokens — doubling roughly doubles generation time. Lower values (3–4) can cut tracker time by 40–60%.</span></div><div class="sp-fi"><label>Max retries</label><input type="number" id="sp-retries" min="0" max="5"></div><div class="sp-hint sp-ctx-hint"><em>Separate mode only.</em> How many times to retry if the tracker API call returns invalid JSON.</div></div>
 <div class="sp-sh">Injection Method</div><div class="sp-fs"><label>Mode</label><select id="sp-injection-method"><option value="inline">Together (AI appends tracker to its response)</option><option value="separate">Separate (dedicated API call after AI response)</option></select></div>
 <div id="sp-method-inline"><div class="sp-hint">The AI writes its normal response, then appends tracker JSON at the end. ScenePulse automatically extracts and hides the JSON. <strong>Recommended for most setups.</strong></div><div class="sp-hint sp-pros-cons"><span class="sp-pro">✓ Single API call — typically ~100–120s total</span><br><span class="sp-pro">✓ No profile switching — eliminates message deletion risk</span><br><span class="sp-pro">✓ AI has full narrative context for accurate tracking</span><br><span class="sp-pro">✓ 2–3× faster than Separate mode in practice</span><br><span class="sp-con">✗ Uses tokens from the main response budget (~1,700 tokens for tracker)</span><br><span class="sp-con">✗ May slightly reduce narrative length on token-limited models</span></div>
@@ -5297,7 +5349,7 @@ eventSource.on(event_types.APP_READY,()=>{try{
     if(!_s.setupDismissed){
         setTimeout(()=>showSetupGuide(),2000);
     }
-    log('v4.9.78 ready');
+    log('v4.9.79 ready');
     // One-time migration: reset stale sub-field toggles from old Disable All
     if(_s.fieldToggles){
         const _ft=_s.fieldToggles;const _p=_s.panels||DEFAULTS.panels;
@@ -5426,4 +5478,4 @@ if(event_types.MESSAGE_UPDATED){
     eventSource.on(event_types.MESSAGE_UPDATED,()=>{setTimeout(renderExisting,300)});
 }
 // ST generation started — handled internally via generateTracker's generating=true flag
-log('v4.9.78 init');
+log('v4.9.79 init');

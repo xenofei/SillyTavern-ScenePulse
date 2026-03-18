@@ -2,15 +2,15 @@
 
 > **⚠️ EARLY ACCESS — WORK IN PROGRESS**
 >
-> ScenePulse is under active development. Expect rough edges, visual glitches, broken features, and frequent updates. Some AI models may not reliably produce tracker data in Together mode. Mobile support is functional but still being refined. If something breaks, please [open an issue](https://github.com/xenofei/SillyTavern-ScenePulse/issues) — your feedback shapes what gets fixed next.
+> ScenePulse is under active development. Expect rough edges, visual glitches, and frequent updates. Some AI models may not reliably produce tracker data in Together mode. Mobile support is functional but still being refined. If something breaks, please [open an issue](https://github.com/xenofei/SillyTavern-ScenePulse/issues) — your feedback shapes what gets fixed next.
 
 ---
 
 <div align="center">
 
-<img src="https://img.shields.io/badge/version-4.9.76-4db8a4?style=flat-square&labelColor=1a1c24" alt="Version">
+<img src="https://img.shields.io/badge/version-4.9.79-4db8a4?style=flat-square&labelColor=1a1c24" alt="Version">
 <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square&labelColor=1a1c24" alt="License">
-<img src="https://img.shields.io/badge/platform-SillyTavern-orange?style=flat-square&labelColor=1a1c24" alt="Platform">
+<img src="https://img.shields.io/badge/platform-SillyTavern%201.12%2B-orange?style=flat-square&labelColor=1a1c24" alt="Platform">
 
 # 🔮 ScenePulse
 
@@ -33,21 +33,22 @@ ScenePulse is a SillyTavern extension that automatically extracts and tracks sce
 
 ### 🧑‍🤝‍🧑 Relationship Tracking
 - Animated meter bars for **affection, trust, desire, stress, compatibility** (0–100)
-- Delta badges showing changes between messages (▲/▼)
+- Auto-generated labels when the model omits them (minimal → low → moderate → strong → intense → overwhelming)
+- Delta badges showing changes between messages (▲/▼) with previous-value markers
 - Relationship phase, milestones, and time together
-- White marker showing previous values for comparison
+- Confidence-based color matching between character and relationship cards — fuzzy name matching with neutral gray for unresolved identities
 
 ### 🗡️ Quest Journal
 - **North Star** — overarching life purpose
 - **Main Quests, Side Quests, Active Tasks** — tiered and collapsible
 - Urgency indicators and detailed descriptions
-- Quests persist across messages until the story resolves them
 
 ### 👤 Character Profiles
 - Full appearance tracking: hair, face, outfit, state of dress, posture
 - Inner thoughts, immediate needs, short/long-term goals
 - Inventory tracking
-- Optional fertility status fields
+- Optional fertility status fields with compact inline layout
+- Smart name resolution when models omit the `name` field — cross-references `{{char}}`, relationships, `charactersPresent`, role text, and object keys with multi-tier confidence scoring
 
 ### 💡 Story Ideas
 - 5 AI-generated plot directions per update (dramatic, intense, comedic, twist, exploratory)
@@ -55,12 +56,13 @@ ScenePulse is a SillyTavern extension that automatically extracts and tracks sce
 
 ### 💭 Inner Thoughts Panel *(Desktop)*
 - Floating, draggable panel showing each character's inner monologue
+- Characters without thoughts show a subtle `…` placeholder
 - Ghost mode (transparent), snap-to-edge, resizable
 
 ### 🌧️ Immersive Effects *(Desktop)*
 - **Weather overlay** — rain, snow, hail, fog, sandstorm, aurora, ash with particle systems
 - **Time-of-day tint** — dawn, morning, afternoon, dusk, evening, night ambience
-- **Scene transitions** — location change popups with animation
+- **Scene transitions** — feathered location change popups with backdrop blur and soft radial fade
 
 ### ⏱️ Timeline Scrubber
 - Every AI message creates a snapshot
@@ -121,16 +123,19 @@ ScenePulse operates in **Together mode** by default:
 1. A tracker prompt is injected into the AI's context via SillyTavern's interceptor
 2. The AI writes its normal narrative response, then appends a JSON block wrapped in `<!--SP_TRACKER_START-->` / `<!--SP_TRACKER_END-->` markers
 3. ScenePulse extracts the JSON, strips it from the visible message, and updates the dashboard
-4. A **streaming hider** (MutationObserver) caps the message height during streaming so the JSON never appears visually
+4. A **proactive streaming hider** (MutationObserver with rolling `max-height` cap) prevents the JSON from ever appearing visually during streaming
 
 If the AI omits the tracker, ScenePulse can **automatically fall back** to a separate API call using a dedicated connection profile.
 
 ### Separate Mode
 Alternatively, ScenePulse can run a completely separate API call after each message — useful for models that struggle with inline instructions. Configure this in the extension settings.
 
+### Settings Persistence
+All configuration settings (injection method, profiles, presets, lorebook mode, etc.) are persisted via `localStorage` for reliability. This bypasses SillyTavern's `saveSettingsDebounced()` race condition with `CHAT_CHANGED` events during initialization, ensuring your settings survive restarts.
+
 ## 🎯 Compatibility
 
-- **SillyTavern** 1.12.0+
+- **SillyTavern** 1.12.0+ (including 1.16.0 with updated `#connection_profiles` selector)
 - **Tested models**: GLM-4/5, Claude, GPT-4o, Gemini, Llama 3, Mistral, Qwen
 - **API providers**: OpenAI-compatible, Anthropic, Google AI, any provider SillyTavern supports
 - **Browsers**: Chrome, Firefox, Safari (mobile & desktop)
@@ -169,10 +174,10 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## 📝 Known Issues
 
-- **JSON visibility during streaming** — The streaming hider catches most cases, but very fast token rates or unusual model output patterns may briefly show tracker JSON before it's hidden
+- **JSON visibility during streaming** — The proactive streaming hider catches most cases, but very fast token rates may briefly show tracker JSON before the `max-height` cap takes effect
 - **Model compliance** — Some models intermittently skip the tracker block; the fallback system handles this, but it adds a second API call
 - **Mobile** — Weather effects, time-of-day tint, inner thoughts panel, and condense view are disabled on mobile to optimize performance
-- **Think-tag models** — Models that natively use `<think>` tags (DeepSeek R1, etc.) may interact unexpectedly with tracker extraction
+- **Character naming** — When a model omits the `name` field, ScenePulse uses a multi-tier confidence system: 1:1 relationship matching, positional `charactersPresent` alignment, `{{char}}` identification, role↔relType cross-referencing, and last-resort elimination. Ambiguous cases (2+ unnamed characters with insufficient clues) display as neutral gray cards until the next generation resolves them
 
 ## 🤝 Contributing
 
@@ -181,6 +186,16 @@ Found a bug? Have a feature idea? Contributions welcome!
 1. [Open an issue](https://github.com/xenofei/SillyTavern-ScenePulse/issues) to report bugs or suggest features
 2. Fork the repo, create a branch, and submit a PR
 3. Join the discussion in the issues tab
+
+## 💡 Inspiration
+
+ScenePulse started as a desire for something more — a scene-aware companion that could grow alongside the stories being told. These projects paved the way and remain worth checking out:
+
+- [**RPG Companion**](https://github.com/SpicyMarinara/rpg-companion-sillytavern) by SpicyMarinara — The original RPG tracking extension for SillyTavern
+- [**WTracker**](https://github.com/bmen25124/SillyTavern-WTracker) by bmen25124 — Lightweight world state tracking
+- [**zTracker**](https://github.com/Zaakh/SillyTavern-zTracker) by Zaakh — Scene and character tracking with a clean UI
+
+Their ideas and approaches directly shaped what ScenePulse is becoming. If you're exploring scene tracking for SillyTavern, give them a look.
 
 ## 📄 License
 

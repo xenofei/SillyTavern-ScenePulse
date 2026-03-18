@@ -1567,13 +1567,16 @@ body:has(#sp-panel.sp-mode-mobile) .sp-loading-glass-fixed {
     text-shadow: 0 0 80px rgba(77,184,164,0.7), 0 4px 40px rgba(0,0,0,0.8);
     white-space: nowrap;
     transition: none;
-    padding: 60px 120px;
+    padding: 80px 160px;
     background: transparent;
     border-radius: 20px;
+    -webkit-mask-image: radial-gradient(ellipse 85% 75% at center, black 30%, transparent 72%);
+    mask-image: radial-gradient(ellipse 85% 75% at center, black 30%, transparent 72%);
 }
 #sp-scene-transition.sp-st-show {
     animation: sp-st-fade 4.5s ease-in-out forwards;
-    background: radial-gradient(ellipse 90% 80% at center, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.65) 30%, rgba(0,0,0,0.3) 55%, transparent 80%);
+    background: radial-gradient(ellipse 110% 100% at center, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.7) 20%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,0.15) 60%, transparent 80%);
+    backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
 }
 .sp-st-sep {
     font-weight: 100; opacity: 0.4; font-size: 32px;
