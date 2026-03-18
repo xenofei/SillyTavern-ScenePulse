@@ -1775,7 +1775,10 @@
     transition: all 0.3s ease; padding: 14px;
 }
 .sp-mobile-fab svg { width: 30px; height: 30px; }
+.sp-mobile-fab .sp-mascot-pulse { animation: none; }
 .sp-mobile-fab.sp-fab-visible { display: flex !important; }
+/* Hide FAB whenever the panel is open — prevent bleed-through */
+#sp-panel.sp-visible ~ .sp-mobile-fab { display: none !important; }
 
 /* ═══ ST-INJECTED RESTORE BUTTON (next to send button) ═══ */
 .sp-st-restore {
@@ -1787,6 +1790,7 @@
     filter: drop-shadow(0 0 3px rgba(77,184,164,0.3));
 }
 .sp-st-restore svg { width: 24px; height: 24px; }
+.sp-st-restore .sp-mascot-pulse { animation: none; }
 .sp-st-restore:hover, .sp-st-restore:active {
     filter: drop-shadow(0 0 8px rgba(77,184,164,0.6));
     transform: scale(1.15);
