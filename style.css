@@ -875,6 +875,9 @@ body:has(#sp-panel.sp-mode-mobile) .sp-loading-glass-fixed {
     background: linear-gradient(180deg, var(--char-accent, var(--sp-accent)), transparent);
     border-radius: 1px;
 }
+.sp-tp-monologue-empty {
+    opacity: 0.3; letter-spacing: 3px; font-style: normal;
+}
 
 /* Goals */
 .sp-tp-goal {
