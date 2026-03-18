@@ -1782,14 +1782,14 @@
 
 /* ═══ ST-INJECTED RESTORE BUTTON (next to send button) ═══ */
 .sp-st-restore {
-    display: none; width: 32px; height: 32px;
-    color: #4db8a4; cursor: pointer;
+    display: none; width: 34px; height: 34px;
+    color: #5ce0c8; cursor: pointer;
     align-items: center; justify-content: center;
     padding: 4px; border-radius: 6px;
     transition: all 0.2s ease; flex-shrink: 0;
-    filter: drop-shadow(0 0 3px rgba(77,184,164,0.3));
+    filter: drop-shadow(0 0 4px rgba(77,184,164,0.5));
 }
-.sp-st-restore svg { width: 24px; height: 24px; }
+.sp-st-restore svg { width: 26px; height: 26px; }
 .sp-st-restore .sp-mascot-pulse { animation: none; }
 .sp-st-restore:hover, .sp-st-restore:active {
     filter: drop-shadow(0 0 8px rgba(77,184,164,0.6));
@@ -1839,6 +1839,10 @@
 #sp-panel.sp-mode-mobile .sp-brand-title { display: none; }
 
 /* ═══ SP MOBILE TOP BAR (replaces ST's extension bar) ═══ */
+/* Force-hide ST's top bar when SP panel is fullscreen on mobile */
+#sp-panel.sp-mode-mobile.sp-visible ~ #top-bar,
+body:has(#sp-panel.sp-mode-mobile.sp-visible) #top-bar,
+body:has(#sp-panel.sp-mode-mobile.sp-visible) #top-settings-holder { display: none !important; }
 .sp-mobile-topbar {
     display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 100002;
     height: 40px; padding: 0 12px;
