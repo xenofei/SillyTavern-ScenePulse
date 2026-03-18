@@ -1,4 +1,4 @@
-// ScenePulse v4.9.63 — Side Panel Architecture
+// ScenePulse v4.9.64 — Side Panel Architecture
 const MODULE_NAME='scenepulse';const LOG='[ScenePulse]';
 
 const MASCOT_SVG=`<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.2" opacity="0.25" class="sp-mascot-pulse"/><circle cx="12" cy="12" r="6.5" stroke="currentColor" stroke-width="1" opacity="0.4" class="sp-mascot-pulse"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="0.8" opacity="0.6"/><circle cx="12" cy="12" r="1.4" fill="currentColor" opacity="0.9"/><line x1="12" y1="2" x2="12" y2="5.5" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><line x1="12" y1="18.5" x2="12" y2="22" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><line x1="2" y1="12" x2="5.5" y2="12" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><line x1="18.5" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><path d="M12 5.5 L14 10 L12 8.5 L10 10 Z" fill="currentColor" opacity="0.5"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="8s" repeatCount="indefinite"/></path></svg>`;
@@ -1292,83 +1292,68 @@ function cancelGeneration(){
 let _streamHiderInterval=null;
 let _streamHiderStart=0;
 let _streamHiderStyleEl=null;
+let _streamHiderObserver=null;
 function startStreamingHider(){
     stopStreamingHider();
     _streamHiderStart=Date.now();
     _streamHiderStyleEl=document.createElement('style');
     _streamHiderStyleEl.id='sp-stream-hider-style';
     document.head.appendChild(_streamHiderStyleEl);
-    let _prevH=0;let _prevPrevH=0;let _locked=false;let _observer=null;
+    let _safeH=0;let _locked=false;let _observer=null;let _mesId=null;let _lastMes=null;
     log('StreamHider: started');
 
-    // Helper: check if text contains JSON signatures
     const _hasJson=(txt)=>{
         if(txt.includes('SP_TRACKER_START'))return true;
         if(txt.includes('```json'))return true;
-        // Detect raw JSON: {"time" or { "time" appearing after narrative
-        if(txt.length>200&&(txt.includes('"time"')&&(txt.includes('"sceneTopic"')||txt.includes('"sceneMood"')||txt.includes('"location"'))))return true;
-        // Early detection: a lone { followed by "time" within 30 chars
-        const lastOpen=txt.lastIndexOf('{');
-        if(lastOpen>100&&txt.indexOf('"time"',lastOpen)!==-1&&txt.indexOf('"time"',lastOpen)-lastOpen<40)return true;
+        if(txt.length>200&&txt.includes('"time"')&&(txt.includes('"sceneTopic"')||txt.includes('"sceneMood"')||txt.includes('"location"')))return true;
+        const lo=txt.lastIndexOf('{');
+        if(lo>100&&txt.indexOf('"time"',lo)!==-1&&txt.indexOf('"time"',lo)-lo<40)return true;
         return false;
     };
 
-    // Helper: apply the cap
-    const _applyCap=(h,mesId)=>{
-        if(_locked)return;_locked=true;
-        const capPx=Math.max(40,Math.ceil(h));
-        const sel=mesId?`.mes[mesid="${mesId}"] .mes_text`:`.mes:last-child .mes_text`;
-        const rule=`${sel}{max-height:${capPx}px!important;overflow:hidden!important}`;
-        if(_streamHiderStyleEl)_streamHiderStyleEl.textContent=rule;
-        log('StreamHider: LOCKED at',capPx+'px mesid='+mesId);
+    const _sel=()=>_mesId?`.mes[mesid="${_mesId}"] .mes_text`:`.mes:last-child .mes_text`;
+
+    // PROACTIVE: Always cap at safe height + buffer. The message can never show more than we've measured as "clean".
+    const _updateCap=()=>{
+        if(!_lastMes||!_streamHiderStyleEl)return;
+        const txt=_lastMes.textContent||'';
+        if(_locked)return; // Already frozen
+        if(_hasJson(txt)){
+            // JSON detected — freeze at current safe height
+            _locked=true;
+            const capPx=Math.max(40,Math.ceil(_safeH));
+            _streamHiderStyleEl.textContent=`${_sel()}{max-height:${capPx}px!important;overflow:hidden!important}`;
+            log('StreamHider: LOCKED at',capPx+'px mesid='+_mesId);
+            return;
+        }
+        // No JSON yet — update safe height and apply rolling cap with buffer
+        const h=_lastMes.getBoundingClientRect().height;
+        if(h>_safeH)_safeH=h;
+        // Cap at current height + 30px buffer (allows next line to render, but not a 10KB JSON block)
+        const capPx=Math.ceil(_safeH+30);
+        _streamHiderStyleEl.textContent=`${_sel()}{max-height:${capPx}px!important;overflow:hidden!important}`;
     };
 
-    // MutationObserver: fires instantly on every DOM change to last message
+    // MutationObserver: fires on every DOM change to last message
     const _setupObserver=()=>{
         if(_observer)return;
         const mesTexts=document.querySelectorAll('.mes_text');
         if(!mesTexts.length)return;
-        const lastMes=mesTexts[mesTexts.length-1];
-        const mesId=lastMes.closest('.mes')?.getAttribute('mesid');
-        _observer=new MutationObserver(()=>{
-            if(_locked)return;
-            const txt=lastMes.textContent||'';
-            if(_hasJson(txt)){
-                // Use the OLDER height (2 frames back) for safety
-                _applyCap(_prevPrevH||_prevH||lastMes.getBoundingClientRect().height*0.7,mesId);
-            } else {
-                // Update height chain: shift current → prev → prevprev
-                const h=lastMes.getBoundingClientRect().height;
-                _prevPrevH=_prevH;_prevH=h;
-            }
-        });
-        _observer.observe(lastMes,{childList:true,subtree:true,characterData:true});
+        _lastMes=mesTexts[mesTexts.length-1];
+        _mesId=_lastMes.closest('.mes')?.getAttribute('mesid');
+        _observer=new MutationObserver(_updateCap);
+        _streamHiderObserver=_observer; // Store at module level for cleanup
+        _observer.observe(_lastMes,{childList:true,subtree:true,characterData:true});
     };
 
-    // Polling fallback (catches cases where observer misses)
+    // Polling fallback at 80ms
     _streamHiderInterval=setInterval(()=>{
         try{
             if(Date.now()-_streamHiderStart>180000){log('StreamHider: safety timeout (180s)');stopStreamingHider();return}
             _setupObserver();
-            if(_locked)return;
-            const mesTexts=document.querySelectorAll('.mes_text');
-            if(!mesTexts.length)return;
-            const lastMes=mesTexts[mesTexts.length-1];
-            const txt=lastMes.textContent||'';
-            if(txt.length<40)return;
-            if(_hasJson(txt)){
-                const mesId=lastMes.closest('.mes')?.getAttribute('mesid');
-                _applyCap(_prevPrevH||_prevH||lastMes.getBoundingClientRect().height*0.7,mesId);
-            } else {
-                const h=lastMes.getBoundingClientRect().height;
-                _prevPrevH=_prevH;_prevH=h;
-            }
+            _updateCap();
         }catch(e){}
-    },100);
-
-    // Store observer ref for cleanup
-    _streamHiderStyleEl._observer=_observer;
-    _streamHiderStyleEl._setupObserver=_setupObserver;
+    },80);
 }
 function stopStreamingHider(){
     if(_streamHiderInterval){
@@ -1377,7 +1362,7 @@ function stopStreamingHider(){
         clearInterval(_streamHiderInterval);_streamHiderInterval=null;
     }
     // Disconnect MutationObserver
-    if(_streamHiderStyleEl?._observer){try{_streamHiderStyleEl._observer.disconnect()}catch(e){}_streamHiderStyleEl._observer=null}
+    if(_streamHiderObserver){try{_streamHiderObserver.disconnect()}catch(e){}_streamHiderObserver=null}
     // Remove the CSS rule after a delay — gives extraction time to clean the DOM
     setTimeout(()=>{if(_streamHiderStyleEl){_streamHiderStyleEl.remove();_streamHiderStyleEl=null}},600);
 }
@@ -1807,7 +1792,7 @@ function createPanel(){
     const panel=document.createElement('div');panel.id='sp-panel';
     panel.innerHTML=`
     <div class="sp-toolbar">
-        <div class="sp-brand-icon" id="sp-brand-icon" title="ScenePulse v4.9.63">${MASCOT_SVG}</div>
+        <div class="sp-brand-icon" id="sp-brand-icon" title="ScenePulse v4.9.64">${MASCOT_SVG}</div>
         <div class="sp-brand-title">Scene<span class="sp-brand-accent">Pulse</span></div>
         <span class="sp-toolbar-spacer"></span>
         <button class="sp-toolbar-btn" id="sp-tb-regen" title="Regenerate all"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M13.5 8a5.5 5.5 0 1 1-1.3-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M13.5 3v2.5h-2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
@@ -4770,7 +4755,7 @@ function createSettings(){
     try{po=getConnectionProfiles().map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}catch{}
     try{pre=getChatPresets().map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}catch{}
     try{lo=getLorebooks().map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}catch{}
-    const html=`<div id="scenepulse-settings" class="extension_settings"><div class="inline-drawer"><div class="inline-drawer-toggle inline-drawer-header"><div class="sp-drawer-header-content"><span class="sp-drawer-icon-wrap">${MASCOT_SVG}</span><div class="sp-drawer-title-block"><span class="sp-drawer-title">Scene<span style="color:var(--sp-accent)">Pulse</span></span><span class="sp-drawer-version">v4.9.63 — Scene Intelligence</span></div><span class="sp-drawer-badge sp-on" id="sp-badge"><span class="sp-drawer-badge-dot"></span>Active</span></div><div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div></div><div class="inline-drawer-content">
+    const html=`<div id="scenepulse-settings" class="extension_settings"><div class="inline-drawer"><div class="inline-drawer-toggle inline-drawer-header"><div class="sp-drawer-header-content"><span class="sp-drawer-icon-wrap">${MASCOT_SVG}</span><div class="sp-drawer-title-block"><span class="sp-drawer-title">Scene<span style="color:var(--sp-accent)">Pulse</span></span><span class="sp-drawer-version">v4.9.64 — Scene Intelligence</span></div><span class="sp-drawer-badge sp-on" id="sp-badge"><span class="sp-drawer-badge-dot"></span>Active</span></div><div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div></div><div class="inline-drawer-content">
 <div class="sp-sh">General</div><label class="sp-ck"><input type="checkbox" id="sp-enabled"> Enable ScenePulse</label><label class="sp-ck"><input type="checkbox" id="sp-auto-gen"> Auto-generate on AI messages</label><label class="sp-ck"><input type="checkbox" id="sp-show-thoughts"> Show thought bubbles</label><label class="sp-ck"><input type="checkbox" id="sp-show-weather"> Weather overlay effects</label><label class="sp-ck"><input type="checkbox" id="sp-show-timetint"> Time-of-day ambience</label><label class="sp-ck"><input type="checkbox" id="sp-show-devbtns"> Show developer tools</label><div id="sp-separate-settings"><div class="sp-fi"><label>Context msgs</label><input type="number" id="sp-ctx" min="1" max="30"></div><div class="sp-hint sp-ctx-hint">How many recent messages to include when generating tracker updates. <em>Separate mode only — Together mode uses ST's full context automatically.</em><br><span class="sp-ctx-range"><strong>3–4</strong> · Fastest. Good for simple 1-on-1 scenes (~5K token prompt)</span><br><span class="sp-ctx-range"><strong>5–8</strong> · Balanced. Recommended for most scenes (~8–12K tokens)</span><br><span class="sp-ctx-range"><strong>8–15</strong> · Better continuity for complex multi-character scenes (~12–20K tokens)</span><br><span class="sp-ctx-range"><strong>15+</strong> · Maximum context but significantly slower and more expensive</span><br><span class="sp-ctx-note">⚠ This is the biggest factor in Separate mode speed. At 8 msgs your tracker prompt is ~10K tokens — doubling roughly doubles generation time. Lower values (3–4) can cut tracker time by 40–60%.</span></div><div class="sp-fi"><label>Max retries</label><input type="number" id="sp-retries" min="0" max="5"></div><div class="sp-hint sp-ctx-hint"><em>Separate mode only.</em> How many times to retry if the tracker API call returns invalid JSON.</div></div>
 <div class="sp-sh">Injection Method</div><div class="sp-fs"><label>Mode</label><select id="sp-injection-method"><option value="inline">Together (AI appends tracker to its response)</option><option value="separate">Separate (dedicated API call after AI response)</option></select></div>
 <div id="sp-method-inline"><div class="sp-hint">The AI writes its normal response, then appends tracker JSON at the end. ScenePulse automatically extracts and hides the JSON. <strong>Recommended for most setups.</strong></div><div class="sp-hint sp-pros-cons"><span class="sp-pro">✓ Single API call — typically ~100–120s total</span><br><span class="sp-pro">✓ No profile switching — eliminates message deletion risk</span><br><span class="sp-pro">✓ AI has full narrative context for accurate tracking</span><br><span class="sp-pro">✓ 2–3× faster than Separate mode in practice</span><br><span class="sp-con">✗ Uses tokens from the main response budget (~1,700 tokens for tracker)</span><br><span class="sp-con">✗ May slightly reduce narrative length on token-limited models</span></div>
@@ -5106,7 +5091,7 @@ eventSource.on(event_types.APP_READY,()=>{try{
     if(!_s.setupDismissed){
         setTimeout(()=>showSetupGuide(),2000);
     }
-    log('v4.9.63 ready');
+    log('v4.9.64 ready');
     // One-time migration: reset stale sub-field toggles from old Disable All
     if(_s.fieldToggles){
         const _ft=_s.fieldToggles;const _p=_s.panels||DEFAULTS.panels;
@@ -5235,4 +5220,4 @@ if(event_types.MESSAGE_UPDATED){
     eventSource.on(event_types.MESSAGE_UPDATED,()=>{setTimeout(renderExisting,300)});
 }
 // ST generation started — handled internally via generateTracker's generating=true flag
-log('v4.9.63 init');
+log('v4.9.64 init');
