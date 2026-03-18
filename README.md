@@ -1,180 +1,197 @@
-# ScenePulse
+<!-- ⚠️ WORK IN PROGRESS ⚠️ -->
 
-**AI-driven scene intelligence for SillyTavern.**
-
-ScenePulse transforms every AI response into a living dashboard — tracking characters, relationships, quests, mood, weather, and story state in real-time. No manual bookkeeping. The AI does the work; you stay immersed.
+> **⚠️ EARLY ACCESS — WORK IN PROGRESS**
+>
+> ScenePulse is under active development. Expect rough edges, visual glitches, broken features, and frequent updates. Some AI models may not reliably produce tracker data in Together mode. Mobile support is functional but still being refined. If something breaks, please [open an issue](https://github.com/xenofei/SillyTavern-ScenePulse/issues) — your feedback shapes what gets fixed next.
 
 ---
 
-## Features
+<div align="center">
 
-### 🎯 Scene Dashboard
-- **Time, date, location, weather, temperature** — updated every message
-- Contextual location icons (tavern, forest, castle, ship, city, cave, etc.)
-- Click the location icon for a cinematic scene transition popup
-- Editable values in edit mode
+<img src="https://img.shields.io/badge/version-4.9.62-4db8a4?style=flat-square&labelColor=1a1c24" alt="Version">
+<img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square&labelColor=1a1c24" alt="License">
+<img src="https://img.shields.io/badge/platform-SillyTavern-orange?style=flat-square&labelColor=1a1c24" alt="Platform">
 
-### 📋 Quest Journal
-- **North Star** — your character's driving life purpose
-- **Main Quests** — critical storyline objectives
-- **Side Quests** — optional enrichment paths
-- **Active Tasks** — immediate to-do items
-- Collapsible tiers and individual quests with urgency badges (critical/high/moderate/low)
-- Quest count badges per tier
+# 🔮 ScenePulse
 
-### 💬 Inner Thoughts
-- Floating panel showing each character's literal inner monologue
-- Drag to reposition, resize from corner
-- Snap Left — dock to chat edge
-- Ghost Mode — transparent frame
-- Regenerate — refresh thoughts independently
+**AI-Powered Scene Intelligence for SillyTavern**
 
-### ❤️ Relationships
-- Five meters per character: **Affection**, **Trust**, **Desire**, **Stress**, **Compatibility**
-- Unique SVG icons per meter type (heart, shield, flame, bolt, overlapping circles)
-- Delta indicators (▲/▼) showing value changes between snapshots
-- Previous-value markers on each bar
-- Relationship type and phase badges
-- Collapsible character cards
+*Every scene has a pulse. Now you can feel it.*
 
-### 👤 Characters
-- Full profiles: appearance, outfit, state of dress, posture, proximity, physical state
-- Inventory tracking (items carried, not clothing)
-- Three-tier goals: immediate need, short-term, long-term
-- Fertility tracking (expandable in edit mode)
-- Role badges matching relationship panel style
-- Collapsible cards
+</div>
+
+---
+
+ScenePulse is a SillyTavern extension that automatically extracts and tracks scene data from AI responses — characters, relationships, quests, mood, tension, and more — all displayed in a real-time dashboard alongside your roleplay.
+
+## ✨ Features
+
+### 📊 Live Dashboard
+- **Environment cards** — time, date, weather, temperature, location with animated weather icons
+- **Scene details** — mood, tension, topic, interaction style, sound environment
+- **Real-time updates** every AI message
+
+### 🧑‍🤝‍🧑 Relationship Tracking
+- Animated meter bars for **affection, trust, desire, stress, compatibility** (0–100)
+- Delta badges showing changes between messages (▲/▼)
+- Relationship phase, milestones, and time together
+- White marker showing previous values for comparison
+
+### 🗡️ Quest Journal
+- **North Star** — overarching life purpose
+- **Main Quests, Side Quests, Active Tasks** — tiered and collapsible
+- Urgency indicators and detailed descriptions
+- Quests persist across messages until the story resolves them
+
+### 👤 Character Profiles
+- Full appearance tracking: hair, face, outfit, state of dress, posture
+- Inner thoughts, immediate needs, short/long-term goals
+- Inventory tracking
+- Optional fertility status fields
 
 ### 💡 Story Ideas
-- Five AI-generated plot branches per update
-- Categorized: Dramatic, Intense, Comedic, Twist, Exploratory
-- Paste to message box for editing, or inject to send immediately
+- 5 AI-generated plot directions per update (dramatic, intense, comedic, twist, exploratory)
+- One-click **paste to edit** or **inject directly** into chat
 
-### ⚙️ Custom Panels
-- Create panels to track **anything** — health, mana, reputation, faction standings
-- Field types: text, number, meter (0-100 bar), list, enum
-- LLM hints tell the AI exactly what to output
-- Drag-and-drop field reordering within and between panels
+### 💭 Inner Thoughts Panel *(Desktop)*
+- Floating, draggable panel showing each character's inner monologue
+- Ghost mode (transparent), snap-to-edge, resizable
 
-### 🕐 Timeline Scrubber
+### 🌧️ Immersive Effects *(Desktop)*
+- **Weather overlay** — rain, snow, hail, fog, sandstorm, aurora, ash with particle systems
+- **Time-of-day tint** — dawn, morning, afternoon, dusk, evening, night ambience
+- **Scene transitions** — location change popups with animation
+
+### ⏱️ Timeline Scrubber
 - Every AI message creates a snapshot
-- Scrub through history to compare how everything evolved
-- Green dot marks the current message
+- Click any timeline dot to load historical scene data
+- Compare how relationships, quests, and characters evolved over time
 
-### 🌧️ Environmental Effects
-- Weather overlays: rain, snow, fog, storm, hail, sandstorm, ash, aurora, wind
-- Time-of-day ambience tinting
-- Cinematic scene transition popups on location changes
+### 🛠️ Custom Panels
+- Create panels to track **anything** — health, mana, reputation, faction standings
+- Each field supports text, number, meter, list, or enum types
+- LLM hints tell the AI what to output for each field
 
----
+### 📱 Mobile Support
+- Full-screen panel with slide animations
+- Custom top bar replacing SillyTavern's toolbar
+- Touch-optimized 42px tap targets
+- Floating restore icon in ST's send form
+- Post-generation banner notifications
 
-## Installation
+## 📦 Installation
 
-### From SillyTavern (Recommended)
-
+### Method 1: SillyTavern Extension Installer
 1. Open SillyTavern
 2. Go to **Extensions** → **Install Extension**
-3. Paste this URL:
+3. Paste the URL:
    ```
    https://github.com/xenofei/SillyTavern-ScenePulse
    ```
-4. Click **Install**
-5. The extension will auto-load on your next page refresh
+4. Click Install
+5. Reload SillyTavern
 
-### Manual Installation
+### Method 2: Manual (Git Clone)
+```bash
+cd SillyTavern/data/default-user/extensions/third-party
+git clone https://github.com/xenofei/SillyTavern-ScenePulse
+```
+Restart SillyTavern after cloning.
 
-1. Clone into your SillyTavern extensions folder:
-   ```bash
-   cd SillyTavern/data/default-user/extensions/third-party/
-   git clone https://github.com/xenofei/SillyTavern-ScenePulse.git
-   ```
-2. Restart SillyTavern
+## 🚀 Quick Start
 
----
+1. **Install the extension** using either method above
+2. **Open a chat** with any character
+3. ScenePulse appears as a **side panel** (desktop) or **radar icon** (mobile)
+4. **Send a message** — the AI automatically appends tracker data
+5. The dashboard updates with scene intelligence
 
-## Quick Start
+### First-Time Setup
+On first load, ScenePulse shows a **Setup Wizard** to configure:
+- **Fallback profile** — a dedicated connection profile for when the AI omits tracker data
+- **Fallback preset** — optimized sampler settings for JSON output
+- **Auto-recovery** — whether to automatically retry when the tracker is missing
 
-1. After installation, ScenePulse appears as a side panel
-2. Run the **Setup Guide** to configure your fallback profile
-3. Take the **Guided Tour** to learn all features with example data
-4. Send your first message — ScenePulse starts tracking automatically
+You can also take a **Guided Tour** to explore every feature with example data.
 
-Both the Setup Guide and Guided Tour are accessible anytime from the ScenePulse settings drawer.
+## ⚙️ How It Works
 
----
+ScenePulse operates in **Together mode** by default:
 
-## How It Works
+1. A tracker prompt is injected into the AI's context via SillyTavern's interceptor
+2. The AI writes its normal narrative response, then appends a JSON block wrapped in `<!--SP_TRACKER_START-->` / `<!--SP_TRACKER_END-->` markers
+3. ScenePulse extracts the JSON, strips it from the visible message, and updates the dashboard
+4. A **streaming hider** (MutationObserver) caps the message height during streaming so the JSON never appears visually
 
-ScenePulse operates in **Together mode** by default — it instructs the AI to append structured JSON tracking data at the end of every response. ScenePulse automatically extracts and hides this JSON, displaying it in the panel.
+If the AI omits the tracker, ScenePulse can **automatically fall back** to a separate API call using a dedicated connection profile.
 
-If the AI omits the tracker payload, an optional **fallback** can run a separate API call to recover the data.
+### Separate Mode
+Alternatively, ScenePulse can run a completely separate API call after each message — useful for models that struggle with inline instructions. Configure this in the extension settings.
 
-### Modes
-
-| Mode | Description |
-|------|-------------|
-| **Together** (default) | AI appends tracker JSON to its response. Single API call. Fast. |
-| **Separate** | Dedicated API call after the AI responds. Two calls per message. |
-
-### Performance Tips
-
-- More panels = more tokens = longer generation times
-- Disable panels you don't need (Characters and Story Ideas are heaviest)
-- Reduce custom panel fields if generation is slow
-- In Separate mode, lower context messages (3-4) for speed
-
----
-
-## Configuration
-
-Open the ScenePulse settings drawer in SillyTavern's extension panel to configure:
-
-- **Enable/Disable** ScenePulse
-- **Auto-generate** on AI messages
-- **Injection method** (Together/Separate)
-- **Fallback recovery** settings
-- **Connection profiles** and presets
-- **Panel Manager** — toggle built-in panels and sub-fields
-- **Custom Panels** — create and manage custom tracking fields
-- **Developer tools** — debug logging and weather preview
-
----
-
-## Toolbar Reference
-
-| Icon | Function |
-|------|----------|
-| ⟳ | Regenerate tracker data |
-| ⊞ | Panel Manager — toggle panels & fields |
-| ⊞⊞ | Expand/Collapse all sections |
-| ≡ | Condense view |
-| 💬 | Toggle inner thoughts panel |
-| ☁ | Toggle weather overlay |
-| ☀ | Toggle time-of-day ambience |
-| → | Toggle scene transition alerts |
-| ✏ | Toggle edit mode |
-
----
-
-## Requirements
+## 🎯 Compatibility
 
 - **SillyTavern** 1.12.0+
-- An AI model capable of following structured output instructions (recommended: GPT-4, Claude, Gemini, GLM-5, or similar)
+- **Tested models**: GLM-4/5, Claude, GPT-4o, Gemini, Llama 3, Mistral, Qwen
+- **API providers**: OpenAI-compatible, Anthropic, Google AI, any provider SillyTavern supports
+- **Browsers**: Chrome, Firefox, Safari (mobile & desktop)
 
----
+> **Note:** Together mode works best with instruction-following models that reliably append structured data. Smaller or older models may need Separate mode or a fallback profile.
 
-## Feedback & Issues
+## 🔧 Configuration
 
-Found a bug? Have a suggestion? Want to contribute?
+Access settings via **Extensions** → **ScenePulse** in SillyTavern's settings panel.
 
-**[Open an issue on GitHub](https://github.com/xenofei/SillyTavern-ScenePulse/issues)**
+| Setting | Description |
+|---------|-------------|
+| **Enable ScenePulse** | Master toggle |
+| **Auto-generate** | Update tracker on every AI message |
+| **Injection method** | Together (inline) or Separate (dedicated API call) |
+| **Context messages** | How many recent messages to include (Separate mode) |
+| **Fallback profile** | Connection profile for auto-recovery |
+| **Weather overlay** | Rain/snow/fog particle effects |
+| **Time-of-day tint** | Ambient color tinting |
+| **Show thoughts** | Inner monologue floating panel |
+| **Panel Manager** | Toggle individual panels and sub-fields |
 
----
+## 🏗️ Custom Panels
 
-## License
+Create custom tracking panels with any fields you need:
+
+1. Open **Panel Manager** (grid icon in toolbar)
+2. Scroll to **Custom Panels** → **+ Add Panel**
+3. Add fields with:
+   - **Key** — JSON field name (e.g., `player_health`)
+   - **Label** — display name (e.g., "Health Points")
+   - **Type** — text, number, meter (0–100), list, or enum
+   - **LLM Hint** — instruction for the AI (e.g., "Current HP out of 100")
+
+Custom fields are automatically included in the tracker prompt and extracted from AI responses.
+
+## 📝 Known Issues
+
+- **JSON visibility during streaming** — The streaming hider catches most cases, but very fast token rates or unusual model output patterns may briefly show tracker JSON before it's hidden
+- **Model compliance** — Some models intermittently skip the tracker block; the fallback system handles this, but it adds a second API call
+- **Mobile** — Weather effects, time-of-day tint, inner thoughts panel, and condense view are disabled on mobile to optimize performance
+- **Think-tag models** — Models that natively use `<think>` tags (DeepSeek R1, etc.) may interact unexpectedly with tracker extraction
+
+## 🤝 Contributing
+
+Found a bug? Have a feature idea? Contributions welcome!
+
+1. [Open an issue](https://github.com/xenofei/SillyTavern-ScenePulse/issues) to report bugs or suggest features
+2. Fork the repo, create a branch, and submit a PR
+3. Join the discussion in the issues tab
+
+## 📄 License
 
 MIT License — see [LICENSE](LICENSE) for details.
 
 ---
 
+<div align="center">
+
+*Built by [xenofei](https://github.com/xenofei)*
+
 *Every scene has a pulse. Now you can feel it.*
+
+</div>
