@@ -1,5 +1,5 @@
-// ScenePulse v4.9.65 — Side Panel Architecture
-const MODULE_NAME='scenepulse';const LOG='[ScenePulse]';
+// ScenePulse v4.9.74 — Side Panel Architecture
+const MODULE_NAME='scenepulse';const LOG='[ScenePulse]';const SP_LS_KEY='scenepulse_profiles';
 
 const MASCOT_SVG=`<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.2" opacity="0.25" class="sp-mascot-pulse"/><circle cx="12" cy="12" r="6.5" stroke="currentColor" stroke-width="1" opacity="0.4" class="sp-mascot-pulse"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="0.8" opacity="0.6"/><circle cx="12" cy="12" r="1.4" fill="currentColor" opacity="0.9"/><line x1="12" y1="2" x2="12" y2="5.5" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><line x1="12" y1="18.5" x2="12" y2="22" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><line x1="2" y1="12" x2="5.5" y2="12" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><line x1="18.5" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><path d="M12 5.5 L14 10 L12 8.5 L10 10 Z" fill="currentColor" opacity="0.5"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="8s" repeatCount="indefinite"/></path></svg>`;
 const MES_ICON_SVG=`<svg viewBox="0 0 18 18" fill="none" width="16" height="16" xmlns="http://www.w3.org/2000/svg"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1" opacity="0.3"/><circle cx="9" cy="9" r="4" stroke="currentColor" stroke-width="0.8" opacity="0.5"/><circle cx="9" cy="9" r="1.2" fill="currentColor"/><path d="M9 2 L10.2 7 L9 5.8 L7.8 7 Z" fill="currentColor" opacity="0.6"/></svg>`;
@@ -392,7 +392,15 @@ function spConfirm(title,message){
     });
 }
 
-function getSettings(){const{extensionSettings}=SillyTavern.getContext();if(!extensionSettings[MODULE_NAME])extensionSettings[MODULE_NAME]=structuredClone(DEFAULTS);const s=extensionSettings[MODULE_NAME];for(const k of Object.keys(DEFAULTS))if(!Object.hasOwn(s,k))s[k]=DEFAULTS[k];if(s.customPanels?.length){s.customPanels=s.customPanels.filter(cp=>cp.name?.trim()||cp.fields?.some(f=>f.key?.trim()))}return s}
+function getSettings(){const{extensionSettings}=SillyTavern.getContext();if(!extensionSettings[MODULE_NAME])extensionSettings[MODULE_NAME]=structuredClone(DEFAULTS);const s=extensionSettings[MODULE_NAME];for(const k of Object.keys(DEFAULTS))if(!Object.hasOwn(s,k))s[k]=DEFAULTS[k];if(s.customPanels?.length){s.customPanels=s.customPanels.filter(cp=>cp.name?.trim()||cp.fields?.some(f=>f.key?.trim()))}
+// Overlay localStorage profile selections (these bypass ST's save pipeline)
+try{const ls=JSON.parse(localStorage.getItem('sp_profiles')||'{}');
+if(ls.connectionProfile!==undefined)s.connectionProfile=ls.connectionProfile;
+if(ls.chatPreset!==undefined)s.chatPreset=ls.chatPreset;
+if(ls.fallbackProfile!==undefined)s.fallbackProfile=ls.fallbackProfile;
+if(ls.fallbackPreset!==undefined)s.fallbackPreset=ls.fallbackPreset;
+}catch(e){}
+return s}
 function saveSettings(){SillyTavern.getContext().saveSettingsDebounced()}
 function anyPanelsActive(){const s=getSettings();const p=s.panels||DEFAULTS.panels;return Object.values(p).some(v=>v!==false)||(s.customPanels||[]).some(cp=>cp.fields?.length>0)}
 function getTrackerData(){const m=SillyTavern.getContext().chatMetadata;if(!m)return{snapshots:{}};if(!m.scenepulse)m.scenepulse={snapshots:{}};return m.scenepulse}
@@ -780,17 +788,16 @@ function refreshLorebookDisplay(){
     if(!el)return;
     const info=getActiveLorebookInfo();
     const s=getSettings();
-    const mode=s.lorebookMode||'include_all';
+    const mode=s.lorebookMode||'character_attached';
     let html='';
-    const allBooks=[...info.global,...info.char,...info.attached].filter((v,i,a)=>a.indexOf(v)===i);
+    const allBooks=[...info.global,...info.char,...info.attached].filter((v,i,a)=>a.indexOf(v)===i).filter(b=>b&&b!=='--- None ---');
     if(!allBooks.length){
         html='<div class="sp-lore-none">No lorebooks detected</div>';
     } else {
         const filtered=mode==='exclude_all'?[]:
             mode==='character_only'?allBooks.filter(b=>info.char.includes(b)):
-            mode==='character_attached'?allBooks.filter(b=>info.char.includes(b)||info.global.includes(b)||info.attached.includes(b)):
             mode==='allowlist'?(s.lorebookAllowlist||[]).filter(b=>allBooks.includes(b)):
-            allBooks; // include_all
+            allBooks.filter(b=>info.char.includes(b)||info.global.includes(b)||info.attached.includes(b)); // character_attached (default)
         for(const b of allBooks){
             const included=filtered.includes(b);
             const isChar=info.char.includes(b);
@@ -817,7 +824,7 @@ function updateLorebookRec(){
         rec='exclude_all';
         reason='Together mode uses the normal generation — ST already injects lorebooks into context, so including them here would be redundant.';
     }
-    const recLabel={'character_attached':'Attached','include_all':'All detected','character_only':'Character only','exclude_all':'None','allowlist':'Allowlist'}[rec]||rec;
+    const recLabel={'character_attached':'Attached','character_only':'Character only','exclude_all':'Disabled','allowlist':'Allowlist'}[rec]||rec;
     if(current===rec){
         el.innerHTML=`<span class="sp-lore-rec-ok">✓ Using recommended: <strong>${esc(recLabel)}</strong></span><span class="sp-lore-rec-why">${reason}</span>`;
     } else {
@@ -1533,10 +1540,25 @@ async function generateTracker(mesIdx,partKey,opts){
     const myNonce=++genNonce;
     const genStartMs=Date.now();
     const settings=getSettings();const schema=getActiveSchema();const sysPr=getActivePrompt();
-    const profileOverride=opts?.profile||settings.connectionProfile;
-    const presetOverride=opts?.preset||settings.chatPreset;
+    let profileOverride=opts?.profile||settings.connectionProfile;
+    let presetOverride=opts?.preset||settings.chatPreset;
     log('=== GENERATION START === mesIdx=',mesIdx,'partKey=',partKey||'(full)','nonce=',myNonce,'source=',lastGenSource||'unknown','profile=',profileOverride||'(current)');
     log('Settings: ctx=',settings.contextMessages,'retries=',settings.maxRetries,'mode=',settings.promptMode,'profile=',settings.connectionProfile||'(default)','preset=',settings.chatPreset||'(default)');
+    // Resolve profile/preset name → UUID if needed (handles legacy name-based values)
+    const _genProfiles=getConnectionProfiles();
+    if(profileOverride&&!_genProfiles.some(p=>p.id===profileOverride)){
+        const norm=profileOverride.trim().toLowerCase();
+        let match=_genProfiles.find(p=>p.name.trim().toLowerCase()===norm);
+        if(!match)match=_genProfiles.find(p=>p.name.toLowerCase().includes(norm)||norm.includes(p.name.toLowerCase()));
+        if(match){log('Generation: resolved profile:',profileOverride,'→',match.id);profileOverride=match.id}
+    }
+    const _genPresets=getChatPresets();
+    if(presetOverride&&!_genPresets.some(p=>p.id===presetOverride)){
+        const norm=presetOverride.trim().toLowerCase();
+        let match=_genPresets.find(p=>p.name.trim().toLowerCase()===norm);
+        if(!match)match=_genPresets.find(p=>p.name.toLowerCase().includes(norm)||norm.includes(p.name.toLowerCase()));
+        if(match){log('Generation: resolved preset:',presetOverride,'→',match.id);presetOverride=match.id}
+    }
     const doGen=async()=>{
         const{chat,generateQuietPrompt,generateRaw}=SillyTavern.getContext();
         log('Chat length:',chat.length,'API funcs:','quietPrompt=',!!generateQuietPrompt,'raw=',!!generateRaw);
@@ -1792,7 +1814,7 @@ function createPanel(){
     const panel=document.createElement('div');panel.id='sp-panel';
     panel.innerHTML=`
     <div class="sp-toolbar">
-        <div class="sp-brand-icon" id="sp-brand-icon" title="ScenePulse v4.9.65">${MASCOT_SVG}</div>
+        <div class="sp-brand-icon" id="sp-brand-icon" title="ScenePulse v4.9.74">${MASCOT_SVG}</div>
         <div class="sp-brand-title">Scene<span class="sp-brand-accent">Pulse</span></div>
         <span class="sp-toolbar-spacer"></span>
         <button class="sp-toolbar-btn" id="sp-tb-regen" title="Regenerate all"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M13.5 8a5.5 5.5 0 1 1-1.3-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M13.5 3v2.5h-2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
@@ -4500,7 +4522,7 @@ function showSetupGuide(){
             const pre=ov.querySelector('#sp-setup-fb-preset')?.value||'';
             const enabled=ov.querySelector('input[name="sp-setup-fb-enable"]:checked')?.value!=='no';
             s.fallbackProfile=prof;s.fallbackPreset=pre;s.fallbackEnabled=enabled;s.setupDismissed=true;
-            saveSettings();loadUI();
+            saveSettings();_spSaveProfilesLS();loadUI();
             ov.remove();
             if(enabled&&prof)toastr.success('Fallback configured with profile: '+prof,'ScenePulse Setup');
             else if(enabled)toastr.info('Fallback enabled (using current profile)','ScenePulse Setup');
@@ -4513,7 +4535,7 @@ function showSetupGuide(){
             const pre=ov.querySelector('#sp-setup-fb-preset')?.value||'';
             const enabled=ov.querySelector('input[name="sp-setup-fb-enable"]:checked')?.value!=='no';
             s.fallbackProfile=prof;s.fallbackPreset=pre;s.fallbackEnabled=enabled;s.setupDismissed=true;
-            saveSettings();loadUI();ov.remove();
+            saveSettings();_spSaveProfilesLS();loadUI();ov.remove();
             startGuidedTour();
         }
     });
@@ -4755,14 +4777,14 @@ function createSettings(){
     try{po=getConnectionProfiles().map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}catch{}
     try{pre=getChatPresets().map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}catch{}
     try{lo=getLorebooks().map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}catch{}
-    const html=`<div id="scenepulse-settings" class="extension_settings"><div class="inline-drawer"><div class="inline-drawer-toggle inline-drawer-header"><div class="sp-drawer-header-content"><span class="sp-drawer-icon-wrap">${MASCOT_SVG}</span><div class="sp-drawer-title-block"><span class="sp-drawer-title">Scene<span style="color:var(--sp-accent)">Pulse</span></span><span class="sp-drawer-version">v4.9.65 — Scene Intelligence</span></div><span class="sp-drawer-badge sp-on" id="sp-badge"><span class="sp-drawer-badge-dot"></span>Active</span></div><div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div></div><div class="inline-drawer-content">
-<div class="sp-sh">General</div><label class="sp-ck"><input type="checkbox" id="sp-enabled"> Enable ScenePulse</label><label class="sp-ck"><input type="checkbox" id="sp-auto-gen"> Auto-generate on AI messages</label><label class="sp-ck"><input type="checkbox" id="sp-show-thoughts"> Show thought bubbles</label><label class="sp-ck"><input type="checkbox" id="sp-show-weather"> Weather overlay effects</label><label class="sp-ck"><input type="checkbox" id="sp-show-timetint"> Time-of-day ambience</label><label class="sp-ck"><input type="checkbox" id="sp-show-devbtns"> Show developer tools</label><div id="sp-separate-settings"><div class="sp-fi"><label>Context msgs</label><input type="number" id="sp-ctx" min="1" max="30"></div><div class="sp-hint sp-ctx-hint">How many recent messages to include when generating tracker updates. <em>Separate mode only — Together mode uses ST's full context automatically.</em><br><span class="sp-ctx-range"><strong>3–4</strong> · Fastest. Good for simple 1-on-1 scenes (~5K token prompt)</span><br><span class="sp-ctx-range"><strong>5–8</strong> · Balanced. Recommended for most scenes (~8–12K tokens)</span><br><span class="sp-ctx-range"><strong>8–15</strong> · Better continuity for complex multi-character scenes (~12–20K tokens)</span><br><span class="sp-ctx-range"><strong>15+</strong> · Maximum context but significantly slower and more expensive</span><br><span class="sp-ctx-note">⚠ This is the biggest factor in Separate mode speed. At 8 msgs your tracker prompt is ~10K tokens — doubling roughly doubles generation time. Lower values (3–4) can cut tracker time by 40–60%.</span></div><div class="sp-fi"><label>Max retries</label><input type="number" id="sp-retries" min="0" max="5"></div><div class="sp-hint sp-ctx-hint"><em>Separate mode only.</em> How many times to retry if the tracker API call returns invalid JSON.</div></div>
+    const html=`<div id="scenepulse-settings" class="extension_settings"><div class="inline-drawer"><div class="inline-drawer-toggle inline-drawer-header"><div class="sp-drawer-header-content"><span class="sp-drawer-icon-wrap">${MASCOT_SVG}</span><div class="sp-drawer-title-block"><span class="sp-drawer-title">Scene<span style="color:var(--sp-accent)">Pulse</span></span><span class="sp-drawer-version">v4.9.74 — Scene Intelligence</span></div><span class="sp-drawer-badge sp-on" id="sp-badge"><span class="sp-drawer-badge-dot"></span>Active</span></div><div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div></div><div class="inline-drawer-content">
+<div class="sp-sh">General</div><label class="sp-ck"><input type="checkbox" id="sp-enabled"> Enable ScenePulse</label><label class="sp-ck"><input type="checkbox" id="sp-auto-gen"> Auto-generate on AI messages</label><label class="sp-ck"><input type="checkbox" id="sp-show-thoughts"> Show thought bubbles</label><label class="sp-ck"><input type="checkbox" id="sp-show-weather"> Weather overlay effects</label><label class="sp-ck"><input type="checkbox" id="sp-show-timetint"> Time-of-day ambience</label><label class="sp-ck"><input type="checkbox" id="sp-show-devbtns"> Show developer tools</label><div style="margin-top:6px;display:flex;gap:6px"><button class="sp-btn" id="sp-btn-setup">📋 Setup Guide</button><button class="sp-btn" id="sp-btn-tour">✦ Guided Tour</button></div><div id="sp-separate-settings"><div class="sp-fi"><label>Context msgs</label><input type="number" id="sp-ctx" min="1" max="30"></div><div class="sp-hint sp-ctx-hint">How many recent messages to include when generating tracker updates. <em>Separate mode only — Together mode uses ST's full context automatically.</em><br><span class="sp-ctx-range"><strong>3–4</strong> · Fastest. Good for simple 1-on-1 scenes (~5K token prompt)</span><br><span class="sp-ctx-range"><strong>5–8</strong> · Balanced. Recommended for most scenes (~8–12K tokens)</span><br><span class="sp-ctx-range"><strong>8–15</strong> · Better continuity for complex multi-character scenes (~12–20K tokens)</span><br><span class="sp-ctx-range"><strong>15+</strong> · Maximum context but significantly slower and more expensive</span><br><span class="sp-ctx-note">⚠ This is the biggest factor in Separate mode speed. At 8 msgs your tracker prompt is ~10K tokens — doubling roughly doubles generation time. Lower values (3–4) can cut tracker time by 40–60%.</span></div><div class="sp-fi"><label>Max retries</label><input type="number" id="sp-retries" min="0" max="5"></div><div class="sp-hint sp-ctx-hint"><em>Separate mode only.</em> How many times to retry if the tracker API call returns invalid JSON.</div></div>
 <div class="sp-sh">Injection Method</div><div class="sp-fs"><label>Mode</label><select id="sp-injection-method"><option value="inline">Together (AI appends tracker to its response)</option><option value="separate">Separate (dedicated API call after AI response)</option></select></div>
 <div id="sp-method-inline"><div class="sp-hint">The AI writes its normal response, then appends tracker JSON at the end. ScenePulse automatically extracts and hides the JSON. <strong>Recommended for most setups.</strong></div><div class="sp-hint sp-pros-cons"><span class="sp-pro">✓ Single API call — typically ~100–120s total</span><br><span class="sp-pro">✓ No profile switching — eliminates message deletion risk</span><br><span class="sp-pro">✓ AI has full narrative context for accurate tracking</span><br><span class="sp-pro">✓ 2–3× faster than Separate mode in practice</span><br><span class="sp-con">✗ Uses tokens from the main response budget (~1,700 tokens for tracker)</span><br><span class="sp-con">✗ May slightly reduce narrative length on token-limited models</span></div>
-<div class="sp-sh" style="margin-top:8px">Fallback Recovery</div><div class="sp-hint">If the AI omits the tracker payload, ScenePulse can automatically run a separate API call to recover. Requires a connection profile to be configured.</div><label class="sp-ck"><input type="checkbox" id="sp-fallback-enabled"> Enable automatic fallback</label><div id="sp-fallback-settings"><div class="sp-fs"><label>Fallback Profile</label><select id="sp-fallback-profile"><option value="">(Same as current)</option>${po}</select></div><div class="sp-fs"><label>Fallback Preset</label><select id="sp-fallback-preset"><option value="">(Built-in: ScenePulse GLM-5)</option>${pre}</select></div></div><div class="sp-hint" id="sp-fallback-warn" style="display:none;color:var(--sp-amber)">⚠ No fallback profile selected. If the AI omits tracker data, ScenePulse will use the current active profile. For best results, select a dedicated profile.</div><button class="sp-btn" id="sp-btn-setup" style="margin-top:4px">📋 Setup Guide</button><button class="sp-btn" id="sp-btn-tour" style="margin-top:4px">✦ Guided Tour</button></div>
+<div class="sp-sh" style="margin-top:8px">Fallback Recovery</div><div class="sp-hint">If the AI omits the tracker payload, ScenePulse can automatically run a separate API call to recover. Requires a connection profile to be configured.</div><label class="sp-ck"><input type="checkbox" id="sp-fallback-enabled"> Enable automatic fallback</label><div id="sp-fallback-settings"><div class="sp-fs"><label>Fallback Profile</label><select id="sp-fallback-profile"><option value="">(Same as current)</option>${po}</select></div><div class="sp-fs"><label>Fallback Preset</label><select id="sp-fallback-preset"><option value="">(Built-in: ScenePulse GLM-5)</option>${pre}</select></div></div><div class="sp-hint" id="sp-fallback-warn" style="display:none;color:var(--sp-amber)">⚠ No fallback profile selected. If the AI omits tracker data, ScenePulse will use the current active profile. For best results, select a dedicated profile.</div><button class="sp-btn" id="sp-btn-refresh-fb">↻ Refresh Profiles</button></div>
 <div id="sp-method-separate" style="display:none"><div class="sp-hint">After the AI responds, a separate quiet API call generates the tracker JSON independently. Expect ~250–300s total per message (narrative + wait + tracker).</div><div class="sp-hint sp-pros-cons"><span class="sp-pro">✓ Clean responses — narrative never token-competes with tracker</span><br><span class="sp-pro">✓ Dedicated token budget for tracker output</span><br><span class="sp-pro">✓ Can use a different connection profile/preset</span><br><span class="sp-con">✗ Two API calls per message — 2–3× slower than Together mode</span><br><span class="sp-con">✗ ~12s dead time between calls (chat save + preset switching)</span><br><span class="sp-con">✗ Tracker prompt is ~10K+ tokens at 8 context msgs — reduce to 3–4 for speed</span><br><span class="sp-con">✗ Profile switching can cause message deletion (race condition with other extensions)</span><br><span class="sp-con">✗ Embeds previous snapshot into narrative call (~1.9K tokens) unless Embed snapshots = 0</span></div><div class="sp-fs"><label>Connection Profile</label><select id="sp-profile"><option value="">(Current)</option>${po}</select></div><div class="sp-fs"><label>Chat Completion Preset</label><select id="sp-preset"><option value="">(Built-in: ScenePulse GLM-5)</option>${pre}</select></div><div class="sp-hint sp-preset-info" id="sp-preset-info">Built-in preset: temp=0.6, top_p=0.95, freq_pen=0.15, max_tokens=4096. Optimized for structured JSON output on GLM-5.</div><div class="sp-fs"><label>Prompt Mode</label><select id="sp-mode"><option value="native">Native API</option><option value="json">JSON</option><option value="xml">XML</option></select></div><button class="sp-btn" id="sp-btn-refresh">↻ Refresh Profiles</button></div>
 <div id="sp-embed-section"><div class="sp-sh">Context Embedding</div><div class="sp-hint">Embed recent scene snapshots into the <strong>narrative</strong> conversation context so the AI can reference tracker state while writing. Only applies in Separate mode. The tracker's own API call always receives the previous snapshot regardless of this setting.</div><div class="sp-fi"><label>Embed snapshots</label><input type="number" id="sp-embed-n" min="0" max="5"></div><div class="sp-hint sp-ctx-note">⚠ Each embedded snapshot adds ~1.9K tokens to your narrative prompt. Set to <strong>0</strong> to eliminate this overhead — the tracker API call still receives previous state independently. Set to <strong>1</strong> for narrative continuity (AI remembers scene details). Values above 1 are rarely beneficial.</div><div class="sp-fs"><label>Embed as role</label><select id="sp-embed-role"><option value="system">System (recommended)</option><option value="user">User</option><option value="assistant">Assistant</option></select></div><div class="sp-hint"><strong>System</strong>: Injected as invisible context — AI treats it as authoritative background info. Best for continuity without polluting the conversation. <strong>User</strong>: Appears as if the user said it — some models respond more attentively. <strong>Assistant</strong>: Appears as previous AI output — can reinforce the AI's own memory but may confuse some models.</div></div>
-<div class="sp-sh">Lorebooks</div><div id="sp-lore-display" class="sp-lore-display"></div><div class="sp-fs"><label>Filter Mode</label><select id="sp-lore-mode"><option value="character_attached">Attached (character, chat &amp; global)</option><option value="include_all">All detected</option><option value="character_only">Character lorebook only</option><option value="exclude_all">None</option><option value="allowlist">Custom allowlist</option></select></div><div class="sp-lore-rec" id="sp-lore-rec"></div><div id="sp-lore-section" style="display:none;padding:4px 0"><div class="sp-fi"><select id="sp-lore-sel" style="flex:1;background:var(--sp-surface);border:1px solid var(--sp-border-strong);color:var(--sp-text);border-radius:var(--sp-radius);padding:4px 6px;font-size:11px"><option value="">(Select)</option>${lo}</select><button class="sp-btn" id="sp-lore-add">+</button></div><div class="sp-lore-tags" id="sp-lore-tags"></div></div>
+<div class="sp-sh">Lorebooks</div><div id="sp-lore-display" class="sp-lore-display"></div><div class="sp-fs"><label>Filter Mode</label><select id="sp-lore-mode"><option value="character_attached">Attached (character, chat &amp; global)</option><option value="character_only">Character lorebook only</option><option value="exclude_all">Disabled — don't inject lorebooks</option><option value="allowlist">Custom allowlist</option></select></div><div class="sp-lore-rec" id="sp-lore-rec"></div><div id="sp-lore-section" style="display:none;padding:4px 0"><div class="sp-fi"><select id="sp-lore-sel" style="flex:1;background:var(--sp-surface);border:1px solid var(--sp-border-strong);color:var(--sp-text);border-radius:var(--sp-radius);padding:4px 6px;font-size:11px"><option value="">(Select)</option>${lo}</select><button class="sp-btn" id="sp-lore-add">+</button></div><div class="sp-lore-tags" id="sp-lore-tags"></div></div><button class="sp-btn" id="sp-btn-refresh-lore">↻ Refresh Lorebooks</button>
 <div class="sp-sh">System Prompt</div><div class="sp-hint">The instruction sent to the model. Defines how the tracker generates data.</div><div class="sp-prompt-actions"><button class="sp-btn sp-btn-sm" id="sp-sysprompt-default">↺ Reset to Default</button><button class="sp-btn sp-btn-sm" id="sp-sysprompt-copy">📋 Copy</button></div><textarea id="sp-sysprompt" rows="10" placeholder="(built-in)"></textarea>
 <div class="sp-sh">JSON Schema</div><div class="sp-hint">The JSON schema defining the output structure. Must be valid JSON.</div><div class="sp-prompt-actions"><button class="sp-btn sp-btn-sm" id="sp-schema-default">↺ Reset to Default</button><button class="sp-btn sp-btn-sm" id="sp-schema-copy">📋 Copy</button></div><textarea id="sp-schema" rows="10" placeholder="(built-in)"></textarea>
 <div class="sp-sh">Actions</div><div class="sp-fi" style="gap:4px"><button class="sp-btn sp-btn-primary" id="sp-btn-gen" style="flex:1">⟳ Generate</button><button class="sp-btn" id="sp-btn-clear" style="flex:1">🗑 Clear Data</button><button class="sp-btn" id="sp-btn-reset" style="flex:1">↺ Reset Settings</button></div><div class="sp-hint"><strong>Clear Data</strong> — Removes all tracker snapshots from this chat. Settings preserved.<br><strong>Reset Settings</strong> — Resets injection method, profiles, lorebook mode, etc. to defaults. Tracker data preserved.</div><div class="sp-sh">Debug</div><div class="sp-fi" style="gap:4px"><button class="sp-btn" id="sp-btn-debug" style="flex:1">📋 SP Log</button><button class="sp-btn" id="sp-btn-debug-view" style="flex:1">🔍 View Log</button></div><div class="sp-fi" style="gap:4px"><button class="sp-btn" id="sp-btn-copy-console" style="flex:1">📋 Console</button><button class="sp-btn" id="sp-btn-copy-response" style="flex:1">📋 Last Response</button></div><div class="sp-hint"><strong>SP Log</strong> — ScenePulse internal debug log (normalizer, extraction, generation).<br><strong>Console</strong> — Full browser console output including SillyTavern and other extensions.<br><strong>Last Response</strong> — Raw tracker JSON from the most recent generation. In <em>Separate</em> mode, this is the full API response. In <em>Together</em> mode, this is the extracted JSON block that was stripped from the AI's narrative response.</div><div id="sp-debug-viewer" style="display:none"><div class="sp-debug-header"><span style="font-weight:700;font-size:10px">Debug Log</span><span id="sp-debug-count" style="color:var(--sp-text-dim);font-size:9px"></span><span style="flex:1"></span><button class="sp-btn" id="sp-debug-copy-inline" style="padding:1px 6px;font-size:9px">📋</button><button class="sp-btn" id="sp-debug-close" style="padding:1px 6px;font-size:9px">✕</button></div><div id="sp-debug-body" class="sp-debug-body"></div></div>
@@ -4937,18 +4959,55 @@ function renderCustomPanelsMgr(s,container,panelBody){
 }
 
 function updateBadge(){const on=getSettings().enabled;const b=document.getElementById('sp-badge');if(b){b.className='sp-drawer-badge '+(on?'sp-on':'sp-off');b.innerHTML=`<span class="sp-drawer-badge-dot"></span>${on?'Active':'Off'}`}}
-function loadUI(){const s=getSettings();$('#sp-enabled').prop('checked',s.enabled);$('#sp-auto-gen').prop('checked',s.autoGenerate);$('#sp-show-thoughts').prop('checked',s.showThoughts!==false);$('#sp-show-weather').prop('checked',s.weatherOverlay!==false);$('#sp-show-timetint').prop('checked',s.timeTint!==false);$('#sp-show-devbtns').prop('checked',s.devButtons===true);$('#sp-ctx').val(s.contextMessages);$('#sp-retries').val(s.maxRetries);$('#sp-mode').val(s.promptMode||'json');$('#sp-embed-n').val(s.embedSnapshots);$('#sp-embed-role').val(s.embedRole);$('#sp-lore-mode').val(s.lorebookMode||'include_all');
+function loadUI(){const s=getSettings();$('#sp-enabled').prop('checked',s.enabled);$('#sp-auto-gen').prop('checked',s.autoGenerate);$('#sp-show-thoughts').prop('checked',s.showThoughts!==false);$('#sp-show-weather').prop('checked',s.weatherOverlay!==false);$('#sp-show-timetint').prop('checked',s.timeTint!==false);$('#sp-show-devbtns').prop('checked',s.devButtons===true);$('#sp-ctx').val(s.contextMessages);$('#sp-retries').val(s.maxRetries);$('#sp-mode').val(s.promptMode||'json');$('#sp-embed-n').val(s.embedSnapshots);$('#sp-embed-role').val(s.embedRole);$('#sp-lore-mode').val(s.lorebookMode||'character_attached');
     // Rebuild profile/preset dropdowns from current DOM (ST may load them late)
     const profiles=getConnectionProfiles();const presets=getChatPresets();
+    // ── localStorage is the source of truth for profile/preset selections ──
+    // ST's extensionSettings save pipeline has race conditions with CHAT_CHANGED during init.
+    // localStorage is synchronous and completely independent.
+    const _lsLoad=()=>{try{return JSON.parse(localStorage.getItem(SP_LS_KEY)||'{}')}catch{return{}}};
+    const ls=_lsLoad();
+    // On first run or upgrade, seed from extensionSettings if localStorage is empty
+    if(!ls.connectionProfile&&s.connectionProfile)ls.connectionProfile=s.connectionProfile;
+    if(!ls.chatPreset&&s.chatPreset)ls.chatPreset=s.chatPreset;
+    if(!ls.fallbackProfile&&s.fallbackProfile)ls.fallbackProfile=s.fallbackProfile;
+    if(!ls.fallbackPreset&&s.fallbackPreset)ls.fallbackPreset=s.fallbackPreset;
+    // Apply localStorage values back to settings (overrides whatever ST loaded from disk)
+    if(ls.connectionProfile)s.connectionProfile=ls.connectionProfile;
+    if(ls.chatPreset)s.chatPreset=ls.chatPreset;
+    if(ls.fallbackProfile)s.fallbackProfile=ls.fallbackProfile;
+    if(ls.fallbackPreset)s.fallbackPreset=ls.fallbackPreset;
+    // Smart val: resolve saved value (may be UUID or legacy name) to an option value
+    const _smartVal=(sel,val,list,label)=>{
+        const $el=$(sel);
+        if(!val){$el.val('');return ''}
+        // 1. Direct match (UUID matches option value)
+        $el.val(val);
+        if($el.val()===val)return val;
+        // 2. Exact name match (case-insensitive)
+        const norm=val.trim().toLowerCase();
+        let match=list.find(p=>p.name.trim().toLowerCase()===norm);
+        // 3. Partial/contains match
+        if(!match)match=list.find(p=>p.name.toLowerCase().includes(norm)||norm.includes(p.name.toLowerCase()));
+        if(match){
+            $el.val(match.id);
+            log('Profile resolved ['+label+']:',val,'→',match.id,'('+match.name+')');
+            return match.id;
+        }
+        // 4. Failed — profile was deleted
+        warn('Profile unresolved ['+label+']: "'+val+'" not found. Available:',list.map(p=>p.name).join(', '));
+        $el.val('');
+        return '';
+    };
     let ph='<option value="">(Current)</option>';for(const p of profiles)ph+=`<option value="${esc(p.id)}">${esc(p.name)}</option>`;
-    $('#sp-profile').html(ph).val(s.connectionProfile||'');
+    $('#sp-profile').html(ph);s.connectionProfile=_smartVal('#sp-profile',s.connectionProfile,profiles,'connectionProfile');
     let prh='<option value="">(Built-in: ScenePulse GLM-5)</option>';for(const p of presets)prh+=`<option value="${esc(p.id)}">${esc(p.name)}</option>`;
-    $('#sp-preset').html(prh).val(s.chatPreset||'');
+    $('#sp-preset').html(prh);s.chatPreset=_smartVal('#sp-preset',s.chatPreset,presets,'chatPreset');
     // Fallback settings — rebuild options from DOM
     let fph='<option value="">(Same as current)</option>';for(const p of profiles)fph+=`<option value="${esc(p.id)}">${esc(p.name)}</option>`;
-    $('#sp-fallback-profile').html(fph).val(s.fallbackProfile||'');
+    $('#sp-fallback-profile').html(fph);s.fallbackProfile=_smartVal('#sp-fallback-profile',s.fallbackProfile,profiles,'fallbackProfile');
     let fpre='<option value="">(Built-in: ScenePulse GLM-5)</option>';for(const p of presets)fpre+=`<option value="${esc(p.id)}">${esc(p.name)}</option>`;
-    $('#sp-fallback-preset').html(fpre).val(s.fallbackPreset||'');
+    $('#sp-fallback-preset').html(fpre);s.fallbackPreset=_smartVal('#sp-fallback-preset',s.fallbackPreset,presets,'fallbackPreset');
     $('#sp-fallback-enabled').prop('checked',s.fallbackEnabled!==false);
     $('#sp-fallback-settings').toggle(s.fallbackEnabled!==false);
     $('#sp-fallback-warn').toggle(s.fallbackEnabled!==false&&!s.fallbackProfile);
@@ -4969,7 +5028,19 @@ function loadUI(){const s=getSettings();$('#sp-enabled').prop('checked',s.enable
     // Show active schema (custom or dynamically built)
     const schemaStr=s.schema||JSON.stringify(buildDynamicSchema(s),null,2);
     $('#sp-schema').val(schemaStr);
-    updateBadge();$('#sp-lore-section').toggle(s.lorebookMode==='allowlist');$('#scenepulse-settings .inline-drawer-content').toggleClass('sp-disabled',!s.enabled)}
+    updateBadge();$('#sp-lore-section').toggle(s.lorebookMode==='allowlist');$('#scenepulse-settings .inline-drawer-content').toggleClass('sp-disabled',!s.enabled);
+    // Save resolved UUIDs back to localStorage (synchronous, immune to ST race conditions)
+    _spSaveProfilesLS();
+}
+// ── localStorage helper for profile/preset persistence ──
+// ST's extensionSettings save has race conditions with CHAT_CHANGED. localStorage is synchronous + reliable.
+function _spSaveProfilesLS(){
+    const s=getSettings();
+    try{localStorage.setItem(SP_LS_KEY,JSON.stringify({
+        connectionProfile:s.connectionProfile||'',chatPreset:s.chatPreset||'',
+        fallbackProfile:s.fallbackProfile||'',fallbackPreset:s.fallbackPreset||''
+    }))}catch(e){warn('localStorage save:',e)}
+}
 function bindUI(){const s=getSettings();
     $('#sp-enabled').on('change',function(){s.enabled=this.checked;saveSettings();updateBadge();$('#scenepulse-settings .inline-drawer-content').toggleClass('sp-disabled',!this.checked);if(!this.checked){hidePanel();const tp=document.getElementById('sp-thought-panel');if(tp)tp.classList.remove('sp-tp-visible')}else{renderExisting()}});
     $('#sp-auto-gen').on('change',function(){s.autoGenerate=this.checked;saveSettings()});
@@ -4980,13 +5051,13 @@ function bindUI(){const s=getSettings();
     $('#sp-show-devbtns').on('change',function(){s.devButtons=this.checked;saveSettings();const dv=this.checked?'':'none';const dw=document.getElementById('sp-dev-wx-wrap');if(dw)dw.style.display=dv;const dt=document.getElementById('sp-dev-time-wrap');if(dt)dt.style.display=dv});
     $('#sp-ctx').on('change',function(){s.contextMessages=clamp(+this.value,1,30);saveSettings()});
     $('#sp-retries').on('change',function(){s.maxRetries=clamp(+this.value,0,5);saveSettings()});
-    $('#sp-profile').on('change',function(){s.connectionProfile=this.value;saveSettings()});
-    $('#sp-preset').on('change',function(){s.chatPreset=this.value;saveSettings();$('#sp-preset-info').toggle(!this.value)});
+    $('#sp-profile').on('change',function(){s.connectionProfile=this.value;saveSettings();_spSaveProfilesLS()});
+    $('#sp-preset').on('change',function(){s.chatPreset=this.value;saveSettings();_spSaveProfilesLS();$('#sp-preset-info').toggle(!this.value)});
     $('#sp-mode').on('change',function(){s.promptMode=this.value;saveSettings()});
     // Fallback settings
     $('#sp-fallback-enabled').on('change',function(){s.fallbackEnabled=this.checked;saveSettings();$('#sp-fallback-settings').toggle(this.checked);$('#sp-fallback-warn').toggle(this.checked&&!s.fallbackProfile)});
-    $('#sp-fallback-profile').on('change',function(){s.fallbackProfile=this.value;saveSettings();$('#sp-fallback-warn').toggle(s.fallbackEnabled&&!this.value)});
-    $('#sp-fallback-preset').on('change',function(){s.fallbackPreset=this.value;saveSettings()});
+    $('#sp-fallback-profile').on('change',function(){s.fallbackProfile=this.value;saveSettings();_spSaveProfilesLS();$('#sp-fallback-warn').toggle(s.fallbackEnabled&&!this.value)});
+    $('#sp-fallback-preset').on('change',function(){s.fallbackPreset=this.value;saveSettings();_spSaveProfilesLS()});
     $('#sp-btn-setup').on('click',()=>showSetupGuide());
     $('#sp-btn-tour').on('click',()=>startGuidedTour());
     $('#sp-embed-n').on('change',function(){s.embedSnapshots=clamp(+this.value,0,5);saveSettings()});
@@ -5000,14 +5071,21 @@ function bindUI(){const s=getSettings();
     $('#sp-schema-default').on('click',()=>{s.schema=null;saveSettings();$('#sp-schema').val(JSON.stringify(buildDynamicSchema(s),null,2));toastr.info('Schema reset to default')});
     $('#sp-schema-copy').on('click',()=>{navigator.clipboard.writeText($('#sp-schema').val());toastr.success('Schema copied')});
     $('#sp-btn-refresh').on('click',()=>{
-        let h='<option value="">(Current)</option>';for(const p of getConnectionProfiles())h+=`<option value="${esc(p.id)}">${esc(p.name)}</option>`;$('#sp-profile').html(h).val(s.connectionProfile||'');
-        let pr='<option value="">(Built-in: ScenePulse GLM-5)</option>';for(const p of getChatPresets())pr+=`<option value="${esc(p.id)}">${esc(p.name)}</option>`;$('#sp-preset').html(pr).val(s.chatPreset||'');
-        // Also refresh fallback dropdowns
-        let fh='<option value="">(Same as current)</option>';for(const p of getConnectionProfiles())fh+=`<option value="${esc(p.id)}">${esc(p.name)}</option>`;$('#sp-fallback-profile').html(fh).val(s.fallbackProfile||'');
-        let fp='<option value="">(Built-in: ScenePulse GLM-5)</option>';for(const p of getChatPresets())fp+=`<option value="${esc(p.id)}">${esc(p.name)}</option>`;$('#sp-fallback-preset').html(fp).val(s.fallbackPreset||'');
+        const _rp=getConnectionProfiles(),_rpr=getChatPresets();
+        let h='<option value="">(Current)</option>';for(const p of _rp)h+=`<option value="${esc(p.id)}">${esc(p.name)}</option>`;$('#sp-profile').html(h).val(s.connectionProfile||'');
+        let pr='<option value="">(Built-in: ScenePulse GLM-5)</option>';for(const p of _rpr)pr+=`<option value="${esc(p.id)}">${esc(p.name)}</option>`;$('#sp-preset').html(pr).val(s.chatPreset||'');
+        toastr.info('Profiles refreshed');
+    });
+    $('#sp-btn-refresh-fb').on('click',()=>{
+        const _rp=getConnectionProfiles(),_rpr=getChatPresets();
+        let fh='<option value="">(Same as current)</option>';for(const p of _rp)fh+=`<option value="${esc(p.id)}">${esc(p.name)}</option>`;$('#sp-fallback-profile').html(fh).val(s.fallbackProfile||'');
+        let fp='<option value="">(Built-in: ScenePulse GLM-5)</option>';for(const p of _rpr)fp+=`<option value="${esc(p.id)}">${esc(p.name)}</option>`;$('#sp-fallback-preset').html(fp).val(s.fallbackPreset||'');
+        toastr.info('Fallback profiles refreshed');
+    });
+    $('#sp-btn-refresh-lore').on('click',()=>{
         let lo='<option value="">(Select)</option>';for(const p of getLorebooks())lo+=`<option value="${esc(p.id)}">${esc(p.name)}</option>`;$('#sp-lore-sel').html(lo);
         refreshLorebookDisplay();updateLorebookRec();
-        toastr.info('Profiles & lorebooks refreshed');
+        toastr.info('Lorebooks refreshed');
     });
     $('#sp-lore-add').on('click',()=>{const sel=document.getElementById('sp-lore-sel');if(!sel?.value)return;const name=sel.selectedOptions[0]?.textContent?.trim();if(!name)return;if(!s.lorebookAllowlist)s.lorebookAllowlist=[];if(!s.lorebookAllowlist.includes(name)){s.lorebookAllowlist.push(name);saveSettings();renderLoreTags()}sel.value=''});
     $('#sp-btn-gen').on('click',async()=>{const{chat}=SillyTavern.getContext();if(!chat.length)return;toastr.info('Generating…');
@@ -5101,7 +5179,7 @@ eventSource.on(event_types.APP_READY,()=>{try{
     if(!_s.setupDismissed){
         setTimeout(()=>showSetupGuide(),2000);
     }
-    log('v4.9.65 ready');
+    log('v4.9.74 ready');
     // One-time migration: reset stale sub-field toggles from old Disable All
     if(_s.fieldToggles){
         const _ft=_s.fieldToggles;const _p=_s.panels||DEFAULTS.panels;
@@ -5230,4 +5308,4 @@ if(event_types.MESSAGE_UPDATED){
     eventSource.on(event_types.MESSAGE_UPDATED,()=>{setTimeout(renderExisting,300)});
 }
 // ST generation started — handled internally via generateTracker's generating=true flag
-log('v4.9.65 init');
+log('v4.9.74 init');
