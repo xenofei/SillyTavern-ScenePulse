@@ -1780,23 +1780,30 @@
 /* ═══ ST-INJECTED RESTORE BUTTON (next to send button) ═══ */
 .sp-st-restore {
     display: none; width: 32px; height: 32px;
-    color: var(--sp-accent, #4db8a4); cursor: pointer;
+    color: #4db8a4; cursor: pointer;
     align-items: center; justify-content: center;
     padding: 4px; border-radius: 6px;
     transition: all 0.2s ease; flex-shrink: 0;
-    opacity: 0.7;
+    filter: drop-shadow(0 0 3px rgba(77,184,164,0.3));
 }
 .sp-st-restore svg { width: 24px; height: 24px; }
 .sp-st-restore:hover, .sp-st-restore:active {
-    opacity: 1;
-    filter: drop-shadow(0 0 6px rgba(77,184,164,0.5));
+    filter: drop-shadow(0 0 8px rgba(77,184,164,0.6));
     transform: scale(1.15);
+}
+/* Generation pulse animation */
+.sp-st-generating {
+    animation: sp-gen-pulse 1.2s ease-in-out infinite;
+}
+.sp-st-generating svg { filter: drop-shadow(0 0 6px rgba(77,184,164,0.5)); }
+@keyframes sp-gen-pulse {
+    0%,100% { opacity: 0.6; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.15); filter: drop-shadow(0 0 10px rgba(77,184,164,0.7)); }
 }
 
 /* ═══ MOBILE MODE (class-driven, ≤600px viewport) ═══ */
 #sp-panel.sp-mode-mobile {
     width: 100vw !important; right: 0 !important; left: 0 !important;
-    top: 0 !important; height: 100vh !important;
     border-left: none; border-radius: 0; font-size: 14px;
 }
 #sp-panel.sp-mode-mobile .sp-toolbar {
