@@ -8,7 +8,7 @@
 
 <div align="center">
 
-<img src="https://img.shields.io/badge/version-4.9.86-4db8a4?style=flat-square&labelColor=1a1c24" alt="Version">
+<img src="https://img.shields.io/badge/version-4.9.88-4db8a4?style=flat-square&labelColor=1a1c24" alt="Version">
 <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square&labelColor=1a1c24" alt="License">
 <img src="https://img.shields.io/badge/platform-SillyTavern%201.12%2B-orange?style=flat-square&labelColor=1a1c24" alt="Platform">
 
@@ -42,6 +42,7 @@ ScenePulse is a SillyTavern extension that automatically extracts and tracks sce
 - **North Star** — overarching life purpose
 - **Main Quests, Side Quests, Active Tasks** — tiered and collapsible
 - Urgency indicators and detailed descriptions
+- Perspective enforcement — quests are always framed from the user's point of view using an oppose/align system (hostile NPCs → oppose, allies → support, neutral → decide)
 
 ### 👤 Character Profiles
 - Full appearance tracking: hair, face, outfit, state of dress, posture

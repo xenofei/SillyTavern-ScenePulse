@@ -1,4 +1,4 @@
-// ScenePulse v4.9.86 — Side Panel Architecture
+// ScenePulse v4.9.88 — Side Panel Architecture
 const MODULE_NAME='scenepulse';const LOG='[ScenePulse]';const SP_LS_KEY='scenepulse_config';
 
 const MASCOT_SVG=`<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.2" opacity="0.25" class="sp-mascot-pulse"/><circle cx="12" cy="12" r="6.5" stroke="currentColor" stroke-width="1" opacity="0.4" class="sp-mascot-pulse"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="0.8" opacity="0.6"/><circle cx="12" cy="12" r="1.4" fill="currentColor" opacity="0.9"/><line x1="12" y1="2" x2="12" y2="5.5" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><line x1="12" y1="18.5" x2="12" y2="22" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><line x1="2" y1="12" x2="5.5" y2="12" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><line x1="18.5" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><path d="M12 5.5 L14 10 L12 8.5 L10 10 Z" fill="currentColor" opacity="0.5"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="8s" repeatCount="indefinite"/></path></svg>`;
@@ -263,9 +263,9 @@ const BUILTIN_PRESET={
 const BUILTIN_SCHEMA={name:'ScenePulse',description:'Scene tracker.',strict:false,
 value:{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"time":{"type":"string","description":"HH:MM:SS only."},"date":{"type":"string","description":"MM/DD/YYYY (DayName)"},"elapsed":{"type":"string","description":"Time elapsed since last action. Format: duration (context). Example: 30s (dialogue), 2m (walking)"},"location":{"type":"string","description":"Immediate location > Parent area. Only 2 levels. Example: Kitchen > Windbloom Apartment, Bridge > USS Enterprise, Alley > Chinatown"},"weather":{"type":"string","description":"Sky/precipitation only."},"temperature":{"type":"string","description":"Felt or exact."},"soundEnvironment":{"type":"string","description":"Audible sounds right now."},"witnesses":{"type":"array","items":{"type":"string"},"description":"[] if none."},"sceneTopic":{"type":"string"},"sceneMood":{"type":"string"},"sceneInteraction":{"type":"string"},"sceneTension":{"type":"string","enum":["calm","low","moderate","high","critical"]},"sceneSummary":{"type":"string"},
 "northStar":{"type":"string","description":"{{user}}'s ONE driving dream or life purpose — the deepest motivation behind everything they do. What would they sacrifice everything for? If not yet established in the story, use: Not yet revealed. This is ALWAYS about {{user}}, never other characters."},
-"mainQuests":{"type":"array","description":"{{user}}'s PRIMARY storyline objectives — the critical-path goals that drive the narrative forward. These are the big, important things {{user}} MUST eventually resolve. Think of these as the main quest chain in an RPG. They persist across scenes and evolve over time. Each entry is about {{user}}'s journey, never a character's. WRONG: [Character] needs therapy. RIGHT: Support [character]'s recovery. WRONG: Stay quiet during encounter. RIGHT: Resolve the ongoing investigation.","items":{"type":"object","properties":{"name":{"type":"string"},"urgency":{"type":"string","enum":["critical","high","moderate","low"]},"detail":{"type":"string","description":"1-3 short factual sentences describing this quest. No emotions. Just what happened, what needs to happen, and current status."}},"required":["name","urgency","detail"]}},
-"sideQuests":{"type":"array","description":"Optional but enriching paths {{user}} could pursue — things that aren't required but would deepen the story or improve {{user}}'s life. Like side quests in an RPG: skippable but rewarding. WRONG: Order food. RIGHT: Reconnect with estranged family. RIGHT: Explore career alternatives.","items":{"type":"object","properties":{"name":{"type":"string"},"urgency":{"type":"string","enum":["critical","high","moderate","low"]},"detail":{"type":"string","description":"1-3 short factual sentences describing this quest. No emotions. Just what happened, what needs to happen, and current status."}},"required":["name","urgency","detail"]}},
-"activeTasks":{"type":"array","description":"Immediate, concrete things {{user}} needs to handle soon — the current to-do list. These are actionable items, not vague goals. They may resolve quickly or escalate into main/side quests. WRONG: Be a good person. RIGHT: Get documents signed before the deadline. RIGHT: Prepare ally for tomorrow's hearing.","items":{"type":"object","properties":{"name":{"type":"string"},"urgency":{"type":"string","enum":["critical","high","moderate","low"]},"detail":{"type":"string","description":"1-3 short factual sentences describing this quest. No emotions. Just what happened, what needs to happen, and current status."}},"required":["name","urgency","detail"]}},
+"mainQuests":{"type":"array","description":"{{user}}'s PRIMARY storyline objectives — always from {{user}}'s perspective. If {{char}}/NPC is hostile, {{user}} OPPOSES. If ally, {{user}} SUPPORTS (as {{user}}'s action). If neutral, {{user}} DECIDES. Combat: WRONG: {{char}} hunts {{user}}. RIGHT: Survive {{char}}'s pursuit. Romance: WRONG: {{char}} is falling in love. RIGHT: Deepen the relationship. Workplace: WRONG: Boss plans layoffs. RIGHT: Secure position before layoffs. Mystery: WRONG: Killer covers tracks. RIGHT: Find evidence before it disappears.","items":{"type":"object","properties":{"name":{"type":"string"},"urgency":{"type":"string","enum":["critical","high","moderate","low"]},"detail":{"type":"string","description":"1-3 short factual sentences. What {{user}} knows, what {{user}} needs to do, current status."}},"required":["name","urgency","detail"]}},
+"sideQuests":{"type":"array","description":"Optional enriching paths {{user}} could pursue — skippable but rewarding. Always {{user}}'s perspective. Family: WRONG: {{char}} struggles in school. RIGHT: Help {{char}} with their grades. Romance: WRONG: {{char}} wants to try a new restaurant. RIGHT: Plan a date at the new restaurant. Fantasy: WRONG: The guild needs a courier. RIGHT: Take on the guild's courier job.","items":{"type":"object","properties":{"name":{"type":"string"},"urgency":{"type":"string","enum":["critical","high","moderate","low"]},"detail":{"type":"string","description":"1-3 short factual sentences. What {{user}} could do and why it matters."}},"required":["name","urgency","detail"]}},
+"activeTasks":{"type":"array","description":"Immediate concrete things {{user}} needs to handle soon. Always {{user}}'s action. Horror: WRONG: The creature stalks the hall. RIGHT: Get past the creature unseen. Slice of life: WRONG: {{char}} needs a ride home. RIGHT: Drive {{char}} home. School: WRONG: {{char}} is being bullied. RIGHT: Intervene in the bullying.","items":{"type":"object","properties":{"name":{"type":"string"},"urgency":{"type":"string","enum":["critical","high","moderate","low"]},"detail":{"type":"string","description":"1-3 short factual sentences. What {{user}} needs to do right now."}},"required":["name","urgency","detail"]}},
 "plotBranches":{"type":"array","description":"Exactly 5 story directions — one per category. Each must be SPECIFIC to what's happening NOW, not generic. Root every suggestion in established characters, locations, and tensions.","items":{"type":"object","properties":{"type":{"type":"string","enum":["dramatic","intense","comedic","twist","exploratory"],"description":"dramatic=emotional vulnerability, relationship stakes, hard truths. intense=conflict escalation, danger, urgency, forced action. comedic=tonal relief, absurdity, irony, humor that reveals character. twist=subversion, revelation that recontextualizes what came before. exploratory=world expansion, new locations/factions/characters entering the sandbox."},"name":{"type":"string","description":"Short punchy title, 2-5 words"},"hook":{"type":"string","description":"1-2 sentences. What happens and WHY it matters. Be specific — name characters, reference established details."}},"required":["type","name","hook"]}},
 "relationships":{"type":"array","description":"How characters perceive {{user}}. THEIR view of {{user}}. Do NOT include {{user}}.","items":{"type":"object","properties":{"name":{"type":"string"},"relType":{"type":"string"},"relPhase":{"type":"string"},"timeTogether":{"type":"string"},"milestone":{"type":"string","description":"The single most recent PERSONAL achievement or significant moment for this character. Brief. Example: Accepted the proposal, Passed the interview, Got promoted"},"affection":{"type":"integer"},"affectionLabel":{"type":"string"},"trust":{"type":"integer"},"trustLabel":{"type":"string"},"desire":{"type":"integer","description":"Sexual desire/attraction toward {{user}} (0-100). Default 0 for anyone without established sexual interest — including family, strangers, minors. Can increase if seduction/attraction develops in the story. 0 means no current sexual desire, not that it's impossible."},"desireLabel":{"type":"string"},"stress":{"type":"integer"},"stressLabel":{"type":"string"},"compatibility":{"type":"integer"},"compatibilityLabel":{"type":"string"}},"required":["name","relType","relPhase","timeTogether","milestone","affection","affectionLabel","trust","trustLabel","desire","desireLabel","stress","stressLabel","compatibility","compatibilityLabel"]}},
 "charactersPresent":{"type":"array","items":{"type":"string"}},
@@ -315,12 +315,29 @@ You are a precise scene analysis engine. Read the story context and output a sin
 - milestone: Single most recent PERSONAL achievement. Brief. Example: "Passed the interview" or "Got promoted"
 
 ### Quest Journal ({{user}}'s LIFE journey — NOT current scene)
-This is {{user}}'s personal quest journal. It tracks storylines that persist across scenes — like a quest log in Skyrim or The Witcher. NEVER include current scene actions (sex, eating, conversation). Every entry must be about {{user}}'s life, from {{user}}'s perspective.
+This is {{user}}'s personal quest journal — like a quest log in Skyrim or The Witcher. NEVER include current scene actions (sex, eating, conversation). Every entry must be about {{user}}'s life, from {{user}}'s perspective.
+
+PERSPECTIVE RULE: All quests describe what {{user}} is doing or needs to do. Never what {{char}} or NPCs are doing. The relationship determines framing:
+- HOSTILE → {{user}}'s quest OPPOSES their goal
+- ALLY → {{user}}'s quest SUPPORTS them, as {{user}}'s action
+- NEUTRAL → {{user}}'s quest is {{user}}'s CHOICE about them
+
+Examples by scenario:
+Combat: WRONG: "{{char}} hunts {{user}}" → RIGHT: "Survive {{char}}'s pursuit"
+Romance: WRONG: "{{char}} is falling in love" → RIGHT: "Deepen the relationship with {{char}}"
+Slice of Life: WRONG: "{{char}} has a busy schedule" → RIGHT: "Find time to spend with {{char}}"
+Workplace: WRONG: "Boss is planning layoffs" → RIGHT: "Secure position before the layoffs"
+Mystery: WRONG: "The killer is covering tracks" → RIGHT: "Find evidence before it disappears"
+Family: WRONG: "{{char}} is struggling in school" → RIGHT: "Help {{char}} improve their grades"
+Horror: WRONG: "The creature stalks the building" → RIGHT: "Escape the building alive"
+Fantasy: WRONG: "The guild needs a courier" → RIGHT: "Deliver the package for the guild"
+Political: WRONG: "The faction plots a coup" → RIGHT: "Expose or join the faction's plot"
+School: WRONG: "{{char}} is being bullied" → RIGHT: "Stand up for {{char}} against the bullies"
 
 - northStar: {{user}}'s ONE driving life purpose — their deepest dream. Use "Not yet revealed" if unknown.
-- mainQuests: PRIMARY storyline objectives — the critical path. Big, important things {{user}} must resolve. These evolve but persist. Examples: "Investigate the conspiracy threatening our family", "Resolve the conflict with the rival faction", "Rebuild trust after the betrayal"
-- sideQuests: Optional enriching paths — skippable but rewarding. Examples: "Reconnect with estranged family member", "Explore a new career path"
-- activeTasks: Immediate, concrete to-do items. Actionable and specific. Examples: "Sign the documents before the deadline", "Prepare ally for the upcoming trial"
+- mainQuests: PRIMARY storyline objectives — big persistent goals. Examples: "Rebuild trust after the betrayal", "Survive the first semester at the academy", "Win the custody battle", "Investigate the disappearances in town", "Earn a promotion before the deadline"
+- sideQuests: Optional enriching paths — skippable but rewarding. Examples: "Learn to cook {{char}}'s favorite meal", "Explore the abandoned district", "Reconnect with estranged sibling", "Train for the upcoming tournament"
+- activeTasks: Immediate, concrete to-do items. Examples: "Confront {{char}} about the lie", "Find a gift before the party tonight", "Patch things up with the neighbor", "Secure an alibi before the detective arrives"
 - Each entry needs: name (brief title), urgency (critical/high/moderate/low), detail (1 sentence of context)
 - CARRY FORWARD: Never drop quests between updates unless they are explicitly resolved in the story. Quests persist until completed.
 
@@ -338,7 +355,7 @@ Maintain all unchanged details from previous snapshots. Only update what has act
 
 ## REMINDER
 1. The Quest Journal tracks {{user}}'s LIFE, not the current scene. Quest entries should read like a save-game journal — storylines that persist across multiple scenes. NEVER write entries about what's happening RIGHT NOW.
-2. ALL entries from {{user}}'s perspective. "Character needs therapy" is WRONG. "Support character's therapy commitment" is RIGHT.
+2. ALL entries from {{user}}'s perspective. The test: does the quest start with what {{user}} does? "{{char}} hunts {{user}}" → WRONG. "Survive {{char}}'s pursuit" → RIGHT. "{{char}} is falling in love" → WRONG. "Deepen the relationship with {{char}}" → RIGHT. "The creature stalks the hall" → WRONG. "Escape the building" → RIGHT.
 3. NEVER drop quests. If a quest existed in the previous state and hasn't been resolved in the story, it MUST appear in the new output. Quests can only be removed when the story explicitly resolves them.
 4. Use urgency tags: critical / high / moderate / low. Never use "status", "deadline", "pending", or other fields.
 
@@ -544,12 +561,12 @@ You are a precise scene analysis engine. Read the story context and output a sin
         const ft=s.fieldToggles||{};
         let qFields=[];
         if(ft.northStar!==false)qFields.push("- northStar: {{user}}'s ONE driving dream or life purpose. \"Not yet revealed\" if unknown.");
-        if(ft.mainQuests!==false)qFields.push('- mainQuests: PRIMARY storyline objectives. The big goals that drive the narrative.');
-        if(ft.sideQuests!==false)qFields.push('- sideQuests: Optional enriching paths. Skippable but rewarding.');
-        if(ft.activeTasks!==false)qFields.push('- activeTasks: Immediate concrete to-do items. May resolve quickly or escalate.');
+        if(ft.mainQuests!==false)qFields.push('- mainQuests: PRIMARY storyline objectives. What {{user}} is trying to accomplish.');
+        if(ft.sideQuests!==false)qFields.push('- sideQuests: Optional enriching paths {{user}} could pursue.');
+        if(ft.activeTasks!==false)qFields.push('- activeTasks: Immediate concrete things {{user}} needs to do right now.');
         if(qFields.length){
             prompt+='\n### Quest Journal (from {{user}}\'s perspective)\n'+qFields.join('\n');
-            if(ft.mainQuests!==false||ft.sideQuests!==false||ft.activeTasks!==false)prompt+='\n- All quests: name + urgency (critical/high/moderate/low) + detail.\n- NEVER drop unresolved quests. Carry them forward.\n';
+            if(ft.mainQuests!==false||ft.sideQuests!==false||ft.activeTasks!==false)prompt+='\n- All quests: name + urgency (critical/high/moderate/low) + detail.\n- ALWAYS from {{user}}\'s perspective. If hostile: oppose their goal. If ally: support them as {{user}}\'s action.\n- NEVER drop unresolved quests. Carry them forward.\n';
         }
     }
     // Relationships
@@ -1706,7 +1723,7 @@ async function generateTracker(mesIdx,partKey,opts){
                     snapCtx+=`\n--- Snapshot from message #${k} ---\n${JSON.stringify(allSnaps[String(k)],null,2)}`;
                 }
             }
-            snapCtx+=settings.panels?.quests!==false?`\n\nIMPORTANT: The Quest Journal (northStar, mainQuests, sideQuests, activeTasks) must be written from {{user}}'s perspective. NEVER drop quests that existed in the previous state unless the story resolved them. Carry ALL unresolved quests forward. Rewrite any character-perspective entries to {{user}}'s perspective.`:`\n\nIMPORTANT: Carry forward unchanged details. Only update what changed in the story.`;
+            snapCtx+=settings.panels?.quests!==false?`\n\nIMPORTANT: Quest Journal must be from {{user}}'s perspective. If {{char}} is hostile, {{user}}'s quests OPPOSE {{char}}'s goals. If {{char}} is an ally, {{user}}'s quests SUPPORT them — but framed as {{user}}'s action. NEVER write what {{char}} is doing — write what {{user}} is doing about it. NEVER drop unresolved quests.`:`\n\nIMPORTANT: Carry forward unchanged details. Only update what changed in the story.`;
             if(hasEmptyChars){
                 snapCtx+=`\n\nWARNING: The previous state has EMPTY characters. This is a bug — you MUST generate full character details for ALL characters present in the scene.`;
                 log('Previous state has empty characters — added generation warning');
@@ -1940,7 +1957,7 @@ function createPanel(){
     const panel=document.createElement('div');panel.id='sp-panel';
     panel.innerHTML=`
     <div class="sp-toolbar">
-        <div class="sp-brand-icon" id="sp-brand-icon" title="ScenePulse v4.9.86">${MASCOT_SVG}</div>
+        <div class="sp-brand-icon" id="sp-brand-icon" title="ScenePulse v4.9.88">${MASCOT_SVG}</div>
         <div class="sp-brand-title">Scene<span class="sp-brand-accent">Pulse</span></div>
         <span class="sp-toolbar-spacer"></span>
         <button class="sp-toolbar-btn" id="sp-tb-regen" title="Regenerate all"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M13.5 8a5.5 5.5 0 1 1-1.3-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M13.5 3v2.5h-2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
@@ -4468,7 +4485,7 @@ function buildInlineTrackerPrompt(){
     const s=getSettings();
     const sysPr=getActivePrompt();
     const snap=getLatestSnapshot();
-    const prevState=snap?`\nPREVIOUS STATE (carry forward unchanged details, update only what changed):\n${JSON.stringify(snap,null,2)}\n\nIMPORTANT: Carry forward ALL unresolved quests. NEVER drop quests unless the story resolves them.`:'';
+    const prevState=snap?`\nPREVIOUS STATE (carry forward unchanged details, update only what changed):\n${JSON.stringify(snap,null,2)}\n\nIMPORTANT: Carry forward ALL unresolved quests. NEVER drop quests unless the story resolves them. All quests MUST be from {{user}}'s perspective — if hostile, oppose their goal; if ally, support them as {{user}}'s action.`:'';
     // Strip the "JSON OUTPUT ONLY" header from the prompt
     let fieldSpecs=sysPr;
     const headerEnd=sysPr.indexOf('## FIELD SPECIFICATIONS');
@@ -4929,7 +4946,7 @@ function createSettings(){
     try{po=getConnectionProfiles().map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}catch{}
     try{pre=getChatPresets().map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}catch{}
     try{lo=getLorebooks().map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}catch{}
-    const html=`<div id="scenepulse-settings" class="extension_settings"><div class="inline-drawer"><div class="inline-drawer-toggle inline-drawer-header"><div class="sp-drawer-header-content"><span class="sp-drawer-icon-wrap">${MASCOT_SVG}</span><div class="sp-drawer-title-block"><span class="sp-drawer-title">Scene<span style="color:var(--sp-accent)">Pulse</span></span><span class="sp-drawer-version">v4.9.86 — Scene Intelligence</span></div><span class="sp-drawer-badge sp-on" id="sp-badge"><span class="sp-drawer-badge-dot"></span>Active</span></div><div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div></div><div class="inline-drawer-content">
+    const html=`<div id="scenepulse-settings" class="extension_settings"><div class="inline-drawer"><div class="inline-drawer-toggle inline-drawer-header"><div class="sp-drawer-header-content"><span class="sp-drawer-icon-wrap">${MASCOT_SVG}</span><div class="sp-drawer-title-block"><span class="sp-drawer-title">Scene<span style="color:var(--sp-accent)">Pulse</span></span><span class="sp-drawer-version">v4.9.88 — Scene Intelligence</span></div><span class="sp-drawer-badge sp-on" id="sp-badge"><span class="sp-drawer-badge-dot"></span>Active</span></div><div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div></div><div class="inline-drawer-content">
 <div class="sp-sh">General</div><label class="sp-ck"><input type="checkbox" id="sp-enabled"> Enable ScenePulse</label><label class="sp-ck"><input type="checkbox" id="sp-auto-gen"> Auto-generate on AI messages</label><label class="sp-ck"><input type="checkbox" id="sp-show-thoughts"> Show thought bubbles</label><label class="sp-ck"><input type="checkbox" id="sp-show-weather"> Weather overlay effects</label><label class="sp-ck"><input type="checkbox" id="sp-show-timetint"> Time-of-day ambience</label><label class="sp-ck"><input type="checkbox" id="sp-show-devbtns"> Show developer tools</label><div style="margin-top:6px;display:flex;gap:6px"><button class="sp-btn" id="sp-btn-setup">📋 Setup Guide</button><button class="sp-btn" id="sp-btn-tour">✦ Guided Tour</button></div><div id="sp-separate-settings"><div class="sp-fi"><label>Context msgs</label><input type="number" id="sp-ctx" min="1" max="30"></div><div class="sp-hint sp-ctx-hint">How many recent messages to include when generating tracker updates. <em>Separate mode only — Together mode uses ST's full context automatically.</em><br><span class="sp-ctx-range"><strong>3–4</strong> · Fastest. Good for simple 1-on-1 scenes (~5K token prompt)</span><br><span class="sp-ctx-range"><strong>5–8</strong> · Balanced. Recommended for most scenes (~8–12K tokens)</span><br><span class="sp-ctx-range"><strong>8–15</strong> · Better continuity for complex multi-character scenes (~12–20K tokens)</span><br><span class="sp-ctx-range"><strong>15+</strong> · Maximum context but significantly slower and more expensive</span><br><span class="sp-ctx-note">⚠ This is the biggest factor in Separate mode speed. At 8 msgs your tracker prompt is ~10K tokens — doubling roughly doubles generation time. Lower values (3–4) can cut tracker time by 40–60%.</span></div><div class="sp-fi"><label>Max retries</label><input type="number" id="sp-retries" min="0" max="5"></div><div class="sp-hint sp-ctx-hint"><em>Separate mode only.</em> How many times to retry if the tracker API call returns invalid JSON.</div></div>
 <div class="sp-sh">Injection Method</div><div class="sp-fs"><label>Mode</label><select id="sp-injection-method"><option value="inline">Together (AI appends tracker to its response)</option><option value="separate">Separate (dedicated API call after AI response)</option></select></div>
 <div id="sp-method-inline"><div class="sp-hint">The AI writes its normal response, then appends tracker JSON at the end. ScenePulse automatically extracts and hides the JSON. <strong>Recommended for most setups.</strong></div><div class="sp-hint sp-pros-cons"><span class="sp-pro">✓ Single API call — typically ~100–120s total</span><br><span class="sp-pro">✓ No profile switching — eliminates message deletion risk</span><br><span class="sp-pro">✓ AI has full narrative context for accurate tracking</span><br><span class="sp-pro">✓ 2–3× faster than Separate mode in practice</span><br><span class="sp-con">✗ Uses tokens from the main response budget (~1,700 tokens for tracker)</span><br><span class="sp-con">✗ May slightly reduce narrative length on token-limited models</span></div>
@@ -5366,7 +5383,7 @@ eventSource.on(event_types.APP_READY,()=>{try{
     if(!_s.setupDismissed){
         setTimeout(()=>showSetupGuide(),2000);
     }
-    log('v4.9.86 ready');
+    log('v4.9.88 ready');
     // One-time migration: reset stale sub-field toggles from old Disable All
     if(_s.fieldToggles){
         const _ft=_s.fieldToggles;const _p=_s.panels||DEFAULTS.panels;
@@ -5495,4 +5512,4 @@ if(event_types.MESSAGE_UPDATED){
     eventSource.on(event_types.MESSAGE_UPDATED,()=>{setTimeout(renderExisting,300)});
 }
 // ST generation started — handled internally via generateTracker's generating=true flag
-log('v4.9.86 init');
+log('v4.9.88 init');
