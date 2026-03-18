@@ -12,7 +12,8 @@
 <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square&labelColor=1a1c24" alt="License">
 <img src="https://img.shields.io/badge/platform-SillyTavern%201.12%2B-orange?style=flat-square&labelColor=1a1c24" alt="Platform">
 
-# <img width="1024" height="338" alt="image" src="https://github.com/user-attachments/assets/64238162-a78a-47bb-a9c3-e60d3ed775e4" />
+# <img width="836" height="200" alt="image" src="https://github.com/user-attachments/assets/041e92d6-f126-45da-8a2f-7a64a6a8d609" />
+
 
 
 
