@@ -1813,7 +1813,7 @@
     padding: 10px 18px; border-radius: 12px;
     background: linear-gradient(135deg, rgba(30,32,40,0.97) 0%, rgba(24,26,32,0.97) 100%);
     border: 1px solid rgba(77,184,164,0.4);
-    box-shadow: 0 6px 28px rgba(0,0,0,0.5), 0 0 20px rgba(77,184,164,0.15);
+    box-shadow: 0 6px 28px rgba(0,0,0,0.5), 0 0 24px rgba(77,184,164,0.25), 0 0 60px rgba(77,184,164,0.1);
     color: #e8ecf4; font-family: var(--sp-font);
     cursor: pointer; white-space: nowrap;
     animation: sp-banner-in 0.35s ease-out;
