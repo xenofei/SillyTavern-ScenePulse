@@ -1807,7 +1807,7 @@
 
 /* ═══ MOBILE BANNER (post-generation notification) ═══ */
 .sp-mobile-banner {
-    position: fixed; top: 40px; left: 50%; transform: translateX(-50%);
+    position: fixed; top: 4px; left: 50%; transform: translateX(-50%);
     z-index: 100001;
     display: flex; align-items: center; gap: 10px;
     padding: 10px 18px; border-radius: 12px;
@@ -1948,6 +1948,10 @@
 #sp-panel:not(.sp-visible) { display: none !important; }
 #sp-panel:not(.sp-visible) + #sp-thought-panel,
 #sp-panel:not(.sp-visible) ~ #sp-thought-panel { display: none !important; }
+#sp-panel:not(.sp-visible) ~ #sp-panel-glass-overlay { display: none !important; }
+#sp-panel:not(.sp-visible) ~ #sp-weather-overlay { display: none !important; }
+#sp-panel:not(.sp-visible) ~ #sp-time-tint { display: none !important; }
+#sp-panel:not(.sp-visible) ~ .sp-loading-glass { display: none !important; }
 #sp-thought-panel { pointer-events: none; }
 #sp-thought-panel.sp-tp-visible { pointer-events: auto; }
 #sp-panel.sp-mode-mobile::-webkit-scrollbar { width: 0; }
