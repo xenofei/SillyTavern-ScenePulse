@@ -1,4 +1,4 @@
-// ScenePulse v4.9.49 — Side Panel Architecture
+// ScenePulse v4.9.50 — Side Panel Architecture
 const MODULE_NAME='scenepulse';const LOG='[ScenePulse]';
 
 const MASCOT_SVG=`<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.2" opacity="0.25" class="sp-mascot-pulse"/><circle cx="12" cy="12" r="6.5" stroke="currentColor" stroke-width="1" opacity="0.4" class="sp-mascot-pulse"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="0.8" opacity="0.6"/><circle cx="12" cy="12" r="1.4" fill="currentColor" opacity="0.9"/><line x1="12" y1="2" x2="12" y2="5.5" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><line x1="12" y1="18.5" x2="12" y2="22" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><line x1="2" y1="12" x2="5.5" y2="12" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><line x1="18.5" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><path d="M12 5.5 L14 10 L12 8.5 L10 10 Z" fill="currentColor" opacity="0.5"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="8s" repeatCount="indefinite"/></path></svg>`;
@@ -92,6 +92,46 @@ function spSetGenerating(active){
     if(btn){if(active)btn.classList.add('sp-st-generating');else btn.classList.remove('sp-st-generating')}
     const fab=document.getElementById('sp-mobile-fab');
     if(fab){if(active)fab.classList.add('sp-st-generating');else fab.classList.remove('sp-st-generating')}
+}
+// After generation: show panel on desktop, show banner on mobile
+function spPostGenShow(){
+    const mode=spDetectMode();
+    if((mode==='mobile'||mode==='tablet')&&_spMobileMinimized){
+        spShowBanner('Scene updated');
+        spUpdateFab();
+        return;
+    }
+    showPanel();
+}
+function spShowBanner(text){
+    let b=document.getElementById('sp-mobile-banner');
+    if(b)b.remove();
+    b=document.createElement('div');b.id='sp-mobile-banner';b.className='sp-mobile-banner';
+    b.innerHTML=`<span class="sp-banner-icon">${MASCOT_SVG}</span><span class="sp-banner-text">${text}</span>`;
+    b.addEventListener('click',()=>{b.remove();spRestorePanel()});
+    document.body.appendChild(b);
+    // Auto-dismiss
+    setTimeout(()=>{if(b.parentNode){b.classList.add('sp-banner-out');setTimeout(()=>b.remove(),400)}},4000);
+    log('Banner shown:',text);
+}
+// Delete snapshot and refresh timeline when a message is deleted
+function spOnMessageDeleted(mesIdx){
+    const data=getTrackerData();
+    const key=String(mesIdx);
+    if(data.snapshots[key]){
+        delete data.snapshots[key];
+        log('Snapshot deleted for mesIdx=',mesIdx);
+        // Re-render timeline
+        const sorted=Object.keys(data.snapshots).map(Number).sort((a,b)=>a-b);
+        if(sorted.length){
+            const latestKey=sorted[sorted.length-1];
+            currentSnapshotMesIdx=latestKey;
+            const norm=normalizeTracker(data.snapshots[String(latestKey)]);
+            updatePanel(norm);
+        }
+        renderTimeline();
+        try{ensureChatSaved()}catch(e){warn('snapshot delete save:',e)}
+    }
 }
 
 // Built-in panel → schema field mapping (used for dynamic schema + prompt generation)
@@ -1579,7 +1619,7 @@ async function generateTracker(mesIdx,partKey,opts){
         result._spMeta={promptTokens:genMeta.promptTokens,completionTokens:genMeta.completionTokens,elapsed:genMeta.elapsed,source:lastGenSource,injectionMethod:getSettings().injectionMethod||'inline'};
         saveSnapshot(mesIdx,result);log('Snapshot saved for mesIdx=',mesIdx,'keys=',Object.keys(result).length,'elapsed=',genMeta.elapsed.toFixed(1)+'s','~tokens:',genMeta.promptTokens+genMeta.completionTokens);
         updatePanel(result);
-        showPanel(); // Ensure panel visible + width recalculated
+        spPostGenShow(); // mobile: banner instead of panel popup
     }else{
         // Show error in panel instead of stuck spinner
         const body=document.getElementById('sp-panel-body');
@@ -1649,7 +1689,7 @@ function createPanel(){
     const panel=document.createElement('div');panel.id='sp-panel';
     panel.innerHTML=`
     <div class="sp-toolbar">
-        <div class="sp-brand-icon" id="sp-brand-icon" title="ScenePulse v4.9.49">${MASCOT_SVG}</div>
+        <div class="sp-brand-icon" id="sp-brand-icon" title="ScenePulse v4.9.50">${MASCOT_SVG}</div>
         <div class="sp-brand-title">Scene<span class="sp-brand-accent">Pulse</span></div>
         <span class="sp-toolbar-spacer"></span>
         <button class="sp-toolbar-btn" id="sp-tb-regen" title="Regenerate all"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M13.5 8a5.5 5.5 0 1 1-1.3-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M13.5 3v2.5h-2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
@@ -3909,7 +3949,7 @@ function addMesButton(el){
         if(this.classList.contains('sp-generating')){log('Already generating');return}
         this.classList.add('sp-generating');
         const panel=document.getElementById('sp-panel');
-        if(panel){showPanel();const body=document.getElementById('sp-panel-body');showLoadingOverlay(body,'Generating Scene','Reading context and analyzing characters');showStopButton();startElapsedTimer()}
+        if(panel){spAutoShow();const body=document.getElementById('sp-panel-body');showLoadingOverlay(body,'Generating Scene','Reading context and analyzing characters');showStopButton();startElapsedTimer()}
         showThoughtLoading('Updating thoughts','Analyzing context');
         const preNonce=genNonce;
         try{
@@ -3997,7 +4037,7 @@ async function onCharMsg(idx){
             extracted._spMeta={promptTokens:genMeta.promptTokens,completionTokens:genMeta.completionTokens,elapsed:genMeta.elapsed,source:lastGenSource,injectionMethod:'inline'};
             saveSnapshot(idx,extracted);
             await ensureChatSaved(); // Flush to disk before profile cascade can trigger CHAT_CHANGED
-            updatePanel(norm);showPanel();
+            updatePanel(norm);spPostGenShow();
         } else {
             const msgLen=(chat[idx]?.mes||'').length;
             log('onCharMsg [inline]: no tracker found in message',idx,'('+msgLen+' chars)');
@@ -4013,19 +4053,19 @@ async function onCharMsg(idx){
                     warn('Together mode: AI omitted tracker payload ('+msgLen+' chars narrative, no SP markers). Falling back to separate generation.');
                     lastGenSource='auto:together:fallback';
                     const panel=document.getElementById('sp-panel');
-                    if(panel){showPanel();showLoadingOverlay(document.getElementById('sp-panel-body'),'Generating Scene','Together mode missed — running separate');showStopButton();startElapsedTimer()}
+                    if(panel){spAutoShow();showLoadingOverlay(document.getElementById('sp-panel-body'),'Generating Scene','Together mode missed — running separate');showStopButton();startElapsedTimer()}
                     showChatBanner('Generating tracker');
                     const result=await generateTracker(idx,null,{profile:fbProfile,preset:fbPreset});
                     hideStopButton();stopElapsedTimer();
                     clearLoadingOverlay(document.getElementById('sp-panel-body'));clearThoughtLoading();
                     if(result){
                         const norm=normalizeTracker(result);
-                        updatePanel(norm);showPanel();
+                        updatePanel(norm);spPostGenShow();
                         log('Together fallback: separate generation succeeded via profile=',fbProfile||'(current)');
                     } else {
                         warn('Together fallback: separate generation also failed');
                         const prev=getLatestSnapshot();
-                        if(prev){const norm=normalizeTracker(prev);updatePanel(norm);showPanel()}
+                        if(prev){const norm=normalizeTracker(prev);updatePanel(norm);spPostGenShow()}
                     }
                 }
             } else if(msgLen>100&&!s.fallbackEnabled){
@@ -4033,7 +4073,7 @@ async function onCharMsg(idx){
             }
             // Always show existing data if we didn't successfully generate new data
             const prev=getLatestSnapshot();
-            if(prev){const norm=normalizeTracker(prev);updatePanel(norm);showPanel()}
+            if(prev){const norm=normalizeTracker(prev);updatePanel(norm);spPostGenShow()}
         }
         return; // Don't do separate generation in inline mode
     }
@@ -4053,7 +4093,7 @@ async function onCharMsg(idx){
         if(!freshChat[idx]){log('onCharMsg: message gone after delay, aborting');return}
         if(generating){log('onCharMsg: already generating after delay, skipping');return}
         const panel=document.getElementById('sp-panel');
-        if(panel){showPanel();showLoadingOverlay(document.getElementById('sp-panel-body'),'Generating Scene','Reading context and analyzing characters');showStopButton();startElapsedTimer()}
+        if(panel){spAutoShow();showLoadingOverlay(document.getElementById('sp-panel-body'),'Generating Scene','Reading context and analyzing characters');showStopButton();startElapsedTimer()}
         showChatBanner('Updating thoughts');
         const preNonce=genNonce;
         snap=await generateTracker(idx);
@@ -4574,7 +4614,7 @@ function createSettings(){
     try{po=getConnectionProfiles().map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}catch{}
     try{pre=getChatPresets().map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}catch{}
     try{lo=getLorebooks().map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}catch{}
-    const html=`<div id="scenepulse-settings" class="extension_settings"><div class="inline-drawer"><div class="inline-drawer-toggle inline-drawer-header"><div class="sp-drawer-header-content"><span class="sp-drawer-icon-wrap">${MASCOT_SVG}</span><div class="sp-drawer-title-block"><span class="sp-drawer-title">Scene<span style="color:var(--sp-accent)">Pulse</span></span><span class="sp-drawer-version">v4.9.49 — Scene Intelligence</span></div><span class="sp-drawer-badge sp-on" id="sp-badge"><span class="sp-drawer-badge-dot"></span>Active</span></div><div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div></div><div class="inline-drawer-content">
+    const html=`<div id="scenepulse-settings" class="extension_settings"><div class="inline-drawer"><div class="inline-drawer-toggle inline-drawer-header"><div class="sp-drawer-header-content"><span class="sp-drawer-icon-wrap">${MASCOT_SVG}</span><div class="sp-drawer-title-block"><span class="sp-drawer-title">Scene<span style="color:var(--sp-accent)">Pulse</span></span><span class="sp-drawer-version">v4.9.50 — Scene Intelligence</span></div><span class="sp-drawer-badge sp-on" id="sp-badge"><span class="sp-drawer-badge-dot"></span>Active</span></div><div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div></div><div class="inline-drawer-content">
 <div class="sp-sh">General</div><label class="sp-ck"><input type="checkbox" id="sp-enabled"> Enable ScenePulse</label><label class="sp-ck"><input type="checkbox" id="sp-auto-gen"> Auto-generate on AI messages</label><label class="sp-ck"><input type="checkbox" id="sp-show-thoughts"> Show thought bubbles</label><label class="sp-ck"><input type="checkbox" id="sp-show-weather"> Weather overlay effects</label><label class="sp-ck"><input type="checkbox" id="sp-show-timetint"> Time-of-day ambience</label><label class="sp-ck"><input type="checkbox" id="sp-show-devbtns"> Show developer tools</label><div id="sp-separate-settings"><div class="sp-fi"><label>Context msgs</label><input type="number" id="sp-ctx" min="1" max="30"></div><div class="sp-hint sp-ctx-hint">How many recent messages to include when generating tracker updates. <em>Separate mode only — Together mode uses ST's full context automatically.</em><br><span class="sp-ctx-range"><strong>3–4</strong> · Fastest. Good for simple 1-on-1 scenes (~5K token prompt)</span><br><span class="sp-ctx-range"><strong>5–8</strong> · Balanced. Recommended for most scenes (~8–12K tokens)</span><br><span class="sp-ctx-range"><strong>8–15</strong> · Better continuity for complex multi-character scenes (~12–20K tokens)</span><br><span class="sp-ctx-range"><strong>15+</strong> · Maximum context but significantly slower and more expensive</span><br><span class="sp-ctx-note">⚠ This is the biggest factor in Separate mode speed. At 8 msgs your tracker prompt is ~10K tokens — doubling roughly doubles generation time. Lower values (3–4) can cut tracker time by 40–60%.</span></div><div class="sp-fi"><label>Max retries</label><input type="number" id="sp-retries" min="0" max="5"></div><div class="sp-hint sp-ctx-hint"><em>Separate mode only.</em> How many times to retry if the tracker API call returns invalid JSON.</div></div>
 <div class="sp-sh">Injection Method</div><div class="sp-fs"><label>Mode</label><select id="sp-injection-method"><option value="inline">Together (AI appends tracker to its response)</option><option value="separate">Separate (dedicated API call after AI response)</option></select></div>
 <div id="sp-method-inline"><div class="sp-hint">The AI writes its normal response, then appends tracker JSON at the end. ScenePulse automatically extracts and hides the JSON. <strong>Recommended for most setups.</strong></div><div class="sp-hint sp-pros-cons"><span class="sp-pro">✓ Single API call — typically ~100–120s total</span><br><span class="sp-pro">✓ No profile switching — eliminates message deletion risk</span><br><span class="sp-pro">✓ AI has full narrative context for accurate tracking</span><br><span class="sp-pro">✓ 2–3× faster than Separate mode in practice</span><br><span class="sp-con">✗ Uses tokens from the main response budget (~1,700 tokens for tracker)</span><br><span class="sp-con">✗ May slightly reduce narrative length on token-limited models</span></div>
@@ -4825,7 +4865,7 @@ function bindUI(){const s=getSettings();
         const body=document.getElementById('sp-panel-body');
         showLoadingOverlay(body,'Generating Scene','From settings');
         lastGenSource='manual:settings';
-        showPanel();showStopButton();startElapsedTimer();
+        spAutoShow();showStopButton();startElapsedTimer();
         showThoughtLoading('Updating thoughts','Analyzing context');
         const preNonce=genNonce;
         const r=await generateTracker(chat.length-1);
@@ -4910,7 +4950,7 @@ eventSource.on(event_types.APP_READY,()=>{try{
     if(!_s.setupDismissed){
         setTimeout(()=>showSetupGuide(),2000);
     }
-    log('v4.9.49 ready');
+    log('v4.9.50 ready');
     // One-time migration: reset stale sub-field toggles from old Disable All
     if(_s.fieldToggles){
         const _ft=_s.fieldToggles;const _p=_s.panels||DEFAULTS.panels;
@@ -4929,6 +4969,7 @@ eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED,idx=>onCharMsg(idx));
 eventSource.on(event_types.GENERATION_ENDED,async()=>{
     try{const w=document.getElementById('sp-inline-wait');if(w){if(w._timerInterval)clearInterval(w._timerInterval);w.remove()}}catch{}
     clearThoughtLoading();
+    spSetGenerating(false); // Stop mobile restore icon pulse
     // ── PRIMARY EXTRACTION for Together/Inline mode ──
     // Extract tracker HERE, immediately when the stream finishes — BEFORE other extensions
     // or other extensions trigger preset-switching cascades that delay
@@ -4965,7 +5006,7 @@ eventSource.on(event_types.GENERATION_ENDED,async()=>{
                 if(norm.relationships?.length)for(const r of norm.relationships)log('  rel:',r.name,'aff=',r.affection,'trust=',r.trust,'desire=',r.desire);
                 extracted._spMeta={promptTokens:0,completionTokens:genMeta.completionTokens,elapsed:genMeta.elapsed,source:'auto:together',injectionMethod:'inline'};
                 saveSnapshot(targetIdx,extracted);
-                updatePanel(norm);showPanel();
+                updatePanel(norm);spPostGenShow();
                 stopStreamingHider();
                 log('GENERATION_ENDED: panel updated — extraction complete before cascade');
                 const el=document.querySelector(`.mes[mesid="${targetIdx}"]`);
@@ -5023,4 +5064,22 @@ eventSource.on(event_types.CHAT_CHANGED,async()=>{
         if(msgs.length===0)setTimeout(renderExisting,500);
     },200);
 });
-log('v4.9.49 init');
+// Message deleted — remove associated snapshot and refresh timeline
+if(event_types.MESSAGE_DELETED){
+    eventSource.on(event_types.MESSAGE_DELETED,(idx)=>{
+        log('MESSAGE_DELETED event, idx=',idx);
+        spOnMessageDeleted(Number(idx));
+    });
+}
+// Also catch swipe/edit which may renumber messages
+if(event_types.MESSAGE_UPDATED){
+    eventSource.on(event_types.MESSAGE_UPDATED,()=>{setTimeout(renderExisting,300)});
+}
+// ST generation started — pulse the restore icon so user knows something is happening
+if(event_types.GENERATION_STARTED){
+    eventSource.on(event_types.GENERATION_STARTED,()=>{
+        spSetGenerating(true);
+        log('ST GENERATION_STARTED: pulse on');
+    });
+}
+log('v4.9.50 init');
