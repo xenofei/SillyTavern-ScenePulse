@@ -1763,7 +1763,7 @@
     .sp-char-name { font-size: 16px; }
 }
 
-/* ═══ MOBILE FAB (floating restore button) ═══ */
+/* ═══ MOBILE FAB (floating restore button — fallback) ═══ */
 .sp-mobile-fab {
     display: none; position: fixed; bottom: 24px; right: 24px; z-index: 100000;
     width: 60px; height: 60px; border-radius: 50%;
@@ -1775,12 +1775,23 @@
     transition: all 0.3s ease; padding: 14px;
 }
 .sp-mobile-fab svg { width: 30px; height: 30px; }
-.sp-mobile-fab:hover, .sp-mobile-fab:active {
-    transform: scale(1.1);
-    box-shadow: 0 6px 32px rgba(0,0,0,0.7), 0 0 36px rgba(77,184,164,0.35);
-    border-color: var(--sp-accent);
-}
 .sp-mobile-fab.sp-fab-visible { display: flex !important; }
+
+/* ═══ ST-INJECTED RESTORE BUTTON (next to send button) ═══ */
+.sp-st-restore {
+    display: none; width: 32px; height: 32px;
+    color: var(--sp-accent, #4db8a4); cursor: pointer;
+    align-items: center; justify-content: center;
+    padding: 4px; border-radius: 6px;
+    transition: all 0.2s ease; flex-shrink: 0;
+    opacity: 0.7;
+}
+.sp-st-restore svg { width: 24px; height: 24px; }
+.sp-st-restore:hover, .sp-st-restore:active {
+    opacity: 1;
+    filter: drop-shadow(0 0 6px rgba(77,184,164,0.5));
+    transform: scale(1.15);
+}
 
 /* ═══ MOBILE MODE (class-driven, ≤600px viewport) ═══ */
 #sp-panel.sp-mode-mobile {
