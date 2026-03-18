@@ -1,4 +1,4 @@
-// ScenePulse v4.9.54 — Side Panel Architecture
+// ScenePulse v4.9.55 — Side Panel Architecture
 const MODULE_NAME='scenepulse';const LOG='[ScenePulse]';
 
 const MASCOT_SVG=`<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.2" opacity="0.25" class="sp-mascot-pulse"/><circle cx="12" cy="12" r="6.5" stroke="currentColor" stroke-width="1" opacity="0.4" class="sp-mascot-pulse"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="0.8" opacity="0.6"/><circle cx="12" cy="12" r="1.4" fill="currentColor" opacity="0.9"/><line x1="12" y1="2" x2="12" y2="5.5" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><line x1="12" y1="18.5" x2="12" y2="22" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><line x1="2" y1="12" x2="5.5" y2="12" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><line x1="18.5" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><path d="M12 5.5 L14 10 L12 8.5 L10 10 Z" fill="currentColor" opacity="0.5"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="8s" repeatCount="indefinite"/></path></svg>`;
@@ -24,9 +24,41 @@ function spApplyMode(){
     // Show/hide the minimize button
     const minBtn=document.getElementById('sp-tb-minimize');
     if(minBtn)minBtn.style.display=(mode==='mobile'||mode==='tablet')?'inline-flex':'none';
+    // Mobile: force-clear weather/tint effects (they cause glow bleed)
+    if(mode==='mobile'||mode==='tablet'){
+        clearWeatherOverlay();clearTimeTint();
+    }
+    // Mobile: inject SP branding into ST's top bar, hide ST extensions bar when panel is open
+    spInjectTopBar(mode);
     // Show/hide FAB based on panel visibility
     spUpdateFab();
     return mode;
+}
+function spInjectTopBar(mode){
+    const stTop=document.getElementById('top-bar')||document.getElementById('top-settings-holder');
+    if(!stTop)return;
+    let spTop=document.getElementById('sp-mobile-topbar');
+    if(mode==='mobile'||mode==='tablet'){
+        const p=document.getElementById('sp-panel');
+        const panelVis=p?.classList.contains('sp-visible');
+        // Hide ST's top bar when SP panel is fullscreen
+        if(panelVis){
+            stTop.style.display='none';
+            if(!spTop){
+                spTop=document.createElement('div');spTop.id='sp-mobile-topbar';spTop.className='sp-mobile-topbar';
+                spTop.innerHTML=`<div class="sp-mt-brand">${MASCOT_SVG}<span>Scene<span style="color:#4db8a4">Pulse</span></span></div><button class="sp-mt-minimize" id="sp-mt-minimize" title="Hide panel"><svg viewBox="0 0 16 16" width="18" height="18" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><line x1="2" y1="13" x2="14" y2="13" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity="0.4"/></svg></button>`;
+                document.body.insertBefore(spTop,document.body.firstChild);
+                spTop.querySelector('#sp-mt-minimize').addEventListener('click',spMinimizePanel);
+            }
+            spTop.style.display='flex';
+        } else {
+            stTop.style.display='';
+            if(spTop)spTop.style.display='none';
+        }
+    } else {
+        stTop.style.display='';
+        if(spTop)spTop.style.display='none';
+    }
 }
 function spUpdateFab(){
     const mode=spDetectMode();
@@ -1229,10 +1261,10 @@ let _streamHiderStyleEl=null;
 function startStreamingHider(){
     stopStreamingHider();
     _streamHiderStart=Date.now();
-    // Inject a <style> element — survives DOM recreation unlike inline styles
     _streamHiderStyleEl=document.createElement('style');
     _streamHiderStyleEl.id='sp-stream-hider-style';
     document.head.appendChild(_streamHiderStyleEl);
+    let _lastNarrativeH=0;let _locked=false;
     log('StreamHider: started');
     _streamHiderInterval=setInterval(()=>{
         try{
@@ -1241,50 +1273,31 @@ function startStreamingHider(){
             if(!mesTexts.length)return;
             const lastMes=mesTexts[mesTexts.length-1];
             const text=lastMes.textContent||'';
-            if(text.length<80)return;
-            // Detect tracker JSON via SP markers, fenced JSON, or key patterns
-            const markerIdx=text.indexOf('SP_TRACKER_START');
-            const fenceIdx=text.indexOf('```json');
-            const hasKeys=text.includes('"time"')&&(text.includes('"sceneTopic"')||text.includes('"sceneMood"')||text.includes('"location"'));
-            let cutCharPos=-1;
-            if(markerIdx>20){
-                cutCharPos=markerIdx-4; // Cut before <!--
-            } else if(fenceIdx>20){
-                cutCharPos=fenceIdx;
-            } else if(hasKeys){
-                const timeIdx=text.indexOf('"time"');
-                if(timeIdx>30){
-                    for(let i=timeIdx;i>=0;i--){if(text[i]==='{'){cutCharPos=i;break}}
-                }
+            if(text.length<50)return;
+            const mesId=lastMes.closest('.mes')?.getAttribute('mesid');
+            const sel=mesId?`.mes[mesid="${mesId}"] .mes_text`:`.mes:last-child .mes_text`;
+            // Check for tracker JSON signatures
+            const hasMarker=text.includes('SP_TRACKER_START');
+            const hasFence=text.includes('```json');
+            const hasKeys=text.includes('"time"')&&(text.includes('"sceneTopic"')||text.includes('"sceneMood"'));
+            if(_locked){
+                // Already locked — just keep the CSS cap at the frozen narrative height
+                return;
             }
-            if(cutCharPos<20)return;
-            // Measure narrative pixel height via Range
-            const walker=document.createTreeWalker(lastMes,NodeFilter.SHOW_TEXT);
-            let charCount=0;let targetNode=null;let targetOffset=0;let node;
-            while(node=walker.nextNode()){
-                const len=node.textContent.length;
-                if(charCount+len>cutCharPos){targetNode=node;targetOffset=cutCharPos-charCount;break}
-                charCount+=len;
-            }
-            if(!targetNode)return;
-            const range=document.createRange();
-            range.setStart(lastMes,0);
-            range.setEnd(targetNode,Math.min(targetOffset,targetNode.textContent.length));
-            const rect=range.getBoundingClientRect();
-            const mesRect=lastMes.getBoundingClientRect();
-            const narrativeHeight=rect.bottom-mesRect.top;
-            if(narrativeHeight>30&&_streamHiderStyleEl){
-                const capPx=Math.ceil(narrativeHeight+8);
-                const mesId=lastMes.closest('.mes')?.getAttribute('mesid');
-                const sel=mesId?`.mes[mesid="${mesId}"] .mes_text`:`.mes:last-child .mes_text`;
+            if(hasMarker||hasFence||hasKeys){
+                // JSON detected — lock at current narrative height
+                _locked=true;
+                const capPx=Math.max(60,Math.ceil(_lastNarrativeH)+8);
                 const rule=`${sel}{max-height:${capPx}px!important;overflow:hidden!important}`;
-                if(_streamHiderStyleEl.textContent!==rule){
-                    if(!_streamHiderStyleEl.textContent)log('StreamHider: capped at',capPx+'px mesid='+mesId);
-                    _streamHiderStyleEl.textContent=rule;
-                }
+                if(_streamHiderStyleEl)_streamHiderStyleEl.textContent=rule;
+                log('StreamHider: LOCKED at',capPx+'px mesid='+mesId);
+                return;
             }
+            // No JSON yet — track the growing narrative height
+            const mesRect=lastMes.getBoundingClientRect();
+            _lastNarrativeH=mesRect.height;
         }catch(e){}
-    },80);
+    },60);
 }
 function stopStreamingHider(){
     if(_streamHiderInterval){
@@ -1662,7 +1675,8 @@ function showPanel(){
     const topBar=document.getElementById('top-bar')||document.getElementById('top-settings-holder')||document.querySelector('.header,.nav-bar,header');
     const tbH=topBar?topBar.getBoundingClientRect().bottom:0;
     if(mode==='mobile'){
-        p.style.top=tbH+'px';p.style.height=`calc(100vh - ${tbH}px)`;p.style.width='100vw';p.style.right='0';
+        const spTopH=40; // SP mobile top bar height
+        p.style.top=spTopH+'px';p.style.height=`calc(100vh - ${spTopH}px)`;p.style.width='100vw';p.style.right='0';
     }else if(mode==='tablet'){
         const tbW=Math.min(Math.round(window.innerWidth*0.7),600);
         p.style.top=tbH+'px';p.style.height=`calc(100vh - ${tbH}px)`;p.style.width=tbW+'px';p.style.right='0';
@@ -1693,11 +1707,15 @@ function hidePanel(){
     if(tp)tp.classList.remove('sp-tp-visible');
     clearWeatherOverlay();
     clearTimeTint();
+    spInjectTopBar(spDetectMode()); // Restore ST top bar on mobile
     spUpdateFab();
     log('Panel hidden');
 }
 function syncThoughts(){
     const tp=document.getElementById('sp-thought-panel');if(!tp)return;
+    const mode=spDetectMode();
+    // No thought panel on mobile
+    if(mode==='mobile'){tp.classList.remove('sp-tp-visible');return}
     const mainVisible=document.getElementById('sp-panel')?.classList.contains('sp-visible');
     const s=getSettings();
     if(mainVisible&&s.showThoughts!==false){
@@ -1713,7 +1731,7 @@ function createPanel(){
     const panel=document.createElement('div');panel.id='sp-panel';
     panel.innerHTML=`
     <div class="sp-toolbar">
-        <div class="sp-brand-icon" id="sp-brand-icon" title="ScenePulse v4.9.54">${MASCOT_SVG}</div>
+        <div class="sp-brand-icon" id="sp-brand-icon" title="ScenePulse v4.9.55">${MASCOT_SVG}</div>
         <div class="sp-brand-title">Scene<span class="sp-brand-accent">Pulse</span></div>
         <span class="sp-toolbar-spacer"></span>
         <button class="sp-toolbar-btn" id="sp-tb-regen" title="Regenerate all"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M13.5 8a5.5 5.5 0 1 1-1.3-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M13.5 3v2.5h-2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
@@ -2246,6 +2264,7 @@ let currentWeatherType='';
 function updateWeatherOverlay(weatherStr){
     const s=getSettings();
     if(s.weatherOverlay===false)return;
+    const mode=spDetectMode();if(mode==='mobile'||mode==='tablet'){clearWeatherOverlay();return}
     const wxLow=(weatherStr||'').toLowerCase();
     // Determine weather types — multiple can be active simultaneously
     let wxTypes=[];
@@ -2529,6 +2548,7 @@ let currentTimePeriod='';
 function updateTimeTint(timeStr){
     const s=getSettings();
     if(s.timeTint===false)return;
+    const mode=spDetectMode();if(mode==='mobile'||mode==='tablet'){clearTimeTint();return}
     const h=parseInt((timeStr||'').match(/(\d+):/)?.[1]||'12');
     let period='day';
     if(h>=5&&h<7)period='dawn';
@@ -4643,7 +4663,7 @@ function createSettings(){
     try{po=getConnectionProfiles().map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}catch{}
     try{pre=getChatPresets().map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}catch{}
     try{lo=getLorebooks().map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}catch{}
-    const html=`<div id="scenepulse-settings" class="extension_settings"><div class="inline-drawer"><div class="inline-drawer-toggle inline-drawer-header"><div class="sp-drawer-header-content"><span class="sp-drawer-icon-wrap">${MASCOT_SVG}</span><div class="sp-drawer-title-block"><span class="sp-drawer-title">Scene<span style="color:var(--sp-accent)">Pulse</span></span><span class="sp-drawer-version">v4.9.54 — Scene Intelligence</span></div><span class="sp-drawer-badge sp-on" id="sp-badge"><span class="sp-drawer-badge-dot"></span>Active</span></div><div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div></div><div class="inline-drawer-content">
+    const html=`<div id="scenepulse-settings" class="extension_settings"><div class="inline-drawer"><div class="inline-drawer-toggle inline-drawer-header"><div class="sp-drawer-header-content"><span class="sp-drawer-icon-wrap">${MASCOT_SVG}</span><div class="sp-drawer-title-block"><span class="sp-drawer-title">Scene<span style="color:var(--sp-accent)">Pulse</span></span><span class="sp-drawer-version">v4.9.55 — Scene Intelligence</span></div><span class="sp-drawer-badge sp-on" id="sp-badge"><span class="sp-drawer-badge-dot"></span>Active</span></div><div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div></div><div class="inline-drawer-content">
 <div class="sp-sh">General</div><label class="sp-ck"><input type="checkbox" id="sp-enabled"> Enable ScenePulse</label><label class="sp-ck"><input type="checkbox" id="sp-auto-gen"> Auto-generate on AI messages</label><label class="sp-ck"><input type="checkbox" id="sp-show-thoughts"> Show thought bubbles</label><label class="sp-ck"><input type="checkbox" id="sp-show-weather"> Weather overlay effects</label><label class="sp-ck"><input type="checkbox" id="sp-show-timetint"> Time-of-day ambience</label><label class="sp-ck"><input type="checkbox" id="sp-show-devbtns"> Show developer tools</label><div id="sp-separate-settings"><div class="sp-fi"><label>Context msgs</label><input type="number" id="sp-ctx" min="1" max="30"></div><div class="sp-hint sp-ctx-hint">How many recent messages to include when generating tracker updates. <em>Separate mode only — Together mode uses ST's full context automatically.</em><br><span class="sp-ctx-range"><strong>3–4</strong> · Fastest. Good for simple 1-on-1 scenes (~5K token prompt)</span><br><span class="sp-ctx-range"><strong>5–8</strong> · Balanced. Recommended for most scenes (~8–12K tokens)</span><br><span class="sp-ctx-range"><strong>8–15</strong> · Better continuity for complex multi-character scenes (~12–20K tokens)</span><br><span class="sp-ctx-range"><strong>15+</strong> · Maximum context but significantly slower and more expensive</span><br><span class="sp-ctx-note">⚠ This is the biggest factor in Separate mode speed. At 8 msgs your tracker prompt is ~10K tokens — doubling roughly doubles generation time. Lower values (3–4) can cut tracker time by 40–60%.</span></div><div class="sp-fi"><label>Max retries</label><input type="number" id="sp-retries" min="0" max="5"></div><div class="sp-hint sp-ctx-hint"><em>Separate mode only.</em> How many times to retry if the tracker API call returns invalid JSON.</div></div>
 <div class="sp-sh">Injection Method</div><div class="sp-fs"><label>Mode</label><select id="sp-injection-method"><option value="inline">Together (AI appends tracker to its response)</option><option value="separate">Separate (dedicated API call after AI response)</option></select></div>
 <div id="sp-method-inline"><div class="sp-hint">The AI writes its normal response, then appends tracker JSON at the end. ScenePulse automatically extracts and hides the JSON. <strong>Recommended for most setups.</strong></div><div class="sp-hint sp-pros-cons"><span class="sp-pro">✓ Single API call — typically ~100–120s total</span><br><span class="sp-pro">✓ No profile switching — eliminates message deletion risk</span><br><span class="sp-pro">✓ AI has full narrative context for accurate tracking</span><br><span class="sp-pro">✓ 2–3× faster than Separate mode in practice</span><br><span class="sp-con">✗ Uses tokens from the main response budget (~1,700 tokens for tracker)</span><br><span class="sp-con">✗ May slightly reduce narrative length on token-limited models</span></div>
@@ -4979,7 +4999,7 @@ eventSource.on(event_types.APP_READY,()=>{try{
     if(!_s.setupDismissed){
         setTimeout(()=>showSetupGuide(),2000);
     }
-    log('v4.9.54 ready');
+    log('v4.9.55 ready');
     // One-time migration: reset stale sub-field toggles from old Disable All
     if(_s.fieldToggles){
         const _ft=_s.fieldToggles;const _p=_s.panels||DEFAULTS.panels;
@@ -5108,4 +5128,4 @@ if(event_types.MESSAGE_UPDATED){
     eventSource.on(event_types.MESSAGE_UPDATED,()=>{setTimeout(renderExisting,300)});
 }
 // ST generation started — handled internally via generateTracker's generating=true flag
-log('v4.9.54 init');
+log('v4.9.55 init');
