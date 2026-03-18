@@ -1765,22 +1765,22 @@
 
 /* ═══ MOBILE FAB (floating restore button) ═══ */
 .sp-mobile-fab {
-    display: none; position: fixed; bottom: 20px; right: 20px; z-index: 9999;
-    width: 56px; height: 56px; border-radius: 50%;
+    display: none; position: fixed; bottom: 24px; right: 24px; z-index: 100000;
+    width: 60px; height: 60px; border-radius: 50%;
     background: linear-gradient(135deg, #1e2028 0%, #181a20 100%);
-    border: 2px solid rgba(77,184,164,0.4);
-    box-shadow: 0 4px 20px rgba(0,0,0,0.5), 0 0 20px rgba(77,184,164,0.15);
+    border: 2px solid rgba(77,184,164,0.5);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.6), 0 0 24px rgba(77,184,164,0.2);
     color: var(--sp-accent); cursor: pointer;
     align-items: center; justify-content: center;
-    transition: all 0.3s ease; padding: 12px;
+    transition: all 0.3s ease; padding: 14px;
 }
-.sp-mobile-fab svg { width: 28px; height: 28px; }
+.sp-mobile-fab svg { width: 30px; height: 30px; }
 .sp-mobile-fab:hover, .sp-mobile-fab:active {
     transform: scale(1.1);
-    box-shadow: 0 6px 28px rgba(0,0,0,0.6), 0 0 30px rgba(77,184,164,0.3);
+    box-shadow: 0 6px 32px rgba(0,0,0,0.7), 0 0 36px rgba(77,184,164,0.35);
     border-color: var(--sp-accent);
 }
-.sp-mobile-fab.sp-fab-visible { display: flex; }
+.sp-mobile-fab.sp-fab-visible { display: flex !important; }
 
 /* ═══ MOBILE MODE (class-driven, ≤600px viewport) ═══ */
 #sp-panel.sp-mode-mobile {
