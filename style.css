@@ -1793,22 +1793,20 @@
     align-items: center; justify-content: center;
     padding: 4px; border-radius: 6px;
     transition: all 0.2s ease; flex-shrink: 0;
-    filter: drop-shadow(0 0 4px rgba(77,184,164,0.5));
 }
 .sp-st-restore svg { width: 26px; height: 26px; }
 .sp-st-restore .sp-mascot-pulse { animation: none; }
 .sp-st-restore:hover, .sp-st-restore:active {
-    filter: drop-shadow(0 0 8px rgba(77,184,164,0.6));
+    filter: drop-shadow(0 0 6px rgba(77,184,164,0.4));
     transform: scale(1.15);
 }
-/* Generation pulse animation */
+/* Generation pulse animation — subtle, no heavy glow */
 .sp-st-generating {
-    animation: sp-gen-pulse 1s ease-in-out infinite !important;
+    animation: sp-gen-pulse 1.2s ease-in-out infinite !important;
 }
-.sp-st-generating svg { filter: drop-shadow(0 0 8px rgba(77,184,164,0.8)) !important; }
 @keyframes sp-gen-pulse {
-    0%,100% { opacity: 0.5; transform: scale(0.95); }
-    50% { opacity: 1; transform: scale(1.2); filter: drop-shadow(0 0 14px rgba(77,184,164,0.9)); }
+    0%,100% { opacity: 0.6; transform: scale(0.95); }
+    50% { opacity: 1; transform: scale(1.15); }
 }
 
 /* ═══ MOBILE BANNER (post-generation notification) ═══ */
@@ -2013,8 +2011,12 @@ body:has(#sp-panel.sp-mode-mobile.sp-visible) #top-settings-holder { display: no
     max-height: 40vh; min-width: unset; border-radius: 14px 14px 0 0;
 }
 /* Setup/Tour on mobile */
-.sp-mode-mobile .sp-setup-dialog, #sp-panel.sp-mode-mobile ~ .sp-setup-overlay .sp-setup-dialog { max-width: 96vw; }
-.sp-mode-mobile .sp-tour-card { width: 92vw; max-width: 360px; }
+.sp-mode-mobile .sp-setup-dialog, #sp-panel.sp-mode-mobile ~ .sp-setup-overlay .sp-setup-dialog,
+body:has(#sp-panel.sp-mode-mobile) .sp-setup-dialog { max-width: 96vw; max-height: 85vh; overflow-y: auto; }
+.sp-mode-mobile .sp-tour-card, body:has(#sp-panel.sp-mode-mobile) .sp-tour-card { width: 92vw !important; max-width: 360px; }
+body:has(#sp-panel.sp-mode-mobile) .sp-setup-overlay { z-index: 100003; }
+body:has(#sp-panel.sp-mode-mobile) .sp-tour-card { z-index: 100004; }
+body:has(#sp-panel.sp-mode-mobile) .sp-tour-spotlight { z-index: 100003; }
 /* Confirm dialog */
 .sp-mode-mobile .sp-confirm-dialog { min-width: 280px; max-width: 94vw; }
 .sp-mode-mobile .sp-confirm-ok, .sp-mode-mobile .sp-confirm-cancel { min-height: 44px; font-size: 13px; }

@@ -1,4 +1,4 @@
-// ScenePulse v4.9.59 — Side Panel Architecture
+// ScenePulse v4.9.60 — Side Panel Architecture
 const MODULE_NAME='scenepulse';const LOG='[ScenePulse]';
 
 const MASCOT_SVG=`<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.2" opacity="0.25" class="sp-mascot-pulse"/><circle cx="12" cy="12" r="6.5" stroke="currentColor" stroke-width="1" opacity="0.4" class="sp-mascot-pulse"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="0.8" opacity="0.6"/><circle cx="12" cy="12" r="1.4" fill="currentColor" opacity="0.9"/><line x1="12" y1="2" x2="12" y2="5.5" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><line x1="12" y1="18.5" x2="12" y2="22" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><line x1="2" y1="12" x2="5.5" y2="12" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><line x1="18.5" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="0.8" opacity="0.3"/><path d="M12 5.5 L14 10 L12 8.5 L10 10 Z" fill="currentColor" opacity="0.5"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="8s" repeatCount="indefinite"/></path></svg>`;
@@ -1811,7 +1811,7 @@ function createPanel(){
     const panel=document.createElement('div');panel.id='sp-panel';
     panel.innerHTML=`
     <div class="sp-toolbar">
-        <div class="sp-brand-icon" id="sp-brand-icon" title="ScenePulse v4.9.59">${MASCOT_SVG}</div>
+        <div class="sp-brand-icon" id="sp-brand-icon" title="ScenePulse v4.9.60">${MASCOT_SVG}</div>
         <div class="sp-brand-title">Scene<span class="sp-brand-accent">Pulse</span></div>
         <span class="sp-toolbar-spacer"></span>
         <button class="sp-toolbar-btn" id="sp-tb-regen" title="Regenerate all"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M13.5 8a5.5 5.5 0 1 1-1.3-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M13.5 3v2.5h-2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
@@ -4418,6 +4418,7 @@ function showSetupGuide(){
     const hasProfiles=profiles.length>0;
     const hasFallbackProfile=!!s.fallbackProfile;
 
+    const _setupMobile=spDetectMode()==='mobile';
     const ov=document.createElement('div');ov.id='sp-setup-overlay';ov.className='sp-setup-overlay';
     ov.innerHTML=`
     <div class="sp-setup-dialog">
@@ -4433,7 +4434,8 @@ function showSetupGuide(){
                     <div class="sp-setup-step-title">How ScenePulse Works</div>
                     <p>ScenePulse uses <strong>Together mode</strong> by default — it instructs the AI to append scene tracking data (JSON) at the end of every response. This is fast, cheap, and accurate.</p>
                     <p>However, some models occasionally skip the tracker payload. When this happens, ScenePulse can <strong>automatically fall back</strong> to a separate API call to generate the tracker data.</p>
-                    <p>This guide helps you configure that fallback so you never lose scene data.</p>
+                    ${_setupMobile?'<p style="color:var(--sp-text-dim);font-size:12px"><em>Note: On mobile, some desktop features (weather overlay, time-of-day tint, inner thoughts panel, condense view) are hidden to optimize the experience. They\'ll be available when you switch to desktop.</em></p>':''}
+                    <p>This guide helps you configure the fallback so you never lose scene data.</p>
                     <div class="sp-setup-nav"><button class="sp-setup-btn sp-setup-btn-primary" data-goto="2">Next →</button><button class="sp-setup-btn sp-setup-btn-skip" data-dismiss="true">Skip setup</button></div>
                 </div>
             </div>
@@ -4642,34 +4644,44 @@ function startGuidedTour(){
         _tourPanelCreated=false;
     }
     let _ghostWasOn=false;
-    const steps=[
+    const _isMobile=spDetectMode()==='mobile';
+    let steps=[
         {title:'Welcome to ScenePulse',desc:'ScenePulse is your AI-powered <strong>scene intelligence dashboard</strong>. It tracks characters, relationships, quests, and story state \u2014 all extracted automatically from AI responses.<br><br>This tour loads <strong>example data</strong> so you can see every feature.',sel:'.sp-toolbar',pos:'below'},
         {title:'The Dashboard',desc:'Environment data \u2014 time, date, location, weather, temperature. Updates every message.<br><br>Toggle '+_i.edit+' edit mode to click and modify values manually.',sel:'.sp-env-permanent',pos:'below'},
-        {title:'Toolbar Controls',desc:'Left to right:<br><br>'+_i.regen+' <strong>Refresh</strong> \u2014 regenerate tracker<br>'+_i.panels+' <strong>Manager</strong> \u2014 toggle panels & fields<br>'+_i.toggle+' <strong>Expand/Collapse</strong> \u2014 all sections<br>'+_i.condense+' <strong>Condense</strong> \u2014 compact layout<br>'+_i.thoughts+' <strong>Thoughts</strong> \u2014 inner thoughts panel<br>'+_i.weather+' <strong>Weather</strong> \u2014 rain/snow overlay<br>'+_i.time+' <strong>Ambience</strong> \u2014 time-of-day tint<br>'+_i.transition+' <strong>Transitions</strong> \u2014 scene change alerts<br>'+_i.edit+' <strong>Edit</strong> \u2014 manual value editing',sel:'.sp-toolbar',pos:'below'},
+        {title:'Toolbar Controls',desc:_isMobile
+            ?'Left to right:<br><br>'+_i.regen+' <strong>Refresh</strong> \u2014 regenerate tracker<br>'+_i.panels+' <strong>Manager</strong> \u2014 toggle panels & fields<br>'+_i.toggle+' <strong>Expand/Collapse</strong> \u2014 all sections<br>'+_i.transition+' <strong>Transitions</strong> \u2014 scene change alerts<br>'+_i.edit+' <strong>Edit</strong> \u2014 manual value editing'
+            :'Left to right:<br><br>'+_i.regen+' <strong>Refresh</strong> \u2014 regenerate tracker<br>'+_i.panels+' <strong>Manager</strong> \u2014 toggle panels & fields<br>'+_i.toggle+' <strong>Expand/Collapse</strong> \u2014 all sections<br>'+_i.condense+' <strong>Condense</strong> \u2014 compact layout<br>'+_i.thoughts+' <strong>Thoughts</strong> \u2014 inner thoughts panel<br>'+_i.weather+' <strong>Weather</strong> \u2014 rain/snow overlay<br>'+_i.time+' <strong>Ambience</strong> \u2014 time-of-day tint<br>'+_i.transition+' <strong>Transitions</strong> \u2014 scene change alerts<br>'+_i.edit+' <strong>Edit</strong> \u2014 manual value editing',sel:'.sp-toolbar',pos:'below'},
         {title:'Scene Details',desc:'Tracks <strong>mood, tension, topic, interaction, and sounds</strong>. Tension is uppercase (CALM \u2192 CRITICAL). Header badge = current mood.',sel:'[data-key="scene"]',pos:'below',open:'scene'},
-        {title:'Quest Journal',desc:_i.star+' <strong>North Star</strong> \u2014 life purpose<br>'+_i.main+' <strong>Main Quests</strong> \u2014 critical goals<br>'+_i.side+' <strong>Side Quests</strong> \u2014 optional enrichment<br>'+_i.tasks+' <strong>Active Tasks</strong> \u2014 immediate to-dos<br><br>Tiers and quests collapse independently.',sel:'[data-key="quests"]',pos:'left',open:'quests'},
-        {title:'Relationships',desc:_i.heart+' <strong>Affection</strong><br>'+_i.shield+' <strong>Trust</strong><br>'+_i.flame+' <strong>Desire</strong><br>'+_i.bolt+' <strong>Stress</strong> (neutral)<br>'+_i.compat+' <strong>Compatibility</strong><br><br>Deltas (\u25B2/\u25BC) with unique icons. White bar marker = previous value.',sel:'[data-key="relationships"]',pos:'left',open:'relationships'},
-        {title:'Characters',desc:'Profiles: <strong>appearance, outfit, inventory, goals</strong>. Role badges match relationship style. First expanded, others collapse.',sel:'[data-key="characters"]',pos:'left',open:'characters'},
-        {title:'Story Ideas',desc:'5 AI-generated plot directions per update. Click to expand. <strong>\uD83D\uDCCB Paste</strong> to edit, <strong>\u25B6 Inject</strong> to send immediately.',sel:'[data-key="branches"]',pos:'left',open:'branches'},
-        {title:'Inner Thoughts',desc:'Floating panel with each character\u2019s <strong>literal inner monologue</strong>. Drag to reposition. Resize from the corner.',sel:'#sp-thought-panel',pos:'right',
-            before:()=>{const tp=document.getElementById('sp-thought-panel');if(tp){_ghostWasOn=tp.classList.contains('sp-tp-ghost');tp.classList.remove('sp-tp-ghost')}}},
-        {title:'Thoughts Controls',desc:_i.snap+' <strong>Snap Left</strong> \u2014 dock to chat edge<br>'+_i.ghost+' <strong>Ghost Mode</strong> \u2014 transparent frame<br>'+_i.regen+' <strong>Regenerate</strong> \u2014 refresh thoughts<br><strong>\u2715 Close</strong> \u2014 hide panel<br><br>All toggleable \u2014 click to switch on/off.',sel:'#sp-thought-panel .sp-tp-header',pos:'below',
-            after:()=>{if(_ghostWasOn){const tp=document.getElementById('sp-thought-panel');if(tp)tp.classList.add('sp-tp-ghost')}}},
-        {title:'Timeline Scrubber',desc:'Every AI message creates a <strong>snapshot</strong>. The timeline bar at the bottom of the panel shows all snapshots as dots. Click any dot to load that moment. The green dot marks the current message.<br><br>Use it to scrub through history and compare how relationships, quests, and characters evolved over time.',center:true},
-        {title:'Panel Manager',desc:'Toggle <strong>built-in panels</strong> on/off with checkboxes. Disabled panels are excluded from the AI prompt \u2014 saving tokens.<br><br>Sub-fields within each panel can also be toggled individually.',sel:'#sp-panel-mgr',pos:'left',
+        {title:'Quest Journal',desc:_i.star+' <strong>North Star</strong> \u2014 life purpose<br>'+_i.main+' <strong>Main Quests</strong> \u2014 critical goals<br>'+_i.side+' <strong>Side Quests</strong> \u2014 optional enrichment<br>'+_i.tasks+' <strong>Active Tasks</strong> \u2014 immediate to-dos<br><br>Tiers and quests collapse independently.',sel:'[data-key="quests"]',pos:_isMobile?'below':'left',open:'quests'},
+        {title:'Relationships',desc:_i.heart+' <strong>Affection</strong><br>'+_i.shield+' <strong>Trust</strong><br>'+_i.flame+' <strong>Desire</strong><br>'+_i.bolt+' <strong>Stress</strong> (neutral)<br>'+_i.compat+' <strong>Compatibility</strong><br><br>Deltas (\u25B2/\u25BC) with unique icons. White bar marker = previous value.',sel:'[data-key="relationships"]',pos:_isMobile?'below':'left',open:'relationships'},
+        {title:'Characters',desc:'Profiles: <strong>appearance, outfit, inventory, goals</strong>. Role badges match relationship style. First expanded, others collapse.',sel:'[data-key="characters"]',pos:_isMobile?'below':'left',open:'characters'},
+        {title:'Story Ideas',desc:'5 AI-generated plot directions per update. Click to expand. <strong>\uD83D\uDCCB Paste</strong> to edit, <strong>\u25B6 Inject</strong> to send immediately.',sel:'[data-key="branches"]',pos:_isMobile?'below':'left',open:'branches'},
+    ];
+    // Desktop-only steps
+    if(!_isMobile){
+        steps.push(
+            {title:'Inner Thoughts',desc:'Floating panel with each character\u2019s <strong>literal inner monologue</strong>. Drag to reposition. Resize from the corner.',sel:'#sp-thought-panel',pos:'right',
+                before:()=>{const tp=document.getElementById('sp-thought-panel');if(tp){_ghostWasOn=tp.classList.contains('sp-tp-ghost');tp.classList.remove('sp-tp-ghost')}}},
+            {title:'Thoughts Controls',desc:_i.snap+' <strong>Snap Left</strong> \u2014 dock to chat edge<br>'+_i.ghost+' <strong>Ghost Mode</strong> \u2014 transparent frame<br>'+_i.regen+' <strong>Regenerate</strong> \u2014 refresh thoughts<br><strong>\u2715 Close</strong> \u2014 hide panel<br><br>All toggleable \u2014 click to switch on/off.',sel:'#sp-thought-panel .sp-tp-header',pos:'below',
+                after:()=>{if(_ghostWasOn){const tp=document.getElementById('sp-thought-panel');if(tp)tp.classList.add('sp-tp-ghost')}}}
+        );
+    }
+    steps.push(
+        {title:'Timeline Scrubber',desc:'Every AI message creates a <strong>snapshot</strong>. The timeline bar at the bottom shows all snapshots as dots. Click any dot to load that moment. The green dot marks the current message.<br><br>Scrub through history and compare how relationships, quests, and characters evolved.',center:true},
+        {title:'Panel Manager',desc:'Toggle <strong>built-in panels</strong> on/off with checkboxes. Disabled panels are excluded from the AI prompt \u2014 saving tokens.<br><br>Sub-fields within each panel can also be toggled individually.',sel:'#sp-panel-mgr',pos:_isMobile?'below':'left',
             before:()=>{openPanelMgr()},after:()=>{closePanelMgr()}},
-        {title:'Custom Panels',desc:'Create panels to track <strong>anything</strong> \u2014 health, mana, reputation, faction standings.<br><br>Each field gets a <strong>key</strong>, <strong>label</strong>, <strong>type</strong> (text/number/meter/list/enum), and an <strong>LLM hint</strong> telling the AI what to output.',sel:'#sp-panel-mgr-custom',pos:'left',
+        {title:'Custom Panels',desc:'Create panels to track <strong>anything</strong> \u2014 health, mana, reputation, faction standings.<br><br>Each field gets a <strong>key</strong>, <strong>label</strong>, <strong>type</strong> (text/number/meter/list/enum), and an <strong>LLM hint</strong> telling the AI what to output.',sel:'#sp-panel-mgr-custom',pos:_isMobile?'below':'left',
             before:()=>{
                 openPanelMgr();
                 createTourPanel();
                 setTimeout(()=>{const el=document.getElementById('sp-panel-mgr-custom');if(el)el.scrollIntoView({behavior:'smooth',block:'nearest'})},150);
             },
             after:()=>{removeTourPanel();closePanelMgr()}},
-        {title:'\u26A0 Performance Tip',desc:'More panels = more tokens = <strong>longer generation times</strong>.<br><br>If responses feel slow, try:<br>\u2022 Disable panels you don\u2019t need (Characters, Story Ideas are heaviest)<br>\u2022 Reduce custom panel fields<br>\u2022 Lower context messages in Separate mode',sel:'#sp-panel-mgr',pos:'left',warn:true,
+        {title:'\u26A0 Performance Tip',desc:'More panels = more tokens = <strong>longer generation times</strong>.<br><br>If responses feel slow, try:<br>\u2022 Disable panels you don\u2019t need (Characters, Story Ideas are heaviest)<br>\u2022 Reduce custom panel fields<br>\u2022 Lower context messages in Separate mode',sel:'#sp-panel-mgr',pos:_isMobile?'below':'left',warn:true,
             before:()=>{openPanelMgr()},after:()=>{closePanelMgr()}},
         {title:'Feedback & Issues',desc:'Found a bug? Have a suggestion?<br><br>Visit the GitHub page to report issues or share ideas:<br><br><a href="https://github.com/xenofei" target="_blank" rel="noopener" style="color:var(--sp-accent);text-decoration:underline;font-weight:600">github.com/xenofei</a><br><br>Your feedback helps make ScenePulse better for everyone.',center:true},
         {title:'Thank You!',desc:'<div style="text-align:center"><span class="sp-tour-finale-pulse">'+MASCOT_SVG+'</span></div><div class="sp-tour-finale-glow">Every scene has a pulse. Now you can feel it.</div><br>Thank you for trying <strong>ScenePulse</strong>. I built this to make every moment in your story feel alive \u2014 tracked, remembered, meaningful.<br><br>Your story matters. Go make it unforgettable.',center:true}
-    ];
+    );
     let step=0;let _prevAfter=null;
     const spotlight=document.createElement('div');spotlight.className='sp-tour-spotlight';
     const card=document.createElement('div');card.className='sp-tour-card';
@@ -4690,9 +4702,11 @@ function startGuidedTour(){
             // No spotlight, center card on screen
             spotlight.style.display='none';
             setTimeout(()=>{
-                const cw=340;const ch=card.offsetHeight||250;
+                const cw=_isMobile?Math.min(340,window.innerWidth-16):340;
+                const ch=card.offsetHeight||250;
                 card.style.left=Math.max(8,(window.innerWidth-cw)/2)+'px';
                 card.style.top=Math.max(8,(window.innerHeight-ch)/2)+'px';
+                if(_isMobile)card.style.width=cw+'px';
             },100);
         } else {
         setTimeout(()=>{
@@ -4704,7 +4718,15 @@ function startGuidedTour(){
                     spotlight.style.left=(r.left-pad)+'px';spotlight.style.top=(r.top-pad)+'px';
                     spotlight.style.width=(r.width+pad*2)+'px';spotlight.style.height=(r.height+pad*2)+'px';
                     spotlight.style.display='block';
-                    const cw=340;const ch=card.offsetHeight||250;
+                    const cw=_isMobile?Math.min(320,window.innerWidth-16):340;
+                    const ch=card.offsetHeight||250;
+                    if(_isMobile){
+                        // Mobile: card always below spotlight, centered
+                        const cy=Math.min(r.bottom+12,window.innerHeight-ch-8);
+                        card.style.left=Math.max(8,(window.innerWidth-cw)/2)+'px';
+                        card.style.top=Math.max(8,cy)+'px';
+                        card.style.width=cw+'px';
+                    } else {
                     const spB=window.innerHeight-r.bottom,spA=r.top,spR=window.innerWidth-r.right,spL=r.left;
                     let cx,cy;
                     if(s.pos==='left'&&spL>cw+20){cx=r.left-cw-14;cy=Math.max(8,r.top)}
@@ -4718,6 +4740,7 @@ function startGuidedTour(){
                     if(cy+ch>window.innerHeight-8)cy=window.innerHeight-ch-8;
                     if(cy<8)cy=8;if(cx<8)cx=8;
                     card.style.left=cx+'px';card.style.top=cy+'px';
+                    }
                 },250);
             } else spotlight.style.display='none';
         },200);
@@ -4748,7 +4771,7 @@ function createSettings(){
     try{po=getConnectionProfiles().map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}catch{}
     try{pre=getChatPresets().map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}catch{}
     try{lo=getLorebooks().map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}catch{}
-    const html=`<div id="scenepulse-settings" class="extension_settings"><div class="inline-drawer"><div class="inline-drawer-toggle inline-drawer-header"><div class="sp-drawer-header-content"><span class="sp-drawer-icon-wrap">${MASCOT_SVG}</span><div class="sp-drawer-title-block"><span class="sp-drawer-title">Scene<span style="color:var(--sp-accent)">Pulse</span></span><span class="sp-drawer-version">v4.9.59 — Scene Intelligence</span></div><span class="sp-drawer-badge sp-on" id="sp-badge"><span class="sp-drawer-badge-dot"></span>Active</span></div><div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div></div><div class="inline-drawer-content">
+    const html=`<div id="scenepulse-settings" class="extension_settings"><div class="inline-drawer"><div class="inline-drawer-toggle inline-drawer-header"><div class="sp-drawer-header-content"><span class="sp-drawer-icon-wrap">${MASCOT_SVG}</span><div class="sp-drawer-title-block"><span class="sp-drawer-title">Scene<span style="color:var(--sp-accent)">Pulse</span></span><span class="sp-drawer-version">v4.9.60 — Scene Intelligence</span></div><span class="sp-drawer-badge sp-on" id="sp-badge"><span class="sp-drawer-badge-dot"></span>Active</span></div><div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div></div><div class="inline-drawer-content">
 <div class="sp-sh">General</div><label class="sp-ck"><input type="checkbox" id="sp-enabled"> Enable ScenePulse</label><label class="sp-ck"><input type="checkbox" id="sp-auto-gen"> Auto-generate on AI messages</label><label class="sp-ck"><input type="checkbox" id="sp-show-thoughts"> Show thought bubbles</label><label class="sp-ck"><input type="checkbox" id="sp-show-weather"> Weather overlay effects</label><label class="sp-ck"><input type="checkbox" id="sp-show-timetint"> Time-of-day ambience</label><label class="sp-ck"><input type="checkbox" id="sp-show-devbtns"> Show developer tools</label><div id="sp-separate-settings"><div class="sp-fi"><label>Context msgs</label><input type="number" id="sp-ctx" min="1" max="30"></div><div class="sp-hint sp-ctx-hint">How many recent messages to include when generating tracker updates. <em>Separate mode only — Together mode uses ST's full context automatically.</em><br><span class="sp-ctx-range"><strong>3–4</strong> · Fastest. Good for simple 1-on-1 scenes (~5K token prompt)</span><br><span class="sp-ctx-range"><strong>5–8</strong> · Balanced. Recommended for most scenes (~8–12K tokens)</span><br><span class="sp-ctx-range"><strong>8–15</strong> · Better continuity for complex multi-character scenes (~12–20K tokens)</span><br><span class="sp-ctx-range"><strong>15+</strong> · Maximum context but significantly slower and more expensive</span><br><span class="sp-ctx-note">⚠ This is the biggest factor in Separate mode speed. At 8 msgs your tracker prompt is ~10K tokens — doubling roughly doubles generation time. Lower values (3–4) can cut tracker time by 40–60%.</span></div><div class="sp-fi"><label>Max retries</label><input type="number" id="sp-retries" min="0" max="5"></div><div class="sp-hint sp-ctx-hint"><em>Separate mode only.</em> How many times to retry if the tracker API call returns invalid JSON.</div></div>
 <div class="sp-sh">Injection Method</div><div class="sp-fs"><label>Mode</label><select id="sp-injection-method"><option value="inline">Together (AI appends tracker to its response)</option><option value="separate">Separate (dedicated API call after AI response)</option></select></div>
 <div id="sp-method-inline"><div class="sp-hint">The AI writes its normal response, then appends tracker JSON at the end. ScenePulse automatically extracts and hides the JSON. <strong>Recommended for most setups.</strong></div><div class="sp-hint sp-pros-cons"><span class="sp-pro">✓ Single API call — typically ~100–120s total</span><br><span class="sp-pro">✓ No profile switching — eliminates message deletion risk</span><br><span class="sp-pro">✓ AI has full narrative context for accurate tracking</span><br><span class="sp-pro">✓ 2–3× faster than Separate mode in practice</span><br><span class="sp-con">✗ Uses tokens from the main response budget (~1,700 tokens for tracker)</span><br><span class="sp-con">✗ May slightly reduce narrative length on token-limited models</span></div>
@@ -5084,7 +5107,7 @@ eventSource.on(event_types.APP_READY,()=>{try{
     if(!_s.setupDismissed){
         setTimeout(()=>showSetupGuide(),2000);
     }
-    log('v4.9.59 ready');
+    log('v4.9.60 ready');
     // One-time migration: reset stale sub-field toggles from old Disable All
     if(_s.fieldToggles){
         const _ft=_s.fieldToggles;const _p=_s.panels||DEFAULTS.panels;
@@ -5213,4 +5236,4 @@ if(event_types.MESSAGE_UPDATED){
     eventSource.on(event_types.MESSAGE_UPDATED,()=>{setTimeout(renderExisting,300)});
 }
 // ST generation started — handled internally via generateTracker's generating=true flag
-log('v4.9.59 init');
+log('v4.9.60 init');
