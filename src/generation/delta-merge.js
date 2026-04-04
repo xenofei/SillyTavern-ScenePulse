@@ -36,6 +36,11 @@ export function mergeDelta(prev, delta) {
         ) : (v && typeof v === 'object' && !Array.isArray(v)) ? { ...v } : v;
     }
 
+    // 1b. Strip resolved quests from carried-forward data — they had their grace period
+    for (const qk of ['mainQuests', 'sideQuests', 'activeTasks']) {
+        if (Array.isArray(merged[qk])) merged[qk] = merged[qk].filter(q => q.urgency !== 'resolved');
+    }
+
     // 2. Apply delta overrides
     const deltaKeys = [];
     for (const [k, v] of Object.entries(delta)) {
