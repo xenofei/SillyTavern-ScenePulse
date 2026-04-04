@@ -11,10 +11,26 @@ export function cleanJson(raw){
     const fb=c.indexOf('{'),lb=c.lastIndexOf('}');
     if(fb===-1||lb===-1){err('cleanJson: no JSON object found. First 200:',c.substring(0,200));throw new Error('No JSON object in response')}
     c=c.substring(fb,lb+1);
-    try{return JSON.parse(c)}catch(e){
-        const m=e.message.match(/position (\d+)/);const pos=m?Number(m[1]):0;
-        err('cleanJson: parse error at pos',pos,'context: \u2026'+c.substring(Math.max(0,pos-40),pos+40)+'\u2026');
-        throw e;
+    try{return JSON.parse(c)}catch(e1){
+        // Attempt JSON repair for common LLM errors
+        log('cleanJson: first parse failed, attempting repair...');
+        let repaired=c
+            .replace(/,\s*([}\]])/g,'$1')           // trailing commas
+            .replace(/([{,]\s*)(\w+)\s*:/g,'$1"$2":') // unquoted keys
+            .replace(/:\s*'([^']*)'/g,':"$1"')       // single-quoted values
+            .replace(/\t/g,' ')                       // tabs
+            .replace(/[\x00-\x1f]/g,m=>m==='\n'||m==='\r'?m:'') // control chars
+            .replace(/,\s*,/g,',')                   // double commas
+            .replace(/"\s*\n\s*"/g,'","')             // broken string across lines
+            .replace(/\\'/g,"'");                     // escaped single quotes
+        // Fix unescaped quotes inside string values (most common LLM JSON error)
+        repaired=repaired.replace(/"([^"]*?)(?<!\\)"(?=[^:,}\]\s])/g,(m,p1)=>'"'+p1.replace(/"/g,'\\"')+'"');
+        try{const result=JSON.parse(repaired);log('cleanJson: repair succeeded');return result}catch(e2){
+            const pm=e1.message.match(/position (\d+)/);const pos=pm?Number(pm[1]):0;
+            err('cleanJson: parse error at pos',pos,'context: \u2026'+c.substring(Math.max(0,pos-40),pos+40)+'\u2026');
+            err('cleanJson: repair also failed:',e2.message);
+            throw e1;
+        }
     }
 }
 
