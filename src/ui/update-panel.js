@@ -316,7 +316,7 @@ export function updatePanel(d,_force=false){
     const _prevQSnap=getPrevSnapshot(currentSnapshotMesIdx);
     const _prevQMaps={};
     for(const _qk of['mainQuests','sideQuests','activeTasks']){const _m={};if(_prevQSnap&&Array.isArray(_prevQSnap[_qk]))for(const _q of _prevQSnap[_qk])_m[(_q.name||'').toLowerCase().trim()]=_q;_prevQMaps[_qk]=_m}
-    function _classifyQuest(q,tierKey){if(!_prevQSnap)return'stale';const pm=_prevQMaps[tierKey];if(!pm||!Object.keys(pm).length)return'new';const prev=pm[(q.name||'').toLowerCase().trim()];if(!prev)return'new';if((q.detail||'').trim()!==(prev.detail||'').trim())return'updated';return'stale'}
+    function _classifyQuest(q,tierKey){if(!_prevQSnap)return'new';const pm=_prevQMaps[tierKey];if(!pm||!Object.keys(pm).length)return'new';const prev=pm[(q.name||'').toLowerCase().trim()];if(!prev)return'new';if((q.name||'').trim()!==(prev.name||'').trim()||(q.detail||'').trim()!==(prev.detail||'').trim()||(q.urgency||'')!==(prev.urgency||''))return'updated';return'stale'}
     // Pre-compute status counts per tier
     const _tierStatusCounts={};let _totalQNew=0,_totalQUpdated=0;
     for(const _tk of['mainQuests','sideQuests','activeTasks']){let _nc=0,_uc=0;if(Array.isArray(d[_tk]))for(const _q of d[_tk]){const _s=_classifyQuest(_q,_tk);if(_s==='new')_nc++;else if(_s==='updated')_uc++}_tierStatusCounts[_tk]={n:_nc,u:_uc};_totalQNew+=_nc;_totalQUpdated+=_uc}
