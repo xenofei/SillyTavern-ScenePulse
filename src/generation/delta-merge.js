@@ -64,8 +64,10 @@ export function mergeDelta(prev, delta) {
 
 /**
  * Merge two arrays of objects by a key field (e.g., 'name').
- * Delta entities overwrite matching previous entities entirely.
+ * Delta entities are MERGED with matching previous entities (field-level),
+ * preserving previous fields the LLM omitted.
  * Previous entities not in delta are preserved unchanged.
+ * New entities in delta (not in previous) are added.
  */
 function mergeEntityArray(prevArr, deltaArr, keyField) {
     const result = prevArr.map(item => ({ ...item }));
@@ -81,9 +83,21 @@ function mergeEntityArray(prevArr, deltaArr, keyField) {
 
         const existingIdx = prevMap.get(key);
         if (existingIdx !== undefined) {
-            result[existingIdx] = deltaItem;
+            // Field-level merge: delta fields overwrite, previous fields preserved
+            const prev = result[existingIdx];
+            const merged = { ...prev };
+            for (const [fk, fv] of Object.entries(deltaItem)) {
+                // Only overwrite if delta has a non-empty value
+                if (fv !== undefined && fv !== null && fv !== '') {
+                    merged[fk] = fv;
+                }
+            }
+            result[existingIdx] = merged;
+            log('Entity merge:', key, '— delta fields:', Object.keys(deltaItem).length,
+                'prev fields:', Object.keys(prev).length, 'merged:', Object.keys(merged).length);
         } else {
             result.push(deltaItem);
+            log('Entity merge: new entity added:', key);
         }
     }
 
