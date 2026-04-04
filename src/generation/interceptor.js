@@ -6,7 +6,7 @@ import { getSettings, getActiveSchema, getActivePrompt, getLatestSnapshot } from
 import { anyPanelsActive } from '../settings.js';
 import {
     generating, inlineGenStartMs, inlineExtractionDone, pendingInlineIdx,
-    setInlineGenStartMs, setInlineExtractionDone, setPendingInlineIdx
+    setGenerating, setInlineGenStartMs, setInlineExtractionDone, setPendingInlineIdx
 } from '../state.js';
 import { spSetGenerating } from '../ui/mobile.js';
 import { startStreamingHider } from './streaming.js';
@@ -89,7 +89,15 @@ This is NOT optional. Every single response MUST end with this block. The marker
 export const scenePulseInterceptor=async function(chat,cs,abort,type){
     const s=getSettings();
     if(!s.enabled||type==='quiet')return;
-    if(generating){log('Interceptor: skipped \u2014 manual/partial generation in progress');return}
+    if(generating){
+        // Safety: if generating has been stuck for >60s, it's stale — reset it
+        if(inlineGenStartMs>0&&(Date.now()-inlineGenStartMs)>60000){
+            log('Interceptor: generating flag stuck >60s — force resetting');
+            setGenerating(false);setInlineExtractionDone(false);setPendingInlineIdx(-1);
+        } else {
+            log('Interceptor: skipped \u2014 manual/partial generation in progress');return;
+        }
+    }
     if(!anyPanelsActive()){log('Interceptor: skipped \u2014 all panels disabled, no custom panels');return}
 
     if(s.injectionMethod==='inline'){

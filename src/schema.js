@@ -163,7 +163,7 @@ You are a precise scene analysis engine. Read the story context and output a sin
         if(ft.char_proximity!==false)charFields.push('- proximity: Distance and position relative to others.');
         if(ft.char_physical!==false)charFields.push('- physicalState: Current physical condition.');
         if(ft.char_inventory!==false)charFields.push('- inventory: ONLY objects (phone, keys, weapons, bags) \u2014 NOT clothing');
-        if(ft.char_fertility!==false)charFields.push('- Fertility: fertStatus=active only if biologically relevant, otherwise N/A all fertility fields');
+        if(ft.char_fertility!==false){charFields.push('- fertStatus: "active" if biologically relevant, "N/A" otherwise');charFields.push('- fertReason: Why fertility is active or N/A');charFields.push('- fertCyclePhase: menstrual, follicular, ovulation, or luteal');charFields.push('- fertCycleDay: Day number in cycle (integer, 0 if N/A)');charFields.push('- fertWindow: infertile, low, moderate, high, peak, or N/A');charFields.push('- fertPregnancy: not pregnant, possibly conceived, confirmed pregnant, unknown, or N/A');charFields.push('- fertPregWeek: Pregnancy week (integer, 0 if N/A)');charFields.push('- fertNotes: Additional fertility notes')}
         prompt+='\n### Characters (all EXCEPT {{user}})\n'+charFields.join('\n')+'\n';
     }
     // Quests
