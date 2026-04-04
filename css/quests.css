@@ -28,3 +28,22 @@
 .sp-urgency-low { background: rgba(100,100,100,0.12); color: var(--sp-text-dim); }
 .sp-plot-name { font-weight: 600; color: var(--sp-text-bright); font-size: 12px; }
 .sp-plot-notes { color: var(--sp-text-dim); font-size: 10px; }
+/* Quest status badges (NEW / UPDATED) */
+.sp-quest-status {
+    font-size: 7px; font-weight: 700; padding: 1px 5px; border-radius: 4px;
+    text-transform: uppercase; letter-spacing: 0.06em; flex-shrink: 0; line-height: 1.4;
+    animation: sp-quest-badge-pop 0.4s ease-out;
+}
+.sp-quest-status-new {
+    background: rgba(77,184,164,0.18); color: #4db8a4;
+    border: 1px solid rgba(77,184,164,0.25);
+}
+.sp-quest-status-updated {
+    background: rgba(212,145,94,0.15); color: #d4915e;
+    border: 1px solid rgba(212,145,94,0.22);
+}
+@keyframes sp-quest-badge-pop {
+    0% { opacity: 0; transform: scale(0.5); }
+    50% { transform: scale(1.15); }
+    100% { opacity: 1; transform: scale(1); }
+}

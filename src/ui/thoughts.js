@@ -106,7 +106,24 @@ export function createThoughtPanel(){
         dragging=true;dx=cx-tp.offsetLeft;dy=cy-tp.offsetTop;
         e.preventDefault();
     }
-    function dragMove(cx,cy){if(!dragging)return;tp.style.left=Math.max(0,cx-dx)+'px';tp.style.top=Math.max(0,cy-dy)+'px'}
+    function dragMove(cx,cy){
+        if(!dragging)return;
+        let newLeft=Math.max(0,cx-dx);
+        let newTop=Math.max(0,cy-dy);
+        // Prevent overlapping chat area
+        const chat=document.getElementById('chat');
+        const chatParent=chat?.parentElement;
+        if(chatParent){
+            const chatRect=chatParent.getBoundingClientRect();
+            const tpW=tp.offsetWidth;
+            // If dragging into the chat column, cap left so panel stays left of chat
+            if(newLeft+tpW>chatRect.left-4)newLeft=Math.max(0,chatRect.left-tpW-4);
+        }
+        // Keep within viewport
+        newLeft=Math.min(newLeft,window.innerWidth-tp.offsetWidth);
+        newTop=Math.min(newTop,window.innerHeight-40);
+        tp.style.left=newLeft+'px';tp.style.top=newTop+'px';
+    }
     function dragEnd(){
         if(!dragging)return;dragging=false;
         const st=getSettings();st.thoughtPos={x:tp.offsetLeft,y:tp.offsetTop};
@@ -132,6 +149,29 @@ export function createThoughtPanel(){
     const _resTouchMove=(e)=>{if(!resizing)return;const t=e.touches[0];resizeMove(t.clientX,t.clientY)};
     const _resTouchEnd=()=>{resizeEnd();document.removeEventListener('touchmove',_resTouchMove);document.removeEventListener('touchend',_resTouchEnd)};
     resizeHandle.addEventListener('touchstart',(e)=>{const t=e.touches[0];resizeStart(t.clientX,t.clientY,e);document.addEventListener('touchmove',_resTouchMove,{passive:true});document.addEventListener('touchend',_resTouchEnd)},{passive:false});
+    // Dynamic resize: adjust thought panel when window resizes so it doesn't overlap chat
+    let _tpResizeTimer=null;
+    window.addEventListener('resize',()=>{
+        if(_tpResizeTimer)return;
+        _tpResizeTimer=setTimeout(()=>{
+            _tpResizeTimer=null;
+            if(!tp.classList.contains('sp-tp-visible'))return;
+            const st=getSettings();
+            if(st.thoughtSnapLeft!==false){snapThoughtToLeft();return}
+            // Free-floating: constrain to viewport and away from chat
+            const chat=document.getElementById('chat');
+            const chatParent=chat?.parentElement;
+            if(chatParent){
+                const chatRect=chatParent.getBoundingClientRect();
+                const tpW=tp.offsetWidth;
+                if(tp.offsetLeft+tpW>chatRect.left-4)tp.style.left=Math.max(0,chatRect.left-tpW-4)+'px';
+            }
+            if(tp.offsetLeft+tp.offsetWidth>window.innerWidth)tp.style.left=Math.max(0,window.innerWidth-tp.offsetWidth)+'px';
+            if(tp.offsetTop+40>window.innerHeight)tp.style.top=Math.max(0,window.innerHeight-40)+'px';
+            const maxH=window.innerHeight*0.85;
+            if(tp.offsetHeight>maxH)tp.style.height=maxH+'px';
+        },100);
+    });
     log('Thought panel created');
 }
 
