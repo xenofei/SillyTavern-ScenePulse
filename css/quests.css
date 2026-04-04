@@ -56,6 +56,8 @@
     opacity: 0; transition: opacity 0.15s;
 }
 .sp-quest-header:hover .sp-quest-actions { opacity: 1; }
+.sp-quest-resolved .sp-quest-actions { opacity: 0.7; }
+.sp-quest-resolved .sp-quest-header:hover .sp-quest-actions { opacity: 1; }
 .sp-quest-action {
     width: 20px; height: 20px; border-radius: 4px; border: none; cursor: pointer;
     display: flex; align-items: center; justify-content: center; padding: 0;
@@ -63,6 +65,8 @@
 }
 .sp-quest-complete:hover { background: rgba(91,196,122,0.15); color: #5bc47a; }
 .sp-quest-remove:hover { background: rgba(196,91,91,0.15); color: #c45b5b; }
+.sp-quest-undo { color: var(--sp-accent); }
+.sp-quest-undo:hover { background: rgba(77,184,164,0.15); color: #4db8a4; }
 /* Add quest button */
 .sp-quest-add {
     font-size: 9px; color: var(--sp-text-dim); padding: 4px 6px; cursor: pointer;
