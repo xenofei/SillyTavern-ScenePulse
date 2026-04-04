@@ -150,22 +150,23 @@ body:has(#sp-panel.sp-mode-mobile) .sp-loading-glass-fixed {
 .sp-gen-inspect:hover { background: rgba(100,160,220,0.18); color: #8cc0f0; }
 
 /* ═══ DIFF VIEWER OVERLAY ═══ */
+/* Appended to <html> (not body) to escape ST's body { overflow: hidden } at <=1000px */
 .sp-diff-overlay {
-    position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 10000;
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; height: 100dvh;
+    z-index: 10000;
     background: rgba(0,0,0,0.75); backdrop-filter: blur(4px);
-    overflow-y: auto; -webkit-overflow-scrolling: touch;
-    padding: 20px 10px;
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
     opacity: 0; transition: opacity 0.2s;
+    box-sizing: border-box;
 }
 .sp-diff-overlay.sp-diff-visible { opacity: 1; }
 .sp-diff-container {
     background: var(--sp-bg-solid, #161820); border: 1px solid var(--sp-border, rgba(255,255,255,0.08));
     border-radius: 10px; width: min(90vw, 800px);
-    max-height: calc(100vh - 40px);
+    max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px);
     display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
     overflow: hidden;
-    margin: 0 auto;
-    position: relative;
 }
 .sp-diff-header {
     display: flex; align-items: center; gap: 8px; padding: 10px 14px;

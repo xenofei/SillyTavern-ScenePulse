@@ -47,7 +47,9 @@ export function openDiffViewer(mesIdx) {
             <div class="sp-diff-body" id="sp-diff-body"></div>
         </div>
     `;
-    document.body.appendChild(overlay);
+    // Append to documentElement (not body) to escape SillyTavern's
+    // body { position: fixed; overflow: hidden } at <=1000px viewports
+    document.documentElement.appendChild(overlay);
 
     // Tab state
     let activeTab = diffResult ? 'diff' : 'curr';
@@ -102,26 +104,13 @@ export function openDiffViewer(mesIdx) {
 
     // Initial render
     renderTab(activeTab);
-    // Vertically center: set top padding so container appears centered when it fits
-    const _centerOverlay = () => {
-        const container = overlay.querySelector('.sp-diff-container');
-        if (!container) return;
-        const gap = overlay.clientHeight - container.offsetHeight;
-        overlay.style.paddingTop = gap > 40 ? Math.floor(gap / 2) + 'px' : '20px';
-    };
-    requestAnimationFrame(() => {
-        overlay.classList.add('sp-diff-visible');
-        requestAnimationFrame(_centerOverlay);
-    });
-    window.addEventListener('resize', _centerOverlay);
-    overlay._cleanupResize = () => window.removeEventListener('resize', _centerOverlay);
+    requestAnimationFrame(() => overlay.classList.add('sp-diff-visible'));
     log('DiffViewer: opened for mesIdx=', mesIdx, 'hasPrev=', !!previous);
 }
 
 export function closeDiffViewer() {
     const existing = document.getElementById('sp-diff-overlay');
     if (existing) {
-        if (existing._cleanupResize) existing._cleanupResize();
         existing.classList.remove('sp-diff-visible');
         setTimeout(() => existing.remove(), 200);
     }
