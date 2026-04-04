@@ -7,7 +7,7 @@ import {
     currentSnapshotMesIdx, lastGenSource, lastRawResponse,
     _savedSamplerValues,
     setGenerating, setCancelRequested, setGenNonce, setGenMeta,
-    setCurrentSnapshotMesIdx, setLastGenSource, setLastRawResponse,
+    setCurrentSnapshotMesIdx, setLastGenSource, setLastRawResponse, setLastDeltaPayload,
     set_savedSamplerValues
 } from '../state.js';
 import {
@@ -289,8 +289,10 @@ export async function generateTracker(mesIdx,partKey,opts){
                 // Delta merge: combine delta response with previous snapshot
                 if(settings.deltaMode && lastSnap){
                     log('Delta mode: merging',Object.keys(parsed).length,'delta keys with previous');
+                    setLastDeltaPayload(parsed);
                     return mergeDelta(lastSnap, parsed);
                 }
+                setLastDeltaPayload(null);
                 log('Parsed JSON keys:',Object.keys(parsed).join(', '));
                 for(const[pk,pv]of Object.entries(parsed)){
                     if(pv&&typeof pv==='object'&&!Array.isArray(pv)){log('  nested object:',pk,'\u2192 keys:',Object.keys(pv).join(', '))}

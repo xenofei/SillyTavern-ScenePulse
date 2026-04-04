@@ -26,6 +26,9 @@ export function setLastGenSource(v) { lastGenSource = v; }
 export let lastRawResponse = '';
 export function setLastRawResponse(v) { lastRawResponse = v; }
 
+export let lastDeltaPayload = null;
+export function setLastDeltaPayload(v) { lastDeltaPayload = v; }
+
 export let pendingInlineIdx = -1;
 export function setPendingInlineIdx(v) { pendingInlineIdx = v; }
 

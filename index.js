@@ -12,7 +12,7 @@ import {
     inlineGenStartMs, lastGenSource,
     inlineExtractionDone,
     setGenerating, setGenNonce, setCancelRequested,
-    setInlineGenStartMs, setCurrentSnapshotMesIdx, setLastGenSource, setLastRawResponse,
+    setInlineGenStartMs, setCurrentSnapshotMesIdx, setLastGenSource, setLastRawResponse, setLastDeltaPayload,
     setPendingInlineIdx, setInlineExtractionDone,
     setPrevLocation, setPrevTimePeriod
 } from './src/state.js';
@@ -100,8 +100,11 @@ eventSource.on(event_types.GENERATION_ENDED, async () => {
                 // Delta merge for inline mode
                 const prevSnap = getLatestSnapshot();
                 if(s.deltaMode && prevSnap){
+                    setLastDeltaPayload(extracted);
                     extracted = mergeDelta(prevSnap, extracted);
                     log('GENERATION_ENDED: delta merge applied');
+                } else {
+                    setLastDeltaPayload(null);
                 }
                 const norm = normalizeTracker(extracted);
                 setCurrentSnapshotMesIdx(targetIdx);

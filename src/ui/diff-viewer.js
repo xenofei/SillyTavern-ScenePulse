@@ -3,8 +3,8 @@
 
 import { log } from '../logger.js';
 import { esc } from '../utils.js';
-import { getSnapshotFor, getPrevSnapshot } from '../settings.js';
-import { currentSnapshotMesIdx } from '../state.js';
+import { getSnapshotFor, getPrevSnapshot, getSettings } from '../settings.js';
+import { currentSnapshotMesIdx, lastDeltaPayload } from '../state.js';
 
 /**
  * Open the diff viewer overlay for a given snapshot message index.
@@ -20,6 +20,8 @@ export function openDiffViewer(mesIdx) {
 
     const currentJson = formatJson(current);
     const previousJson = previous ? formatJson(previous) : null;
+    const s = getSettings();
+    const deltaJson = (s.deltaMode && lastDeltaPayload) ? formatJson(lastDeltaPayload) : null;
 
     // Build overlay
     const overlay = document.createElement('div');
@@ -33,14 +35,16 @@ export function openDiffViewer(mesIdx) {
         <div class="sp-diff-container">
             <div class="sp-diff-header">
                 <span class="sp-diff-title">Payload Inspector</span>
-                <span class="sp-diff-meta">Message #${mesIdx}${previous ? '' : ' (first snapshot — no previous)'}</span>
+                <span class="sp-diff-meta">Message #${mesIdx}${previous ? '' : ' (first snapshot — no previous)'}${deltaJson ? ' · Delta' : ''}</span>
                 <span class="sp-diff-spacer"></span>
                 ${diffResult ? `<button class="sp-diff-tab sp-diff-tab-active" data-tab="diff">Changes Only</button>
                 <button class="sp-diff-tab" data-tab="full">Full Diff</button>
                 <button class="sp-diff-tab" data-tab="side">Side by Side</button>
+                ${deltaJson ? '<button class="sp-diff-tab" data-tab="delta">Delta Payload</button>' : ''}
                 <button class="sp-diff-tab" data-tab="prev">Previous</button>
                 <button class="sp-diff-tab" data-tab="curr">Current</button>` :
-                `<button class="sp-diff-tab sp-diff-tab-active" data-tab="curr">Full Payload</button>`}
+                `<button class="sp-diff-tab sp-diff-tab-active" data-tab="curr">Full Payload</button>
+                ${deltaJson ? '<button class="sp-diff-tab" data-tab="delta">Delta Payload</button>' : ''}`}
                 <button class="sp-diff-copy" title="Copy to clipboard">Copy</button>
                 <button class="sp-diff-close" title="Close">&times;</button>
             </div>
@@ -76,6 +80,14 @@ export function openDiffViewer(mesIdx) {
             case 'curr':
                 body.innerHTML = `<pre class="sp-diff-pre">${esc(currentJson)}</pre>`;
                 break;
+            case 'delta':
+                if (deltaJson) {
+                    const deltaKeys = Object.keys(lastDeltaPayload || {}).filter(k => k !== '_spMeta').length;
+                    body.innerHTML = `<div class="sp-diff-stats"><span class="sp-diff-stat-add">${deltaKeys} fields returned by LLM</span><span class="sp-diff-stat-same">(remaining fields carried forward from previous snapshot)</span></div><pre class="sp-diff-pre">${esc(deltaJson)}</pre>`;
+                } else {
+                    body.innerHTML = '<div class="sp-diff-empty">No delta payload — delta mode was not active for this generation</div>';
+                }
+                break;
         }
     }
 
@@ -92,6 +104,8 @@ export function openDiffViewer(mesIdx) {
             text = diffResult.lines.map(l => `${l.type === 'add' ? '+' : l.type === 'del' ? '-' : ' '} ${l.text}`).join('\n');
         } else if ((activeTab === 'full' || activeTab === 'side') && previousJson) {
             text = `=== PREVIOUS ===\n${previousJson}\n\n=== CURRENT ===\n${currentJson}`;
+        } else if (activeTab === 'delta' && deltaJson) {
+            text = deltaJson;
         } else if (activeTab === 'prev') {
             text = previousJson || '(none)';
         } else {
