@@ -182,6 +182,8 @@ export async function generateTracker(mesIdx,partKey,opts){
         const recent=chat.slice(Math.max(0,chat.length-settings.contextMessages));
         const ctxText=recent.map(m=>`${m.is_user?'{{user}}':(m.name||'{{char}}')}: ${m.mes}`).join('\n\n');
         const lastSnap=getLatestSnapshot();
+        // Filter resolved quests from snapshot before embedding in prompt
+        function _cleanSnapForPrompt(s){const c={...s};for(const k of['mainQuests','sideQuests','activeTasks']){if(Array.isArray(c[k]))c[k]=c[k].filter(q=>q.urgency!=='resolved')}delete c._spMeta;return c}
         let snapCtx='';
         if(lastSnap){
             const allSnaps=getTrackerData().snapshots;
@@ -190,11 +192,11 @@ export async function generateTracker(mesIdx,partKey,opts){
             const snapsToEmbed=sorted.slice(0,snapCount).reverse();
             const hasEmptyChars=!lastSnap.characters||!lastSnap.characters.length;
             if(snapCount<=1){
-                snapCtx=`\n\nPREVIOUS STATE (for reference \u2014 update as needed):\n${JSON.stringify(lastSnap,null,2)}`;
+                snapCtx=`\n\nPREVIOUS STATE (for reference \u2014 update as needed):\n${JSON.stringify(_cleanSnapForPrompt(lastSnap),null,2)}`;
             }else{
                 snapCtx='\n\nPREVIOUS STATES (most recent last, for tracking changes over time):';
                 for(const k of snapsToEmbed){
-                    snapCtx+=`\n--- Snapshot from message #${k} ---\n${JSON.stringify(allSnaps[String(k)],null,2)}`;
+                    snapCtx+=`\n--- Snapshot from message #${k} ---\n${JSON.stringify(_cleanSnapForPrompt(allSnaps[String(k)]),null,2)}`;
                 }
             }
             snapCtx+=settings.panels?.quests!==false?`\n\nIMPORTANT: Quest Journal must be from {{user}}'s perspective. If {{char}} is hostile, {{user}}'s quests OPPOSE {{char}}'s goals. If {{char}} is an ally, {{user}}'s quests SUPPORT them \u2014 but framed as {{user}}'s action. NEVER write what {{char}} is doing \u2014 write what {{user}} is doing about it. NEVER drop unresolved quests.`:`\n\nIMPORTANT: Carry forward unchanged details. Only update what changed in the story.`;

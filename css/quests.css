@@ -70,6 +70,25 @@
     transition: opacity 0.15s, color 0.15s; user-select: none;
 }
 .sp-quest-add:hover { opacity: 1; color: var(--sp-accent); }
+/* Add quest dialog */
+.sp-quest-dialog { min-width: 320px; max-width: 420px; }
+.sp-quest-dialog-form { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.sp-quest-dialog-label { font-size: 10px; font-weight: 600; color: var(--sp-text-dim); text-transform: uppercase; letter-spacing: 0.04em; }
+.sp-quest-dialog-input, .sp-quest-dialog-select, .sp-quest-dialog-textarea {
+    background: rgba(255,255,255,0.06); border: 1px solid var(--sp-border, rgba(255,255,255,0.12));
+    border-radius: 5px; padding: 7px 10px; font-size: 12px; color: var(--sp-text-bright, #e8ecf4);
+    font-family: inherit; outline: none; transition: border-color 0.15s;
+}
+.sp-quest-dialog-input:focus, .sp-quest-dialog-select:focus, .sp-quest-dialog-textarea:focus {
+    border-color: var(--sp-accent, #4db8a4);
+}
+.sp-quest-dialog-select { cursor: pointer; appearance: auto; }
+.sp-quest-dialog-textarea { resize: vertical; min-height: 50px; line-height: 1.4; }
+.sp-quest-dialog-ok {
+    background: rgba(77,184,164,0.2) !important; border-color: rgba(77,184,164,0.4) !important;
+    color: var(--sp-accent, #4db8a4) !important;
+}
+.sp-quest-dialog-ok:hover { background: rgba(77,184,164,0.35) !important; }
 @keyframes sp-quest-badge-pop {
     0% { opacity: 0; transform: scale(0.5); }
     50% { transform: scale(1.15); }

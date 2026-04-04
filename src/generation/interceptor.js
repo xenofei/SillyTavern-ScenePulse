@@ -17,7 +17,10 @@ export function buildInlineTrackerPrompt(){
     const s=getSettings();
     const sysPr=getActivePrompt();
     const snap=getLatestSnapshot();
-    const prevState=snap?`\nPREVIOUS STATE (carry forward unchanged details, update only what changed):\n${JSON.stringify(snap,null,2)}\n\nIMPORTANT: Carry forward ALL unresolved quests. NEVER drop quests unless the story resolves them. All quests MUST be from {{user}}'s perspective \u2014 if hostile, oppose their goal; if ally, support them as {{user}}'s action.`:'';
+    // Filter resolved quests from embedded snapshot — don't send completed quests to LLM
+    function _cleanSnap(s){if(!s)return null;const c={...s};for(const k of['mainQuests','sideQuests','activeTasks']){if(Array.isArray(c[k]))c[k]=c[k].filter(q=>q.urgency!=='resolved')}delete c._spMeta;return c}
+    const cleanedSnap=_cleanSnap(snap);
+    const prevState=cleanedSnap?`\nPREVIOUS STATE (carry forward unchanged details, update only what changed):\n${JSON.stringify(cleanedSnap,null,2)}\n\nIMPORTANT: Carry forward ALL unresolved quests. NEVER drop quests unless the story resolves them. All quests MUST be from {{user}}'s perspective \u2014 if hostile, oppose their goal; if ally, support them as {{user}}'s action.`:'';
     // Strip the "JSON OUTPUT ONLY" header from the prompt
     let fieldSpecs=sysPr;
     const headerEnd=sysPr.indexOf('## FIELD SPECIFICATIONS');

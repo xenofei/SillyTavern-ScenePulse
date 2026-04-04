@@ -1,6 +1,6 @@
 // src/ui/update-panel.js — The massive updatePanel function (~960 lines)
 import { log } from '../logger.js';
-import { esc, clamp, str } from '../utils.js';
+import { esc, clamp, str, spConfirm } from '../utils.js';
 import { DEFAULTS } from '../constants.js';
 import { getSettings, saveSettings } from '../settings.js';
 import { getLatestSnapshot, getPrevSnapshot, getTrackerData } from '../settings.js';
@@ -30,6 +30,48 @@ import { openDiffViewer } from './diff-viewer.js';
 
 let _wdmFrameId = null;
 let _wdmObserver = null;
+
+function _showAddQuestDialog(tierName,tierKey,d){
+    const overlay=document.createElement('div');overlay.className='sp-confirm-overlay';
+    overlay.innerHTML=`<div class="sp-confirm-dialog sp-quest-dialog">
+        <div class="sp-confirm-title">Add Quest \u2014 ${esc(tierName)}</div>
+        <div class="sp-quest-dialog-form">
+            <label class="sp-quest-dialog-label">Name</label>
+            <input type="text" class="sp-quest-dialog-input" id="sp-qd-name" placeholder="Quest name" autofocus>
+            <label class="sp-quest-dialog-label">Urgency</label>
+            <select class="sp-quest-dialog-select" id="sp-qd-urgency">
+                <option value="critical">Critical</option>
+                <option value="high">High</option>
+                <option value="moderate" selected>Moderate</option>
+                <option value="low">Low</option>
+            </select>
+            <label class="sp-quest-dialog-label">Details <span style="opacity:0.4">(optional)</span></label>
+            <textarea class="sp-quest-dialog-textarea" id="sp-qd-detail" placeholder="1-2 sentences from your perspective" rows="3"></textarea>
+        </div>
+        <div class="sp-confirm-actions">
+            <button class="sp-confirm-btn sp-confirm-cancel">Cancel</button>
+            <button class="sp-confirm-btn sp-quest-dialog-ok">Add Quest</button>
+        </div>
+    </div>`;
+    const close=()=>{overlay.classList.add('sp-confirm-closing');setTimeout(()=>overlay.remove(),200)};
+    overlay.querySelector('.sp-confirm-cancel').addEventListener('click',close);
+    overlay.addEventListener('click',e=>{if(e.target===overlay)close()});
+    overlay.querySelector('.sp-quest-dialog-ok').addEventListener('click',()=>{
+        const name=(overlay.querySelector('#sp-qd-name').value||'').trim();
+        if(!name){overlay.querySelector('#sp-qd-name').focus();return}
+        const urgency=overlay.querySelector('#sp-qd-urgency').value;
+        const detail=(overlay.querySelector('#sp-qd-detail').value||'').trim();
+        const newQuest={name,urgency,detail};
+        if(!d[tierKey])d[tierKey]=[];d[tierKey].push(newQuest);
+        const snap=getLatestSnapshot();if(snap){if(!snap[tierKey])snap[tierKey]=[];snap[tierKey].push(newQuest);try{SillyTavern.getContext().saveMetadata()}catch(ex){}}
+        close();const norm=normalizeTracker(snap||d);updatePanel(norm);toastr.success('Added: '+name,tierName);
+    });
+    // Enter key in name field submits
+    overlay.querySelector('#sp-qd-name').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();overlay.querySelector('.sp-quest-dialog-ok').click()}});
+    document.body.appendChild(overlay);
+    requestAnimationFrame(()=>overlay.classList.add('sp-confirm-visible'));
+    overlay.querySelector('#sp-qd-name').focus();
+}
 
 export function updatePanel(d,_force=false){
     // Debounce: skip if called within 150ms of last update (unless forced)
@@ -359,18 +401,18 @@ export function updatePanel(d,_force=false){
                 emptyDiv.addEventListener('blur',saveNewQuest);
                 emptyDiv.addEventListener('keydown',(e)=>{if(e.key==='Enter'){e.preventDefault();saveNewQuest()}});
                 tierBody.appendChild(emptyDiv);
-            } else {for(let qi=0;qi<t.i.length;qi++){const p=t.i[qi];const _qs=_classifyQuest(p,t.key);if(_qs==='resolved')continue;const e=document.createElement('div');e.className='sp-plot-entry';if(_qs==='new'||_qs==='updated')e.classList.add('sp-card-open');const nameEl=document.createElement('span');nameEl.className='sp-plot-name';nameEl.textContent=p.name||'';const headerDiv=document.createElement('div');headerDiv.className='sp-quest-header';let _qbadge='';if(_qs==='new')_qbadge='<span class="sp-quest-status sp-quest-status-new">new</span>';else if(_qs==='updated')_qbadge='<span class="sp-quest-status sp-quest-status-updated">updated</span>';headerDiv.innerHTML=`<span class="sp-quest-chevron">\u25B6</span><span class="sp-plot-status sp-urgency-${p.urgency||'moderate'}">${esc(p.urgency||'moderate')}</span>${_qbadge}`;headerDiv.appendChild(nameEl);
-            // Quest action buttons (always visible)
-            const actWrap=document.createElement('span');actWrap.className='sp-quest-actions';
+            } else {for(let qi=0;qi<t.i.length;qi++){const p=t.i[qi];const _qs=_classifyQuest(p,t.key);const _isResolved=p.urgency==='resolved';const e=document.createElement('div');e.className='sp-plot-entry';if(_qs==='new'||_qs==='updated')e.classList.add('sp-card-open');if(_isResolved)e.classList.add('sp-quest-resolved');const nameEl=document.createElement('span');nameEl.className='sp-plot-name';nameEl.textContent=p.name||'';const headerDiv=document.createElement('div');headerDiv.className='sp-quest-header';let _qbadge='';if(_isResolved)_qbadge='<span class="sp-quest-status sp-quest-status-done">done</span>';else if(_qs==='new')_qbadge='<span class="sp-quest-status sp-quest-status-new">new</span>';else if(_qs==='updated')_qbadge='<span class="sp-quest-status sp-quest-status-updated">updated</span>';headerDiv.innerHTML=`<span class="sp-quest-chevron">\u25B6</span><span class="sp-plot-status sp-urgency-${p.urgency||'moderate'}">${esc(p.urgency||'moderate')}</span>${_qbadge}`;headerDiv.appendChild(nameEl);
+            // Quest action buttons
+            if(!_isResolved){const actWrap=document.createElement('span');actWrap.className='sp-quest-actions';
             const completeBtn=document.createElement('button');completeBtn.className='sp-quest-action sp-quest-complete';completeBtn.title='Mark as completed';completeBtn.innerHTML='<svg viewBox="0 0 14 14" width="12" height="12" fill="none"><path d="M3 7.5l3 3 5.5-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
             completeBtn.addEventListener('click',(ev)=>{ev.stopPropagation();p.urgency='resolved';const snap=getLatestSnapshot();if(snap&&snap[t.key]?.[qi])snap[t.key][qi].urgency='resolved';try{SillyTavern.getContext().saveMetadata()}catch(ex){}const norm=normalizeTracker(snap||d);updatePanel(norm);toastr.success('Completed: '+p.name,t.t)});
             const removeBtn=document.createElement('button');removeBtn.className='sp-quest-action sp-quest-remove';removeBtn.title='Remove quest';removeBtn.innerHTML='<svg viewBox="0 0 14 14" width="12" height="12" fill="none"><line x1="3" y1="3" x2="11" y2="11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><line x1="11" y1="3" x2="3" y2="11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
-            removeBtn.addEventListener('click',(ev)=>{ev.stopPropagation();const qName=p.name;if(!d[t.key])return;d[t.key].splice(qi,1);const snap=getLatestSnapshot();if(snap&&snap[t.key]){snap[t.key].splice(qi,1);try{SillyTavern.getContext().saveMetadata()}catch(ex){}}const norm=normalizeTracker(snap||d);updatePanel(norm);toastr.info('Removed: '+qName,t.t)});
-            actWrap.appendChild(completeBtn);actWrap.appendChild(removeBtn);headerDiv.appendChild(actWrap);
+            removeBtn.addEventListener('click',async(ev)=>{ev.stopPropagation();const qName=p.name;const ok=await spConfirm('Remove Quest','Remove "'+qName+'" from '+t.t+'? This cannot be undone.');if(!ok)return;if(!d[t.key])return;d[t.key].splice(qi,1);const snap=getLatestSnapshot();if(snap&&snap[t.key]){snap[t.key].splice(qi,1);try{SillyTavern.getContext().saveMetadata()}catch(ex){}}const norm=normalizeTracker(snap||d);updatePanel(norm);toastr.info('Removed: '+qName,t.t)});
+            actWrap.appendChild(completeBtn);actWrap.appendChild(removeBtn);headerDiv.appendChild(actWrap)}
             headerDiv.addEventListener('click',(ev)=>{if(ev.target.closest('.sp-quest-actions'))return;e.classList.toggle('sp-card-open')});e.appendChild(headerDiv);const detailEl=document.createElement('div');detailEl.className='sp-quest-detail';detailEl.textContent=p.detail||'\u2014';if(!p.detail){detailEl.classList.add('sp-empty-field');detailEl.dataset.placeholder='Quest details'}mkEditable(detailEl,()=>p.detail||'',v=>{p.detail=v;const snap=getLatestSnapshot();if(snap&&snap[t.key]?.[qi])snap[t.key][qi].detail=v});e.appendChild(detailEl);mkEditable(nameEl,()=>p.name||'',v=>{p.name=v;const snap=getLatestSnapshot();if(snap&&snap[t.key]?.[qi])snap[t.key][qi].name=v});tierBody.appendChild(e)}}
-            // Add quest button (always visible at bottom of tier)
+            // Add quest button
             const addBtn=document.createElement('div');addBtn.className='sp-quest-add';addBtn.innerHTML='<svg viewBox="0 0 14 14" width="11" height="11" fill="none"><line x1="7" y1="2" x2="7" y2="12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><line x1="2" y1="7" x2="12" y2="7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg> Add quest';
-            addBtn.addEventListener('click',()=>{const name=prompt('Quest name:');if(!name?.trim())return;const detail=prompt('Details (optional):')||'';const newQuest={name:name.trim(),urgency:'moderate',detail:detail.trim()};if(!d[t.key])d[t.key]=[];d[t.key].push(newQuest);const snap=getLatestSnapshot();if(snap){if(!snap[t.key])snap[t.key]=[];snap[t.key].push(newQuest);try{SillyTavern.getContext().saveMetadata()}catch(ex){}}const norm=normalizeTracker(snap||d);updatePanel(norm);toastr.success('Added: '+name.trim(),t.t)});
+            addBtn.addEventListener('click',()=>{_showAddQuestDialog(t.t,t.key,d)});
             tierBody.appendChild(addBtn);
             b.appendChild(tierBody);f.appendChild(b)}
         return f;
