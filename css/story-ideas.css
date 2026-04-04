@@ -1,0 +1,59 @@
+/* ═══ STORY IDEAS ═══ */
+.sp-idea-card {
+    background: linear-gradient(135deg, rgba(255,255,255,0.02), transparent);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-left: 3px solid var(--idea-color, var(--sp-accent));
+    border-radius: 0 var(--sp-radius) var(--sp-radius) 0;
+    padding: 0; margin-bottom: 5px;
+    transition: border-color 0.2s, background 0.2s;
+}
+.sp-idea-card:hover { background: rgba(255,255,255,0.03); border-left-color: var(--idea-color); }
+.sp-idea-card:last-child { margin-bottom: 0; }
+.sp-idea-header { display: flex; align-items: center; gap: 5px; padding: 6px 10px; cursor: pointer; user-select: none; }
+.sp-idea-header:hover { background: rgba(255,255,255,0.02); }
+.sp-idea-chevron { font-size: 8px; color: var(--sp-text-dim); transition: transform 0.2s ease; flex-shrink: 0; }
+.sp-idea-card.sp-card-open .sp-idea-chevron { transform: rotate(90deg); }
+.sp-idea-icon { width: 14px; height: 14px; flex-shrink: 0; color: var(--idea-color); }
+.sp-idea-icon svg { width: 14px; height: 14px; }
+.sp-idea-type { font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--idea-color); opacity: 0.85; }
+.sp-idea-name { font-size: 11px; font-weight: 700; color: var(--sp-text-bright); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.sp-idea-body { display: none; padding: 0 10px 7px 10px; }
+.sp-idea-card.sp-card-open .sp-idea-body { display: block; }
+.sp-idea-hook { font-size: 10px; color: var(--sp-text); line-height: 1.45; opacity: 0.85; }
+.sp-idea-spacer { flex: 1; }
+.sp-idea-inject, .sp-idea-paste {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px; border-radius: 50%;
+    color: var(--idea-color); opacity: 0;
+    cursor: pointer; transition: all 0.15s ease;
+    background: transparent; border: 1px solid transparent;
+    flex-shrink: 0;
+}
+.sp-idea-card:hover .sp-idea-inject, .sp-idea-card:hover .sp-idea-paste { opacity: 0.5; }
+.sp-idea-inject:hover, .sp-idea-paste:hover { opacity: 1 !important; background: rgba(255,255,255,0.06); border-color: var(--idea-color); }
+
+/* Editable fields — only interactive when edit mode is on */
+.sp-editing {
+    outline: 1px solid var(--sp-accent);
+    background: rgba(77,184,164,0.08) !important;
+    border-radius: 3px; padding: 2px 4px !important;
+    cursor: text !important;
+}
+/* Edit mode: highlight all editable fields */
+#sp-panel.sp-edit-mode .sp-editable {
+    cursor: pointer;
+    border-radius: 3px;
+    transition: background 0.15s ease;
+}
+#sp-panel.sp-edit-mode .sp-editable:hover {
+    background: rgba(77,184,164,0.05);
+    outline: 1px dashed rgba(77,184,164,0.3);
+}
+/* Empty fields: hidden normally, shown in edit mode */
+.sp-empty-field { display: none; }
+#sp-panel.sp-edit-mode .sp-empty-field {
+    display: block; opacity: 0.4; font-style: italic;
+}
+#sp-panel.sp-edit-mode .sp-char-grid .sp-empty-field { display: block; }
+/* Empty quest tiers: always visible, editable in edit mode */
+/* Remove old always-on hover */

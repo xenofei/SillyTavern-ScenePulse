@@ -1,0 +1,72 @@
+/* ═══ GUIDED TOUR ═══ */
+.sp-tour-spotlight {
+    position: fixed; z-index: 10001; pointer-events: none;
+    border: 2px solid rgba(77,184,164,0.7); border-radius: 8px;
+    box-shadow: 0 0 0 9999px rgba(0,0,0,0.7), 0 0 30px rgba(77,184,164,0.3);
+    transition: all 0.4s cubic-bezier(0.4,0,0.2,1);
+    background: transparent;
+}
+.sp-tour-card {
+    position: fixed; z-index: 10002; pointer-events: auto;
+    width: 340px; max-width: 90vw;
+    background: linear-gradient(180deg, #22242c 0%, #1a1c22 100%);
+    border: 1px solid rgba(77,184,164,0.25); border-radius: 12px;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.5), 0 0 24px rgba(77,184,164,0.08);
+    padding: 20px; transition: all 0.3s ease; animation: sp-tour-pop 0.3s ease-out;
+}
+@keyframes sp-tour-pop { 0% { opacity: 0; transform: translateY(8px); } 100% { opacity: 1; transform: translateY(0); } }
+.sp-tour-step-label {
+    font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--sp-accent); opacity: 0.7; margin-bottom: 6px;
+}
+.sp-tour-title {
+    font-size: 15px; font-weight: 700; color: var(--sp-text-bright); margin-bottom: 8px;
+}
+.sp-tour-desc {
+    font-size: 11.5px; color: var(--sp-text); line-height: 1.6; margin-bottom: 14px;
+}
+.sp-tour-desc code {
+    background: rgba(77,184,164,0.1); color: var(--sp-accent);
+    padding: 1px 5px; border-radius: 4px; font-family: var(--sp-font-mono); font-size: 10.5px;
+}
+.sp-tour-desc strong { color: var(--sp-text-bright); }
+.sp-tour-nav { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.sp-tour-btn {
+    padding: 6px 14px; font-size: 11px; font-weight: 600;
+    border: 1px solid rgba(255,255,255,0.1); border-radius: 8px;
+    background: rgba(255,255,255,0.04); color: var(--sp-text);
+    cursor: pointer; transition: all 0.15s ease; font-family: var(--sp-font);
+}
+.sp-tour-btn:hover { background: rgba(255,255,255,0.08); }
+.sp-tour-btn-next {
+    background: linear-gradient(135deg, rgba(77,184,164,0.2), rgba(77,184,164,0.1));
+    color: var(--sp-accent); border-color: rgba(77,184,164,0.3); margin-left: auto;
+}
+.sp-tour-btn-next:hover { background: rgba(77,184,164,0.25); }
+.sp-tour-btn-end { color: var(--sp-text-dim); border-color: transparent; background: none; font-size: 10px; padding: 4px 8px; }
+.sp-tour-progress { display: flex; gap: 4px; flex: 1; justify-content: center; }
+.sp-tour-pip { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.1); transition: all 0.2s ease; }
+.sp-tour-pip.sp-active { background: var(--sp-accent); box-shadow: 0 0 4px rgba(77,184,164,0.4); }
+.sp-tour-card.sp-tour-warn { border-color: rgba(245,158,11,0.4); box-shadow: 0 16px 48px rgba(0,0,0,0.5), 0 0 24px rgba(245,158,11,0.1); }
+.sp-tour-card.sp-tour-warn .sp-tour-title { color: #f59e0b; }
+.sp-tour-card.sp-tour-warn .sp-tour-step-label { color: #f59e0b; opacity: 0.8; }
+.sp-tour-finale-pulse {
+    display: inline-block; color: var(--sp-accent);
+    filter: drop-shadow(0 0 12px rgba(77,184,164,0.5));
+    animation: sp-finale-glow-pulse 2s ease-in-out infinite;
+}
+.sp-tour-finale-pulse svg { width: 36px; height: 36px; }
+@keyframes sp-finale-glow-pulse {
+    0%,100% { filter: drop-shadow(0 0 8px rgba(77,184,164,0.4)); }
+    50% { filter: drop-shadow(0 0 24px rgba(77,184,164,0.9)) drop-shadow(0 0 40px rgba(77,184,164,0.4)); }
+}
+.sp-tour-finale-glow {
+    text-align: center; margin: 8px 0 4px;
+    font-size: 13px; font-weight: 600; font-style: italic;
+    color: var(--sp-accent); opacity: 0.8;
+    animation: sp-finale-glow 2s ease-in-out infinite alternate;
+}
+@keyframes sp-finale-glow {
+    0% { opacity: 0.5; text-shadow: none; }
+    100% { opacity: 1; text-shadow: 0 0 12px rgba(77,184,164,0.4); }
+}

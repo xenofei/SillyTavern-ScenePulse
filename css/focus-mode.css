@@ -1,0 +1,106 @@
+/* ═══ FOCUS MODE ═══ */
+/* Focus mode: narrower panel, shows only key info at readable sizes */
+#sp-panel.sp-compact { width: clamp(240px, 22vw, 280px) !important; }
+
+/* Focus: Header simplified — hide title, tighten spacing */
+#sp-panel.sp-compact .sp-brand-title { display: none; }
+#sp-panel.sp-compact .sp-brand-icon { width: 18px; height: 18px; }
+#sp-panel.sp-compact .sp-brand-icon svg { width: 18px; height: 18px; }
+
+/* Focus: Toolbar compact */
+#sp-panel.sp-compact .sp-toolbar { gap: 2px; padding: 3px 4px; }
+#sp-panel.sp-compact .sp-toolbar-btn { padding: 3px 4px; }
+#sp-panel.sp-compact .sp-toolbar-btn svg { width: 12px; height: 12px; }
+
+/* Focus: Environment — 2x2 grid, condensed location */
+#sp-panel.sp-compact .sp-env-permanent { padding: 4px 5px; }
+#sp-panel.sp-compact .sp-dashboard { gap: 3px; }
+#sp-panel.sp-compact .sp-dashboard .sp-dash-card { flex: 1 1 calc(50% - 3px); min-width: 60px; }
+#sp-panel.sp-compact .sp-dash-card { min-height: 40px; padding: 4px 3px; border-radius: 7px; }
+#sp-panel.sp-compact .sp-dash-icon { font-size: 14px; margin-bottom: 1px; }
+#sp-panel.sp-compact .sp-dash-clock svg { width: 36px; height: 36px; }
+#sp-panel.sp-compact .sp-dash-value { font-size: 9px; }
+#sp-panel.sp-compact .sp-dash-sub { font-size: 9px; }
+#sp-panel.sp-compact .sp-dash-day { font-size: 15px; }
+#sp-panel.sp-compact .sp-wx-svg { width: 20px; height: 20px; margin-bottom: 1px; }
+#sp-panel.sp-compact .sp-temp-bar-label { font-size: 8px; }
+#sp-panel.sp-compact .sp-temp-bar-svg { height: 12px; }
+/* Show location condensed instead of hiding it */
+#sp-panel.sp-compact .sp-dash-location { padding: 2px 4px; font-size: 9px; }
+#sp-panel.sp-compact .sp-dash-loc-icon { display: none; }
+#sp-panel.sp-compact .sp-dash-loc-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 9px; opacity: 0.7; }
+#sp-panel.sp-compact .sp-gen-footer { padding: 2px 4px; font-size: 8px; gap: 6px; }
+#sp-panel.sp-compact .sp-dash-overlay { display: none; }
+
+/* Focus: Section headers readable, refresh on hover */
+#sp-panel.sp-compact .sp-section-header { padding: 4px 6px; }
+#sp-panel.sp-compact .sp-section-title { font-size: 9px; letter-spacing: 0.08em; }
+#sp-panel.sp-compact .sp-section-badge { font-size: 7px; padding: 0 4px; min-width: 14px; }
+#sp-panel.sp-compact .sp-section-refresh { width: 18px; height: 18px; opacity: 0; }
+#sp-panel.sp-compact .sp-section-header:hover .sp-section-refresh { opacity: 0.5; }
+#sp-panel.sp-compact .sp-section-body { padding: 0 4px; }
+
+/* Focus: Scene Details — compact rows */
+#sp-panel.sp-compact .sp-row { padding: 1px 0; }
+#sp-panel.sp-compact .sp-row-label { font-size: 9px; min-width: 44px; }
+#sp-panel.sp-compact .sp-row-value { font-size: 10px; }
+
+/* Focus: Quest Journal — names only, no details */
+#sp-panel.sp-compact .sp-plot-tier { margin-bottom: 3px; padding-left: 3px; }
+#sp-panel.sp-compact .sp-plot-tier-title { font-size: 8px; margin-bottom: 1px; }
+#sp-panel.sp-compact .sp-tier-icon { width: 10px; height: 10px; }
+#sp-panel.sp-compact .sp-quest-header { gap: 2px; }
+#sp-panel.sp-compact .sp-plot-name { font-size: 10px; }
+#sp-panel.sp-compact .sp-plot-status { font-size: 6px; padding: 0 3px; }
+#sp-panel.sp-compact .sp-quest-detail { display: none; }
+#sp-panel.sp-compact .sp-quest-star { font-size: 10px; padding: 1px 0 1px 3px; }
+
+/* Focus: Relationships — name + meters, no meta/tags */
+#sp-panel.sp-compact .sp-rel-block { padding: 3px 0; }
+#sp-panel.sp-compact .sp-rel-name { font-size: 11px; }
+#sp-panel.sp-compact .sp-rel-type-badge, #sp-panel.sp-compact .sp-rel-phase-badge { font-size: 6px; padding: 0 3px; }
+#sp-panel.sp-compact .sp-rel-meta { display: none; }
+#sp-panel.sp-compact .sp-meter-row { grid-template-columns: 40px 1fr 30px; gap: 3px; }
+#sp-panel.sp-compact .sp-meter-label { font-size: 7px; min-width: 40px; }
+#sp-panel.sp-compact .sp-meter-bar-wrap, #sp-panel.sp-compact .sp-meter-bar-na { height: 5px; border-radius: 3px; }
+#sp-panel.sp-compact .sp-meter-value, #sp-panel.sp-compact .sp-meter-value-na { font-size: 7px; min-width: 20px; }
+#sp-panel.sp-compact .sp-meter-tag { display: none; }
+#sp-panel.sp-compact .sp-meter-delta { font-size: 6px; }
+#sp-panel.sp-compact .sp-meter-face { display: none; }
+#sp-panel.sp-compact .sp-meter-bar-prev { display: none; }
+
+/* Focus: Characters — name + role + condensed key fields */
+#sp-panel.sp-compact .sp-char-card { padding: 3px 5px; margin-bottom: 2px; }
+#sp-panel.sp-compact .sp-char-header { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+#sp-panel.sp-compact .sp-char-name { font-size: 11px; }
+#sp-panel.sp-compact .sp-char-role-badge { font-size: 6px; padding: 0 3px; }
+#sp-panel.sp-compact .sp-char-grid { display: none; }
+#sp-panel.sp-compact .sp-char-goals { display: none; }
+#sp-panel.sp-compact .sp-fert-section { display: none; }
+
+/* Focus: Story Ideas — condensed chips instead of full cards */
+#sp-panel.sp-compact .sp-idea-card { padding: 3px 5px; margin-bottom: 2px; border-left-width: 2px; }
+#sp-panel.sp-compact .sp-idea-header { margin-bottom: 0; gap: 3px; }
+#sp-panel.sp-compact .sp-idea-icon { width: 10px; height: 10px; }
+#sp-panel.sp-compact .sp-idea-icon svg { width: 10px; height: 10px; }
+#sp-panel.sp-compact .sp-idea-type { font-size: 6px; }
+#sp-panel.sp-compact .sp-idea-name { font-size: 9px; margin-bottom: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#sp-panel.sp-compact .sp-idea-hook { display: none; }
+#sp-panel.sp-compact .sp-idea-inject, #sp-panel.sp-compact .sp-idea-paste { width: 16px; height: 16px; }
+#sp-panel.sp-compact .sp-idea-inject svg, #sp-panel.sp-compact .sp-idea-paste svg { width: 8px; height: 8px; }
+
+/* Focus: Timeline */
+#sp-panel.sp-compact .sp-timeline { padding: 4px 6px; }
+#sp-panel.sp-compact .sp-tl-bar { height: 16px; margin-bottom: 20px; }
+#sp-panel.sp-compact .sp-tl-dot { width: 6px; height: 6px; }
+#sp-panel.sp-compact .sp-tl-dot-latest, #sp-panel.sp-compact .sp-tl-dot-selected { width: 8px; height: 8px; }
+#sp-panel.sp-compact .sp-tl-ring { inset: -3px; }
+#sp-panel.sp-compact .sp-tl-label { font-size: 6px; margin-top: 6px; }
+#sp-panel.sp-compact .sp-tl-label-active { font-size: 7px; }
+
+/* Focus: Loading */
+#sp-panel.sp-compact .sp-regen-overlay { min-height: 30vh; padding: 20px 12px; gap: 12px; }
+#sp-panel.sp-compact .sp-regen-spinner { width: 48px; height: 48px; }
+#sp-panel.sp-compact .sp-regen-text { font-size: 14px; }
+#sp-panel.sp-compact .sp-inline-wait { font-size: 9px; padding: 4px 8px; }
+#sp-panel.sp-compact .sp-loading-glass { backdrop-filter: blur(2px); }

@@ -1,0 +1,26 @@
+/* ═══ TABLET MODE (class-driven, 601–1024px viewport) ═══ */
+#sp-panel.sp-mode-tablet {
+    border-left: 2px solid rgba(77,184,164,0.25); border-radius: 0;
+    font-size: 13.5px;
+}
+#sp-panel.sp-mode-tablet .sp-toolbar { padding: 8px 10px; gap: 5px; }
+#sp-panel.sp-mode-tablet .sp-toolbar-btn {
+    width: 38px; height: 38px; min-width: 38px; border-radius: 8px;
+}
+#sp-panel.sp-mode-tablet .sp-toolbar-btn svg { width: 17px; height: 17px; }
+#sp-panel.sp-mode-tablet .sp-section-header { padding: 10px 12px; min-height: 44px; }
+#sp-panel.sp-mode-tablet .sp-section-title { font-size: 12px; }
+#sp-panel.sp-mode-tablet .sp-meter-bar-wrap { height: 12px; }
+#sp-panel.sp-mode-tablet .sp-rel-header, #sp-panel.sp-mode-tablet .sp-char-header,
+#sp-panel.sp-mode-tablet .sp-idea-header { min-height: 44px; }
+#sp-panel.sp-mode-tablet .sp-quest-header { min-height: 42px; }
+#sp-panel.sp-mode-tablet .sp-plot-tier-title { min-height: 42px; }
+#sp-panel.sp-mode-tablet .sp-btn { min-height: 40px; }
+#sp-panel.sp-mode-tablet .sp-ck { min-height: 40px; }
+#sp-panel.sp-mode-tablet .sp-fs select, #sp-panel.sp-mode-tablet .sp-fi input { min-height: 40px; }
+#sp-panel.sp-mode-tablet .sp-cp-field-rm { width: 32px; height: 32px; }
+#sp-panel.sp-mode-tablet .sp-cp-add-field { min-height: 40px; }
+/* Thought Panel on tablet */
+.sp-mode-tablet ~ #sp-thought-panel, #sp-panel.sp-mode-tablet ~ #sp-thought-panel {
+    max-width: 50vw; min-width: 300px;
+}

@@ -1,0 +1,94 @@
+/* ═══ CONTAIN PANEL BACKGROUNDS ═══ */
+/* Panel background is self-contained, never leaks to ST */
+#sp-panel, #sp-thought-panel { isolation: isolate; }
+
+/* ═══ RIGHT SIDE PANEL ═══ */
+/* Uses position:fixed + --trackerUI-panel-width to integrate with ST layout */
+
+#sp-panel {
+    position: fixed; top: 45px; right: 0; height: calc(100vh - 45px);
+    background: #181a20;
+    border-left: 2px solid rgba(77,184,164,0.25);
+    overflow-y: auto; overflow-x: hidden;
+    z-index: 1000; display: none;
+    font-family: var(--sp-font); font-size: 13px; color: var(--sp-text);
+    pointer-events: auto;
+    -webkit-backface-visibility: hidden; backface-visibility: hidden;
+    transform: translateZ(0);
+    scrollbar-color: rgba(100,110,130,0.3) transparent;
+    transition: width 0.3s ease-out;
+    box-sizing: border-box;
+}
+#sp-panel.sp-visible { display: block; }
+#sp-panel::-webkit-scrollbar { width: 4px; }
+#sp-panel::-webkit-scrollbar-thumb { background: rgba(100,110,130,0.3); border-radius: 2px; }
+#sp-panel-body { pointer-events: auto; position: relative; min-height: 200px; }
+#sp-panel * { pointer-events: auto; }
+
+#sp-panel-toggle { display: none; }
+
+/* Panel header */
+/* ═══ UNIFIED TOOLBAR ═══ */
+.sp-toolbar {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; align-items: center; gap: 8px; padding: 7px 10px;
+    background: var(--sp-bg-solid); border-bottom: 1px solid var(--sp-border);
+}
+.sp-brand-icon {
+    width: 26px; height: 26px; color: var(--sp-accent); cursor: pointer;
+    transition: transform 0.3s ease, filter 0.3s ease;
+    flex-shrink: 0;
+    animation: sp-logo-glow 3s ease-in-out infinite;
+}
+.sp-brand-icon svg { width: 26px; height: 26px; }
+.sp-brand-icon:hover {
+    transform: scale(1.15) rotate(15deg);
+    filter: drop-shadow(0 0 6px var(--sp-accent-glow));
+}
+@keyframes sp-logo-glow {
+    0%, 100% { filter: drop-shadow(0 0 3px rgba(77,184,164,0.2)); }
+    50% { filter: drop-shadow(0 0 10px rgba(77,184,164,0.5)) drop-shadow(0 0 20px rgba(77,184,164,0.15)); }
+}
+.sp-brand-title {
+    font-size: 14px; font-weight: 800; letter-spacing: 0.02em;
+    color: var(--sp-text-bright); line-height: 1; white-space: nowrap;
+}
+.sp-brand-accent { color: var(--sp-accent); }
+.sp-toolbar-spacer { flex: 1; }
+.sp-toolbar-btn {
+    background: var(--sp-surface); border: 1px solid var(--sp-border);
+    color: var(--sp-text-dim); border-radius: 5px; padding: 4px 6px;
+    font-size: 14px; cursor: pointer;
+    transition: all var(--sp-transition); text-align: center; line-height: 1;
+    display: inline-flex; align-items: center; justify-content: center;
+}
+.sp-toolbar-btn svg { display: block; }
+.sp-toolbar-btn:hover { background: var(--sp-surface-hover); color: var(--sp-text-bright); border-color: var(--sp-accent); }
+.sp-toolbar-btn.sp-tb-active { background: var(--sp-accent-dim); color: var(--sp-accent); border-color: rgba(77,184,164,0.3); }
+
+/* ═══ DEV TOOLBAR BUTTONS & DROPDOWNS ═══ */
+.sp-dev-wrap { position: relative; display: inline-flex; }
+.sp-toolbar-btn.sp-tb-dev { border-color: rgba(212,145,94,0.3); color: var(--sp-amber); opacity: 0.7; }
+.sp-toolbar-btn.sp-tb-dev:hover { border-color: var(--sp-amber); color: var(--sp-amber); opacity: 1; background: rgba(212,145,94,0.12); }
+.sp-dev-dropdown {
+    display: none; position: absolute; top: calc(100% + 4px); right: 0; z-index: 100;
+    min-width: 170px; padding: 4px 0;
+    background: var(--sp-bg-solid); border: 1px solid var(--sp-border-strong);
+    border-radius: var(--sp-radius-lg); box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    animation: sp-dev-drop-in 0.15s ease-out;
+}
+.sp-dev-dropdown.sp-dev-open { display: block; }
+@keyframes sp-dev-drop-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+.sp-dev-dropdown-item {
+    padding: 5px 12px; font-size: 11px; color: var(--sp-text); cursor: pointer;
+    transition: all 0.1s ease; white-space: nowrap;
+}
+.sp-dev-dropdown-item:hover { background: var(--sp-surface-hover); color: var(--sp-text-bright); }
+.sp-dev-dropdown-item.sp-dev-active {
+    color: var(--sp-amber); background: rgba(212,145,94,0.1);
+    font-weight: 600;
+}
+@keyframes eggSpin { 0%{transform:rotate(0deg) scale(1)} 50%{transform:rotate(180deg) scale(1.3)} 100%{transform:rotate(360deg) scale(1)} }
+@keyframes eggRainbow { 0%{filter:hue-rotate(0deg) drop-shadow(0 0 8px #f0f)} 25%{filter:hue-rotate(90deg) drop-shadow(0 0 8px #0ff)} 50%{filter:hue-rotate(180deg) drop-shadow(0 0 8px #0f0)} 75%{filter:hue-rotate(270deg) drop-shadow(0 0 8px #ff0)} 100%{filter:hue-rotate(360deg) drop-shadow(0 0 8px #f0f)} }
+.sp-egg-spin { animation: eggSpin 0.8s ease-in-out; }
+.sp-egg-rainbow { animation: eggRainbow 3s linear infinite; }

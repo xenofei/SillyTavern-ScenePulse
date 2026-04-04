@@ -8,7 +8,7 @@
 
 <div align="center">
 
-<img src="https://img.shields.io/badge/version-4.9.90-4db8a4?style=flat-square&labelColor=1a1c24" alt="Version">
+<img src="https://img.shields.io/badge/version-5.1.1-4db8a4?style=flat-square&labelColor=1a1c24" alt="Version">
 <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square&labelColor=1a1c24" alt="License">
 <img src="https://img.shields.io/badge/platform-SillyTavern%201.12%2B-orange?style=flat-square&labelColor=1a1c24" alt="Platform">
 
@@ -27,16 +27,16 @@
 
 ScenePulse is a SillyTavern extension that automatically extracts and tracks scene data from AI responses — characters, relationships, quests, mood, tension, and more — all displayed in a real-time dashboard alongside your roleplay.
 
-## ✨ Features
+## Features
 
-### 📊 Live Dashboard
+### Live Dashboard
 - **Environment cards** — time, date, weather, temperature, location with animated weather icons
 - **Scene details** — mood, tension, topic, interaction style, sound environment
 - **Real-time updates** every AI message
 <img width="857" height="390" alt="image" src="https://github.com/user-attachments/assets/7740dada-d740-49d8-8ae3-1ae6d72767d5" />
 
 
-### 🧑‍🤝‍🧑 Relationship Tracking
+### Relationship Tracking
 - Animated meter bars for **affection, trust, desire, stress, compatibility** (0–100)
 - Auto-generated labels when the model omits them (minimal → low → moderate → strong → intense → overwhelming)
 - Delta badges showing changes between messages (▲/▼) with previous-value markers
@@ -45,7 +45,7 @@ ScenePulse is a SillyTavern extension that automatically extracts and tracks sce
 <img width="859" height="423" alt="image" src="https://github.com/user-attachments/assets/7094c6bb-28af-46b5-a7da-54a5f117371d" />
 
 
-### 🗡️ Quest Journal
+### Quest Journal
 - **North Star** — overarching life purpose
 - **Main Quests, Side Quests, Active Tasks** — tiered and collapsible
 - Urgency indicators and detailed descriptions
@@ -53,7 +53,7 @@ ScenePulse is a SillyTavern extension that automatically extracts and tracks sce
 <img width="856" height="556" alt="image" src="https://github.com/user-attachments/assets/3bf59314-4e69-4635-84e9-8823a68bc32b" />
 
 
-### 👤 Character Profiles
+### Character Profiles
 - Full appearance tracking: hair, face, outfit, state of dress, posture
 - Inner thoughts, immediate needs, short/long-term goals
 - Inventory tracking
@@ -62,39 +62,39 @@ ScenePulse is a SillyTavern extension that automatically extracts and tracks sce
 <img width="860" height="326" alt="image" src="https://github.com/user-attachments/assets/cb314a4e-a6d4-449d-96ad-929556564d40" />
 
 
-### 💡 Story Ideas
+### Story Ideas
 - 5 AI-generated plot directions per update (dramatic, intense, comedic, twist, exploratory)
 - One-click **paste to edit** or **inject directly** into chat
 <img width="860" height="445" alt="image" src="https://github.com/user-attachments/assets/e2614c4c-0b1c-42db-9761-5f3efbc8dd2a" />
 
 
-### 💭 Inner Thoughts Panel *(Desktop)*
+### Inner Thoughts Panel *(Desktop)*
 - Floating, draggable panel showing each character's inner monologue
 - Characters without thoughts show a subtle `…` placeholder
 - Ghost mode (transparent), snap-to-edge, resizable
 <img width="844" height="287" alt="image" src="https://github.com/user-attachments/assets/660015cd-be56-4456-bee3-f4303d3d2ed4" />
 
 
-### 🌧️ Immersive Effects *(Desktop)*
+### Immersive Effects *(Desktop)*
 - **Weather overlay** — rain, snow, hail, fog, sandstorm, aurora, ash with particle systems
 - **Time-of-day tint** — dawn, morning, afternoon, dusk, evening, night ambience
 - **Scene transitions** — feathered location change popups with backdrop blur and soft radial fade
 
-### ⏱️ Timeline Scrubber
+### Timeline Scrubber
 - Every AI message creates a snapshot
 - Click any timeline dot to load historical scene data
 - Compare how relationships, quests, and characters evolved over time
 <img width="850" height="82" alt="image" src="https://github.com/user-attachments/assets/5b46e312-2921-4a24-9781-4c297669ea27" />
 
 
-### 🛠️ Custom Panels
+### Custom Panels
 - Create panels to track **anything** — health, mana, reputation, faction standings
 - Each field supports text, number, meter, list, or enum types
 - LLM hints tell the AI what to output for each field
 <img width="858" height="472" alt="image" src="https://github.com/user-attachments/assets/6732fa65-dc8b-4390-8445-bbd08d36f9df" />
 
 
-### 📱 Mobile Support
+### Mobile Support
 - Full-screen panel with slide animations
 - Custom top bar replacing SillyTavern's toolbar
 - Touch-optimized 42px tap targets
@@ -103,7 +103,7 @@ ScenePulse is a SillyTavern extension that automatically extracts and tracks sce
 <img width="473" height="1024" alt="image" src="https://github.com/user-attachments/assets/3bb99fa7-ddf6-408e-8568-e6288cc97a85" />
 
 
-## 📦 Installation
+## Installation
 
 ### Method 1: SillyTavern Extension Installer
 1. Open SillyTavern
@@ -122,7 +122,7 @@ git clone https://github.com/xenofei/SillyTavern-ScenePulse
 ```
 Restart SillyTavern after cloning.
 
-## 🚀 Quick Start
+## Quick Start
 
 1. **Install the extension** using either method above
 2. **Open a chat** with any character
@@ -138,7 +138,7 @@ On first load, ScenePulse shows a **Setup Wizard** to configure:
 
 You can also take a **Guided Tour** to explore every feature with example data.
 
-## ⚙️ How It Works
+## How It Works
 
 ScenePulse operates in **Together mode** by default:
 
@@ -155,7 +155,54 @@ Alternatively, ScenePulse can run a completely separate API call after each mess
 ### Settings Persistence
 All configuration settings (injection method, profiles, presets, lorebook mode, etc.) are persisted via `localStorage` for reliability. This bypasses SillyTavern's `saveSettingsDebounced()` race condition with `CHAT_CHANGED` events during initialization, ensuring your settings survive restarts.
 
-## 🎯 Compatibility
+## Architecture
+
+ScenePulse v5.x uses a modular ES module architecture. The codebase is split into ~30 focused modules:
+
+```
+index.js                    ← Thin entry point (~190 lines)
+style.css                   ← @import directives only
+src/
+  constants.js              ← Defaults, schemas, prompts, panel definitions
+  logger.js                 ← Debug logging (no global console override)
+  utils.js                  ← Shared utilities
+  state.js                  ← Centralized mutable state with setter functions
+  settings.js               ← Settings CRUD, snapshot management, cached reads
+  schema.js                 ← Dynamic schema/prompt builders
+  color.js                  ← Character color assignment with fuzzy matching
+  normalize.js              ← Data normalization with WeakMap caching
+  story-ideas.js            ← Story idea injection
+  generation/
+    extraction.js           ← Inline tracker extraction from AI responses
+    streaming.js            ← Streaming hider (MutationObserver)
+    engine.js               ← Generation engine with retry/fallback
+    interceptor.js          ← SillyTavern generate interceptor
+  ui/
+    mobile.js               ← Device detection, FAB, responsive layout
+    panel.js                ← Side panel creation and toolbar
+    update-panel.js         ← Dashboard rendering with leak-safe canvas animation
+    dashboard.js, sections.js, section.js
+    weather.js              ← Weather particle system (9 types)
+    time-tint.js            ← Time-of-day ambient overlays
+    scene-transition.js     ← Location change animations
+    timeline.js             ← Timeline scrubber with debounced navigation
+    thoughts.js             ← Draggable thought panel
+    message.js              ← Per-message integration
+    loading.js              ← Loading overlays and timers
+    edit-mode.js            ← Inline field editing
+  settings-ui/
+    create-settings.js      ← Settings panel HTML template
+    bind-ui.js              ← Settings form bindings
+    custom-panels.js        ← Custom panel manager
+    setup-guide.js          ← First-run wizard
+    guided-tour.js          ← Interactive feature tour
+css/
+  24 modular stylesheets    ← Split by component, loaded via @import
+```
+
+No bundler required — SillyTavern loads extensions as `<script type="module">`, so native ES imports work out of the box.
+
+## Compatibility
 
 - **SillyTavern** 1.12.0+ (including 1.16.0 with updated `#connection_profiles` selector)
 - **Tested models**: GLM-4/5, Claude, GPT-4o, Gemini, Llama 3, Mistral, Qwen
@@ -164,7 +211,7 @@ All configuration settings (injection method, profiles, presets, lorebook mode, 
 
 > **Note:** Together mode works best with instruction-following models that reliably append structured data. Smaller or older models may need Separate mode or a fallback profile.
 
-## 🔧 Configuration
+## Configuration
 
 Access settings via **Extensions** → **ScenePulse** in SillyTavern's settings panel.
 
@@ -180,7 +227,7 @@ Access settings via **Extensions** → **ScenePulse** in SillyTavern's settings 
 | **Show thoughts** | Inner monologue floating panel |
 | **Panel Manager** | Toggle individual panels and sub-fields |
 
-## 🏗️ Custom Panels
+## Custom Panels
 
 Create custom tracking panels with any fields you need:
 
@@ -194,14 +241,38 @@ Create custom tracking panels with any fields you need:
 
 Custom fields are automatically included in the tracker prompt and extracted from AI responses.
 
-## 📝 Known Issues
+## Known Issues
 
 - **JSON visibility during streaming** — The proactive streaming hider catches most cases, but very fast token rates may briefly show tracker JSON before the `max-height` cap takes effect
 - **Model compliance** — Some models intermittently skip the tracker block; the fallback system handles this, but it adds a second API call
 - **Mobile** — Weather effects, time-of-day tint, inner thoughts panel, and condense view are disabled on mobile to optimize performance
 - **Character naming** — When a model omits the `name` field, ScenePulse uses a multi-tier confidence system: 1:1 relationship matching, positional `charactersPresent` alignment, `{{char}}` identification, role↔relType cross-referencing, and last-resort elimination. Ambiguous cases (2+ unnamed characters with insufficient clues) display as neutral gray cards until the next generation resolves them
 
-## 🤝 Contributing
+## Changelog
+
+### v5.1.1
+- **Modular architecture** — Refactored from monolithic 5,500-line `index.js` into ~30 ES modules across `src/` and 24 CSS files in `css/`
+- **Performance: Fixed canvas animation leak** — Each panel update previously spawned a new perpetual `requestAnimationFrame` loop and `MutationObserver` that were never cleaned up. After rapid timeline navigation, dozens of concurrent animation loops would accumulate
+- **Performance: Timeline debounce** — Replaced per-frame batching with 200ms trailing-edge debounce. Rapid clicks settle before expensive work runs
+- **Performance: Normalize caching** — `normalizeTracker()` results cached via WeakMap. Revisiting the same snapshot is instant
+- **Performance: Thought panel listeners** — Drag/resize handlers now add-on-start, remove-on-end instead of 8 permanent document-level listeners
+- **Performance: Scrub guards** — Weather overlay, time tint, and scene transitions skipped during timeline scrubbing
+- **Fix: Story idea double-send** — Removed redundant `dispatchEvent` + `click()` call
+- **Fix: Global console override removed** — ScenePulse no longer overrides `console.log/warn/error` for all extensions
+- **Fix: Version string consistency** — Single `VERSION` constant referenced everywhere
+- **Fix: Timeline disappearing on historical node click** — Scrub flag now properly cleared after debounced update
+- **Improvement: Settings caching** — `getSettings()` result cached, invalidated on save
+- **Improvement: Color map cleanup** — Character color assignments reset on chat switch
+- **Improvement: Resize throttle** — Window resize handler throttled to 100ms
+- **Improvement: Streaming hider optimization** — Polling interval stops once MutationObserver attaches
+
+### v4.9.90
+- Clean quest schema with concise definitions and clear priority hierarchy
+
+### v4.9.88
+- Genre-spanning quest perspective examples (10 story types)
+
+## Contributing
 
 Found a bug? Have a feature idea? Contributions welcome!
 
@@ -209,7 +280,7 @@ Found a bug? Have a feature idea? Contributions welcome!
 2. Fork the repo, create a branch, and submit a PR
 3. Join the discussion in the issues tab
 
-## 💡 Inspiration
+## Inspiration
 
 ScenePulse started as a desire for something more — a scene-aware companion that could grow alongside the stories being told. These projects paved the way and remain worth checking out:
 
@@ -219,7 +290,7 @@ ScenePulse started as a desire for something more — a scene-aware companion th
 
 Their ideas and approaches directly shaped what ScenePulse is becoming. If you're exploring scene tracking for SillyTavern, give them a look.
 
-## 📄 License
+## License
 
 MIT License — see [LICENSE](LICENSE) for details.
 

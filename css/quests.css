@@ -1,0 +1,30 @@
+/* ═══ QUEST JOURNAL ═══ */
+.sp-plot-tier { margin-bottom: 8px; padding-left: 0; border-left: 2px solid transparent; }
+.sp-plot-tier:last-child { margin-bottom: 0; }
+.sp-tier-star { border-left-color: rgba(212,165,94,0.7); background: rgba(212,165,94,0.04); }
+.sp-tier-main { border-left-color: rgba(196,91,91,0.5); background: rgba(196,91,91,0.04); }
+.sp-tier-side { border-left-color: rgba(155,122,196,0.5); background: rgba(155,122,196,0.04); }
+.sp-tier-tasks { border-left-color: rgba(77,184,164,0.5); background: rgba(77,184,164,0.04); }
+.sp-plot-tier-title { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--sp-text-dim); padding: 4px 6px; border-bottom: 1px solid var(--sp-border); display: flex; align-items: center; gap: 5px; cursor: pointer; user-select: none; }
+.sp-plot-tier-title:hover { background: rgba(255,255,255,0.02); }
+.sp-tier-chevron { font-size: 7px; color: var(--sp-text-dim); transition: transform 0.2s ease; flex-shrink: 0; }
+.sp-plot-tier.sp-tier-open .sp-tier-chevron { transform: rotate(90deg); }
+.sp-tier-body { display: none; padding-left: 6px; }
+.sp-plot-tier.sp-tier-open .sp-tier-body { display: block; }
+.sp-tier-icon { width: 16px; height: 16px; color: var(--sp-accent); flex-shrink: 0; opacity: 0.7; }
+.sp-quest-star { font-size: 12px; font-weight: 600; color: var(--sp-amber); padding: 4px 0 4px 6px; font-style: italic; }
+.sp-plot-entry { padding: 0; font-size: 12px; border-bottom: 1px solid rgba(255,255,255,0.02); margin-bottom: 2px; }
+.sp-plot-entry:last-child { border-bottom: none; margin-bottom: 0; }
+.sp-quest-header { display: flex; align-items: center; gap: 5px; padding: 5px 0 5px 6px; cursor: pointer; user-select: none; }
+.sp-quest-header:hover { background: rgba(255,255,255,0.02); }
+.sp-quest-chevron { font-size: 7px; color: var(--sp-text-dim); transition: transform 0.2s ease; flex-shrink: 0; }
+.sp-plot-entry.sp-card-open .sp-quest-chevron { transform: rotate(90deg); }
+.sp-quest-detail { font-size: 11px; color: var(--sp-text-dim); line-height: 1.45; padding: 0 0 4px 17px; margin-top: 0; display: none; }
+.sp-plot-entry.sp-card-open .sp-quest-detail { display: block; }
+.sp-plot-status { font-size: 8px; font-weight: 700; padding: 1px 4px; border-radius: 3px; text-transform: uppercase; letter-spacing: 0.04em; flex-shrink: 0; line-height: 1.4; }
+.sp-urgency-critical { background: rgba(196,60,60,0.2); color: #e06060; }
+.sp-urgency-high { background: var(--sp-amber-dim); color: var(--sp-amber); }
+.sp-urgency-moderate { background: var(--sp-blue-dim); color: var(--sp-blue); }
+.sp-urgency-low { background: rgba(100,100,100,0.12); color: var(--sp-text-dim); }
+.sp-plot-name { font-weight: 600; color: var(--sp-text-bright); font-size: 12px; }
+.sp-plot-notes { color: var(--sp-text-dim); font-size: 10px; }

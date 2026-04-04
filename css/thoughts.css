@@ -1,0 +1,179 @@
+/* ═══ THOUGHT PANEL (draggable, thought-bubble aesthetic) ═══ */
+#sp-thought-panel {
+    position: fixed; width: 280px; min-width: 280px; min-height: 100px; max-height: 85vh;
+    background: rgba(22,24,32,0.98);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    overflow: hidden;
+    z-index: 1000; display: none;
+    flex-direction: column;
+    font-family: var(--sp-font); padding: 0;
+    border: 1px solid rgba(77,184,164,0.12);
+    border-radius: 14px;
+    -webkit-backface-visibility: hidden; backface-visibility: hidden;
+    transform: translateZ(0);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.03) inset, 0 0 40px rgba(77,184,164,0.04);
+}
+#sp-thought-panel #sp-tp-body {
+    overflow-y: auto; overflow-x: hidden; flex: 1; min-height: 0; padding-bottom: 12px;
+}
+#sp-thought-panel #sp-tp-body::-webkit-scrollbar { width: 3px; }
+#sp-thought-panel #sp-tp-body::-webkit-scrollbar-thumb { background: rgba(100,110,130,0.3); border-radius: 2px; }
+/* Resize handle — bottom-right corner */
+.sp-tp-resize {
+    position: absolute; bottom: 0; right: 0;
+    width: 16px; height: 16px; cursor: nwse-resize;
+    z-index: 5; opacity: 0.2; transition: opacity 0.15s;
+}
+.sp-tp-resize:hover { opacity: 0.5; }
+.sp-tp-resize svg { width: 16px; height: 16px; }
+#sp-thought-panel.sp-tp-visible { display: flex; }
+
+/* Drag handle — clean header with title */
+.sp-tp-header {
+    padding: 8px 10px 6px;
+    cursor: grab; display: flex; align-items: center; gap: 5px;
+    flex-shrink: 0; background: rgba(22,24,32,0.98); z-index: 1;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    flex-wrap: nowrap; min-width: 0;
+}
+.sp-tp-header:active { cursor: grabbing; }
+.sp-tp-drag-grip { flex-shrink: 0; }
+.sp-tp-title {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.1em; color: var(--sp-text-dim); opacity: 0.5;
+    white-space: nowrap;
+}
+.sp-tp-header-spacer { flex: 1; }
+.sp-tp-close {
+    background: var(--sp-surface); border: 1px solid var(--sp-border); color: var(--sp-text-dim); cursor: pointer;
+    width: 26px; height: 26px; padding: 0; transition: all var(--sp-transition);
+    border-radius: 5px; display: inline-flex; align-items: center; justify-content: center;
+}
+.sp-tp-close:hover { background: var(--sp-surface-hover); color: var(--sp-red); border-color: var(--sp-red); }
+#sp-thought-panel.sp-tp-loading-active .sp-tp-close { opacity: 0.1; pointer-events: none; cursor: default; }
+.sp-tp-regen {
+    background: var(--sp-surface); border: 1px solid var(--sp-border); color: var(--sp-text-dim); cursor: pointer;
+    width: 26px; height: 26px; padding: 0; border-radius: 5px;
+    transition: all var(--sp-transition); display: inline-flex; align-items: center; justify-content: center;
+}
+.sp-tp-regen:hover { background: var(--sp-surface-hover); color: var(--sp-accent); border-color: var(--sp-accent); }
+.sp-tp-regen.sp-spinning { color: var(--sp-accent); border-color: var(--sp-accent); }
+.sp-tp-regen.sp-spinning svg { animation: sp-spin 0.8s linear infinite; }
+.sp-tp-snapleft {
+    background: var(--sp-surface); border: 1px solid var(--sp-border); color: var(--sp-text-dim); cursor: pointer;
+    width: 26px; height: 26px; padding: 0; border-radius: 5px;
+    transition: all var(--sp-transition); display: inline-flex; align-items: center; justify-content: center;
+}
+.sp-tp-snapleft:hover { background: var(--sp-surface-hover); color: var(--sp-text-bright); border-color: var(--sp-accent); }
+.sp-tp-snapleft.sp-tb-active { background: var(--sp-accent-dim); color: var(--sp-accent); border-color: rgba(77,184,164,0.3); }
+.sp-tp-ghost {
+    background: var(--sp-surface); border: 1px solid var(--sp-border); color: var(--sp-text-dim); cursor: pointer;
+    width: 26px; height: 26px; padding: 0; border-radius: 5px;
+    transition: all var(--sp-transition); display: inline-flex; align-items: center; justify-content: center;
+}
+.sp-tp-ghost:hover { background: var(--sp-surface-hover); color: var(--sp-text-bright); border-color: var(--sp-accent); }
+.sp-tp-ghost.sp-tb-active { background: var(--sp-accent-dim); color: var(--sp-accent); border-color: rgba(77,184,164,0.3); }
+
+/* Ghost mode — panel chrome hidden, thought cards float freely */
+#sp-thought-panel.sp-tp-ghost-mode {
+    background: transparent !important; border-color: transparent !important;
+    backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+}
+#sp-thought-panel.sp-tp-ghost-mode .sp-tp-header {
+    background: transparent !important; border-bottom-color: transparent !important;
+    opacity: 0; transition: opacity 0.2s ease;
+}
+#sp-thought-panel.sp-tp-ghost-mode:hover .sp-tp-header { opacity: 1; background: rgba(22,24,32,0.85) !important; }
+#sp-thought-panel.sp-tp-ghost-mode .sp-tp-resize { opacity: 0; }
+#sp-thought-panel.sp-tp-ghost-mode:hover .sp-tp-resize { opacity: 0.2; }
+#sp-thought-panel.sp-tp-ghost-mode .sp-tp-card {
+    background: rgba(22,24,32,0.95); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+}
+#sp-thought-panel.sp-tp-ghost-mode .sp-chat-banner {
+    background: rgba(22,24,32,0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border-radius: 10px; border-bottom: none; margin: 0 6px 6px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+    font-size: 10px; padding: 5px 10px; gap: 6px;
+}
+
+/* Character thought cards */
+.sp-tp-card {
+    padding: 12px 14px; border-bottom: none;
+    position: relative; margin: 0 6px 6px; border-radius: 10px;
+    background: var(--char-bg, rgba(255,255,255,0.02));
+    border-left: 3px solid var(--char-border, rgba(255,255,255,0.06));
+}
+.sp-tp-card:last-child { margin-bottom: 2px; }
+.sp-tp-card:first-child { padding-top: 12px; }
+
+.sp-tp-name {
+    font-size: 15px; font-weight: 700; color: var(--char-accent, var(--sp-text-bright));
+    margin-bottom: 8px; display: flex; align-items: center; gap: 8px;
+}
+.sp-tp-name-icon {
+    width: 22px; height: 22px; flex-shrink: 0; color: var(--char-accent, var(--sp-accent)); opacity: 0.5;
+    margin-left: auto; order: 1;
+}
+
+/* Inner monologue — italic, inset, like hearing whispered thoughts */
+.sp-tp-monologue {
+    font-size: 17px; color: rgba(170,180,198,0.9); font-style: italic;
+    line-height: 1.55; padding: 12px 14px; margin: 0 0 4px 0;
+    background: var(--char-bg, linear-gradient(135deg, rgba(77,184,164,0.05), rgba(77,184,164,0.02)));
+    border-left: 2px solid var(--char-border, rgba(77,184,164,0.3));
+    border-radius: 0 10px 10px 0;
+    position: relative;
+}
+.sp-tp-monologue::before {
+    content: ''; position: absolute; top: -1px; left: -2px; bottom: -1px; width: 2px;
+    background: linear-gradient(180deg, var(--char-accent, var(--sp-accent)), transparent);
+    border-radius: 1px;
+}
+.sp-tp-monologue-empty {
+    opacity: 0.3; letter-spacing: 3px; font-style: normal;
+}
+
+/* Goals */
+.sp-tp-goal {
+    font-size: 10px; color: rgba(200,204,212,0.8); line-height: 1.4;
+    padding: 2px 0 2px 0; display: flex; align-items: baseline; gap: 5px;
+}
+.sp-tp-goal-icon { font-size: 8px; flex-shrink: 0; opacity: 0.5; }
+.sp-tp-goals { padding-top: 4px; border-top: 1px solid rgba(255,255,255,0.03); margin-top: 6px; }
+
+/* ═══ CHARACTER GOALS SECTION ═══ */
+.sp-char-goals { margin-top: 5px; padding-top: 5px; border-top: 1px dashed var(--sp-border); }
+.sp-char-goals .sp-char-grid { padding-left: 2px; }
+
+/* Thought panel loading state */
+.sp-tp-loading {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 30px 14px; text-align: center; gap: 14px;
+}
+.sp-tp-spinner {
+    width: 48px; height: 48px; position: relative;
+}
+.sp-tp-spinner::before {
+    content: ''; position: absolute; inset: 0;
+    border: 2.5px solid rgba(77,184,164,0.08);
+    border-top-color: var(--sp-accent);
+    border-radius: 50%; animation: sp-spin 0.9s linear infinite;
+}
+.sp-tp-spinner::after {
+    content: ''; position: absolute; inset: 6px;
+    border: 2px solid rgba(77,184,164,0.05);
+    border-bottom-color: rgba(77,184,164,0.3);
+    border-radius: 50%; animation: sp-spin 1.6s linear infinite reverse;
+}
+.sp-tp-loading-text {
+    font-size: 13px; font-weight: 600; color: var(--sp-accent);
+    letter-spacing: 0.04em;
+    animation: sp-pulse-glow 2s ease-in-out infinite;
+}
+
+/* Environment — permanent, not collapsible */
+.sp-env-permanent { padding: 8px 12px; }
+
+/* Story Ideas hint */

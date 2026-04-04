@@ -1,0 +1,8 @@
+/* ═══ MESSAGE BUTTON ═══ */
+.sp-mes-btn { cursor: pointer; opacity: 0.4; transition: opacity 0.3s,transform 0.3s,filter 0.3s; color: var(--sp-accent); display: inline-flex; }
+.sp-mes-btn:hover { opacity: 1; transform: scale(1.3); filter: drop-shadow(0 0 4px var(--sp-accent-glow)) brightness(1.3); }
+.sp-mes-btn.sp-generating { opacity: 1; animation: sp-gpulse 1s ease-in-out infinite; }
+@keyframes sp-gpulse { 0%,100%{transform:scale(1);filter:drop-shadow(0 0 2px var(--sp-accent-glow))} 50%{transform:scale(1.2);filter:drop-shadow(0 0 8px var(--sp-accent-glow)) brightness(1.4)} }
+
+.sp-mascot-pulse { animation: sp-glow 3s ease-in-out infinite; }
+@keyframes sp-glow { 0%,100%{filter:drop-shadow(0 0 1px rgba(77,184,164,0.3))} 50%{filter:drop-shadow(0 0 4px rgba(77,184,164,0.6))} }

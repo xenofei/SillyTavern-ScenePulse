@@ -1,0 +1,22 @@
+/* ═══ CHARACTERS ═══ */
+.sp-char-card { background: var(--char-bg, var(--sp-surface)); border-radius: var(--sp-radius); padding: 0; margin-bottom: 5px; border-left: 3px solid var(--char-border, var(--sp-border)); }
+.sp-char-card:last-child { margin-bottom: 0; }
+.sp-char-header { display: flex; align-items: center; gap: 5px; padding: 6px 8px; cursor: pointer; user-select: none; overflow: hidden; flex-wrap: wrap; }
+.sp-char-header:hover { background: rgba(255,255,255,0.02); }
+.sp-char-chevron { font-size: 8px; color: var(--sp-text-dim); transition: transform 0.2s ease; flex-shrink: 0; }
+.sp-char-card.sp-card-open .sp-char-chevron { transform: rotate(90deg); }
+.sp-char-body { display: none; padding: 0 8px 6px 8px; border-top: 1px solid var(--sp-border); }
+.sp-char-card.sp-card-open .sp-char-body { display: block; }
+.sp-char-name { font-size: 13px; font-weight: 700; color: var(--char-accent, var(--sp-text-bright)); flex-shrink: 0; }
+.sp-char-role-badge { font-size: 8px; font-weight: 600; padding: 1px 5px; border-radius: 6px; background: rgba(155,122,196,0.15); color: #b09ad4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
+.sp-char-grid { display: grid; grid-template-columns: auto 1fr; gap: 1px 6px; padding-left: 2px; }
+.sp-char-field { font-size: 9px; font-weight: 600; color: var(--sp-text-dim); text-transform: uppercase; letter-spacing: 0.03em; text-align: right; padding: 1px 0; }
+.sp-char-val { font-size: 11px; color: var(--sp-text); padding: 1px 0; }
+.sp-char-goals { margin-top: 4px; padding-top: 4px; border-top: 1px dashed var(--sp-border); }
+.sp-char-goal-item { font-size: 10px; color: var(--sp-text-dim); padding: 1px 0 1px 4px; }
+.sp-char-goal-item strong { color: var(--sp-text); }
+.sp-fert-section { margin-top: 4px; padding-top: 4px; border-top: 1px dashed var(--sp-border); }
+.sp-fert-na { font-size: 10px; color: var(--sp-text-dim); font-style: italic; }
+.sp-fert-inline { display: inline-flex; align-items: baseline; gap: 3px; }
+.sp-fert-inline-label { font-size: 8px; font-weight: 600; color: var(--sp-text-dim); text-transform: uppercase; letter-spacing: 0.03em; }
+.sp-fert-inline-val { font-size: 10px; color: var(--sp-text); }

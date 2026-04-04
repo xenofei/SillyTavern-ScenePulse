@@ -1,0 +1,47 @@
+/* ═══════════════════════════════════════════════
+   SCENE TRANSITION CARD
+   ═══════════════════════════════════════════════ */
+#sp-scene-transition {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    z-index: 10000; pointer-events: none;
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+    font-family: var(--sp-font, 'Segoe UI', sans-serif);
+    font-size: 56px; font-weight: 300; letter-spacing: 0.14em; text-transform: uppercase;
+    color: rgba(232,234,240,0);
+    text-shadow: 0 0 80px rgba(77,184,164,0.7), 0 4px 40px rgba(0,0,0,0.8);
+    white-space: nowrap;
+    transition: none;
+    padding: 120px 240px;
+    background: transparent;
+    border-radius: 20px;
+    -webkit-mask-image: radial-gradient(ellipse 70% 60% at center, black 20%, transparent 65%);
+    mask-image: radial-gradient(ellipse 70% 60% at center, black 20%, transparent 65%);
+}
+#sp-scene-transition.sp-st-show {
+    animation: sp-st-fade 4.5s ease-in-out forwards;
+    background: radial-gradient(ellipse 130% 120% at center, rgba(0,0,0,0.96) 0%, rgba(0,0,0,0.85) 15%, rgba(0,0,0,0.6) 30%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.1) 65%, transparent 80%);
+    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+}
+.sp-st-sep {
+    font-weight: 100; opacity: 0.4; font-size: 32px;
+}
+#sp-scene-transition .sp-st-line {
+    display: flex; align-items: center; gap: 24px;
+}
+#sp-scene-transition .sp-st-rule {
+    display: block; width: 140px; height: 1px; opacity: 0;
+    background: linear-gradient(90deg, transparent, rgba(77,184,164,0.6), transparent);
+    animation: sp-st-rule 4.5s ease-in-out forwards;
+}
+@keyframes sp-st-fade {
+    0% { color: rgba(232,234,240,0); letter-spacing: 0.25em; }
+    12% { color: rgba(232,234,240,0.95); letter-spacing: 0.14em; }
+    65% { color: rgba(232,234,240,0.95); letter-spacing: 0.14em; }
+    100% { color: rgba(232,234,240,0); letter-spacing: 0.10em; }
+}
+@keyframes sp-st-rule {
+    0% { opacity: 0; width: 0; }
+    12% { opacity: 1; width: 140px; }
+    65% { opacity: 1; width: 140px; }
+    100% { opacity: 0; width: 40px; }
+}

@@ -1,0 +1,16 @@
+/* ScenePulse v2.0 */
+
+:root {
+    --sp-bg: rgba(18,20,26,0.95); --sp-bg-solid: #12141a; --sp-surface: rgba(28,32,42,0.9);
+    --sp-surface-hover: rgba(38,43,56,0.95); --sp-border: rgba(255,255,255,0.06);
+    --sp-border-strong: rgba(255,255,255,0.12); --sp-text: #c8ccd4; --sp-text-dim: #6b7280;
+    --sp-text-bright: #e8ecf4; --sp-accent: #4db8a4; --sp-accent-dim: rgba(77,184,164,0.15);
+    --sp-accent-glow: rgba(77,184,164,0.4); --sp-amber: #d4915e; --sp-amber-dim: rgba(212,145,94,0.15);
+    --sp-blue: #5b8cc4; --sp-blue-dim: rgba(91,140,196,0.15); --sp-red: #c45b5b;
+    --sp-green: #5bc47a; --sp-purple: #9b7ac4; --sp-disabled: #555;
+    --sp-radius: 6px; --sp-radius-lg: 10px;
+    --sp-font: 'Segoe UI',system-ui,-apple-system,sans-serif;
+    --sp-font-mono: 'Cascadia Code','Fira Code','JetBrains Mono',monospace;
+    --sp-transition: 0.2s cubic-bezier(0.4,0,0.2,1);
+    --sp-panel-width: 360px;
+}

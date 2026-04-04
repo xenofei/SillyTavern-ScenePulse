@@ -1,0 +1,266 @@
+/* ═══ ENVIRONMENT DASHBOARD ═══ */
+.sp-dashboard { display: flex; flex-wrap: wrap; gap: 4px; padding: 2px; position: relative; border-radius: 12px; overflow: hidden; }
+.sp-dashboard .sp-dash-card { flex: 1 1 calc(50% - 4px); min-width: 80px; }
+.sp-dash-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 1; mix-blend-mode: soft-light; border-radius: inherit; }
+.sp-dash-card {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 8px 4px; border-radius: 10px; min-height: 70px; text-align: center;
+    position: relative; overflow: hidden; isolation: isolate;
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.sp-dash-card:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+.sp-dash-card::before {
+    content: ''; position: absolute; inset: 0; z-index: -1; opacity: 0.08;
+    background-size: cover; background-position: center; pointer-events: none;
+}
+.sp-dash-card-date {
+    background: linear-gradient(160deg, rgba(60,80,120,0.18) 0%, rgba(30,40,65,0.08) 100%);
+    border-color: rgba(91,140,196,0.15);
+    position: relative; overflow: hidden;
+    order: 1;
+}
+.sp-cal-bg {
+    position: absolute;
+    top: 55%; left: 50%; transform: translate(-50%, -50%);
+    width: 320%; height: 320%;
+    color: rgba(120,160,220,0.5); pointer-events: none; z-index: 0;
+    opacity: 0.35;
+}
+@keyframes sp-cal-shimmer {
+    0%, 100% { opacity: 0; }
+    50% { opacity: 0.12; }
+}
+@keyframes sp-cal-particle {
+    0% { transform: translateY(0) scale(1); opacity: 0; }
+    15% { opacity: 1; }
+    85% { opacity: 1; }
+    100% { transform: translateY(-40px) scale(0.5); opacity: 0; }
+}
+.sp-cal-shimmer-overlay {
+    position: absolute; inset: 0; z-index: 1; pointer-events: none;
+    background: radial-gradient(ellipse at 50% 45%, rgba(100,150,220,0.2) 0%, transparent 60%);
+    animation: sp-cal-shimmer 6s ease-in-out infinite;
+}
+.sp-cal-particles {
+    position: absolute; inset: 0; z-index: 1; pointer-events: none; overflow: hidden;
+}
+.sp-cal-particle {
+    position: absolute; width: 2px; height: 2px; border-radius: 50%;
+    background: rgba(140,180,230,0.4);
+    animation: sp-cal-particle 5s ease-in-out infinite;
+}
+.sp-cal-particle:nth-child(1) { left: 15%; top: 70%; animation-delay: 0s; animation-duration: 4.5s; }
+.sp-cal-particle:nth-child(2) { left: 35%; top: 80%; animation-delay: 1.2s; animation-duration: 5.5s; width: 1.5px; height: 1.5px; }
+.sp-cal-particle:nth-child(3) { left: 60%; top: 75%; animation-delay: 2.5s; animation-duration: 4s; }
+.sp-cal-particle:nth-child(4) { left: 80%; top: 85%; animation-delay: 0.8s; animation-duration: 6s; width: 1px; height: 1px; background: rgba(180,160,220,0.35); }
+.sp-cal-particle:nth-child(5) { left: 48%; top: 90%; animation-delay: 3.5s; animation-duration: 5s; width: 1.5px; height: 1.5px; }
+.sp-cal-particle:nth-child(6) { left: 25%; top: 65%; animation-delay: 4.2s; animation-duration: 4.8s; width: 1px; height: 1px; background: rgba(200,180,140,0.3); }
+.sp-dash-card-date::after {
+    content: ''; position: absolute; inset: 0; z-index: 2; pointer-events: none;
+    background: radial-gradient(ellipse at 50% 50%, rgba(6,9,18,0.65) 0%, rgba(6,9,18,0.25) 55%, transparent 75%);
+}
+.sp-dash-card-date .sp-dash-day, .sp-dash-card-date .sp-dash-sub {
+    position: relative; z-index: 3;
+    text-shadow: 0 0 10px rgba(5,8,15,0.95), 0 0 20px rgba(5,8,15,0.8), 0 2px 6px rgba(5,8,15,0.9);
+}
+.sp-dash-card-date::before { background: radial-gradient(ellipse at 50% 50%, rgba(8,12,22,0.5) 0%, transparent 70%); opacity: 0.9; }
+.sp-dash-card-date .sp-dash-day { font-size: 22px; font-weight: 800; color: var(--sp-text-bright); line-height: 1; letter-spacing: -0.02em; }
+.sp-dash-card-date .sp-dash-sub { color: rgba(140,175,220,0.85); font-size: 13px !important; font-weight: 700; letter-spacing: 0.04em; }
+
+.sp-dash-card-weather {
+    background: linear-gradient(135deg, rgba(120,130,160,0.12) 0%, rgba(100,110,130,0.04) 100%);
+    border-color: rgba(120,130,160,0.15);
+    position: relative; overflow: hidden;
+    order: 4;
+}
+.sp-dash-card-weather::before { background: radial-gradient(ellipse at 30% 30%, rgba(180,190,210,0.2), transparent 70%); opacity: 0.12; }
+.sp-dash-card-weather .sp-wx-svg { width: 42px; height: 42px; margin-bottom: 2px; position: relative; z-index: 2; }
+.sp-dash-card-weather .sp-dash-value { position: relative; z-index: 2; }
+
+/* Moon SVG positioning in night/evening cards */
+.sp-wxc-moon-svg { position: absolute; top: 4px; right: 4px; width: 30px; height: 30px; z-index: 1; opacity: 0.7; }
+
+/* ── Weather card backgrounds ── */
+.sp-wxc-rain {
+    background: linear-gradient(180deg, rgba(60,75,110,0.3) 0%, rgba(45,55,85,0.2) 60%, rgba(70,85,120,0.15) 100%);
+    border-color: rgba(80,110,170,0.2);
+}
+.sp-wxc-rain::before { background: radial-gradient(ellipse at 50% 20%, rgba(100,140,200,0.15), transparent 70%); opacity: 0.2; }
+
+.sp-wxc-snow {
+    background: linear-gradient(180deg, rgba(160,175,210,0.2) 0%, rgba(180,195,225,0.15) 50%, rgba(200,215,240,0.1) 100%);
+    border-color: rgba(180,200,235,0.2);
+}
+.sp-wxc-snow::before { background: radial-gradient(ellipse at 50% 30%, rgba(210,225,250,0.2), transparent 65%); opacity: 0.25; }
+
+.sp-wxc-hail {
+    background: linear-gradient(180deg, rgba(70,85,115,0.25) 0%, rgba(100,115,150,0.15) 50%, rgba(140,155,185,0.1) 100%);
+    border-color: rgba(120,140,180,0.2);
+}
+.sp-wxc-hail::before { background: radial-gradient(ellipse at 40% 25%, rgba(160,180,220,0.18), transparent 60%); opacity: 0.2; }
+
+.sp-wxc-storm {
+    background: linear-gradient(180deg, rgba(25,30,50,0.4) 0%, rgba(35,40,65,0.3) 40%, rgba(50,55,80,0.2) 100%);
+    border-color: rgba(80,90,130,0.25);
+}
+.sp-wxc-storm::before { background: radial-gradient(ellipse at 60% 15%, rgba(180,190,230,0.12), transparent 60%); opacity: 0.3; }
+
+.sp-wxc-fog {
+    background: linear-gradient(180deg, rgba(140,150,170,0.18) 0%, rgba(155,165,185,0.14) 50%, rgba(145,155,175,0.1) 100%);
+    border-color: rgba(160,170,190,0.18);
+}
+.sp-wxc-fog::before { background: radial-gradient(ellipse at 50% 50%, rgba(180,190,210,0.15), transparent 70%); opacity: 0.3; }
+
+.sp-wxc-sand {
+    background: linear-gradient(135deg, rgba(180,150,90,0.2) 0%, rgba(160,130,75,0.12) 50%, rgba(140,115,65,0.08) 100%);
+    border-color: rgba(190,160,100,0.2);
+}
+.sp-wxc-sand::before { background: radial-gradient(ellipse at 40% 40%, rgba(210,180,120,0.15), transparent 65%); opacity: 0.2; }
+
+.sp-wxc-ash {
+    background: linear-gradient(180deg, rgba(70,60,55,0.25) 0%, rgba(55,50,45,0.18) 50%, rgba(80,55,35,0.12) 100%);
+    border-color: rgba(120,100,70,0.2);
+}
+.sp-wxc-ash::before { background: radial-gradient(ellipse at 60% 80%, rgba(255,120,40,0.1), transparent 60%); opacity: 0.3; }
+
+.sp-wxc-wind {
+    background: linear-gradient(135deg, rgba(100,120,155,0.15) 0%, rgba(120,140,175,0.08) 100%);
+    border-color: rgba(130,155,195,0.15);
+}
+.sp-wxc-wind::before { background: radial-gradient(ellipse at 70% 30%, rgba(150,175,215,0.12), transparent 60%); opacity: 0.2; }
+
+.sp-wxc-aurora {
+    background: linear-gradient(180deg, rgba(20,15,45,0.3) 0%, rgba(40,80,70,0.15) 50%, rgba(60,30,90,0.1) 100%);
+    border-color: rgba(77,184,164,0.2);
+}
+.sp-wxc-aurora::before { background: radial-gradient(ellipse at 50% 20%, rgba(77,184,164,0.15), rgba(155,93,229,0.08) 50%, transparent 70%); opacity: 0.35; }
+
+/* ── Time-of-day card backgrounds (when no significant weather) ── */
+.sp-wxc-dawn {
+    background: linear-gradient(180deg, rgba(80,60,120,0.15) 0%, rgba(200,130,80,0.15) 50%, rgba(255,170,100,0.12) 100%);
+    border-color: rgba(220,150,100,0.2);
+}
+.sp-wxc-dawn::before { background: radial-gradient(ellipse at 50% 90%, rgba(255,160,100,0.2), transparent 60%); opacity: 0.3; }
+
+.sp-wxc-morning {
+    background: linear-gradient(180deg, rgba(130,175,230,0.15) 0%, rgba(170,200,240,0.1) 50%, rgba(200,220,250,0.06) 100%);
+    border-color: rgba(150,190,240,0.18);
+}
+.sp-wxc-morning::before { background: radial-gradient(ellipse at 70% 20%, rgba(255,230,170,0.12), transparent 55%); opacity: 0.3; }
+
+.sp-wxc-day {
+    background: linear-gradient(180deg, rgba(100,160,230,0.15) 0%, rgba(130,185,250,0.1) 50%, rgba(160,200,255,0.06) 100%);
+    border-color: rgba(120,175,240,0.18);
+}
+.sp-wxc-day::before { background: radial-gradient(ellipse at 60% 15%, rgba(255,240,180,0.15), transparent 55%); opacity: 0.3; }
+
+.sp-wxc-afternoon {
+    background: linear-gradient(180deg, rgba(140,170,220,0.12) 0%, rgba(200,180,140,0.1) 60%, rgba(220,190,130,0.08) 100%);
+    border-color: rgba(200,180,140,0.18);
+}
+.sp-wxc-afternoon::before { background: radial-gradient(ellipse at 80% 20%, rgba(255,215,130,0.15), transparent 55%); opacity: 0.25; }
+
+.sp-wxc-dusk {
+    background: linear-gradient(180deg, rgba(80,50,110,0.2) 0%, rgba(180,100,60,0.15) 50%, rgba(230,130,60,0.1) 100%);
+    border-color: rgba(200,120,70,0.2);
+}
+.sp-wxc-dusk::before { background: radial-gradient(ellipse at 50% 80%, rgba(240,140,70,0.18), transparent 55%); opacity: 0.3; }
+
+.sp-wxc-evening {
+    background: linear-gradient(180deg, rgba(20,25,55,0.3) 0%, rgba(30,30,65,0.25) 50%, rgba(40,35,70,0.15) 100%);
+    border-color: rgba(60,60,120,0.2);
+}
+.sp-wxc-evening::before { background: radial-gradient(ellipse at 70% 15%, rgba(200,195,170,0.06), transparent 50%); opacity: 0.4; }
+
+.sp-wxc-night {
+    background: linear-gradient(180deg, rgba(10,12,30,0.35) 0%, rgba(15,18,40,0.3) 50%, rgba(12,14,35,0.2) 100%);
+    border-color: rgba(40,45,90,0.25);
+}
+.sp-wxc-night::before { background: radial-gradient(ellipse at 75% 20%, rgba(230,225,200,0.06), transparent 50%); opacity: 0.5; }
+
+.sp-dash-card-temp {
+    justify-content: center; padding: 6px 6px 4px;
+    order: 3;
+}
+.sp-dash-card-temp::before { background: radial-gradient(ellipse at 50% 60%, rgba(255,255,255,0.12), transparent 65%); opacity: 0.2; }
+
+/* Temp bar inside card */
+.sp-temp-bar-wrap { width: 100%; }
+.sp-temp-bar-svg { width: 100%; height: 18px; display: block; }
+.sp-temp-bar-label {
+    font-size: 10px; font-weight: 700; color: var(--sp-text-bright);
+    text-align: center; margin-top: 1px; line-height: 1.2;
+    letter-spacing: 0.02em;
+}
+
+.sp-dash-card-time {
+    background: linear-gradient(135deg, rgba(77,184,164,0.12) 0%, rgba(77,184,164,0.03) 100%);
+    border-color: rgba(77,184,164,0.15);
+    position: relative; overflow: hidden;
+    order: 2;
+}
+.sp-wdm-canvas {
+    position: absolute;
+    top: 42%; left: 50%; transform: translate(-50%, -50%);
+    width: 300%; aspect-ratio: 1;
+    pointer-events: none; z-index: 0;
+    opacity: 0.35; mix-blend-mode: screen;
+}
+@keyframes sp-clock-shimmer {
+    0%, 100% { opacity: 0; }
+    50% { opacity: 0.1; }
+}
+@keyframes sp-clock-particle {
+    0% { transform: translateY(0) scale(1); opacity: 0; }
+    15% { opacity: 1; }
+    85% { opacity: 1; }
+    100% { transform: translateY(-35px) scale(0.4); opacity: 0; }
+}
+.sp-clock-shimmer {
+    position: absolute; inset: 0; z-index: 1; pointer-events: none;
+    background: radial-gradient(ellipse at 50% 42%, rgba(77,184,164,0.2) 0%, transparent 60%);
+    animation: sp-clock-shimmer 7s ease-in-out infinite;
+}
+.sp-clock-particles {
+    position: absolute; inset: 0; z-index: 1; pointer-events: none; overflow: hidden;
+}
+.sp-clock-particle {
+    position: absolute; width: 1.5px; height: 1.5px; border-radius: 50%;
+    background: rgba(77,200,180,0.4);
+    animation: sp-clock-particle 5s ease-in-out infinite;
+}
+.sp-clock-particle:nth-child(1) { left: 20%; top: 75%; animation-delay: 0s; animation-duration: 4s; }
+.sp-clock-particle:nth-child(2) { left: 50%; top: 85%; animation-delay: 1.5s; animation-duration: 5s; width: 2px; height: 2px; }
+.sp-clock-particle:nth-child(3) { left: 75%; top: 70%; animation-delay: 3s; animation-duration: 4.5s; }
+.sp-clock-particle:nth-child(4) { left: 35%; top: 80%; animation-delay: 2s; animation-duration: 5.5s; width: 1px; height: 1px; background: rgba(120,200,180,0.35); }
+.sp-clock-particle:nth-child(5) { left: 65%; top: 90%; animation-delay: 4s; animation-duration: 4.2s; }
+.sp-dash-card-time::before { background: radial-gradient(ellipse at 50% 42%, rgba(77,184,164,0.2), transparent 60%); opacity: 0.12; }
+.sp-clock-backing {
+    position: absolute; inset: 0; z-index: 2; pointer-events: none;
+    background: radial-gradient(ellipse at 50% 50%, rgba(6,9,18,0.65) 0%, rgba(6,9,18,0.25) 55%, transparent 75%);
+}
+.sp-dash-card-time .sp-dash-clock, .sp-dash-card-time .sp-dash-value {
+    position: relative; z-index: 3;
+    text-shadow: 0 0 10px rgba(5,8,15,0.95), 0 0 20px rgba(5,8,15,0.8);
+}
+.sp-dash-card-time .sp-dash-clock { margin-bottom: 3px; margin-top: 2px; }
+.sp-dash-card-time .sp-dash-clock svg { width: 60px; height: 60px; filter: drop-shadow(0 0 6px rgba(77,184,164,0.25)); }
+.sp-time-value { font-size: 14px !important; font-weight: 700; letter-spacing: 0.08em; font-family: var(--sp-font-mono); text-shadow: 0 0 8px rgba(5,8,15,0.95), 0 0 16px rgba(5,8,15,0.8), 0 1px 3px rgba(0,0,0,0.9); }
+
+.sp-dash-clock { margin-bottom: 3px; line-height: 0; }
+.sp-dash-clock svg { width: 60px; height: 60px; filter: drop-shadow(0 0 6px rgba(77,184,164,0.25)); }
+.sp-dash-icon { font-size: 20px; margin-bottom: 3px; line-height: 1; }
+.sp-dash-value { font-size: 11px; font-weight: 700; color: var(--sp-text-bright); line-height: 1.2; }
+.sp-dash-sub { font-size: 8px; color: var(--sp-text-dim); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+
+.sp-dash-location {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 6px; margin-top: 4px; padding: 10px 12px; border-radius: 8px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.03), transparent);
+    border: 1px solid rgba(255,255,255,0.04); text-align: center;
+}
+.sp-dash-loc-icon { width: 28px; height: 28px; flex-shrink: 0; color: var(--sp-accent); opacity: 0.7; cursor: pointer; transition: all 0.2s ease; }
+.sp-dash-loc-icon:hover { opacity: 1; transform: scale(1.1); filter: drop-shadow(0 0 6px rgba(77,184,164,0.4)); }
+.sp-dash-loc-icon svg { width: 28px; height: 28px; }
+.sp-dash-loc-text { font-size: 12px; color: var(--sp-text-bright); line-height: 1.35; font-weight: 600; }
