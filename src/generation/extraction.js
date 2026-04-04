@@ -1,7 +1,7 @@
 // ── extraction.js — Inline/Together Mode: Extract tracker JSON from AI response ──
 
 import { log, warn, err } from '../logger.js';
-import { ensureChatSaved } from '../settings.js';
+import { ensureChatSaved, getSettings } from '../settings.js';
 
 export const SP_MARKER_START='<!--SP_TRACKER_START-->';
 export const SP_MARKER_END='<!--SP_TRACKER_END-->';
@@ -71,12 +71,14 @@ export function extractInlineTracker(mesIdx){
         }
         if(strippedCount)log('extractInlineTracker: stripped',strippedCount,'schema metadata keys');
         const keys=Object.keys(parsed);
-        if(keys.length<5){
-            warn('extractInlineTracker: parsed object too small after stripping ('+keys.length+' keys:',keys.join(',')+')');
+        const _isDelta=getSettings().deltaMode;
+        const _minKeys=_isDelta?2:5; // Delta mode: 2+ keys is valid (e.g. sceneMood + characters)
+        if(keys.length<_minKeys){
+            warn('extractInlineTracker: parsed object too small after stripping ('+keys.length+' keys:',keys.join(',')+') min='+_minKeys);
             return null;
         }
         // Validate it looks like tracker data — must have at least one known tracker key
-        const KNOWN_KEYS=['time','location','weather','sceneTopic','sceneMood','characters','relationships','plotBranches'];
+        const KNOWN_KEYS=['time','location','weather','sceneTopic','sceneMood','sceneTension','characters','relationships','plotBranches','mainQuests','sideQuests','activeTasks'];
         const hasKnown=KNOWN_KEYS.some(k=>k in parsed);
         if(!hasKnown){warn('extractInlineTracker: no known tracker keys found in',keys.slice(0,8).join(','));return null}
         // Strip the tracker block from the message
