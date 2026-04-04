@@ -98,11 +98,11 @@ export function normalizeTracker(d){
     const wit=flat['witnesses'];o.witnesses=Array.isArray(wit)?wit:[];
     const cp=flat['characterspresent']||flat['present'];o.charactersPresent=Array.isArray(cp)?cp:[];
 
-    const vu=['critical','high','moderate','low'];
+    const vu=['critical','high','moderate','low','resolved'];
     function normPlot(arr){if(!Array.isArray(arr))return[];return arr.map(p=>{if(!p||typeof p!=='object')return{name:String(p||''),urgency:'moderate',detail:''};
         let urg=(p.urgency||p.priority||'moderate').toLowerCase();
         // Map non-standard values
-        if(p.status&&!p.urgency&&!p.priority){const sm={'pending':'high','active':'high','in-progress':'high','emerging':'moderate','urgent':'critical','resolved':'low','unknown':'high'};urg=sm[p.status.toLowerCase()]||'moderate'}
+        if(p.status&&!p.urgency&&!p.priority){const sm={'pending':'high','active':'high','in-progress':'high','emerging':'moderate','urgent':'critical','resolved':'resolved','completed':'resolved','done':'resolved','finished':'resolved','unknown':'high'};urg=sm[p.status.toLowerCase()]||'moderate'}
         if(urg==='medium')urg='moderate';
         if(!vu.includes(urg))urg='moderate';
         return{name:p.name||p.title||'',urgency:urg,detail:p.detail||p.notes||p.description||''}})}
@@ -134,11 +134,29 @@ export function normalizeTracker(d){
             }
         }catch{}
     }
-    // Carry forward: if model returned empty quests, preserve previous snapshot's quests
+    // Carry forward: smart quest completion detection
     {try{const prev=getLatestSnapshot();if(prev){
-        if(!o.mainQuests.length&&prev.mainQuests?.length){log('mainQuests empty \u2014 carrying forward',prev.mainQuests.length,'from previous');o.mainQuests=prev.mainQuests}
-        if(!o.sideQuests.length&&prev.sideQuests?.length){log('sideQuests empty \u2014 carrying forward',prev.sideQuests.length,'from previous');o.sideQuests=prev.sideQuests}
-        if(!o.activeTasks.length&&prev.activeTasks?.length){log('activeTasks empty \u2014 carrying forward',prev.activeTasks.length,'from previous');o.activeTasks=prev.activeTasks}
+        for(const _qk of['mainQuests','sideQuests','activeTasks']){
+            const currQuests=o[_qk]||[];
+            const prevQuests=prev[_qk]||[];
+            if(!currQuests.length&&prevQuests.length){
+                // Empty array — carry forward all non-resolved previous quests
+                o[_qk]=prevQuests.filter(q=>q.urgency!=='resolved');
+                log(_qk,'empty — carrying forward',o[_qk].length,'non-resolved quests from previous');
+            } else if(currQuests.length&&prevQuests.length){
+                // LLM returned quests — detect missing ones and mark as resolved
+                const currNames=new Set(currQuests.map(q=>(q.name||'').toLowerCase().trim()));
+                for(const pq of prevQuests){
+                    if(pq.urgency==='resolved')continue; // already resolved, don't carry forward again
+                    const pn=(pq.name||'').toLowerCase().trim();
+                    if(pn&&!currNames.has(pn)){
+                        // Quest was in previous but not in current — mark resolved
+                        o[_qk].push({name:pq.name,urgency:'resolved',detail:pq.detail||''});
+                        log(_qk,'quest completed:',pq.name,'— marked resolved');
+                    }
+                }
+            }
+        }
         if(!o.northStar&&prev.northStar)o.northStar=prev.northStar;
     }}catch{}}
     // northStar from current data (only set if model actually returned one, otherwise keep carry-forward)

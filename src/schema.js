@@ -68,7 +68,7 @@ export function buildDynamicSchema(s){
             } else if(f.type==='array'){
                 props[f.key]={type:'array',items:{type:f.itemType||'string'},description:f.desc};
             } else if(f.type==='questArray'){
-                props[f.key]={type:'array',description:f.desc,items:{type:'object',properties:{name:{type:'string'},urgency:{type:'string',enum:['critical','high','moderate','low']},detail:{type:'string'}},required:['name','urgency','detail']}};
+                props[f.key]={type:'array',description:f.desc,items:{type:'object',properties:{name:{type:'string'},urgency:{type:'string',enum:['critical','high','moderate','low','resolved']},detail:{type:'string'}},required:['name','urgency','detail']}};
             } else if(f.type==='relationshipArray'){
                 props[f.key]=filterArraySchema(BUILTIN_SCHEMA.value.properties.relationships,REL_SUBFIELD_MAP,ft);
             } else if(f.type==='characterArray'){
@@ -176,7 +176,7 @@ You are a precise scene analysis engine. Read the story context and output a sin
         if(ft.activeTasks!==false)qFields.push('- activeTasks: Immediate concrete things {{user}} needs to do right now.');
         if(qFields.length){
             prompt+='\n### Quest Journal (from {{user}}\'s perspective)\n'+qFields.join('\n');
-            if(ft.mainQuests!==false||ft.sideQuests!==false||ft.activeTasks!==false)prompt+='\n- All quests: name + urgency (critical/high/moderate/low) + detail.\n- ALWAYS from {{user}}\'s perspective. If hostile: oppose their goal. If ally: support them as {{user}}\'s action.\n- NEVER drop unresolved quests. Carry them forward.\n';
+            if(ft.mainQuests!==false||ft.sideQuests!==false||ft.activeTasks!==false)prompt+='\n- All quests: name + urgency (critical/high/moderate/low/resolved) + detail.\n- ALWAYS from {{user}}\'s perspective. If hostile: oppose their goal. If ally: support them as {{user}}\'s action.\n- NEVER drop unresolved quests. Carry them forward. When a quest is completed in the story, set its urgency to "resolved" instead of removing it.\n';
         }
     }
     // Relationships

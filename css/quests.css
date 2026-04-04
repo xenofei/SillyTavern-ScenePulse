@@ -26,6 +26,7 @@
 .sp-urgency-high { background: var(--sp-amber-dim); color: var(--sp-amber); }
 .sp-urgency-moderate { background: var(--sp-blue-dim); color: var(--sp-blue); }
 .sp-urgency-low { background: rgba(100,100,100,0.12); color: var(--sp-text-dim); }
+.sp-urgency-resolved { background: rgba(91,196,122,0.15); color: #5bc47a; }
 .sp-plot-name { font-weight: 600; color: var(--sp-text-bright); font-size: 12px; }
 .sp-plot-notes { color: var(--sp-text-dim); font-size: 10px; }
 /* Quest status badges (NEW / UPDATED) */
@@ -42,6 +43,13 @@
     background: rgba(212,145,94,0.15); color: #d4915e;
     border: 1px solid rgba(212,145,94,0.22);
 }
+.sp-quest-status-done {
+    background: rgba(91,196,122,0.18); color: #5bc47a;
+    border: 1px solid rgba(91,196,122,0.25);
+}
+.sp-quest-resolved .sp-plot-name { text-decoration: line-through; opacity: 0.5; }
+.sp-quest-resolved .sp-quest-detail { text-decoration: line-through; opacity: 0.4; }
+.sp-quest-resolved .sp-quest-header { opacity: 0.6; }
 @keyframes sp-quest-badge-pop {
     0% { opacity: 0; transform: scale(0.5); }
     50% { transform: scale(1.15); }
@@ -55,6 +63,7 @@
 }
 .sp-tier-status-new { background: rgba(77,184,164,0.15); color: #4db8a4; }
 .sp-tier-status-updated { background: rgba(212,145,94,0.12); color: #d4915e; }
+.sp-tier-status-done { background: rgba(91,196,122,0.12); color: #5bc47a; }
 /* Section-header quest status summary */
 .sp-section-status-summary {
     display: inline-flex; align-items: center; gap: 4px; margin-left: 4px;
@@ -62,4 +71,5 @@
 }
 .sp-section-status-new { font-size: 8px; font-weight: 600; color: #4db8a4; opacity: 0.85; }
 .sp-section-status-updated { font-size: 8px; font-weight: 600; color: #d4915e; opacity: 0.85; }
+.sp-section-status-done { font-size: 8px; font-weight: 600; color: #5bc47a; opacity: 0.85; }
 .sp-section-status-sep { font-size: 8px; color: var(--sp-text-dim); opacity: 0.4; }
