@@ -46,7 +46,6 @@ export function openDiffViewer(mesIdx) {
                 `<button class="sp-diff-tab sp-diff-tab-active" data-tab="curr">Full Payload</button>
                 ${deltaJson ? '<button class="sp-diff-tab" data-tab="delta">Delta Payload</button>' : ''}`}
                 <button class="sp-diff-copy" title="Copy to clipboard">Copy</button>
-                <button class="sp-diff-close" title="Close">&times;</button>
             </div>
             <div class="sp-diff-body" id="sp-diff-body"></div>
         </div>
@@ -95,7 +94,6 @@ export function openDiffViewer(mesIdx) {
     overlay.querySelectorAll('.sp-diff-tab').forEach(tab => {
         tab.addEventListener('click', () => renderTab(tab.dataset.tab));
     });
-    overlay.querySelector('.sp-diff-close').addEventListener('click', closeDiffViewer);
     overlay.querySelector('.sp-diff-close-float').addEventListener('click', closeDiffViewer);
     overlay.addEventListener('click', e => { if (e.target === overlay) closeDiffViewer(); });
     overlay.querySelector('.sp-diff-copy').addEventListener('click', () => {
