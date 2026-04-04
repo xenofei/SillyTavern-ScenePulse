@@ -151,10 +151,9 @@ body:has(#sp-panel.sp-mode-mobile) .sp-loading-glass-fixed {
 
 /* ═══ DIFF VIEWER OVERLAY ═══ */
 .sp-diff-overlay {
-    position: fixed; inset: 0; z-index: 10000;
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 10000;
     background: rgba(0,0,0,0.75); backdrop-filter: blur(4px);
-    display: flex; align-items: safe center; justify-content: center;
-    overflow-y: auto;
+    overflow-y: auto; -webkit-overflow-scrolling: touch;
     padding: 20px 10px;
     opacity: 0; transition: opacity 0.2s;
 }
@@ -162,9 +161,11 @@ body:has(#sp-panel.sp-mode-mobile) .sp-loading-glass-fixed {
 .sp-diff-container {
     background: var(--sp-bg-solid, #161820); border: 1px solid var(--sp-border, rgba(255,255,255,0.08));
     border-radius: 10px; width: min(90vw, 800px);
-    max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px);
+    max-height: calc(100vh - 40px);
     display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-    overflow: hidden; flex-shrink: 0;
+    overflow: hidden;
+    margin: 0 auto;
+    position: relative;
 }
 .sp-diff-header {
     display: flex; align-items: center; gap: 8px; padding: 10px 14px;

@@ -102,13 +102,26 @@ export function openDiffViewer(mesIdx) {
 
     // Initial render
     renderTab(activeTab);
-    requestAnimationFrame(() => overlay.classList.add('sp-diff-visible'));
+    // Vertically center: set top padding so container appears centered when it fits
+    const _centerOverlay = () => {
+        const container = overlay.querySelector('.sp-diff-container');
+        if (!container) return;
+        const gap = overlay.clientHeight - container.offsetHeight;
+        overlay.style.paddingTop = gap > 40 ? Math.floor(gap / 2) + 'px' : '20px';
+    };
+    requestAnimationFrame(() => {
+        overlay.classList.add('sp-diff-visible');
+        requestAnimationFrame(_centerOverlay);
+    });
+    window.addEventListener('resize', _centerOverlay);
+    overlay._cleanupResize = () => window.removeEventListener('resize', _centerOverlay);
     log('DiffViewer: opened for mesIdx=', mesIdx, 'hasPrev=', !!previous);
 }
 
 export function closeDiffViewer() {
     const existing = document.getElementById('sp-diff-overlay');
     if (existing) {
+        if (existing._cleanupResize) existing._cleanupResize();
         existing.classList.remove('sp-diff-visible');
         setTimeout(() => existing.remove(), 200);
     }
