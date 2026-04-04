@@ -50,6 +50,26 @@
 .sp-quest-resolved .sp-plot-name { text-decoration: line-through; opacity: 0.5; }
 .sp-quest-resolved .sp-quest-detail { text-decoration: line-through; opacity: 0.4; }
 .sp-quest-resolved .sp-quest-header { opacity: 0.6; }
+/* Quest action buttons */
+.sp-quest-actions {
+    display: inline-flex; gap: 2px; margin-left: auto; flex-shrink: 0;
+    opacity: 0; transition: opacity 0.15s;
+}
+.sp-quest-header:hover .sp-quest-actions { opacity: 1; }
+.sp-quest-action {
+    width: 20px; height: 20px; border-radius: 4px; border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; padding: 0;
+    background: transparent; color: var(--sp-text-dim); transition: all 0.15s;
+}
+.sp-quest-complete:hover { background: rgba(91,196,122,0.15); color: #5bc47a; }
+.sp-quest-remove:hover { background: rgba(196,91,91,0.15); color: #c45b5b; }
+/* Add quest button */
+.sp-quest-add {
+    font-size: 9px; color: var(--sp-text-dim); padding: 4px 6px; cursor: pointer;
+    display: flex; align-items: center; gap: 4px; opacity: 0.5;
+    transition: opacity 0.15s, color 0.15s; user-select: none;
+}
+.sp-quest-add:hover { opacity: 1; color: var(--sp-accent); }
 @keyframes sp-quest-badge-pop {
     0% { opacity: 0; transform: scale(0.5); }
     50% { transform: scale(1.15); }
