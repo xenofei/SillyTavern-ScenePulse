@@ -47,3 +47,19 @@
     50% { transform: scale(1.15); }
     100% { opacity: 1; transform: scale(1); }
 }
+/* Tier-level status summary badges */
+.sp-tier-status {
+    font-size: 7px; font-weight: 700; padding: 1px 5px; border-radius: 4px;
+    text-transform: lowercase; letter-spacing: 0.03em; flex-shrink: 0; line-height: 1.4;
+    margin-left: 2px; animation: sp-quest-badge-pop 0.4s ease-out;
+}
+.sp-tier-status-new { background: rgba(77,184,164,0.15); color: #4db8a4; }
+.sp-tier-status-updated { background: rgba(212,145,94,0.12); color: #d4915e; }
+/* Section-header quest status summary */
+.sp-section-status-summary {
+    display: inline-flex; align-items: center; gap: 4px; margin-left: 4px;
+    animation: sp-quest-badge-pop 0.4s ease-out;
+}
+.sp-section-status-new { font-size: 8px; font-weight: 600; color: #4db8a4; opacity: 0.85; }
+.sp-section-status-updated { font-size: 8px; font-weight: 600; color: #d4915e; opacity: 0.85; }
+.sp-section-status-sep { font-size: 8px; color: var(--sp-text-dim); opacity: 0.4; }

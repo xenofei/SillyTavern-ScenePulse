@@ -312,6 +312,15 @@ export function updatePanel(d,_force=false){
         return f;
     },s);if(s.panels?.scene===false)_sec.classList.add('sp-panel-hidden');body.appendChild(_sec)}
 
+    // ── Quest diff: classify quests as new/updated/stale ──
+    const _prevQSnap=getPrevSnapshot(currentSnapshotMesIdx);
+    const _prevQMaps={};
+    for(const _qk of['mainQuests','sideQuests','activeTasks']){const _m={};if(_prevQSnap&&Array.isArray(_prevQSnap[_qk]))for(const _q of _prevQSnap[_qk])_m[(_q.name||'').toLowerCase().trim()]=_q;_prevQMaps[_qk]=_m}
+    function _classifyQuest(q,tierKey){if(!_prevQSnap)return'stale';const pm=_prevQMaps[tierKey];if(!pm||!Object.keys(pm).length)return'new';const prev=pm[(q.name||'').toLowerCase().trim()];if(!prev)return'new';if((q.detail||'').trim()!==(prev.detail||'').trim())return'updated';return'stale'}
+    // Pre-compute status counts per tier
+    const _tierStatusCounts={};let _totalQNew=0,_totalQUpdated=0;
+    for(const _tk of['mainQuests','sideQuests','activeTasks']){let _nc=0,_uc=0;if(Array.isArray(d[_tk]))for(const _q of d[_tk]){const _s=_classifyQuest(_q,_tk);if(_s==='new')_nc++;else if(_s==='updated')_uc++}_tierStatusCounts[_tk]={n:_nc,u:_uc};_totalQNew+=_nc;_totalQUpdated+=_uc}
+
     // Quest Journal section
     const pc=[d.mainQuests,d.sideQuests,d.activeTasks].reduce((n,a)=>n+(Array.isArray(a)?a.length:0),0)+(d.northStar?1:0);
     {const _sec=mkSection('quests','Quest Journal',pc,()=>{
@@ -325,11 +334,6 @@ export function updatePanel(d,_force=false){
         const nsText=document.createElement('div');nsText.className='sp-quest-star';nsText.textContent=ns||'Not yet revealed';
         mkEditable(nsText,()=>d.northStar||'',v=>{d.northStar=v;const snap=getLatestSnapshot();if(snap)snap.northStar=v});
         nsBody.appendChild(nsText);nsDiv.appendChild(nsTitle);nsDiv.appendChild(nsBody);f.appendChild(nsDiv)}
-        // ── Quest diff: classify quests as new/updated/stale ──
-        const _prevQSnap=getPrevSnapshot(currentSnapshotMesIdx);
-        const _prevQMaps={};
-        for(const _qk of['mainQuests','sideQuests','activeTasks']){const _m={};if(_prevQSnap&&Array.isArray(_prevQSnap[_qk]))for(const _q of _prevQSnap[_qk])_m[(_q.name||'').toLowerCase().trim()]=_q;_prevQMaps[_qk]=_m}
-        function _classifyQuest(q,tierKey){if(!_prevQSnap)return'stale';const pm=_prevQMaps[tierKey];if(!pm||!Object.keys(pm).length)return'new';const prev=pm[(q.name||'').toLowerCase().trim()];if(!prev)return'new';if((q.detail||'').trim()!==(prev.detail||'').trim())return'updated';return'stale'}
         // Quest tiers
         const QUEST_ICONS={main:'<svg class="sp-tier-icon" viewBox="0 0 16 16" fill="none"><path d="M3 14V3a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v11l-5-2.5L3 14z" fill="currentColor" opacity="0.2" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><line x1="6" y1="5" x2="10" y2="5" stroke="currentColor" stroke-width="0.9" opacity="0.5" stroke-linecap="round"/><line x1="6" y1="7.5" x2="10" y2="7.5" stroke="currentColor" stroke-width="0.9" opacity="0.5" stroke-linecap="round"/></svg>',side:'<svg class="sp-tier-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.1" fill="currentColor" opacity="0.1"/><path d="M8 4v4.5l3 1.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/><circle cx="8" cy="8" r="1" fill="currentColor" opacity="0.4"/></svg>',tasks:'<svg class="sp-tier-icon" viewBox="0 0 16 16" fill="none"><path d="M3.5 8.5l2.5 2.5 6.5-6.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="1.5" y="1.5" width="13" height="13" rx="2" stroke="currentColor" stroke-width="1" opacity="0.3"/></svg>'};
         for(const t of[{t:'Main Quests',icon:QUEST_ICONS.main,i:d.mainQuests,key:'mainQuests',cls:'sp-tier-main',empty:'No active storyline quests'},{t:'Side Quests',icon:QUEST_ICONS.side,i:d.sideQuests,key:'sideQuests',cls:'sp-tier-side',empty:'No side quests discovered'},{t:'Active Tasks',icon:QUEST_ICONS.tasks,i:d.activeTasks,key:'activeTasks',cls:'sp-tier-tasks',empty:'No immediate tasks'}]){
@@ -337,7 +341,11 @@ export function updatePanel(d,_force=false){
             if(t.i?.length)b.classList.add('sp-tier-open');
             const tierTitle=document.createElement('div');tierTitle.className='sp-plot-tier-title';
             const countBadge=t.i?.length?`<span class="sp-section-badge">${t.i.length}</span>`:'';
-            tierTitle.innerHTML=`<span class="sp-tier-chevron">\u25B6</span>${t.icon} ${t.t}${countBadge}`;
+            const _tc=_tierStatusCounts[t.key]||{};
+            let _tierBadges='';
+            if(_tc.n>0)_tierBadges+=`<span class="sp-tier-status sp-tier-status-new">${_tc.n} new</span>`;
+            if(_tc.u>0)_tierBadges+=`<span class="sp-tier-status sp-tier-status-updated">${_tc.u} upd</span>`;
+            tierTitle.innerHTML=`<span class="sp-tier-chevron">\u25B6</span>${t.icon} ${t.t}${countBadge}${_tierBadges}`;
             tierTitle.addEventListener('click',()=>b.classList.toggle('sp-tier-open'));
             b.appendChild(tierTitle);
             const tierBody=document.createElement('div');tierBody.className='sp-tier-body';
@@ -353,7 +361,10 @@ export function updatePanel(d,_force=false){
             } else {for(let qi=0;qi<t.i.length;qi++){const p=t.i[qi];const _qs=_classifyQuest(p,t.key);const e=document.createElement('div');e.className='sp-plot-entry';if(_qs==='new'||_qs==='updated')e.classList.add('sp-card-open');const nameEl=document.createElement('span');nameEl.className='sp-plot-name';nameEl.textContent=p.name||'';const headerDiv=document.createElement('div');headerDiv.className='sp-quest-header';let _qbadge='';if(_qs==='new')_qbadge='<span class="sp-quest-status sp-quest-status-new">new</span>';else if(_qs==='updated')_qbadge='<span class="sp-quest-status sp-quest-status-updated">updated</span>';headerDiv.innerHTML=`<span class="sp-quest-chevron">\u25B6</span><span class="sp-plot-status sp-urgency-${p.urgency||'moderate'}">${esc(p.urgency||'moderate')}</span>${_qbadge}`;headerDiv.appendChild(nameEl);headerDiv.addEventListener('click',()=>e.classList.toggle('sp-card-open'));e.appendChild(headerDiv);const detailEl=document.createElement('div');detailEl.className='sp-quest-detail';detailEl.textContent=p.detail||'\u2014';if(!p.detail){detailEl.classList.add('sp-empty-field');detailEl.dataset.placeholder='Quest details'}mkEditable(detailEl,()=>p.detail||'',v=>{p.detail=v;const snap=getLatestSnapshot();if(snap&&snap[t.key]?.[qi])snap[t.key][qi].detail=v});e.appendChild(detailEl);mkEditable(nameEl,()=>p.name||'',v=>{p.name=v;const snap=getLatestSnapshot();if(snap&&snap[t.key]?.[qi])snap[t.key][qi].name=v});tierBody.appendChild(e)}}
             b.appendChild(tierBody);f.appendChild(b)}
         return f;
-    },s);if(s.panels?.quests===false)_sec.classList.add('sp-panel-hidden');body.appendChild(_sec)}
+    },s);
+    // Inject quest status summary into section header
+    if(_totalQNew>0||_totalQUpdated>0){const _sh=_sec.querySelector('.sp-section-header');if(_sh){const _sw=document.createElement('span');_sw.className='sp-section-status-summary';let _sp=[];if(_totalQNew>0)_sp.push(`<span class="sp-section-status-new">${_totalQNew} new</span>`);if(_totalQUpdated>0)_sp.push(`<span class="sp-section-status-updated">${_totalQUpdated} upd</span>`);_sw.innerHTML=_sp.join('<span class="sp-section-status-sep">\u00B7</span>');const _spacer=_sh.querySelector('.sp-section-spacer');if(_spacer)_sh.insertBefore(_sw,_spacer);else _sh.appendChild(_sw)}}
+    if(s.panels?.quests===false)_sec.classList.add('sp-panel-hidden');body.appendChild(_sec)}
 
     // Relationships section (simplified -- preserves core meter logic, full SVG meter icons)
     {const _sec=mkSection('relationships','Relationships',d.relationships?.length||0,()=>{
