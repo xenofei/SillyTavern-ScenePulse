@@ -19,6 +19,7 @@ import { updateWeatherOverlay, clearWeatherOverlay } from './weather.js';
 import { updateTimeTint, clearTimeTint } from './time-tint.js';
 import { showLoadingOverlay, clearLoadingOverlay, showStopButton, hideStopButton, startElapsedTimer, stopElapsedTimer, showThoughtLoading, clearThoughtLoading } from './loading.js';
 import { updatePanel } from './update-panel.js';
+import { closeDiffViewer } from './diff-viewer.js';
 import { updateThoughts } from './thoughts.js';
 import { renderCustomPanelsMgr } from '../settings-ui/custom-panels.js';
 import { mkSection } from './section.js';
@@ -64,6 +65,7 @@ export function hidePanel(){
     p.classList.remove('sp-visible');
     const tp=document.getElementById('sp-thought-panel');
     if(tp)tp.classList.remove('sp-tp-visible');
+    closeDiffViewer(); // Close payload inspector when panel hides
     clearWeatherOverlay();
     clearTimeTint();
     spInjectTopBar(spDetectMode()); // Restore ST top bar on mobile
