@@ -62,7 +62,7 @@ REQUIRED FORMAT \u2014 append AFTER your narrative:
 {"time":"...","date":"...", ...only changed fields...}
 <!--SP_TRACKER_END-->
 
-This is NOT optional.`;
+This is NOT optional. Every single response MUST end with this block. The markers are parsed by software and stripped from the display. If you omit the block, scene tracking breaks completely.`;
     }
 
     return `[SCENE TRACKER \u2014 MANDATORY APPENDIX]
