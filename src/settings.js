@@ -57,10 +57,10 @@ export function getActiveSchema(){
     return{name:'ScenePulse',description:'Scene tracker.',strict:false,value:buildDynamicSchema(s)};
 }
 
-export function getActivePrompt(){
+export function getActivePrompt(opts){
     const s=getSettings();
     if(s.systemPrompt)return s.systemPrompt;
-    return buildDynamicPrompt(s);
+    return buildDynamicPrompt(s, opts);
 }
 
 // ── External Access ──

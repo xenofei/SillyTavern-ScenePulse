@@ -17,6 +17,7 @@ import {
 } from '../settings.js';
 import { normalizeTracker } from '../normalize.js';
 import { cleanJson } from './extraction.js';
+import { mergeDelta } from './delta-merge.js';
 import { spSetGenerating, spPostGenShow } from '../ui/mobile.js';
 import { updatePanel } from '../ui/update-panel.js';
 import { cleanupGenUI } from '../ui/loading.js';
@@ -155,7 +156,7 @@ export async function generateTracker(mesIdx,partKey,opts){
     setGenerating(true);setCancelRequested(false);spSetGenerating(true);
     const myNonce=genNonce+1;setGenNonce(myNonce);
     const genStartMs=Date.now();
-    const settings=getSettings();const schema=getActiveSchema();const sysPr=getActivePrompt();
+    const settings=getSettings();const schema=getActiveSchema();const sysPr=getActivePrompt({ hasPrevState: !!getLatestSnapshot() });
     let profileOverride=opts?.profile||settings.connectionProfile;
     let presetOverride=opts?.preset||settings.chatPreset;
     log('=== GENERATION START === mesIdx=',mesIdx,'partKey=',partKey||'(full)','nonce=',myNonce,'source=',lastGenSource||'unknown','profile=',profileOverride||'(current)');
@@ -285,6 +286,11 @@ export async function generateTracker(mesIdx,partKey,opts){
                 meta.elapsed=((Date.now()-genStartMs)/1000);
                 setGenMeta(meta);
                 const parsed=cleanJson(raw);
+                // Delta merge: combine delta response with previous snapshot
+                if(settings.deltaMode && lastSnap){
+                    log('Delta mode: merging',Object.keys(parsed).length,'delta keys with previous');
+                    return mergeDelta(lastSnap, parsed);
+                }
                 log('Parsed JSON keys:',Object.keys(parsed).join(', '));
                 for(const[pk,pv]of Object.entries(parsed)){
                     if(pv&&typeof pv==='object'&&!Array.isArray(pv)){log('  nested object:',pk,'\u2192 keys:',Object.keys(pv).join(', '))}

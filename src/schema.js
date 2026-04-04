@@ -1,18 +1,62 @@
 // ScenePulse — Dynamic Schema & Prompt Builder Module
-// Extracted from index.js lines 455-603
 
 import { DEFAULTS, BUILTIN_PANELS, BUILTIN_SCHEMA } from './constants.js';
+
+// ── Sub-field toggle → schema property mappings ──
+const CHAR_SUBFIELD_MAP={
+    char_innerThought:['innerThought'],
+    char_immediateNeed:['immediateNeed'],
+    char_shortTermGoal:['shortTermGoal'],
+    char_longTermGoal:['longTermGoal'],
+    char_hair:['hair'],
+    char_face:['face'],
+    char_outfit:['outfit','stateOfDress'],
+    char_posture:['posture'],
+    char_proximity:['proximity'],
+    char_physical:['physicalState'],
+    char_inventory:['inventory'],
+    char_fertility:['fertStatus','fertReason','fertCyclePhase','fertCycleDay','fertWindow','fertPregnancy','fertPregWeek','fertNotes']
+};
+const REL_SUBFIELD_MAP={
+    rel_type:['relType'],
+    rel_phase:['relPhase'],
+    rel_timeknown:['timeTogether'],
+    rel_milestone:['milestone'],
+    rel_affection:['affection','affectionLabel'],
+    rel_trust:['trust','trustLabel'],
+    rel_desire:['desire','desireLabel'],
+    rel_stress:['stress','stressLabel'],
+    rel_compatibility:['compatibility','compatibilityLabel']
+};
+const BRANCH_TYPES=['dramatic','intense','comedic','twist','exploratory'];
+
+// Deep-clone a schema object and strip disabled sub-field properties
+function filterArraySchema(baseSchema,subFieldMap,ft){
+    const clone=JSON.parse(JSON.stringify(baseSchema));
+    const itemProps=clone.items?.properties;
+    const itemReq=clone.items?.required;
+    if(!itemProps)return clone;
+    for(const[toggleKey,schemaKeys]of Object.entries(subFieldMap)){
+        if(ft[toggleKey]===false){
+            for(const sk of schemaKeys){
+                delete itemProps[sk];
+                if(itemReq){const idx=itemReq.indexOf(sk);if(idx!==-1)itemReq.splice(idx,1)}
+            }
+        }
+    }
+    return clone;
+}
 
 // ── Dynamic Schema Builder ──
 // Constructs JSON schema from enabled built-in panels + custom panels
 export function buildDynamicSchema(s){
     const props={};const required=[];
     const panels=s.panels||DEFAULTS.panels;
+    const ft=s.fieldToggles||{};
     // Built-in panels: add their fields to the schema
     for(const[panelId,panelDef] of Object.entries(BUILTIN_PANELS)){
         if(!panels[panelId])continue;
         const dc=s.dashCards||DEFAULTS.dashCards;
-        const ft=s.fieldToggles||{};
         for(const f of panelDef.fields){
             // Skip disabled dashboard cards or field toggles
             if(f.dashCard&&dc[f.dashCard]===false)continue;
@@ -26,11 +70,18 @@ export function buildDynamicSchema(s){
             } else if(f.type==='questArray'){
                 props[f.key]={type:'array',description:f.desc,items:{type:'object',properties:{name:{type:'string'},urgency:{type:'string',enum:['critical','high','moderate','low']},detail:{type:'string'}},required:['name','urgency','detail']}};
             } else if(f.type==='relationshipArray'){
-                props[f.key]=BUILTIN_SCHEMA.value.properties.relationships;
+                props[f.key]=filterArraySchema(BUILTIN_SCHEMA.value.properties.relationships,REL_SUBFIELD_MAP,ft);
             } else if(f.type==='characterArray'){
-                props[f.key]=BUILTIN_SCHEMA.value.properties.characters;
+                props[f.key]=filterArraySchema(BUILTIN_SCHEMA.value.properties.characters,CHAR_SUBFIELD_MAP,ft);
             } else if(f.type==='plotArray'){
-                props[f.key]=BUILTIN_SCHEMA.value.properties.plotBranches;
+                // Filter enabled branch types
+                const enabledTypes=BRANCH_TYPES.filter(t=>ft['branch_'+t]!==false);
+                const clone=JSON.parse(JSON.stringify(BUILTIN_SCHEMA.value.properties.plotBranches));
+                if(enabledTypes.length<BRANCH_TYPES.length&&clone.items?.properties?.type){
+                    clone.items.properties.type.enum=enabledTypes;
+                    clone.description=`Exactly ${enabledTypes.length} story directions — one per category.`;
+                }
+                props[f.key]=clone;
             }
             required.push(f.key);
         }
@@ -60,15 +111,16 @@ export function buildDynamicSchema(s){
 
 // ── Dynamic Prompt Builder ──
 // Constructs field specifications from enabled panels + custom panels
-export function buildDynamicPrompt(s){
+export function buildDynamicPrompt(s, opts = {}){
     const panels=s.panels||DEFAULTS.panels;
     let prompt=`# SCENE TRACKER \u2014 JSON OUTPUT ONLY
 
 You are a precise scene analysis engine. Read the story context and output a single JSON object conforming exactly to the provided schema. Output raw JSON only \u2014 no prose, no markdown fences, no commentary.
 
 ## CRITICAL RULES
-1. Populate EVERY field in EVERY response. Infer from prior context if not explicitly stated. Never leave fields empty \u2014 use best available inference.
+1. EVERY field in the schema MUST contain meaningful data. NEVER return empty string "", empty array [], or null for ANY field. If not explicitly stated in the story, INFER from context, character descriptions, genre conventions, or the previous state. A best-guess answer is ALWAYS better than an empty field.
 2. Output must be valid parseable JSON. No trailing commas, no comments.
+3. If the previous state provided a value and you have no new information, carry that value forward UNCHANGED. Emptying a previously-populated field is a critical error.
 
 ## FIELD SPECIFICATIONS
 `;
@@ -97,18 +149,23 @@ You are a precise scene analysis engine. Read the story context and output a sin
         if(sceneFields.length)prompt+='\n### Scene Analysis (REQUIRED)\n'+sceneFields.join('\n')+'\n';
     }
     // Characters
-    if(panels.characters) prompt+=`
-### Characters (all EXCEPT {{user}})
-- role: WHO this person IS \u2014 their identity/title/relationship. NOT feelings. Examples: "{{user}}'s partner" | "13-year-old daughter" | "Stranger on the street"
-- innerThought: The character's LITERAL inner voice \u2014 exact words running through their head. 1-3 sentences. Write as if reading their mind. NEVER include emotion labels or narration.
-- immediateNeed: What they urgently need RIGHT NOW
-- shortTermGoal: What they want in the coming hours/days
-- longTermGoal: Their overarching life motivation
-- Appearance fields: Be detailed and specific. Outfits include all layers.
-- stateOfDress: One of: pristine, neat, casual, slightly disheveled, disheveled, partially undressed, undressed
-- inventory: ONLY objects (phone, keys, weapons, bags) \u2014 NOT clothing
-- Fertility: fertStatus=active only if biologically relevant, otherwise N/A all fertility fields
-`;
+    if(panels.characters){
+        const ft=s.fieldToggles||{};
+        let charFields=['- name: Character name','- role: WHO this person IS \u2014 their identity/title/relationship. NOT feelings.'];
+        if(ft.char_innerThought!==false)charFields.push("- innerThought: The character's LITERAL inner voice \u2014 exact words. 1-3 sentences. NEVER emotion labels or narration.");
+        if(ft.char_immediateNeed!==false)charFields.push('- immediateNeed: What they urgently need RIGHT NOW');
+        if(ft.char_shortTermGoal!==false)charFields.push('- shortTermGoal: What they want in the coming hours/days');
+        if(ft.char_longTermGoal!==false)charFields.push('- longTermGoal: Their overarching life motivation');
+        if(ft.char_hair!==false)charFields.push('- hair: Hair style, color, length.');
+        if(ft.char_face!==false)charFields.push('- face: Facial features, expression, makeup.');
+        if(ft.char_outfit!==false){charFields.push('- outfit: Include all layers.');charFields.push('- stateOfDress: One of: pristine, neat, casual, slightly disheveled, disheveled, partially undressed, undressed')}
+        if(ft.char_posture!==false)charFields.push('- posture: Body language and stance.');
+        if(ft.char_proximity!==false)charFields.push('- proximity: Distance and position relative to others.');
+        if(ft.char_physical!==false)charFields.push('- physicalState: Current physical condition.');
+        if(ft.char_inventory!==false)charFields.push('- inventory: ONLY objects (phone, keys, weapons, bags) \u2014 NOT clothing');
+        if(ft.char_fertility!==false)charFields.push('- Fertility: fertStatus=active only if biologically relevant, otherwise N/A all fertility fields');
+        prompt+='\n### Characters (all EXCEPT {{user}})\n'+charFields.join('\n')+'\n';
+    }
     // Quests
     if(panels.quests){
         const ft=s.fieldToggles||{};
@@ -123,20 +180,29 @@ You are a precise scene analysis engine. Read the story context and output a sin
         }
     }
     // Relationships
-    if(panels.relationships) prompt+=`
-### Relationships (how characters perceive {{user}})
-- relType: Their social role/dynamic with {{user}}
-- relPhase: Current stage of their relationship
-- timeTogether: How long they've known each other
-- milestone: Most recent significant moment
-- Meters (0-100): affection, trust, desire, stress, compatibility \u2014 each with a descriptive label
-- desire: 0 for anyone without established sexual interest (family, strangers, minors)
-`;
+    if(panels.relationships){
+        const ft=s.fieldToggles||{};
+        let relFields=['- name: Character name'];
+        if(ft.rel_type!==false)relFields.push('- relType: Their social role/dynamic with {{user}}');
+        if(ft.rel_phase!==false)relFields.push('- relPhase: Current stage of their relationship');
+        if(ft.rel_timeknown!==false)relFields.push('- timeTogether: How long they\'ve known each other');
+        if(ft.rel_milestone!==false)relFields.push('- milestone: Most recent significant moment');
+        const meters=[];
+        if(ft.rel_affection!==false)meters.push('affection');
+        if(ft.rel_trust!==false)meters.push('trust');
+        if(ft.rel_desire!==false)meters.push('desire');
+        if(ft.rel_stress!==false)meters.push('stress');
+        if(ft.rel_compatibility!==false)meters.push('compatibility');
+        if(meters.length)relFields.push('- Meters (0-100): '+meters.join(', ')+' \u2014 each with a descriptive label');
+        if(ft.rel_desire!==false)relFields.push('- desire: 0 for anyone without established sexual interest (family, strangers, minors)');
+        prompt+='\n### Relationships (how characters perceive {{user}})\n'+relFields.join('\n')+'\n';
+    }
     // Story Ideas
-    if(panels.storyIdeas) prompt+=`
-### Plot Branches (EXACTLY 5 suggestions)
-One per category: dramatic, intense, comedic, twist, exploratory. Each must be SPECIFIC to the current scene \u2014 name characters, reference established details. Each needs type, name (2-5 words), hook (1-2 sentences explaining what happens and why it matters).
-`;
+    if(panels.storyIdeas){
+        const ft=s.fieldToggles||{};
+        const enabledTypes=BRANCH_TYPES.filter(t=>ft['branch_'+t]!==false);
+        if(enabledTypes.length)prompt+=`\n### Plot Branches (EXACTLY ${enabledTypes.length} suggestions)\nOne per category: ${enabledTypes.join(', ')}. Each must be SPECIFIC to the current scene \u2014 name characters, reference established details. Each needs type, name (2-5 words), hook (1-2 sentences explaining what happens and why it matters).\n`;
+    }
     // Custom panels
     const customPanels=s.customPanels||[];
     if(customPanels.length){
@@ -149,6 +215,21 @@ One per category: dramatic, intense, comedic, twist, exploratory. Each must be S
                 prompt+=`- ${f.key}: ${f.desc||f.label} ${typeHint}\n`;
             }
         }
+    }
+    // Delta mode instructions (only when previous state exists)
+    if(s.deltaMode && opts.hasPrevState){
+        prompt+=`
+
+## DELTA MODE — RETURN ONLY CHANGES
+You are in DELTA mode. The previous state is provided for reference.
+1. ONLY return fields whose values CHANGED since the previous state.
+2. OMIT any field whose value is identical to the previous state.
+3. ALWAYS include: time, date, elapsed (these change every turn).
+4. For characters/relationships: include ONLY entities with changes. Include the FULL entity object (all fields) if ANY field changed.
+5. For quests: include the FULL array if ANY quest was added/removed/modified. Omit entirely if unchanged.
+6. plotBranches: ALWAYS include (fresh suggestions every time).
+7. Do NOT echo unchanged data. Omitting a field means "unchanged."
+`;
     }
     return prompt;
 }

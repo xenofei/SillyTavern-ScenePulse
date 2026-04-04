@@ -40,6 +40,31 @@ export function buildInlineTrackerPrompt(){
         if(!cp.fields?.length)continue;
         mandatoryHints+=`\n- ${cp.fields.map(f=>f.key).join(', ')}: ${cp.name} fields \u2014 populate from story context.`;
     }
+    const isDelta = s.deltaMode && snap;
+
+    if(isDelta){
+        return `[SCENE TRACKER \u2014 MANDATORY APPENDIX \u2014 DELTA MODE]
+After your COMPLETE narrative response, append a JSON block with ONLY CHANGED FIELDS.
+
+DELTA RULES:
+- ONLY return fields that changed since the PREVIOUS STATE.
+- ALWAYS include: time, date, elapsed, plotBranches.
+- For characters/relationships: only include entities that changed. Include ALL fields of changed entities.
+- OMIT unchanged fields \u2014 omission means "unchanged."
+${mandatoryHints?'\nWHEN INCLUDING:'+mandatoryHints:''}
+
+${fieldSpecs}
+${prevState}
+
+REQUIRED FORMAT \u2014 append AFTER your narrative:
+
+<!--SP_TRACKER_START-->
+{"time":"...","date":"...", ...only changed fields...}
+<!--SP_TRACKER_END-->
+
+This is NOT optional.`;
+    }
+
     return `[SCENE TRACKER \u2014 MANDATORY APPENDIX]
 After your COMPLETE narrative response, append a JSON tracker block. This block is automatically hidden by the UI \u2014 you MUST include it every time.
 
@@ -47,6 +72,7 @@ The JSON must contain these keys: ${fieldList}
 ${mandatoryHints?'\nMANDATORY FIELDS:'+mandatoryHints:''}
 
 Do NOT include schema metadata. Output only actual tracker data as a flat JSON object.
+CRITICAL: Every field in the schema MUST have a non-empty value. NEVER return "" or []. If unsure, infer from context or carry forward the previous value.
 
 ${fieldSpecs}
 ${prevState}

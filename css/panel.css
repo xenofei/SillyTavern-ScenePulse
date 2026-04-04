@@ -31,8 +31,9 @@
 /* ═══ UNIFIED TOOLBAR ═══ */
 .sp-toolbar {
     position: sticky; top: 0; z-index: 10;
-    display: flex; align-items: center; gap: 8px; padding: 7px 10px;
+    display: flex; align-items: center; gap: 4px 8px; padding: 7px 10px;
     background: var(--sp-bg-solid); border-bottom: 1px solid var(--sp-border);
+    flex-wrap: wrap;
 }
 .sp-brand-icon {
     width: 26px; height: 26px; color: var(--sp-accent); cursor: pointer;

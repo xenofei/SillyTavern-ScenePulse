@@ -105,6 +105,7 @@ export function createPanel(){
         <button class="sp-toolbar-btn sp-tb-active" id="sp-tb-sceneTrans" title="Toggle location change popups"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M2 12V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z" stroke="currentColor" stroke-width="1.1" fill="currentColor" opacity="0.08"/><path d="M5 8h6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.5"/><path d="M9.5 5.5L12 8l-2.5 2.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         <span class="sp-toolbar-sep"></span>
         <button class="sp-toolbar-btn" id="sp-tb-edit" title="Toggle edit mode"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M11.5 1.5l3 3-8.5 8.5H3v-3l8.5-8.5z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><line x1="9.5" y1="3.5" x2="12.5" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.4"/><line x1="3" y1="14.5" x2="13" y2="14.5" stroke="currentColor" stroke-width="1" opacity="0.3" stroke-linecap="round"/></svg></button>
+        <button class="sp-toolbar-btn" id="sp-tb-empty" title="Show empty fields"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><rect x="2" y="3" width="12" height="2" rx="0.8" stroke="currentColor" stroke-width="1" opacity="0.6"/><rect x="2" y="7" width="12" height="2" rx="0.8" stroke="currentColor" stroke-width="1" opacity="0.3" stroke-dasharray="2 1.5"/><rect x="2" y="11" width="12" height="2" rx="0.8" stroke="currentColor" stroke-width="1" opacity="0.6"/></svg></button>
         <div class="sp-dev-wrap" id="sp-dev-wx-wrap" style="display:none"><button class="sp-toolbar-btn sp-tb-dev" id="sp-tb-dev-wx" title="DEV: Weather overlays"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M4 12c-1.8 0-3-1-3-2.5S2 7.5 3.5 7C4 4.5 6 3 8.5 3c2.2 0 4 1.5 4.2 3.5C14 6.8 15 8 15 9.5S13.5 12 12 12z" stroke="currentColor" stroke-width="1.1" fill="currentColor" opacity="0.15"/><path d="M6 8l2-3 2 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/><line x1="8" y1="8" x2="8" y2="13" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/></svg></button><div class="sp-dev-dropdown" id="sp-dev-wx-menu"></div></div>
         <div class="sp-dev-wrap" id="sp-dev-time-wrap" style="display:none"><button class="sp-toolbar-btn sp-tb-dev" id="sp-tb-dev-time" title="DEV: Time-of-day tints"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><circle cx="8" cy="8" r="5.5" stroke="currentColor" stroke-width="1.2"/><line x1="8" y1="8" x2="8" y2="4.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><line x1="8" y1="8" x2="11" y2="9.5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/><circle cx="8" cy="8" r="0.8" fill="currentColor"/></svg></button><div class="sp-dev-dropdown" id="sp-dev-time-menu"></div></div>
         <button class="sp-toolbar-btn" id="sp-tb-minimize" title="Hide panel" style="display:none"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><line x1="2" y1="13" x2="14" y2="13" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity="0.4"/></svg></button>
@@ -197,6 +198,16 @@ export function createPanel(){
         if(isEdit)toastr.info('Click any highlighted field to edit','Edit Mode On');
         else toastr.info('Edit mode off','Edit Mode Off');
         log('Edit mode:',isEdit);
+    });
+    // Show empty fields toggle
+    document.getElementById('sp-tb-empty').addEventListener('click',()=>{
+        const p=document.getElementById('sp-panel');if(!p)return;
+        const show=p.classList.toggle('sp-show-empty');
+        document.getElementById('sp-tb-empty').classList.toggle('sp-tb-active',show);
+        const st=getSettings();st.showEmptyFields=show;saveSettings();
+        // Re-render panel so DOM-conditional sections (fertility) update
+        const snap=getLatestSnapshot();if(snap){updatePanel(normalizeTracker(snap),true)}
+        log('Show empty fields:',show);
     });
     // Compact/Focus toggle
     document.getElementById('sp-tb-compact').addEventListener('click',()=>{
@@ -336,8 +347,8 @@ export function createPanel(){
                             s.fieldToggles[fKey]=scb.checked;
                             // CSS-only toggle -- zero rebuilds
                             body.querySelectorAll(`[data-ft="${fKey}"]`).forEach(el=>{el.style.display=scb.checked?'':'none'});
-                            // char_thoughts controls the floating thoughts panel
-                            if(fKey==='char_thoughts'){
+                            // char_innerThought controls the floating thoughts panel
+                            if(fKey==='char_innerThought'){
                                 s.showThoughts=scb.checked;
                                 const tp=document.getElementById('sp-thought-panel');
                                 const thBtn=document.getElementById('sp-tb-thoughts');
@@ -515,7 +526,7 @@ export function createPanel(){
         if(ttBtn&&_dc.time===false){ttBtn.style.opacity='0.25';ttBtn.style.pointerEvents='none'}
         const thBtn=document.getElementById('sp-tb-thoughts');
         const _ft=s.fieldToggles||{};
-        if(thBtn&&(_ft.char_thoughts===false||s.showThoughts===false)){thBtn.style.opacity='0.25';thBtn.style.pointerEvents='none'}
+        if(thBtn&&(_ft.char_innerThought===false||s.showThoughts===false)){thBtn.style.opacity='0.25';thBtn.style.pointerEvents='none'}
         // Trigger open transition: start from closing state, remove in next frame
         requestAnimationFrame(()=>requestAnimationFrame(()=>mgr.classList.remove('sp-mgr-closing')));
     });
@@ -615,6 +626,9 @@ export function createPanel(){
     if(tbWeather)tbWeather.classList.toggle('sp-tb-active',s.weatherOverlay!==false);
     const tbTimeTint=document.getElementById('sp-tb-timeTint');
     if(tbTimeTint)tbTimeTint.classList.toggle('sp-tb-active',s.timeTint!==false);
+    const tbEmpty=document.getElementById('sp-tb-empty');
+    if(tbEmpty)tbEmpty.classList.toggle('sp-tb-active',s.showEmptyFields===true);
+    if(s.showEmptyFields){const p=document.getElementById('sp-panel');if(p)p.classList.add('sp-show-empty')}
     // Dev buttons visibility
     const devVis=s.devButtons?'':'none';
     const dw=document.getElementById('sp-dev-wx-wrap');if(dw)dw.style.display=devVis;

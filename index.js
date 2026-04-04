@@ -3,7 +3,7 @@
 
 // ── Foundation ──
 import './src/logger.js';
-import { DEFAULTS, BUILTIN_PANELS, VERSION } from './src/constants.js';
+import { VERSION } from './src/constants.js';
 import { log, warn, err } from './src/logger.js';
 
 // ── Core Logic ──
@@ -17,7 +17,7 @@ import {
     setPrevLocation, setPrevTimePeriod
 } from './src/state.js';
 import {
-    getSettings, saveSettings, anyPanelsActive,
+    getSettings, anyPanelsActive,
     getLatestSnapshot, saveSnapshot,
     ensureChatSaved, invalidateSettingsCache
 } from './src/settings.js';
@@ -26,6 +26,7 @@ import { resetColorMap } from './src/color.js';
 
 // ── Generation ──
 import { extractInlineTracker } from './src/generation/extraction.js';
+import { mergeDelta } from './src/generation/delta-merge.js';
 import { stopStreamingHider } from './src/generation/streaming.js';
 import { cancelGeneration } from './src/generation/engine.js';
 import { scenePulseInterceptor } from './src/generation/interceptor.js';
@@ -66,18 +67,6 @@ eventSource.on(event_types.APP_READY, () => { try {
         setTimeout(() => showSetupGuide(), 2000);
     }
     log('v' + VERSION + ' ready');
-    // One-time migration: reset stale sub-field toggles from old Disable All
-    if (_s.fieldToggles) {
-        const _ft = _s.fieldToggles; const _p = _s.panels || DEFAULTS.panels;
-        for (const [pid, def] of Object.entries(BUILTIN_PANELS)) {
-            if (_p[pid] !== false) {
-                for (const sf of (def.subFields || [])) {
-                    if (_ft[sf.key] === false) { delete _ft[sf.key]; log('Migration: reset stale sub-field', sf.key); }
-                }
-            }
-        }
-        saveSettings();
-    }
 } catch (e) { err('APP_READY:', e); } });
 
 eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, idx => onCharMsg(idx));
@@ -98,7 +87,7 @@ eventSource.on(event_types.GENERATION_ENDED, async () => {
         if (targetIdx >= 0) {
             log('GENERATION_ENDED: primary extraction attempt for message', targetIdx);
             const fullMsgLen = (chat[targetIdx]?.mes || '').length;
-            const extracted = extractInlineTracker(targetIdx);
+            let extracted = extractInlineTracker(targetIdx);
             if (extracted) {
                 log('GENERATION_ENDED: primary extraction SUCCESS for message', targetIdx);
                 setInlineExtractionDone(true); setPendingInlineIdx(-1);
@@ -108,6 +97,12 @@ eventSource.on(event_types.GENERATION_ENDED, async () => {
                 setInlineGenStartMs(0);
                 setLastGenSource('auto:together');
                 setLastRawResponse(JSON.stringify(extracted, null, 2));
+                // Delta merge for inline mode
+                const prevSnap = getLatestSnapshot();
+                if(s.deltaMode && prevSnap){
+                    extracted = mergeDelta(prevSnap, extracted);
+                    log('GENERATION_ENDED: delta merge applied');
+                }
                 const norm = normalizeTracker(extracted);
                 setCurrentSnapshotMesIdx(targetIdx);
                 log('=== TOGETHER MODE SUMMARY === source=', lastGenSource);

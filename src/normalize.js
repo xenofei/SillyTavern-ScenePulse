@@ -379,6 +379,40 @@ export function normalizeTracker(d){
     for(const k of Object.keys(d)){
         if(!knownKeys.has(k))o[k]=d[k];
     }
+    // ── Comprehensive carry-forward: fill ALL empty fields from previous snapshot ──
+    try{const _prev=getLatestSnapshot();if(_prev){
+        // Scalar fields: carry forward if current is empty string
+        for(const _ck of['time','date','elapsed','location','weather','temperature','soundEnvironment','sceneTopic','sceneMood','sceneInteraction','sceneTension','sceneSummary']){
+            if(!o[_ck]&&_prev[_ck]){o[_ck]=_prev[_ck];if(_verbose)log('Carry-forward:',_ck)}
+        }
+        // charactersPresent: carry forward if empty
+        if(!o.charactersPresent?.length&&_prev.charactersPresent?.length){o.charactersPresent=_prev.charactersPresent;if(_verbose)log('Carry-forward: charactersPresent')}
+        // Characters: fill empty sub-fields from matching previous character
+        if(o.characters?.length&&_prev.characters?.length){
+            for(const _ch of o.characters){
+                const _pch=_prev.characters.find(pc=>pc.name&&_ch.name&&pc.name.toLowerCase()===_ch.name.toLowerCase());
+                if(!_pch)continue;
+                for(const _fk of['role','innerThought','immediateNeed','shortTermGoal','longTermGoal','hair','face','outfit','stateOfDress','posture','proximity','physicalState','fertStatus','fertReason','fertCyclePhase','fertWindow','fertPregnancy','fertNotes']){
+                    if(!_ch[_fk]&&_pch[_fk]){_ch[_fk]=_pch[_fk];if(_verbose)log('Char carry-forward:',_ch.name,_fk)}
+                }
+                if((!_ch.inventory||!_ch.inventory.length)&&_pch.inventory?.length){_ch.inventory=_pch.inventory;if(_verbose)log('Char carry-forward:',_ch.name,'inventory')}
+                if(!_ch.fertCycleDay&&_pch.fertCycleDay)_ch.fertCycleDay=_pch.fertCycleDay;
+                if(!_ch.fertPregWeek&&_pch.fertPregWeek)_ch.fertPregWeek=_pch.fertPregWeek;
+            }
+        }
+        // Relationship milestone: extend existing carry-forward
+        if(o.relationships?.length&&_prev.relationships?.length){
+            for(const _rel of o.relationships){
+                const _prel=_prev.relationships.find(pr=>pr.name===_rel.name);
+                if(_prel&&!_rel.milestone&&_prel.milestone){_rel.milestone=_prel.milestone;if(_verbose)log('Rel carry-forward:',_rel.name,'milestone')}
+            }
+        }
+        // Custom panel fields: carry forward any non-metadata key that is empty in o but populated in prev
+        for(const _pk of Object.keys(_prev)){
+            if(_pk.startsWith('_sp'))continue;
+            if(o[_pk]===''&&_prev[_pk]!==''){o[_pk]=_prev[_pk];if(_verbose)log('Custom carry-forward:',_pk)}
+        }
+    }}catch(e){/* carry-forward is best-effort */}
     if(_verbose)auditFields('normalizeTracker',o,['time','date','elapsed','location','weather','temperature','soundEnvironment','sceneTopic','sceneMood','sceneInteraction','sceneTension','sceneSummary','witnesses','charactersPresent','mainQuests','sideQuests','activeTasks','plotBranches','northStar','relationships','characters']);
     if(d._spMeta)o._spMeta=d._spMeta;
     _normCache.set(d, o);

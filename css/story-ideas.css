@@ -49,11 +49,13 @@
     background: rgba(77,184,164,0.05);
     outline: 1px dashed rgba(77,184,164,0.3);
 }
-/* Empty fields: hidden normally, shown in edit mode */
+/* Empty fields: hidden normally, shown in edit mode or show-empty mode */
 .sp-empty-field { display: none; }
-#sp-panel.sp-edit-mode .sp-empty-field {
+#sp-panel.sp-edit-mode .sp-empty-field,
+#sp-panel.sp-show-empty .sp-empty-field {
     display: block; opacity: 0.4; font-style: italic;
 }
-#sp-panel.sp-edit-mode .sp-char-grid .sp-empty-field { display: block; }
+#sp-panel.sp-edit-mode .sp-char-grid .sp-empty-field,
+#sp-panel.sp-show-empty .sp-char-grid .sp-empty-field { display: block; }
 /* Empty quest tiers: always visible, editable in edit mode */
 /* Remove old always-on hover */
