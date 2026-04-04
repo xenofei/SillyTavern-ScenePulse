@@ -161,6 +161,17 @@ body:has(#sp-panel.sp-mode-mobile) .sp-loading-glass-fixed {
     box-sizing: border-box;
 }
 .sp-diff-overlay.sp-diff-visible { opacity: 1; }
+/* Floating close button — large touch target, hidden on desktop (header × is enough) */
+.sp-diff-close-float {
+    display: none; position: fixed; top: 8px; right: 8px; z-index: 10001;
+    width: 44px; height: 44px; border-radius: 50%;
+    background: rgba(30,32,40,0.9); border: 1px solid rgba(255,255,255,0.15);
+    color: #e8ecf4; font-size: 24px; line-height: 1;
+    cursor: pointer; align-items: center; justify-content: center;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    transition: background 0.15s, transform 0.15s;
+}
+.sp-diff-close-float:hover { background: rgba(196,91,91,0.3); transform: scale(1.1); }
 .sp-diff-container {
     background: var(--sp-bg-solid, #161820); border: 1px solid var(--sp-border, rgba(255,255,255,0.08));
     border-radius: 10px; width: min(90vw, 800px);
@@ -231,6 +242,11 @@ body:has(#sp-panel.sp-mode-mobile) .sp-loading-glass-fixed {
 .sp-diff-sbs-right .sp-diff-sbs-label { color: #7dd89a; }
 .sp-diff-sbs .sp-diff-pre { font-size: 10.5px; padding: 6px 10px; }
 .sp-diff-line-pad { opacity: 0.15; background: rgba(255,255,255,0.02); }
+/* Diff viewer: small screens — show floating close, remove blur */
+@media (max-width: 1024px) {
+    .sp-diff-overlay { backdrop-filter: none; -webkit-backdrop-filter: none; }
+    .sp-diff-close-float { display: flex; }
+}
 /* Diff viewer: phones */
 @media (max-width: 600px) {
     .sp-diff-overlay { padding: 10px 6px; }
@@ -241,7 +257,7 @@ body:has(#sp-panel.sp-mode-mobile) .sp-loading-glass-fixed {
     .sp-diff-spacer { display: none; }
     .sp-diff-tab { font-size: 10px; padding: 3px 6px; }
     .sp-diff-copy { font-size: 10px; padding: 3px 6px; }
-    .sp-diff-close { width: 24px; height: 24px; font-size: 16px; }
+    .sp-diff-close { display: none; }
     .sp-diff-pre { font-size: 10px; padding: 8px 10px; }
     .sp-diff-sbs { flex-direction: column; }
     .sp-diff-sbs-pane { border-right: none; border-bottom: 1px solid var(--sp-border, rgba(255,255,255,0.06)); max-height: 40vh; }

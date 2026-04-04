@@ -46,6 +46,7 @@ export function openDiffViewer(mesIdx) {
             </div>
             <div class="sp-diff-body" id="sp-diff-body"></div>
         </div>
+        <button class="sp-diff-close-float" title="Close">&times;</button>
     `;
     // Append to documentElement (not body) to escape SillyTavern's
     // body { position: fixed; overflow: hidden } at <=1000px viewports
@@ -83,6 +84,7 @@ export function openDiffViewer(mesIdx) {
         tab.addEventListener('click', () => renderTab(tab.dataset.tab));
     });
     overlay.querySelector('.sp-diff-close').addEventListener('click', closeDiffViewer);
+    overlay.querySelector('.sp-diff-close-float').addEventListener('click', closeDiffViewer);
     overlay.addEventListener('click', e => { if (e.target === overlay) closeDiffViewer(); });
     overlay.querySelector('.sp-diff-copy').addEventListener('click', () => {
         let text;
