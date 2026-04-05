@@ -5,6 +5,7 @@ import { MODULE_NAME, DEFAULTS } from './constants.js';
 import { log, warn } from './logger.js';
 import { esc } from './utils.js';
 import { buildDynamicSchema, buildDynamicPrompt } from './schema.js';
+import { t } from './i18n.js';
 
 let _settingsCache = null;
 
@@ -118,7 +119,7 @@ export function refreshLorebookDisplay(){
     let html='';
     const allBooks=[...info.global,...info.char,...info.attached].filter((v,i,a)=>a.indexOf(v)===i).filter(b=>b&&b!=='--- None ---');
     if(!allBooks.length){
-        html='<div class="sp-lore-none">No lorebooks detected</div>';
+        html='<div class="sp-lore-none">'+t('No lorebooks detected')+'</div>';
     } else {
         const filtered=mode==='exclude_all'?[]:
             mode==='character_only'?allBooks.filter(b=>info.char.includes(b)):
@@ -145,16 +146,16 @@ export function updateLorebookRec(){
     let rec,reason;
     if(method==='separate'){
         rec='character_attached';
-        reason='Separate generation runs an isolated API call \u2014 it needs lorebook context injected since ST won\'t provide it automatically.';
+        reason=t('Separate generation runs an isolated API call — it needs lorebook context injected since ST won\'t provide it automatically.');
     } else {
         rec='exclude_all';
-        reason='Together mode uses the normal generation \u2014 ST already injects lorebooks into context, so including them here would be redundant.';
+        reason=t('Together mode uses the normal generation — ST already injects lorebooks into context, so including them here would be redundant.');
     }
     const recLabel={'character_attached':'Attached','character_only':'Character only','exclude_all':'Disabled','allowlist':'Allowlist'}[rec]||rec;
     if(current===rec){
-        el.innerHTML=`<span class="sp-lore-rec-ok">\u2713 Using recommended: <strong>${esc(recLabel)}</strong></span><span class="sp-lore-rec-why">${reason}</span>`;
+        el.innerHTML=`<span class="sp-lore-rec-ok">\u2713 ${t('Using recommended:')} <strong>${esc(recLabel)}</strong></span><span class="sp-lore-rec-why">${reason}</span>`;
     } else {
-        el.innerHTML=`<span class="sp-lore-rec-suggest">Recommended: <strong>${esc(recLabel)}</strong> <a href="#" id="sp-lore-apply-rec">Apply</a></span><span class="sp-lore-rec-why">${reason}</span>`;
+        el.innerHTML=`<span class="sp-lore-rec-suggest">${t('Recommended:')} <strong>${esc(recLabel)}</strong> <a href="#" id="sp-lore-apply-rec">${t('Apply')}</a></span><span class="sp-lore-rec-why">${reason}</span>`;
         document.getElementById('sp-lore-apply-rec')?.addEventListener('click',(e)=>{
             e.preventDefault();
             s.lorebookMode=rec;saveSettings();

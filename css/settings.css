@@ -102,6 +102,21 @@
 }
 #scenepulse-settings .sp-btn-sm:hover { background: var(--sp-surface-hover); color: var(--sp-text-bright); border-color: var(--sp-accent); }
 
+/* Schema edit protection */
+.sp-schema-caution {
+    font-size: 10px; color: var(--sp-text-dim); padding: 6px 8px;
+    background: var(--sp-surface); border: 1px solid var(--sp-border);
+    border-radius: var(--sp-radius); margin: 4px 0; line-height: 1.4;
+}
+.sp-schema-warning {
+    font-size: 10px; color: #d4a855; padding: 6px 8px;
+    background: rgba(212,168,85,0.08); border: 1px solid rgba(212,168,85,0.2);
+    border-radius: var(--sp-radius); margin: 4px 0; line-height: 1.4;
+}
+#sp-schema-unlock {
+    margin: 4px 0; font-size: 11px;
+}
+
 /* Make prompt/schema textareas properly sized */
 #sp-sysprompt, #sp-schema {
     width: 100%; min-height: 120px; max-height: 400px;

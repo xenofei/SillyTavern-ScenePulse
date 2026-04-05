@@ -191,6 +191,8 @@ export function bindUI(){const s=getSettings();
     $('#sp-lore-mode').on('change',function(){s.lorebookMode=this.value;saveSettings();_spSaveLS();$('#sp-lore-section').toggle(this.value==='allowlist');refreshLorebookDisplay();updateLorebookRec()});
     $('#sp-sysprompt').on('change',function(){const v=this.value.trim();const dynamicPrompt=buildDynamicPrompt(s).trim();s.systemPrompt=(v===dynamicPrompt)?null:v||null;saveSettings()});
     $('#sp-schema').on('change',function(){const v=this.value.trim();const dynamicStr=JSON.stringify(buildDynamicSchema(s),null,2);if(v===dynamicStr){s.schema=null;saveSettings();return}if(v){try{JSON.parse(v);s.schema=v}catch{toastr.error(t('Invalid JSON'));return}}else s.schema=null;saveSettings()});
+    // Schema edit protection
+    $('#sp-schema-unlock').on('click',function(){$('#sp-schema-locked').hide();$('#sp-schema-unlocked').show()});
     // Default and Copy buttons
     $('#sp-sysprompt-default').on('click',()=>{s.systemPrompt=null;saveSettings();$('#sp-sysprompt').val(buildDynamicPrompt(s));toastr.info(t('System prompt reset to default'))});
     $('#sp-sysprompt-copy').on('click',()=>{navigator.clipboard.writeText($('#sp-sysprompt').val());toastr.success(t('Prompt copied'))});
