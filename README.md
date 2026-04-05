@@ -329,10 +329,11 @@ Found a bug? Have a feature idea? Contributions welcome!
 ScenePulse started as a desire for something more — a scene-aware companion that could grow alongside the stories being told. These projects paved the way and remain worth checking out:
 
 - [**RPG Companion**](https://github.com/SpicyMarinara/rpg-companion-sillytavern) by SpicyMarinara — The original RPG tracking extension for SillyTavern
+- [**Dooms Enhancement Suite**](https://github.com/DangerDaza/Dooms-Enhancement-Suite) by DangerDaza — Feature-rich enhancement suite with inline JSON extraction, regex-based payload hiding, and modular architecture. Their `markdownOnly` regex approach for hiding streamed JSON directly informed ScenePulse's payload hiding system.
 - [**WTracker**](https://github.com/bmen25124/SillyTavern-WTracker) by bmen25124 — Lightweight world state tracking
 - [**zTracker**](https://github.com/Zaakh/SillyTavern-zTracker) by Zaakh — Scene and character tracking with a clean UI
 
-Their ideas and approaches directly shaped what ScenePulse is becoming. If you're exploring scene tracking for SillyTavern, give them a look.
+Their ideas and approaches directly shaped what ScenePulse is becoming. If you're exploring scene tracking or extensions for SillyTavern, give them a look.
 
 ## License
 
