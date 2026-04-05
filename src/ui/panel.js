@@ -54,6 +54,8 @@ export function showPanel(){
         }
     }
     p.classList.add('sp-visible');
+    // Apply font scale
+    const _fsc=getSettings().fontScale;p.style.zoom=(_fsc&&_fsc!==1)?_fsc:'';
     // Must call AFTER sp-visible is set so spInjectTopBar sees panel as visible
     spInjectTopBar(mode);
     syncThoughts();
@@ -114,6 +116,8 @@ export function createPanel(){
     </div>
     <div id="sp-panel-body"><div class="sp-empty-state"><div class="sp-empty-icon">\uD83D\uDCE1</div><div class="sp-empty-title">No scene data yet</div><div class="sp-empty-sub">Send a message or click <strong>\u27F3</strong> to generate.</div></div></div>`;
     document.body.appendChild(panel);
+    // Apply saved font scale
+    const _fs=getSettings().fontScale;if(_fs&&_fs!==1)panel.style.zoom=_fs;
     log('Panel appended to body');
 
     // ── Mobile FAB (floating action button to restore panel) ──

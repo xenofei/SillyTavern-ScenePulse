@@ -27,6 +27,8 @@ export function createThoughtPanel(){
     </div><div id="sp-tp-body"></div>
     <div class="sp-tp-resize" title="Resize"><svg viewBox="0 0 16 16" fill="none"><line x1="14" y1="2" x2="2" y2="14" stroke="currentColor" stroke-width="1" opacity="0.4"/><line x1="14" y1="6" x2="6" y2="14" stroke="currentColor" stroke-width="1" opacity="0.4"/><line x1="14" y1="10" x2="10" y2="14" stroke="currentColor" stroke-width="1" opacity="0.4"/></svg></div>`;
     document.body.appendChild(tp);
+    // Apply font scale
+    const _tpFs=getSettings().fontScale;if(_tpFs&&_tpFs!==1)tp.style.zoom=_tpFs;
 
     // Snap-left toggle button
     tp.querySelector('.sp-tp-snapleft').addEventListener('click',(e)=>{
