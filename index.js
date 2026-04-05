@@ -81,7 +81,7 @@ eventSource.on(event_types.APP_READY, () => { try {
             // Register with markdownOnly:true — cleans display but preserves msg.mes for extraction
             _ctx.extensionSettings.regex.push({
                 scriptName: 'ScenePulse Tracker Hider',
-                findRegex: '<!--SP_TRACKER_START-->[\\s\\S]*?<!--SP_TRACKER_END-->|\\{\\s*"time"\\s*:\\s*"[^"]*"\\s*,\\s*"date"[\\s\\S]*$',
+                findRegex: '<!--SP_TRACKER_START-->[\\s\\S]*?<!--SP_TRACKER_END-->|\\{\\{//SP_TRACKER_START\\}\\}[\\s\\S]*?(\\{\\{//SP_TRACKER_END\\}\\}|$)|\\{\\s*"time"\\s*:\\s*"[^"]*"\\s*,\\s*"date"[\\s\\S]*$',
                 replaceString: '',
                 trimStrings: [],
                 placement: [2],

@@ -43,12 +43,18 @@ export function extractInlineTracker(mesIdx){
         // Also check ST's reasoning field (think block content)
         const reasoning=msg.extra?.reasoning||'';
         const combined=raw+(reasoning?'\n'+reasoning:'');
-        // Look for SP markers in combined text
-        const startIdx=combined.indexOf(SP_MARKER_START);
-        const endIdx=combined.indexOf(SP_MARKER_END);
+        // Look for SP markers in combined text (including mangled variants)
+        let startIdx=combined.indexOf(SP_MARKER_START);
+        let endIdx=combined.indexOf(SP_MARKER_END);
+        // Check for mangled marker variants: {{//SP_TRACKER_START}}, {{SP_TRACKER_START}}, etc.
+        let _mStartLen=SP_MARKER_START.length;
+        if(startIdx===-1){
+            const altMarkers=[['{{//SP_TRACKER_START}}','{{//SP_TRACKER_END}}'],['{{SP_TRACKER_START}}','{{SP_TRACKER_END}}'],['[SP_TRACKER_START]','[SP_TRACKER_END]'],['**SP_TRACKER_START**','**SP_TRACKER_END**']];
+            for(const[s,e]of altMarkers){const si=combined.indexOf(s);const ei=combined.indexOf(e);if(si!==-1&&ei>si){startIdx=si;endIdx=ei;_mStartLen=s.length;log('extractInlineTracker: found mangled marker variant:',s);break}}
+        }
         let jsonStr=null;let extractMethod='none';let foundInReasoning=false;
         if(startIdx!==-1&&endIdx>startIdx){
-            jsonStr=combined.substring(startIdx+SP_MARKER_START.length,endIdx).trim();
+            jsonStr=combined.substring(startIdx+_mStartLen,endIdx).trim();
             extractMethod='SP_MARKERS';
             foundInReasoning=startIdx>=raw.length; // Was it in the reasoning part?
         } else {
