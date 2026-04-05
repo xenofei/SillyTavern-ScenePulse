@@ -116,7 +116,7 @@ body:has(#sp-panel.sp-mode-mobile) .sp-loading-glass-fixed {
     border: none; border-top: 1px solid rgba(196,91,91,0.5); border-radius: 0;
     background: #1e1418;
     color: var(--sp-red); font-size: 11px; font-weight: 600; cursor: pointer;
-    transition: all 0.15s ease; z-index: 1002; letter-spacing: 0.03em;
+    transition: all 0.15s ease; z-index: 100002; letter-spacing: 0.03em;
     box-shadow: 0 -4px 16px rgba(0,0,0,0.5);
     box-sizing: border-box;
 }

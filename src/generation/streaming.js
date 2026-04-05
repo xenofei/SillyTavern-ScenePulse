@@ -21,11 +21,13 @@ export function startStreamingHider(){
 
     const _hasJson=(txt)=>{
         if(txt.includes('SP_TRACKER_START'))return true;
-        if(txt.includes('<!--SP_T'))return true; // Partial marker detection — catch it early
+        if(txt.includes('<!--SP_T'))return true; // Partial marker detection
         if(txt.includes('```json'))return true;
-        if(txt.length>200&&txt.includes('"time"')&&(txt.includes('"sceneTopic"')||txt.includes('"sceneMood"')||txt.includes('"location"')))return true;
+        // Catch raw JSON with tracker-like keys
+        if(txt.includes('"time"')&&(txt.includes('"sceneTopic"')||txt.includes('"sceneMood"')||txt.includes('"sceneTension"')||txt.includes('"location"')))return true;
+        if(txt.includes('"time":')&&txt.includes('"date":'))return true;
         const lo=txt.lastIndexOf('{');
-        if(lo>100&&txt.indexOf('"time"',lo)!==-1&&txt.indexOf('"time"',lo)-lo<40)return true;
+        if(lo>50&&txt.indexOf('"time"',lo)!==-1&&txt.indexOf('"time"',lo)-lo<60)return true;
         return false;
     };
 
@@ -49,8 +51,8 @@ export function startStreamingHider(){
         // No JSON yet — update safe height and apply rolling cap with buffer
         const h=_lastMes.getBoundingClientRect().height;
         if(h>_safeH)_safeH=h;
-        // Cap at current height + 30px buffer (allows next line to render, but not a 10KB JSON block)
-        const capPx=Math.ceil(_safeH+30);
+        // Cap at current height + 15px buffer (tight — minimizes JSON visibility window)
+        const capPx=Math.ceil(_safeH+15);
         currentStyleEl.textContent=`${_sel()}{max-height:${capPx}px!important;overflow:hidden!important}`;
     };
 
