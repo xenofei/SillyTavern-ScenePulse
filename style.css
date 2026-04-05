@@ -1,6 +1,4 @@
 /* ScenePulse — Modular Styles */
-/* Safety: hide message text flagged as containing tracker markers (cleared after extraction) */
-.mes_text[data-sp-has-tracker] { max-height: 0 !important; overflow: hidden !important; }
 @import url('./css/variables.css');
 @import url('./css/panel.css');
 @import url('./css/sections.css');
@@ -25,3 +23,6 @@
 @import url('./css/setup-guide.css');
 @import url('./css/guided-tour.css');
 @import url('./css/custom-panels.css');
+
+/* Safety: hide message text flagged as containing tracker markers (cleared after extraction) */
+.mes_text[data-sp-has-tracker] { max-height: 0 !important; overflow: hidden !important; }
