@@ -33,14 +33,15 @@ export function startStreamingHider(){
 
     const _sel=()=>_mesId?`.mes[mesid="${_mesId}"] .mes_text`:`.mes:last-child .mes_text`;
 
-    // PROACTIVE: Always cap at safe height + buffer. The message can never show more than we've measured as "clean".
+    // PROACTIVE: Cap message height on EVERY mutation. When JSON starts, the cap
+    // freezes at the last safe height — JSON renders behind overflow:hidden.
     const _updateCap=()=>{
         const currentStyleEl=_streamHiderStyleEl;
         if(!_lastMes||!currentStyleEl)return;
+        if(_locked)return;
         const txt=_lastMes.textContent||'';
-        if(_locked)return; // Already frozen
         if(_hasJson(txt)){
-            // JSON detected — freeze at current safe height + flag element
+            // JSON detected — freeze at last known safe height (from PREVIOUS update)
             _locked=true;
             const capPx=Math.max(40,Math.ceil(_safeH));
             currentStyleEl.textContent=`${_sel()}{max-height:${capPx}px!important;overflow:hidden!important}`;
@@ -48,11 +49,12 @@ export function startStreamingHider(){
             log('StreamHider: LOCKED at',capPx+'px mesid='+_mesId);
             return;
         }
-        // No JSON yet — update safe height and apply rolling cap with buffer
-        const h=_lastMes.getBoundingClientRect().height;
-        if(h>_safeH)_safeH=h;
-        // Cap at current height + 15px buffer (tight — minimizes JSON visibility window)
-        const capPx=Math.ceil(_safeH+15);
+        // No JSON yet — update safe height and apply tight rolling cap
+        // scrollHeight gives the full content height regardless of max-height constraint
+        const sh=_lastMes.scrollHeight;
+        if(sh>_safeH)_safeH=sh;
+        // Cap at scrollHeight + 1 line (~20px) — only 1 new line can appear before next check
+        const capPx=Math.ceil(_safeH+20);
         currentStyleEl.textContent=`${_sel()}{max-height:${capPx}px!important;overflow:hidden!important}`;
     };
 
