@@ -4,13 +4,16 @@
 >
 > ScenePulse is under active development. Expect rough edges, visual glitches, and frequent updates. Some AI models may not reliably produce tracker data in Together mode. Mobile support is functional but still being refined. If something breaks, please [open an issue](https://github.com/xenofei/SillyTavern-ScenePulse/issues) — your feedback shapes what gets fixed next.
 
+> **🌐 Localization:** The most up-to-date translations are in [**v5.8.7**](https://github.com/xenofei/SillyTavern-ScenePulse/releases/tag/v5.8.7) — 29 languages, 344 translation keys, full UI + enum value coverage. Community translation contributions welcome in [`src/i18n.js`](src/i18n.js).
+
 ---
 
 <div align="center">
 
-<img src="https://img.shields.io/badge/version-5.1.1-4db8a4?style=flat-square&labelColor=1a1c24" alt="Version">
+<img src="https://img.shields.io/badge/version-5.8.7-4db8a4?style=flat-square&labelColor=1a1c24" alt="Version">
 <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square&labelColor=1a1c24" alt="License">
 <img src="https://img.shields.io/badge/platform-SillyTavern%201.12%2B-orange?style=flat-square&labelColor=1a1c24" alt="Platform">
+<img src="https://img.shields.io/badge/languages-29-9b7ac4?style=flat-square&labelColor=1a1c24" alt="Languages">
 
 # <img width="836" height="200" alt="image" src="https://github.com/user-attachments/assets/041e92d6-f126-45da-8a2f-7a64a6a8d609" />
 
@@ -37,7 +40,7 @@ ScenePulse is a SillyTavern extension that automatically extracts and tracks sce
 
 
 ### Relationship Tracking
-- Animated meter bars for **affection, trust, desire, stress, compatibility** (0–100)
+- Animated meter bars for **affection, desire, trust, stress, compatibility** (0–100)
 - Auto-generated labels when the model omits them (minimal → low → moderate → strong → intense → overwhelming)
 - Delta badges showing changes between messages (▲/▼) with previous-value markers
 - Relationship phase, milestones, and time together
@@ -48,8 +51,11 @@ ScenePulse is a SillyTavern extension that automatically extracts and tracks sce
 ### Quest Journal
 - **North Star** — overarching life purpose
 - **Main Quests, Side Quests, Active Tasks** — tiered and collapsible
-- Urgency indicators and detailed descriptions
-- Perspective enforcement — quests are always framed from the user's point of view using an oppose/align system (hostile NPCs → oppose, allies → support, neutral → decide)
+- **Quest lifecycle** — NEW (teal badge), UPDATED (amber badge), RESOLVED (green badge, strikethrough)
+- Urgency indicators (critical/high/moderate/low/resolved) and detailed descriptions
+- User quest management — complete (✓), remove (✕), undo, and add quests directly
+- Status badges visible at section, tier, and entry level
+- Perspective enforcement — quests always framed from the user's point of view
 <img width="856" height="556" alt="image" src="https://github.com/user-attachments/assets/3bf59314-4e69-4635-84e9-8823a68bc32b" />
 
 
@@ -57,7 +63,7 @@ ScenePulse is a SillyTavern extension that automatically extracts and tracks sce
 - Full appearance tracking: hair, face, outfit, state of dress, posture
 - Inner thoughts, immediate needs, short/long-term goals
 - Inventory tracking
-- Optional fertility status fields with compact inline layout
+- Optional fertility status fields with full field-level granularity
 - Smart name resolution when models omit the `name` field — cross-references `{{char}}`, relationships, `charactersPresent`, role text, and object keys with multi-tier confidence scoring
 <img width="860" height="326" alt="image" src="https://github.com/user-attachments/assets/cb314a4e-a6d4-449d-96ad-929556564d40" />
 
@@ -72,6 +78,7 @@ ScenePulse is a SillyTavern extension that automatically extracts and tracks sce
 - Floating, draggable panel showing each character's inner monologue
 - Characters without thoughts show a subtle `…` placeholder
 - Ghost mode (transparent), snap-to-edge, resizable
+- Dynamic autofit — panel adjusts when window resizes, never overlaps chat area
 <img width="844" height="287" alt="image" src="https://github.com/user-attachments/assets/660015cd-be56-4456-bee3-f4303d3d2ed4" />
 
 
@@ -83,9 +90,16 @@ ScenePulse is a SillyTavern extension that automatically extracts and tracks sce
 ### Timeline Scrubber
 - Every AI message creates a snapshot
 - Click any timeline dot to load historical scene data
+- 200ms debounced navigation for smooth scrubbing
 - Compare how relationships, quests, and characters evolved over time
 <img width="850" height="82" alt="image" src="https://github.com/user-attachments/assets/5b46e312-2921-4a24-9781-4c297669ea27" />
 
+
+### Payload Inspector
+- Built-in diff viewer for debugging tracker data
+- 5 view modes: Changes Only, Full Diff, Side by Side, Delta Payload, Previous/Current
+- Green/red line-level diff with context collapsing
+- Copy to clipboard, works on current and historical timeline nodes
 
 ### Custom Panels
 - Create panels to track **anything** — health, mana, reputation, faction standings
@@ -93,6 +107,25 @@ ScenePulse is a SillyTavern extension that automatically extracts and tracks sce
 - LLM hints tell the AI what to output for each field
 <img width="858" height="472" alt="image" src="https://github.com/user-attachments/assets/6732fa65-dc8b-4390-8445-bbd08d36f9df" />
 
+
+### Delta Mode (Token Saving)
+- LLM returns only changed fields instead of echoing the full snapshot
+- Client-side delta merge preserves unchanged data from previous snapshot
+- Reduces output tokens by ~70–90% on subsequent messages
+- Experimental — may not work with all models
+
+### Localization (29 Languages)
+- Full UI translation — every section header, badge, tooltip, button, dialog, and setting
+- LLM output localization — narrative string values generated in the selected language
+- Enum values translated at display time (tension, dress state, fertility, meter labels)
+- Auto-detect from SillyTavern's locale or manual override
+- Live language switch — changes take effect immediately, no reload required
+- **Languages:** Chinese (Simplified/Traditional), Spanish, Hindi, Arabic, Portuguese, Russian, Japanese, French, German, Korean, Turkish, Vietnamese, Italian, Thai, Polish, Ukrainian, Indonesian, Dutch, Romanian, Czech, Greek, Hungarian, Swedish, Malay, Finnish, Danish, Norwegian, Hebrew
+
+### Font Scaling
+- Adjustable font size slider (0.7x–1.5x) in settings
+- Scales only text — layout elements (toolbar, meters, icons) unaffected
+- Dashboard cards excluded from scaling
 
 ### Mobile Support
 - Full-screen panel with slide animations
@@ -146,53 +179,61 @@ ScenePulse operates in **Together mode** by default:
 2. The AI writes its normal narrative response, then appends a JSON block wrapped in `<!--SP_TRACKER_START-->` / `<!--SP_TRACKER_END-->` markers
 3. ScenePulse extracts the JSON, strips it from the visible message, and updates the dashboard
 4. A **proactive streaming hider** (MutationObserver with rolling `max-height` cap) prevents the JSON from ever appearing visually during streaming
+5. Malformed JSON is automatically repaired (trailing commas, unquoted keys, unescaped quotes)
 
 If the AI omits the tracker, ScenePulse can **automatically fall back** to a separate API call using a dedicated connection profile.
 
 ### Separate Mode
 Alternatively, ScenePulse can run a completely separate API call after each message — useful for models that struggle with inline instructions. Configure this in the extension settings.
 
+### Delta Mode
+When enabled, the LLM returns only fields that changed since the last snapshot. The client merges the delta with the previous snapshot, reducing output tokens by ~70–90%. Entity arrays (characters, relationships, quests) are merged by name at the field level.
+
 ### Settings Persistence
 All configuration settings (injection method, profiles, presets, lorebook mode, etc.) are persisted via `localStorage` for reliability. This bypasses SillyTavern's `saveSettingsDebounced()` race condition with `CHAT_CHANGED` events during initialization, ensuring your settings survive restarts.
 
 ## Architecture
 
-ScenePulse v5.x uses a modular ES module architecture. The codebase is split into ~30 focused modules:
+ScenePulse v5.x uses a modular ES module architecture. The codebase is split into ~35 focused modules:
 
 ```
-index.js                    ← Thin entry point (~190 lines)
+index.js                    ← Thin entry point (~200 lines)
 style.css                   ← @import directives only
 src/
   constants.js              ← Defaults, schemas, prompts, panel definitions
-  logger.js                 ← Debug logging (no global console override)
+  logger.js                 ← Debug logging
   utils.js                  ← Shared utilities
   state.js                  ← Centralized mutable state with setter functions
-  settings.js               ← Settings CRUD, snapshot management, cached reads
-  schema.js                 ← Dynamic schema/prompt builders
+  settings.js               ← Settings CRUD, snapshot management, language resolver
+  schema.js                 ← Dynamic schema/prompt builders with language injection
   color.js                  ← Character color assignment with fuzzy matching
   normalize.js              ← Data normalization with WeakMap caching
+  i18n.js                   ← Internationalization (29 languages, 344 keys)
+  update-check.js           ← Update notification via ST's extension version API
   story-ideas.js            ← Story idea injection
   generation/
-    extraction.js           ← Inline tracker extraction from AI responses
+    extraction.js           ← Inline tracker extraction with JSON repair
     streaming.js            ← Streaming hider (MutationObserver)
     engine.js               ← Generation engine with retry/fallback
+    delta-merge.js          ← Delta response merging
     interceptor.js          ← SillyTavern generate interceptor
   ui/
     mobile.js               ← Device detection, FAB, responsive layout
     panel.js                ← Side panel creation and toolbar
     update-panel.js         ← Dashboard rendering with leak-safe canvas animation
-    dashboard.js, sections.js, section.js
+    section.js              ← Collapsible section builder
     weather.js              ← Weather particle system (9 types)
     time-tint.js            ← Time-of-day ambient overlays
     scene-transition.js     ← Location change animations
     timeline.js             ← Timeline scrubber with debounced navigation
-    thoughts.js             ← Draggable thought panel
+    thoughts.js             ← Draggable thought panel with dynamic autofit
     message.js              ← Per-message integration
     loading.js              ← Loading overlays and timers
     edit-mode.js            ← Inline field editing
+    diff-viewer.js          ← Payload inspector with line-level diff
   settings-ui/
     create-settings.js      ← Settings panel HTML template
-    bind-ui.js              ← Settings form bindings
+    bind-ui.js              ← Settings form bindings with live language switch
     custom-panels.js        ← Custom panel manager
     setup-guide.js          ← First-run wizard
     guided-tour.js          ← Interactive feature tour
@@ -208,6 +249,7 @@ No bundler required — SillyTavern loads extensions as `<script type="module">`
 - **Tested models**: GLM-4/5, Claude, GPT-4o, Gemini, Llama 3, Mistral, Qwen
 - **API providers**: OpenAI-compatible, Anthropic, Google AI, any provider SillyTavern supports
 - **Browsers**: Chrome, Firefox, Safari (mobile & desktop)
+- **Languages**: 29 languages with full UI + LLM output localization
 
 > **Note:** Together mode works best with instruction-following models that reliably append structured data. Smaller or older models may need Separate mode or a fallback profile.
 
@@ -218,7 +260,10 @@ Access settings via **Extensions** → **ScenePulse** in SillyTavern's settings 
 | Setting | Description |
 |---------|-------------|
 | **Enable ScenePulse** | Master toggle |
+| **Delta mode** | Return only changed fields — saves tokens (experimental) |
 | **Auto-generate** | Update tracker on every AI message |
+| **Language** | UI + LLM output language (29 options, auto-detect) |
+| **Font scale** | Adjust text size (0.7x–1.5x) |
 | **Injection method** | Together (inline) or Separate (dedicated API call) |
 | **Context messages** | How many recent messages to include (Separate mode) |
 | **Fallback profile** | Connection profile for auto-recovery |
@@ -250,27 +295,25 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### v5.8.7
+- **Localization** — Full UI translation for 29 languages (344 keys each, zero English placeholders). Enum values (tension, dress state, fertility, meter labels) and month abbreviations translated at display time. Live language switch re-renders entire UI instantly.
+- **Delta mode** — LLM returns only changed fields. Client-side merge preserves unchanged data. ~70–90% token savings.
+- **Quest completion system** — Quests have full lifecycle: new → active → resolved. User can complete (✓), remove (✕), undo, and add quests. Resolved quests show strikethrough, disappear next generation. Resolved quests excluded from LLM payload.
+- **Quest status badges** — NEW/UPDATED/RESOLVED badges visible at section, tier, and entry level.
+- **Payload Inspector** — Built-in diff viewer with 5 modes including side-by-side and delta payload tab.
+- **Font scaling** — 0.7x–1.5x text-only scaling (dashboard excluded).
+- **Update notification** — Pulsing amber dot on brand icon when update available. Branch + commit in settings header.
+- **JSON repair** — Malformed tracker JSON auto-repaired (trailing commas, unquoted keys, unescaped quotes).
+- **Schema edit protection** — JSON schema textarea locked by default, requires explicit unlock with caution warning.
+- **Fullness guarantee** — Strengthened prompt rules + comprehensive carry-forward for all field types.
+- **Panel Manager fixes** — Sub-field toggles persist across reloads. Disabled sub-fields excluded from LLM schema/prompt. Character sub-fields fully granular (12 independent toggles).
+- **Performance** — Canvas animation leak fixed, timeline debounce, normalize caching, thought panel listener cleanup, window resize throttle, streaming hider optimization, settings caching.
+
 ### v5.1.1
 - **Modular architecture** — Refactored from monolithic 5,500-line `index.js` into ~30 ES modules across `src/` and 24 CSS files in `css/`
-- **Performance: Fixed canvas animation leak** — Each panel update previously spawned a new perpetual `requestAnimationFrame` loop and `MutationObserver` that were never cleaned up. After rapid timeline navigation, dozens of concurrent animation loops would accumulate
-- **Performance: Timeline debounce** — Replaced per-frame batching with 200ms trailing-edge debounce. Rapid clicks settle before expensive work runs
-- **Performance: Normalize caching** — `normalizeTracker()` results cached via WeakMap. Revisiting the same snapshot is instant
-- **Performance: Thought panel listeners** — Drag/resize handlers now add-on-start, remove-on-end instead of 8 permanent document-level listeners
-- **Performance: Scrub guards** — Weather overlay, time tint, and scene transitions skipped during timeline scrubbing
-- **Fix: Story idea double-send** — Removed redundant `dispatchEvent` + `click()` call
-- **Fix: Global console override removed** — ScenePulse no longer overrides `console.log/warn/error` for all extensions
-- **Fix: Version string consistency** — Single `VERSION` constant referenced everywhere
-- **Fix: Timeline disappearing on historical node click** — Scrub flag now properly cleared after debounced update
-- **Improvement: Settings caching** — `getSettings()` result cached, invalidated on save
-- **Improvement: Color map cleanup** — Character color assignments reset on chat switch
-- **Improvement: Resize throttle** — Window resize handler throttled to 100ms
-- **Improvement: Streaming hider optimization** — Polling interval stops once MutationObserver attaches
 
 ### v4.9.90
 - Clean quest schema with concise definitions and clear priority hierarchy
-
-### v4.9.88
-- Genre-spanning quest perspective examples (10 story types)
 
 ## Contributing
 
@@ -278,7 +321,8 @@ Found a bug? Have a feature idea? Contributions welcome!
 
 1. [Open an issue](https://github.com/xenofei/SillyTavern-ScenePulse/issues) to report bugs or suggest features
 2. Fork the repo, create a branch, and submit a PR
-3. Join the discussion in the issues tab
+3. **Translations** — Add or improve translations in [`src/i18n.js`](src/i18n.js). Each language is a simple key-value object.
+4. Join the discussion in the issues tab
 
 ## Inspiration
 
