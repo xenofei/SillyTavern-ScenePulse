@@ -33,15 +33,17 @@ export function startStreamingHider(){
 
     const _sel=()=>_mesId?`.mes[mesid="${_mesId}"] .mes_text`:`.mes:last-child .mes_text`;
 
-    // PROACTIVE: Cap message height on EVERY mutation. When JSON starts, the cap
-    // freezes at the last safe height — JSON renders behind overflow:hidden.
+    // STRATEGY: Always apply a rolling max-height cap during streaming.
+    // When JSON is detected, the cap freezes — JSON is behind overflow:hidden.
+    // To measure true content height while a cap is active, we temporarily
+    // remove the cap, read scrollHeight, then reapply.
     const _updateCap=()=>{
         const currentStyleEl=_streamHiderStyleEl;
         if(!_lastMes||!currentStyleEl)return;
         if(_locked)return;
         const txt=_lastMes.textContent||'';
         if(_hasJson(txt)){
-            // JSON detected — freeze at last known safe height (from PREVIOUS update)
+            // JSON detected — freeze at last safe height
             _locked=true;
             const capPx=Math.max(40,Math.ceil(_safeH));
             currentStyleEl.textContent=`${_sel()}{max-height:${capPx}px!important;overflow:hidden!important}`;
@@ -49,12 +51,12 @@ export function startStreamingHider(){
             log('StreamHider: LOCKED at',capPx+'px mesid='+_mesId);
             return;
         }
-        // No JSON yet — update safe height and apply tight rolling cap
-        // scrollHeight gives the full content height regardless of max-height constraint
-        const sh=_lastMes.scrollHeight;
-        if(sh>_safeH)_safeH=sh;
-        // Cap at scrollHeight + 1 line (~20px) — only 1 new line can appear before next check
-        const capPx=Math.ceil(_safeH+20);
+        // No JSON — measure true content height by briefly removing cap
+        currentStyleEl.textContent=''; // Remove cap temporarily
+        const trueH=_lastMes.scrollHeight; // Measure full content height
+        if(trueH>_safeH)_safeH=trueH;
+        // Reapply cap at measured height + small buffer (1 line)
+        const capPx=Math.ceil(_safeH+22);
         currentStyleEl.textContent=`${_sel()}{max-height:${capPx}px!important;overflow:hidden!important}`;
     };
 
