@@ -21,6 +21,7 @@ export function startStreamingHider(){
 
     const _hasJson=(txt)=>{
         if(txt.includes('SP_TRACKER_START'))return true;
+        if(txt.includes('<!--SP_T'))return true; // Partial marker detection — catch it early
         if(txt.includes('```json'))return true;
         if(txt.length>200&&txt.includes('"time"')&&(txt.includes('"sceneTopic"')||txt.includes('"sceneMood"')||txt.includes('"location"')))return true;
         const lo=txt.lastIndexOf('{');
@@ -37,10 +38,11 @@ export function startStreamingHider(){
         const txt=_lastMes.textContent||'';
         if(_locked)return; // Already frozen
         if(_hasJson(txt)){
-            // JSON detected — freeze at current safe height
+            // JSON detected — freeze at current safe height + flag element
             _locked=true;
             const capPx=Math.max(40,Math.ceil(_safeH));
             currentStyleEl.textContent=`${_sel()}{max-height:${capPx}px!important;overflow:hidden!important}`;
+            if(_lastMes)_lastMes.dataset.spHasTracker='true';
             log('StreamHider: LOCKED at',capPx+'px mesid='+_mesId);
             return;
         }
@@ -64,7 +66,7 @@ export function startStreamingHider(){
         _observer.observe(_lastMes,{childList:true,subtree:true,characterData:true});
     };
 
-    // Polling fallback at 80ms
+    // Polling fallback at 40ms (fast detection)
     const interval=setInterval(()=>{
         try{
             if(Date.now()-_streamHiderStart>180000){log('StreamHider: safety timeout (180s)');stopStreamingHider();return}
@@ -75,7 +77,7 @@ export function startStreamingHider(){
             }
             _updateCap();
         }catch(e){}
-    },80);
+    },40);
     set_streamHiderInterval(interval);
 }
 export function stopStreamingHider(){

@@ -129,6 +129,8 @@ export function extractInlineTracker(mesIdx){
             // Update DOM — find the message element and replace its content
             const mesEl=document.querySelector(`.mes[mesid="${mesIdx}"] .mes_text`);
             if(mesEl){
+                // Clear streaming hider safety flag
+                delete mesEl.dataset.spHasTracker;
                 // Use ST's messageFormatting if available, otherwise set innerHTML
                 try{
                     const{messageFormatting}=SillyTavern.getContext();
