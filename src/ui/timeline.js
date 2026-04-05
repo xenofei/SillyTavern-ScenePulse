@@ -70,7 +70,7 @@ export function renderTimeline(){
             const rawDate=snap.date||snap.Date||'';
             const rawTime=snap.time||snap.Time||'';
             // Attempt standard date parse (MM/DD/YYYY, DD/MM/YYYY, etc)
-            const mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            const mo=[t('Jan'),t('Feb'),t('Mar'),t('Apr'),t('May'),t('Jun'),t('Jul'),t('Aug'),t('Sep'),t('Oct'),t('Nov'),t('Dec')];
             const dm=rawDate.match(/(\d{1,2})\D+(\d{1,2})/);
             const tm=rawTime.match(/(\d{1,2}):(\d{2})/);
             // Year: match any number >= 2 digits that could be a year (handles 2024, 3247, 42, etc)

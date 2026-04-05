@@ -299,7 +299,8 @@ const TRANSLATIONS = {
     'Resize':'Изменить размер',
     'Restored':'Восстановлено',
     'Remove':'Удалить',
-    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Экспериментально. LLM возвращает только изменённые поля. Неизменённые переносятся. Может не работать со всеми моделями.'
+    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Экспериментально. LLM возвращает только изменённые поля. Неизменённые переносятся. Может не работать со всеми моделями.',
+    'Jan':'Янв','Feb':'Фев','Mar':'Мар','Apr':'Апр','May':'Май','Jun':'Июн','Jul':'Июл','Aug':'Авг','Sep':'Сен','Oct':'Окт','Nov':'Ноя','Dec':'Дек',
 },
 'Japanese': {
     'Scene Details':'シーン詳細',
@@ -592,7 +593,8 @@ const TRANSLATIONS = {
     'Resize':'リサイズ',
     'Restored':'復元済み',
     'Remove':'削除',
-    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'実験的。LLMは変更フィールドのみ返却。未変更データは引き継ぎ。全モデル対応とは限りません。'
+    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'実験的。LLMは変更フィールドのみ返却。未変更データは引き継ぎ。全モデル対応とは限りません。',
+    'Jan':'1月','Feb':'2月','Mar':'3月','Apr':'4月','May':'5月','Jun':'6月','Jul':'7月','Aug':'8月','Sep':'9月','Oct':'10月','Nov':'11月','Dec':'12月',
 },
 'Korean': {
     'Scene Details':'장면 세부사항',
@@ -885,7 +887,8 @@ const TRANSLATIONS = {
     'Resize':'크기 조절',
     'Restored':'복원됨',
     'Remove':'제거',
-    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'실험적. LLM이 변경 필드만 반환. 미변경 데이터 유지. 모든 모델에서 동작하지 않을 수 있음.'
+    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'실험적. LLM이 변경 필드만 반환. 미변경 데이터 유지. 모든 모델에서 동작하지 않을 수 있음.',
+    'Jan':'1월','Feb':'2월','Mar':'3월','Apr':'4월','May':'5월','Jun':'6월','Jul':'7월','Aug':'8월','Sep':'9월','Oct':'10월','Nov':'11월','Dec':'12월',
 },
 'Chinese (Simplified)': {
     'Scene Details':'场景详情',
@@ -1178,7 +1181,8 @@ const TRANSLATIONS = {
     'Resize':'调整大小',
     'Restored':'已恢复',
     'Remove':'移除',
-    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'实验性功能。LLM仅返回更改的字段。未更改的数据会继承。可能不适用于所有模型。'
+    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'实验性功能。LLM仅返回更改的字段。未更改的数据会继承。可能不适用于所有模型。',
+    'Jan':'1月','Feb':'2月','Mar':'3月','Apr':'4月','May':'5月','Jun':'6月','Jul':'7月','Aug':'8月','Sep':'9月','Oct':'10月','Nov':'11月','Dec':'12月',
 },
 'Chinese (Traditional)': {
     'Scene Details':'場景詳情',
@@ -1471,7 +1475,8 @@ const TRANSLATIONS = {
     'Resize':'調整大小',
     'Restored':'已恢復',
     'Remove':'移除',
-    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'實驗性功能。LLM僅返回更改的欄位。未更改的資料會繼承。可能不適用於所有模型。'
+    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'實驗性功能。LLM僅返回更改的欄位。未更改的資料會繼承。可能不適用於所有模型。',
+    'Jan':'1月','Feb':'2月','Mar':'3月','Apr':'4月','May':'5月','Jun':'6月','Jul':'7月','Aug':'8月','Sep':'9月','Oct':'10月','Nov':'11月','Dec':'12月',
 },
 'Spanish': {
     'Scene Details':'Detalles de escena',
@@ -1764,7 +1769,8 @@ const TRANSLATIONS = {
     'Resize':'Redimensionar',
     'Restored':'Restaurado',
     'Remove':'Eliminar',
-    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Experimental. El LLM devuelve solo campos modificados. Los datos sin cambios se mantienen. Puede no funcionar con todos los modelos.'
+    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Experimental. El LLM devuelve solo campos modificados. Los datos sin cambios se mantienen. Puede no funcionar con todos los modelos.',
+    'Jan':'Ene','Feb':'Feb','Mar':'Mar','Apr':'Abr','May':'May','Jun':'Jun','Jul':'Jul','Aug':'Ago','Sep':'Sep','Oct':'Oct','Nov':'Nov','Dec':'Dic',
 },
 'Hindi': {
     'Scene Details':'दृश्य विवरण',
@@ -2057,7 +2063,8 @@ const TRANSLATIONS = {
     'Resize':'आकार बदलें',
     'Restored':'पुनर्स्थापित',
     'Remove':'हटाएं',
-    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'प्रयोगात्मक। LLM केवल बदले हुए फ़ील्ड लौटाता है। अपरिवर्तित डेटा आगे बढ़ता है। सभी मॉडलों के साथ काम नहीं कर सकता।'
+    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'प्रयोगात्मक। LLM केवल बदले हुए फ़ील्ड लौटाता है। अपरिवर्तित डेटा आगे बढ़ता है। सभी मॉडलों के साथ काम नहीं कर सकता।',
+    'Jan':'जन','Feb':'फर','Mar':'मार्च','Apr':'अप्रै','May':'मई','Jun':'जून','Jul':'जुल','Aug':'अग','Sep':'सित','Oct':'अक्टू','Nov':'नव','Dec':'दिस',
 },
 'Arabic': {
     'Scene Details':'تفاصيل المشهد',
@@ -2350,7 +2357,8 @@ const TRANSLATIONS = {
     'Resize':'تغيير الحجم',
     'Restored':'تمت الاستعادة',
     'Remove':'إزالة',
-    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'تجريبي. يُعيد LLM الحقول المتغيرة فقط. البيانات غير المتغيرة تُنقل. قد لا يعمل مع جميع النماذج.'
+    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'تجريبي. يُعيد LLM الحقول المتغيرة فقط. البيانات غير المتغيرة تُنقل. قد لا يعمل مع جميع النماذج.',
+    'Jan':'يناير','Feb':'فبراير','Mar':'مارس','Apr':'أبريل','May':'مايو','Jun':'يونيو','Jul':'يوليو','Aug':'أغسطس','Sep':'سبتمبر','Oct':'أكتوبر','Nov':'نوفمبر','Dec':'ديسمبر',
 },
 'Portuguese': {
     'Scene Details':'Detalhes da cena',
@@ -2643,7 +2651,8 @@ const TRANSLATIONS = {
     'Resize':'Redimensionar',
     'Restored':'Restaurado',
     'Remove':'Remover',
-    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Experimental. O LLM retorna apenas campos alterados. Dados inalterados são mantidos. Pode não funcionar com todos os modelos.'
+    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Experimental. O LLM retorna apenas campos alterados. Dados inalterados são mantidos. Pode não funcionar com todos os modelos.',
+    'Jan':'Jan','Feb':'Fev','Mar':'Mar','Apr':'Abr','May':'Mai','Jun':'Jun','Jul':'Jul','Aug':'Ago','Sep':'Set','Oct':'Out','Nov':'Nov','Dec':'Dez',
 },
 'French': {
     'Scene Details':'Détails de scène',
@@ -2936,7 +2945,8 @@ const TRANSLATIONS = {
     'Resize':'Redimensionner',
     'Restored':'Restauré',
     'Remove':'Supprimer',
-    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Expérimental. Le LLM ne renvoie que les champs modifiés. Les données inchangées sont conservées. Peut ne pas fonctionner avec tous les modèles.'
+    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Expérimental. Le LLM ne renvoie que les champs modifiés. Les données inchangées sont conservées. Peut ne pas fonctionner avec tous les modèles.',
+    'Jan':'Jan','Feb':'Fév','Mar':'Mar','Apr':'Avr','May':'Mai','Jun':'Juin','Jul':'Juil','Aug':'Août','Sep':'Sep','Oct':'Oct','Nov':'Nov','Dec':'Déc',
 },
 'German': {
     'Scene Details':'Szenendetails',
@@ -3229,7 +3239,8 @@ const TRANSLATIONS = {
     'Resize':'Größe ändern',
     'Restored':'Wiederhergestellt',
     'Remove':'Entfernen',
-    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Experimentell. LLM gibt nur geänderte Felder zurück. Unveränderte Daten werden übernommen. Funktioniert möglicherweise nicht mit allen Modellen.'
+    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Experimentell. LLM gibt nur geänderte Felder zurück. Unveränderte Daten werden übernommen. Funktioniert möglicherweise nicht mit allen Modellen.',
+    'Jan':'Jan','Feb':'Feb','Mar':'Mär','Apr':'Apr','May':'Mai','Jun':'Jun','Jul':'Jul','Aug':'Aug','Sep':'Sep','Oct':'Okt','Nov':'Nov','Dec':'Dez',
 },
 'Turkish': {
     'Scene Details':'Sahne Detayları',
@@ -3522,7 +3533,8 @@ const TRANSLATIONS = {
     'Resize':'Yeniden boyutlandır',
     'Restored':'Geri yüklendi',
     'Remove':'Kaldır',
-    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Deneysel. LLM yalnızca değişen alanları döndürür. Değişmeyen veriler aktarılır. Tüm modellerle çalışmayabilir.'
+    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Deneysel. LLM yalnızca değişen alanları döndürür. Değişmeyen veriler aktarılır. Tüm modellerle çalışmayabilir.',
+    'Jan':'Oca','Feb':'Şub','Mar':'Mar','Apr':'Nis','May':'May','Jun':'Haz','Jul':'Tem','Aug':'Ağu','Sep':'Eyl','Oct':'Eki','Nov':'Kas','Dec':'Ara',
 },
 'Vietnamese': {
     'Scene Details':'Chi tiết cảnh',
@@ -3815,7 +3827,8 @@ const TRANSLATIONS = {
     'Resize':'Thay đổi kích thước',
     'Restored':'Đã khôi phục',
     'Remove':'Xóa',
-    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Thử nghiệm. LLM chỉ trả về các trường đã thay đổi. Dữ liệu không thay đổi được giữ lại. Có thể không hoạt động với tất cả mô hình.'
+    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Thử nghiệm. LLM chỉ trả về các trường đã thay đổi. Dữ liệu không thay đổi được giữ lại. Có thể không hoạt động với tất cả mô hình.',
+    'Jan':'Th1','Feb':'Th2','Mar':'Th3','Apr':'Th4','May':'Th5','Jun':'Th6','Jul':'Th7','Aug':'Th8','Sep':'Th9','Oct':'Th10','Nov':'Th11','Dec':'Th12',
 },
 'Italian': {
     'Scene Details':'Dettagli scena',
@@ -4108,7 +4121,8 @@ const TRANSLATIONS = {
     'Resize':'Ridimensiona',
     'Restored':'Ripristinato',
     'Remove':'Rimuovi',
-    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Sperimentale. Il LLM restituisce solo i campi modificati. I dati invariati vengono mantenuti. Potrebbe non funzionare con tutti i modelli.'
+    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Sperimentale. Il LLM restituisce solo i campi modificati. I dati invariati vengono mantenuti. Potrebbe non funzionare con tutti i modelli.',
+    'Jan':'Gen','Feb':'Feb','Mar':'Mar','Apr':'Apr','May':'Mag','Jun':'Giu','Jul':'Lug','Aug':'Ago','Sep':'Set','Oct':'Ott','Nov':'Nov','Dec':'Dic',
 },
 'Thai': {
     'Scene Details':'รายละเอียดฉาก',
@@ -4401,7 +4415,8 @@ const TRANSLATIONS = {
     'Resize':'ปรับขนาด',
     'Restored':'กู้คืนแล้ว',
     'Remove':'ลบ',
-    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'ทดลอง LLM ส่งคืนเฉพาะฟิลด์ที่เปลี่ยนแปลง ข้อมูลที่ไม่เปลี่ยนจะถูกรักษาไว้ อาจไม่ทำงานกับทุกโมเดล'
+    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'ทดลอง LLM ส่งคืนเฉพาะฟิลด์ที่เปลี่ยนแปลง ข้อมูลที่ไม่เปลี่ยนจะถูกรักษาไว้ อาจไม่ทำงานกับทุกโมเดล',
+    'Jan':'ม.ค.','Feb':'ก.พ.','Mar':'มี.ค.','Apr':'เม.ย.','May':'พ.ค.','Jun':'มิ.ย.','Jul':'ก.ค.','Aug':'ส.ค.','Sep':'ก.ย.','Oct':'ต.ค.','Nov':'พ.ย.','Dec':'ธ.ค.',
 },
 'Polish': {
     'Scene Details':'Szczegóły sceny',
@@ -4694,7 +4709,8 @@ const TRANSLATIONS = {
     'Resize':'Zmień rozmiar',
     'Restored':'Przywrócono',
     'Remove':'Usuń',
-    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Eksperymentalne. LLM zwraca tylko zmienione pola. Niezmienione dane są przenoszone. Może nie działać ze wszystkimi modelami.'
+    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Eksperymentalne. LLM zwraca tylko zmienione pola. Niezmienione dane są przenoszone. Może nie działać ze wszystkimi modelami.',
+    'Jan':'Sty','Feb':'Lut','Mar':'Mar','Apr':'Kwi','May':'Maj','Jun':'Cze','Jul':'Lip','Aug':'Sie','Sep':'Wrz','Oct':'Paź','Nov':'Lis','Dec':'Gru',
 },
 'Ukrainian': {
     'Scene Details':'Деталі сцени',
@@ -4987,7 +5003,8 @@ const TRANSLATIONS = {
     'Resize':'Змінити розмір',
     'Restored':'Відновлено',
     'Remove':'Видалити',
-    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Експериментально. LLM повертає лише змінені поля. Незмінені дані переносяться. Може не працювати з усіма моделями.'
+    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Експериментально. LLM повертає лише змінені поля. Незмінені дані переносяться. Може не працювати з усіма моделями.',
+    'Jan':'Січ','Feb':'Лют','Mar':'Бер','Apr':'Кві','May':'Тра','Jun':'Чер','Jul':'Лип','Aug':'Сер','Sep':'Вер','Oct':'Жов','Nov':'Лис','Dec':'Гру',
 },
 'Indonesian': {
     'Scene Details':'Detail Adegan',
@@ -5280,7 +5297,8 @@ const TRANSLATIONS = {
     'Resize':'Ubah ukuran',
     'Restored':'Dipulihkan',
     'Remove':'Hapus',
-    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Eksperimental. LLM hanya mengembalikan bidang yang berubah. Data yang tidak berubah diteruskan. Mungkin tidak berfungsi dengan semua model.'
+    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Eksperimental. LLM hanya mengembalikan bidang yang berubah. Data yang tidak berubah diteruskan. Mungkin tidak berfungsi dengan semua model.',
+    'Jan':'Jan','Feb':'Feb','Mar':'Mar','Apr':'Apr','May':'Mei','Jun':'Jun','Jul':'Jul','Aug':'Agt','Sep':'Sep','Oct':'Okt','Nov':'Nov','Dec':'Des',
 },
 'Dutch': {
     'Scene Details':'Scènedetails',
@@ -5573,7 +5591,8 @@ const TRANSLATIONS = {
     'Resize':'Formaat wijzigen',
     'Restored':'Hersteld',
     'Remove':'Verwijderen',
-    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Experimenteel. LLM retourneert alleen gewijzigde velden. Ongewijzigde gegevens worden overgedragen. Werkt mogelijk niet met alle modellen.'
+    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Experimenteel. LLM retourneert alleen gewijzigde velden. Ongewijzigde gegevens worden overgedragen. Werkt mogelijk niet met alle modellen.',
+    'Jan':'Jan','Feb':'Feb','Mar':'Mrt','Apr':'Apr','May':'Mei','Jun':'Jun','Jul':'Jul','Aug':'Aug','Sep':'Sep','Oct':'Okt','Nov':'Nov','Dec':'Dec',
 },
 'Romanian': {
     'Scene Details':'Detalii scenă',
@@ -5866,7 +5885,8 @@ const TRANSLATIONS = {
     'Resize':'Redimensionează',
     'Restored':'Restaurat',
     'Remove':'Elimină',
-    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Experimental. LLM returnează doar câmpurile modificate. Datele nemodificate sunt păstrate. Poate să nu funcționeze cu toate modelele.'
+    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Experimental. LLM returnează doar câmpurile modificate. Datele nemodificate sunt păstrate. Poate să nu funcționeze cu toate modelele.',
+    'Jan':'Ian','Feb':'Feb','Mar':'Mar','Apr':'Apr','May':'Mai','Jun':'Iun','Jul':'Iul','Aug':'Aug','Sep':'Sep','Oct':'Oct','Nov':'Nov','Dec':'Dec',
 },
 'Czech': {
     'Scene Details':'Detaily scény',
@@ -6159,7 +6179,8 @@ const TRANSLATIONS = {
     'Resize':'Změnit velikost',
     'Restored':'Obnoveno',
     'Remove':'Odstranit',
-    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Experimentální. LLM vrací pouze změněná pole. Nezměněná data se přenášejí. Nemusí fungovat se všemi modely.'
+    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Experimentální. LLM vrací pouze změněná pole. Nezměněná data se přenášejí. Nemusí fungovat se všemi modely.',
+    'Jan':'Led','Feb':'Úno','Mar':'Bře','Apr':'Dub','May':'Kvě','Jun':'Čvn','Jul':'Čvc','Aug':'Srp','Sep':'Zář','Oct':'Říj','Nov':'Lis','Dec':'Pro',
 },
 'Greek': {
     'Scene Details':'Λεπτομέρειες σκηνής',
@@ -6452,7 +6473,8 @@ const TRANSLATIONS = {
     'Resize':'Αλλαγή μεγέθους',
     'Restored':'Επαναφέρθηκε',
     'Remove':'Αφαίρεση',
-    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Πειραματικό. Το LLM επιστρέφει μόνο τα αλλαγμένα πεδία. Τα αμετάβλητα δεδομένα μεταφέρονται. Μπορεί να μη λειτουργεί με όλα τα μοντέλα.'
+    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Πειραματικό. Το LLM επιστρέφει μόνο τα αλλαγμένα πεδία. Τα αμετάβλητα δεδομένα μεταφέρονται. Μπορεί να μη λειτουργεί με όλα τα μοντέλα.',
+    'Jan':'Ιαν','Feb':'Φεβ','Mar':'Μάρ','Apr':'Απρ','May':'Μάι','Jun':'Ιού','Jul':'Ιούλ','Aug':'Αύγ','Sep':'Σεπ','Oct':'Οκτ','Nov':'Νοέ','Dec':'Δεκ',
 },
 'Hungarian': {
     'Scene Details':'Jelenet részletei',
@@ -6745,7 +6767,8 @@ const TRANSLATIONS = {
     'Resize':'Átméretezés',
     'Restored':'Visszaállítva',
     'Remove':'Eltávolítás',
-    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Kísérleti. Az LLM csak a módosított mezőket adja vissza. A változatlan adatok öröklődnek. Nem minden modellel működik.'
+    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Kísérleti. Az LLM csak a módosított mezőket adja vissza. A változatlan adatok öröklődnek. Nem minden modellel működik.',
+    'Jan':'Jan','Feb':'Feb','Mar':'Már','Apr':'Ápr','May':'Máj','Jun':'Jún','Jul':'Júl','Aug':'Aug','Sep':'Sze','Oct':'Okt','Nov':'Nov','Dec':'Dec',
 },
 'Swedish': {
     'Scene Details':'Scendetaljer',
@@ -7038,7 +7061,8 @@ const TRANSLATIONS = {
     'Resize':'Ändra storlek',
     'Restored':'Återställd',
     'Remove':'Ta bort',
-    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Experimentellt. LLM returnerar bara ändrade fält. Oförändrade data förs vidare. Kanske inte fungerar med alla modeller.'
+    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Experimentellt. LLM returnerar bara ändrade fält. Oförändrade data förs vidare. Kanske inte fungerar med alla modeller.',
+    'Jan':'Jan','Feb':'Feb','Mar':'Mar','Apr':'Apr','May':'Maj','Jun':'Jun','Jul':'Jul','Aug':'Aug','Sep':'Sep','Oct':'Okt','Nov':'Nov','Dec':'Dec',
 },
 'Malay': {
     'Scene Details':'Butiran Adegan',
@@ -7331,7 +7355,8 @@ const TRANSLATIONS = {
     'Resize':'Ubah saiz',
     'Restored':'Dipulihkan',
     'Remove':'Buang',
-    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Eksperimen. LLM hanya mengembalikan medan yang berubah. Data tidak berubah diteruskan. Mungkin tidak berfungsi dengan semua model.'
+    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Eksperimen. LLM hanya mengembalikan medan yang berubah. Data tidak berubah diteruskan. Mungkin tidak berfungsi dengan semua model.',
+    'Jan':'Jan','Feb':'Feb','Mar':'Mac','Apr':'Apr','May':'Mei','Jun':'Jun','Jul':'Jul','Aug':'Ogo','Sep':'Sep','Oct':'Okt','Nov':'Nov','Dec':'Dis',
 },
 'Finnish': {
     'Scene Details':'Kohtauksen tiedot',
@@ -7624,7 +7649,8 @@ const TRANSLATIONS = {
     'Resize':'Muuta kokoa',
     'Restored':'Palautettu',
     'Remove':'Poista',
-    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Kokeellinen. LLM palauttaa vain muuttuneet kentät. Muuttumaton data siirtyy eteenpäin. Ei välttämättä toimi kaikkien mallien kanssa.'
+    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Kokeellinen. LLM palauttaa vain muuttuneet kentät. Muuttumaton data siirtyy eteenpäin. Ei välttämättä toimi kaikkien mallien kanssa.',
+    'Jan':'Tam','Feb':'Hel','Mar':'Maa','Apr':'Huh','May':'Tou','Jun':'Kes','Jul':'Hei','Aug':'Elo','Sep':'Syy','Oct':'Lok','Nov':'Mar','Dec':'Jou',
 },
 'Danish': {
     'Scene Details':'Scenedetaljer',
@@ -7917,7 +7943,8 @@ const TRANSLATIONS = {
     'Resize':'Ændr størrelse',
     'Restored':'Gendannet',
     'Remove':'Fjern',
-    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Eksperimentelt. LLM returnerer kun ændrede felter. Uændrede data videreføres. Fungerer muligvis ikke med alle modeller.'
+    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Eksperimentelt. LLM returnerer kun ændrede felter. Uændrede data videreføres. Fungerer muligvis ikke med alle modeller.',
+    'Jan':'Jan','Feb':'Feb','Mar':'Mar','Apr':'Apr','May':'Maj','Jun':'Jun','Jul':'Jul','Aug':'Aug','Sep':'Sep','Oct':'Okt','Nov':'Nov','Dec':'Dec',
 },
 'Norwegian': {
     'Scene Details':'Scenedetaljer',
@@ -8210,7 +8237,8 @@ const TRANSLATIONS = {
     'Resize':'Endre størrelse',
     'Restored':'Gjenopprettet',
     'Remove':'Fjern',
-    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Eksperimentelt. LLM returnerer bare endrede felt. Uendrede data videreføres. Fungerer kanskje ikke med alle modeller.'
+    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Eksperimentelt. LLM returnerer bare endrede felt. Uendrede data videreføres. Fungerer kanskje ikke med alle modeller.',
+    'Jan':'Jan','Feb':'Feb','Mar':'Mar','Apr':'Apr','May':'Mai','Jun':'Jun','Jul':'Jul','Aug':'Aug','Sep':'Sep','Oct':'Okt','Nov':'Nov','Dec':'Des',
 },
 'Hebrew': {
     'Scene Details':'פרטי סצנה',
@@ -8503,7 +8531,8 @@ const TRANSLATIONS = {
     'Resize':'שנה גודל',
     'Restored':'שוחזר',
     'Remove':'הסר',
-    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'ניסיוני. ה-LLM מחזיר רק שדות שהשתנו. נתונים שלא השתנו מועברים. ייתכן שלא יעבוד עם כל הדגמים.'
+    'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'ניסיוני. ה-LLM מחזיר רק שדות שהשתנו. נתונים שלא השתנו מועברים. ייתכן שלא יעבוד עם כל הדגמים.',
+    'Jan':'ינו','Feb':'פבר','Mar':'מרץ','Apr':'אפר','May':'מאי','Jun':'יונ','Jul':'יול','Aug':'אוג','Sep':'ספט','Oct':'אוק','Nov':'נוב','Dec':'דצמ',
 },
 };
 
