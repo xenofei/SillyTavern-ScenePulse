@@ -18,8 +18,13 @@
 .sp-drawer-badge.sp-on { background: var(--sp-accent-dim); color: var(--sp-accent); border: 1px solid rgba(77,184,164,0.2); }
 .sp-drawer-badge.sp-off { background: rgba(100,100,100,0.12); color: var(--sp-text-dim); border: 1px solid rgba(100,100,100,0.15); }
 .sp-drawer-badge-dot { width: 5px; height: 5px; border-radius: 50%; }
-.sp-on .sp-drawer-badge-dot { background: var(--sp-accent); box-shadow: 0 0 4px var(--sp-accent-glow); }
+.sp-on .sp-drawer-badge-dot { background: var(--sp-accent); box-shadow: 0 0 4px var(--sp-accent-glow); animation: sp-badge-pulse 2s ease-in-out infinite; }
 .sp-off .sp-drawer-badge-dot { background: var(--sp-disabled); }
+@keyframes sp-badge-pulse { 0%,100% { box-shadow: 0 0 4px var(--sp-accent-glow); opacity: 1; } 50% { box-shadow: 0 0 10px var(--sp-accent-glow), 0 0 20px rgba(77,184,164,0.2); opacity: 0.7; } }
+/* Enable ScenePulse checkbox — always interactive, never greyed out */
+#scenepulse-settings .sp-ck:has(#sp-enabled) { opacity: 1 !important; pointer-events: auto !important; position: relative; }
+#scenepulse-settings .sp-ck:has(#sp-enabled) input { pointer-events: auto !important; cursor: pointer !important; }
+#sp-enabled { accent-color: var(--sp-accent); }
 
 #scenepulse-settings .sp-sh { margin: 20px 0 8px 0; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--sp-accent); padding-bottom: 5px; border-bottom: 1px solid var(--sp-border); }
 #scenepulse-settings .sp-sh:first-child { margin-top: 6px; }

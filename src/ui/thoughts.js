@@ -39,9 +39,9 @@ export function createThoughtPanel(){
         btn.classList.toggle('sp-tb-active',st.thoughtSnapLeft!==false);
         if(st.thoughtSnapLeft!==false){
             snapThoughtToLeft();
-            toastr.info('Snapped to left of chat');
+            toastr.info(t('Snapped to left of chat'));
         } else {
-            toastr.info('Free positioning enabled');
+            toastr.info(t('Free positioning enabled'));
         }
     });
     // Apply snap-left on creation if enabled
@@ -63,15 +63,15 @@ export function createThoughtPanel(){
     // Regen button
     tp.querySelector('.sp-tp-regen').addEventListener('click',async(e)=>{
         e.stopPropagation();
-        if(generating){toastr.warning('Generation already in progress');return}
-        const s=getSettings();if(!s.enabled){toastr.warning('ScenePulse is disabled');return}
+        if(generating){toastr.warning(t('Generation already in progress'));return}
+        const s=getSettings();if(!s.enabled){toastr.warning(t('ScenePulse is disabled'));return}
         const btn=e.currentTarget;
         if(btn.classList.contains('sp-spinning'))return;
         btn.classList.add('sp-spinning');
         const{chat}=SillyTavern.getContext();
         if(!chat.length){btn.classList.remove('sp-spinning');return}
         // Show loading overlay inside thought body -- existing content visible behind
-        showThoughtLoading('Regenerating thoughts','Analyzing context');
+        showThoughtLoading(t('Regenerating thoughts'),t('Analyzing context'));
         showStopButton();
         log('Thought regen: starting...');
         setLastGenSource('manual:thoughts');

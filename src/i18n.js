@@ -108,6 +108,14 @@ const TRANSLATIONS = {
     'Drag to reorder':'Перетащите для сортировки','No custom panels yet':'Нет пользовательских панелей',
     // Quest dialog
     'Quest name':'Название квеста','1-2 sentences from your perspective':'1-2 предложения от вашего лица',
+    // New keys — dropdown options, toasts, dialogs
+    'Debug Log':'Журнал отладки','Recommended for most setups.':'Рекомендуется для большинства настроек.','(return only changes — saves tokens)':'(возвращать только изменения — экономит токены)',
+    'Together (AI appends tracker to its response)':'Совместно (ИИ добавляет трекер к ответу)','Separate (dedicated API call after AI response)':'Раздельно (отдельный API-вызов после ответа ИИ)','(Same as current)':'(Как текущий)',
+    '(Built-in: ScenePulse GLM-5)':'(Встроенный: ScenePulse GLM-5)','Native API':'Нативный API','System (recommended)':'Система (рекомендуется)',
+    'Attached (character, chat & global)':'Прикреплённые (персонаж, чат и глобальные)','Character lorebook only':'Только книга знаний персонажа','Disabled — don\'t inject lorebooks':'Отключено — не вставлять книги знаний',
+    'Custom allowlist':'Пользовательский список','Snapped to left of chat':'Прикреплено слева от чата','Free positioning enabled':'Свободное позиционирование включено',
+    'Generation already in progress':'Генерация уже выполняется','ScenePulse is disabled':'ScenePulse отключён','Regenerating thoughts':'Обновление мыслей',
+    'From settings':'Из настроек','Remove all tracker snapshots from this chat? Your settings are preserved.':'Удалить все снимки трекера из этого чата? Ваши настройки сохранятся.','Reset all ScenePulse settings to defaults? Tracker data is preserved.':'Сбросить все настройки ScenePulse? Данные трекера сохранятся.',
 },
 'Japanese': {
     'Scene Details':'シーン詳細','Quest Journal':'クエストジャーナル','Relationships':'関係','Characters':'キャラクター',
@@ -199,6 +207,14 @@ const TRANSLATIONS = {
     'Drag to reorder':'ドラッグで並べ替え','No custom panels yet':'カスタムパネルなし',
     // Quest dialog
     'Quest name':'クエスト名','1-2 sentences from your perspective':'あなたの視点から1-2文で',
+    // New keys — dropdown options, toasts, dialogs
+    'Debug Log':'デバッグログ','Recommended for most setups.':'ほとんどの設定で推奨されます。','(return only changes — saves tokens)':'（変更のみ返す — トークン節約）',
+    'Together (AI appends tracker to its response)':'統合（AIがレスポンスにトラッカーを追加）','Separate (dedicated API call after AI response)':'分離（AIレスポンス後に専用APIコール）','(Same as current)':'（現在と同じ）',
+    '(Built-in: ScenePulse GLM-5)':'（内蔵: ScenePulse GLM-5）','Native API':'ネイティブAPI','System (recommended)':'システム（推奨）',
+    'Attached (character, chat & global)':'添付済み（キャラクター、チャット、グローバル）','Character lorebook only':'キャラクターロアブックのみ','Disabled — don\'t inject lorebooks':'無効 — ロアブックを注入しない',
+    'Custom allowlist':'カスタム許可リスト','Snapped to left of chat':'チャットの左に固定しました','Free positioning enabled':'自由配置が有効になりました',
+    'Generation already in progress':'生成がすでに進行中です','ScenePulse is disabled':'ScenePulseは無効です','Regenerating thoughts':'思考を再生成中',
+    'From settings':'設定から','Remove all tracker snapshots from this chat? Your settings are preserved.':'このチャットのトラッカースナップショットをすべて削除しますか？設定は保持されます。','Reset all ScenePulse settings to defaults? Tracker data is preserved.':'ScenePulseの全設定をデフォルトに戻しますか？トラッカーデータは保持されます。',
 },
 'Korean': {
     'Scene Details':'장면 세부사항','Quest Journal':'퀘스트 저널','Relationships':'관계','Characters':'캐릭터',
@@ -290,6 +306,14 @@ const TRANSLATIONS = {
     'Drag to reorder':'드래그하여 정렬','No custom panels yet':'커스텀 패널 없음',
     // Quest dialog
     'Quest name':'퀘스트 이름','1-2 sentences from your perspective':'당신의 관점에서 1-2문장',
+    // New keys — dropdown options, toasts, dialogs
+    'Debug Log':'디버그 로그','Recommended for most setups.':'대부분의 설정에 권장됩니다.','(return only changes — saves tokens)':'(변경 사항만 반환 — 토큰 절약)',
+    'Together (AI appends tracker to its response)':'통합 (AI가 응답에 트래커를 추가)','Separate (dedicated API call after AI response)':'분리 (AI 응답 후 전용 API 호출)','(Same as current)':'(현재와 동일)',
+    '(Built-in: ScenePulse GLM-5)':'(내장: ScenePulse GLM-5)','Native API':'네이티브 API','System (recommended)':'시스템 (권장)',
+    'Attached (character, chat & global)':'첨부됨 (캐릭터, 채팅 및 글로벌)','Character lorebook only':'캐릭터 로어북만','Disabled — don\'t inject lorebooks':'비활성화 — 로어북 주입 안 함',
+    'Custom allowlist':'사용자 지정 허용 목록','Snapped to left of chat':'채팅 왼쪽에 고정됨','Free positioning enabled':'자유 배치 활성화됨',
+    'Generation already in progress':'생성이 이미 진행 중입니다','ScenePulse is disabled':'ScenePulse가 비활성화되어 있습니다','Regenerating thoughts':'생각 재생성 중',
+    'From settings':'설정에서','Remove all tracker snapshots from this chat? Your settings are preserved.':'이 채팅의 모든 트래커 스냅샷을 삭제하시겠습니까? 설정은 유지됩니다.','Reset all ScenePulse settings to defaults? Tracker data is preserved.':'모든 ScenePulse 설정을 기본값으로 재설정하시겠습니까? 트래커 데이터는 유지됩니다.',
 },
 'Chinese (Simplified)': {
     'Scene Details':'场景详情','Quest Journal':'任务日志','Relationships':'关系','Characters':'角色',
@@ -381,6 +405,14 @@ const TRANSLATIONS = {
     'Drag to reorder':'拖动排序','No custom panels yet':'暂无自定义面板',
     // Quest dialog
     'Quest name':'任务名称','1-2 sentences from your perspective':'从您的角度写1-2句话',
+    // New keys — dropdown options, toasts, dialogs
+    'Debug Log':'调试日志','Recommended for most setups.':'推荐用于大多数设置。','(return only changes — saves tokens)':'（仅返回变更 — 节省令牌）',
+    'Together (AI appends tracker to its response)':'合并（AI在回复中附加追踪器）','Separate (dedicated API call after AI response)':'分离（AI回复后独立API调用）','(Same as current)':'（与当前相同）',
+    '(Built-in: ScenePulse GLM-5)':'（内置：ScenePulse GLM-5）','Native API':'原生API','System (recommended)':'系统（推荐）',
+    'Attached (character, chat & global)':'已附加（角色、聊天和全局）','Character lorebook only':'仅角色知识书','Disabled — don\'t inject lorebooks':'已禁用 — 不注入知识书',
+    'Custom allowlist':'自定义白名单','Snapped to left of chat':'已固定到聊天左侧','Free positioning enabled':'自由定位已启用',
+    'Generation already in progress':'生成已在进行中','ScenePulse is disabled':'ScenePulse已禁用','Regenerating thoughts':'正在重新生成想法',
+    'From settings':'来自设置','Remove all tracker snapshots from this chat? Your settings are preserved.':'删除此聊天的所有追踪器快照吗？您的设置将被保留。','Reset all ScenePulse settings to defaults? Tracker data is preserved.':'将所有ScenePulse设置重置为默认值吗？追踪器数据将被保留。',
 },
 'Spanish': {
     'Scene Details':'Detalles de escena','Quest Journal':'Diario de misiones','Relationships':'Relaciones','Characters':'Personajes',
@@ -472,6 +504,14 @@ const TRANSLATIONS = {
     'Drag to reorder':'Arrastrar para reordenar','No custom panels yet':'Sin paneles personalizados',
     // Quest dialog
     'Quest name':'Nombre de misión','1-2 sentences from your perspective':'1-2 oraciones desde tu perspectiva',
+    // New keys — dropdown options, toasts, dialogs
+    'Debug Log':'Registro de depuración','Recommended for most setups.':'Recomendado para la mayoría de configuraciones.','(return only changes — saves tokens)':'(devolver solo cambios — ahorra tokens)',
+    'Together (AI appends tracker to its response)':'Juntos (la IA añade el rastreador a su respuesta)','Separate (dedicated API call after AI response)':'Separado (llamada API dedicada tras respuesta de IA)','(Same as current)':'(Igual que actual)',
+    '(Built-in: ScenePulse GLM-5)':'(Integrado: ScenePulse GLM-5)','Native API':'API nativa','System (recommended)':'Sistema (recomendado)',
+    'Attached (character, chat & global)':'Adjuntos (personaje, chat y global)','Character lorebook only':'Solo libro de conocimiento del personaje','Disabled — don\'t inject lorebooks':'Desactivado — no inyectar libros de conocimiento',
+    'Custom allowlist':'Lista blanca personalizada','Snapped to left of chat':'Fijado a la izquierda del chat','Free positioning enabled':'Posicionamiento libre activado',
+    'Generation already in progress':'La generación ya está en curso','ScenePulse is disabled':'ScenePulse está desactivado','Regenerating thoughts':'Regenerando pensamientos',
+    'From settings':'Desde ajustes','Remove all tracker snapshots from this chat? Your settings are preserved.':'¿Eliminar todas las instantáneas del rastreador de este chat? Tus ajustes se conservan.','Reset all ScenePulse settings to defaults? Tracker data is preserved.':'¿Restablecer todos los ajustes de ScenePulse? Los datos del rastreador se conservan.',
 },
 'French': {
     'Scene Details':'Détails de scène','Quest Journal':'Journal de quêtes','Relationships':'Relations','Characters':'Personnages',
@@ -563,6 +603,14 @@ const TRANSLATIONS = {
     'Drag to reorder':'Glisser pour réordonner','No custom panels yet':'Aucun panneau personnalisé',
     // Quest dialog
     'Quest name':'Nom de quête','1-2 sentences from your perspective':'1-2 phrases de votre point de vue',
+    // New keys — dropdown options, toasts, dialogs
+    'Debug Log':'Journal de débogage','Recommended for most setups.':'Recommandé pour la plupart des configurations.','(return only changes — saves tokens)':'(retourner uniquement les changements — économise des tokens)',
+    'Together (AI appends tracker to its response)':'Ensemble (l’IA ajoute le tracker à sa réponse)','Separate (dedicated API call after AI response)':'Séparé (appel API dédié après la réponse de l’IA)','(Same as current)':'(Identique au courant)',
+    '(Built-in: ScenePulse GLM-5)':'(Intégré : ScenePulse GLM-5)','Native API':'API native','System (recommended)':'Système (recommandé)',
+    'Attached (character, chat & global)':'Attachés (personnage, chat et global)','Character lorebook only':'Livre de connaissances du personnage uniquement','Disabled — don\'t inject lorebooks':'Désactivé — ne pas injecter les livres de connaissances',
+    'Custom allowlist':'Liste blanche personnalisée','Snapped to left of chat':'Ancré à gauche du chat','Free positioning enabled':'Positionnement libre activé',
+    'Generation already in progress':'Génération déjà en cours','ScenePulse is disabled':'ScenePulse est désactivé','Regenerating thoughts':'Régénération des pensées',
+    'From settings':'Depuis les paramètres','Remove all tracker snapshots from this chat? Your settings are preserved.':'Supprimer tous les instantanés du tracker de ce chat ? Vos paramètres sont préservés.','Reset all ScenePulse settings to defaults? Tracker data is preserved.':'Réinitialiser tous les paramètres ScenePulse ? Les données du tracker sont préservées.',
 },
 'German': {
     'Scene Details':'Szenendetails','Quest Journal':'Questtagebuch','Relationships':'Beziehungen','Characters':'Charaktere',
@@ -654,6 +702,14 @@ const TRANSLATIONS = {
     'Drag to reorder':'Ziehen zum Sortieren','No custom panels yet':'Keine benutzerdefinierten Panels',
     // Quest dialog
     'Quest name':'Questname','1-2 sentences from your perspective':'1-2 Sätze aus Ihrer Perspektive',
+    // New keys — dropdown options, toasts, dialogs
+    'Debug Log':'Debug-Protokoll','Recommended for most setups.':'Empfohlen für die meisten Konfigurationen.','(return only changes — saves tokens)':'(nur Änderungen zurückgeben — spart Tokens)',
+    'Together (AI appends tracker to its response)':'Zusammen (KI fügt Tracker an Antwort an)','Separate (dedicated API call after AI response)':'Getrennt (dedizierter API-Aufruf nach KI-Antwort)','(Same as current)':'(Wie aktuell)',
+    '(Built-in: ScenePulse GLM-5)':'(Eingebaut: ScenePulse GLM-5)','Native API':'Native API','System (recommended)':'System (empfohlen)',
+    'Attached (character, chat & global)':'Angehängt (Charakter, Chat & global)','Character lorebook only':'Nur Charakter-Wissensbuch','Disabled — don\'t inject lorebooks':'Deaktiviert — keine Wissensbücher einfügen',
+    'Custom allowlist':'Benutzerdefinierte Erlaubnisliste','Snapped to left of chat':'Links am Chat fixiert','Free positioning enabled':'Freie Positionierung aktiviert',
+    'Generation already in progress':'Generierung läuft bereits','ScenePulse is disabled':'ScenePulse ist deaktiviert','Regenerating thoughts':'Gedanken werden regeneriert',
+    'From settings':'Aus Einstellungen','Remove all tracker snapshots from this chat? Your settings are preserved.':'Alle Tracker-Snapshots aus diesem Chat entfernen? Ihre Einstellungen bleiben erhalten.','Reset all ScenePulse settings to defaults? Tracker data is preserved.':'Alle ScenePulse-Einstellungen zurücksetzen? Tracker-Daten bleiben erhalten.',
 },
 'Portuguese': {
     'Scene Details':'Detalhes da cena','Quest Journal':'Diário de missões','Relationships':'Relacionamentos','Characters':'Personagens',
@@ -745,6 +801,14 @@ const TRANSLATIONS = {
     'Drag to reorder':'Arrastar para reordenar','No custom panels yet':'Nenhum painel personalizado',
     // Quest dialog
     'Quest name':'Nome da missão','1-2 sentences from your perspective':'1-2 frases da sua perspectiva',
+    // New keys — dropdown options, toasts, dialogs
+    'Debug Log':'Log de depuração','Recommended for most setups.':'Recomendado para a maioria das configurações.','(return only changes — saves tokens)':'(retornar apenas alterações — economiza tokens)',
+    'Together (AI appends tracker to its response)':'Juntos (IA anexa rastreador à resposta)','Separate (dedicated API call after AI response)':'Separado (chamada API dedicada após resposta da IA)','(Same as current)':'(Igual ao atual)',
+    '(Built-in: ScenePulse GLM-5)':'(Integrado: ScenePulse GLM-5)','Native API':'API nativa','System (recommended)':'Sistema (recomendado)',
+    'Attached (character, chat & global)':'Anexados (personagem, chat e global)','Character lorebook only':'Apenas livro de conhecimento do personagem','Disabled — don\'t inject lorebooks':'Desativado — não injetar livros de conhecimento',
+    'Custom allowlist':'Lista branca personalizada','Snapped to left of chat':'Fixado à esquerda do chat','Free positioning enabled':'Posicionamento livre ativado',
+    'Generation already in progress':'Geração já em andamento','ScenePulse is disabled':'ScenePulse está desativado','Regenerating thoughts':'Regenerando pensamentos',
+    'From settings':'Das configurações','Remove all tracker snapshots from this chat? Your settings are preserved.':'Remover todos os snapshots do rastreador deste chat? Suas configurações são preservadas.','Reset all ScenePulse settings to defaults? Tracker data is preserved.':'Redefinir todas as configurações do ScenePulse? Os dados do rastreador são preservados.',
 },
 'Chinese (Traditional)': {
     // Section headers
@@ -846,6 +910,14 @@ const TRANSLATIONS = {
     'Drag to reorder':'拖曳排序','No custom panels yet':'尚無自訂面板',
     // Quest dialog
     'Quest name':'任務名稱','1-2 sentences from your perspective':'從您的角度寫 1-2 句話',
+    // New keys — dropdown options, toasts, dialogs
+    'Debug Log':'偵錯日誌','Recommended for most setups.':'推薦用於大多數設置。','(return only changes — saves tokens)':'（僅返回變更 — 節省令牌）',
+    'Together (AI appends tracker to its response)':'合併（AI在回覆中附加追蹤器）','Separate (dedicated API call after AI response)':'分離（AI回覆後獨立API呼叫）','(Same as current)':'（與當前相同）',
+    '(Built-in: ScenePulse GLM-5)':'（內建：ScenePulse GLM-5）','Native API':'原生API','System (recommended)':'系統（推薦）',
+    'Attached (character, chat & global)':'已附加（角色、聊天和全域）','Character lorebook only':'僅角色知識書','Disabled — don\'t inject lorebooks':'已停用 — 不注入知識書',
+    'Custom allowlist':'自訂白名單','Snapped to left of chat':'已固定到聊天左側','Free positioning enabled':'自由定位已啟用',
+    'Generation already in progress':'生成已在進行中','ScenePulse is disabled':'ScenePulse已停用','Regenerating thoughts':'正在重新生成想法',
+    'From settings':'來自設定','Remove all tracker snapshots from this chat? Your settings are preserved.':'刪除此聊天的所有追蹤器快照嗎？您的設定將被保留。','Reset all ScenePulse settings to defaults? Tracker data is preserved.':'將所有ScenePulse設定重置為預設值嗎？追蹤器資料將被保留。',
 },
 'Hindi': {
     // Section headers
@@ -947,6 +1019,14 @@ const TRANSLATIONS = {
     'Drag to reorder':'क्रम बदलने हेतु खींचें','No custom panels yet':'अभी कोई कस्टम पैनल नहीं',
     // Quest dialog
     'Quest name':'क्वेस्ट नाम','1-2 sentences from your perspective':'अपने दृष्टिकोण से 1-2 वाक्य',
+    // New keys — dropdown options, toasts, dialogs
+    'Debug Log':'डिबग लॉग','Recommended for most setups.':'अधिकांश सेटअप के लिए अनुशंसित।','(return only changes — saves tokens)':'(केवल बदलाव लौटाएं — टोकन बचाएं)',
+    'Together (AI appends tracker to its response)':'एक साथ (AI अपने उत्तर में ट्रैकर जोड़ता है)','Separate (dedicated API call after AI response)':'अलग (AI उत्तर के बाद समर्पित API कॉल)','(Same as current)':'(वर्तमान के समान)',
+    '(Built-in: ScenePulse GLM-5)':'(अंतर्निहित: ScenePulse GLM-5)','Native API':'मूल API','System (recommended)':'सिस्टम (अनुशंसित)',
+    'Attached (character, chat & global)':'संलग्न (चरित्र, चैट और वैश्विक)','Character lorebook only':'केवल चरित्र ज्ञान पुस्तक','Disabled — don\'t inject lorebooks':'अक्षम — ज्ञान पुस्तकें न डालें',
+    'Custom allowlist':'कस्टम अनुमति सूची','Snapped to left of chat':'चैट के बाईं ओर स्नैप किया','Free positioning enabled':'मुक्त स्थिति सक्षम',
+    'Generation already in progress':'जनरेशन पहले से जारी है','ScenePulse is disabled':'ScenePulse अक्षम है','Regenerating thoughts':'विचार पुनः उत्पन्न हो रहे हैं',
+    'From settings':'सेटिंग्स से','Remove all tracker snapshots from this chat? Your settings are preserved.':'इस चैट से सभी ट्रैकर स्नैपशॉट हटाएं? आपकी सेटिंग्स सुरक्षित रहेंगी।','Reset all ScenePulse settings to defaults? Tracker data is preserved.':'सभी ScenePulse सेटिंग्स डिफ़ॉल्ट पर रीसेट करें? ट्रैकर डेटा सुरक्षित रहेगा।',
 },
 'Arabic': {
     // Section headers
@@ -1048,6 +1128,14 @@ const TRANSLATIONS = {
     'Drag to reorder':'اسحب لإعادة الترتيب','No custom panels yet':'لا توجد لوحات مخصصة بعد',
     // Quest dialog
     'Quest name':'اسم المهمة','1-2 sentences from your perspective':'1-2 جملة من وجهة نظرك',
+    // New keys — dropdown options, toasts, dialogs
+    'Debug Log':'سجل التصحيح','Recommended for most setups.':'موصى به لمعظم الإعدادات.','(return only changes — saves tokens)':'(إرجاع التغييرات فقط — يوفر الرموز)',
+    'Together (AI appends tracker to its response)':'معاً (الذكاء الاصطناعي يضيف المتتبع إلى رده)','Separate (dedicated API call after AI response)':'منفصل (استدعاء API مخصص بعد رد الذكاء الاصطناعي)','(Same as current)':'(مثل الحالي)',
+    '(Built-in: ScenePulse GLM-5)':'(مدمج: ScenePulse GLM-5)','Native API':'API أصلي','System (recommended)':'النظام (موصى به)',
+    'Attached (character, chat & global)':'مرفقة (الشخصية والدردشة والعالمية)','Character lorebook only':'كتاب معرفة الشخصية فقط','Disabled — don\'t inject lorebooks':'معطل — لا تحقن كتب المعرفة',
+    'Custom allowlist':'قائمة سماح مخصصة','Snapped to left of chat':'تم التثبيت يسار الدردشة','Free positioning enabled':'تم تفعيل التموضع الحر',
+    'Generation already in progress':'التوليد قيد التنفيذ بالفعل','ScenePulse is disabled':'ScenePulse معطل','Regenerating thoughts':'جارٍ إعادة توليد الأفكار',
+    'From settings':'من الإعدادات','Remove all tracker snapshots from this chat? Your settings are preserved.':'هل تريد إزالة جميع لقطات المتتبع من هذه الدردشة؟ إعداداتك محفوظة.','Reset all ScenePulse settings to defaults? Tracker data is preserved.':'هل تريد إعادة تعيين جميع إعدادات ScenePulse؟ بيانات المتتبع محفوظة.',
 },
 'Turkish': {
     // Section headers
@@ -1149,6 +1237,14 @@ const TRANSLATIONS = {
     'Drag to reorder':'Sıralamak için sürükle','No custom panels yet':'Henüz özel panel yok',
     // Quest dialog
     'Quest name':'Görev adı','1-2 sentences from your perspective':'Kendi bakış açınızdan 1-2 cümle',
+    // New keys — dropdown options, toasts, dialogs
+    'Debug Log':'Hata Ayıklama Günlüğü','Recommended for most setups.':'Çoğu kurulum için önerilir.','(return only changes — saves tokens)':'(yalnızca değişiklikleri döndür — token tasarrufu)',
+    'Together (AI appends tracker to its response)':'Birlikte (AI yanıtına izleyiciyi ekler)','Separate (dedicated API call after AI response)':'Ayrı (AI yanıtından sonra özel API çağrısı)','(Same as current)':'(Mevcut ile aynı)',
+    '(Built-in: ScenePulse GLM-5)':'(Yerleşik: ScenePulse GLM-5)','Native API':'Yerel API','System (recommended)':'Sistem (önerilen)',
+    'Attached (character, chat & global)':'Ekli (karakter, sohbet ve genel)','Character lorebook only':'Yalnızca karakter bilgi kitabı','Disabled — don\'t inject lorebooks':'Devre dışı — bilgi kitaplarını enjekte etme',
+    'Custom allowlist':'Özel izin listesi','Snapped to left of chat':'Sohbetin soluna sabitlendi','Free positioning enabled':'Serbest konumlandırma etkin',
+    'Generation already in progress':'Üretim zaten devam ediyor','ScenePulse is disabled':'ScenePulse devre dışı','Regenerating thoughts':'Düşünceler yeniden üretiliyor',
+    'From settings':'Ayarlardan','Remove all tracker snapshots from this chat? Your settings are preserved.':'Bu sohbetteki tüm izleyici anlık görüntüleri kaldırılsın mı? Ayarlarınız korunur.','Reset all ScenePulse settings to defaults? Tracker data is preserved.':'Tüm ScenePulse ayarları sıfırlansın mı? İzleyici verileri korunur.',
 },
 'Vietnamese': {
     // Section headers
@@ -1250,6 +1346,14 @@ const TRANSLATIONS = {
     'Drag to reorder':'Kéo để sắp xếp','No custom panels yet':'Chưa có bảng tùy chỉnh',
     // Quest dialog
     'Quest name':'Tên nhiệm vụ','1-2 sentences from your perspective':'1-2 câu từ góc nhìn của bạn',
+    // New keys — dropdown options, toasts, dialogs
+    'Debug Log':'Nhật ký gỡ lỗi','Recommended for most setups.':'Được khuyên dùng cho hầu hết thiết lập.','(return only changes — saves tokens)':'(chỉ trả về thay đổi — tiết kiệm token)',
+    'Together (AI appends tracker to its response)':'Kết hợp (AI thêm trình theo dõi vào phản hồi)','Separate (dedicated API call after AI response)':'Riêng biệt (gọi API riêng sau phản hồi AI)','(Same as current)':'(Giống hiện tại)',
+    '(Built-in: ScenePulse GLM-5)':'(Tích hợp: ScenePulse GLM-5)','Native API':'API gốc','System (recommended)':'Hệ thống (khuyên dùng)',
+    'Attached (character, chat & global)':'Đính kèm (nhân vật, trò chuyện & toàn cục)','Character lorebook only':'Chỉ sách kiến thức nhân vật','Disabled — don\'t inject lorebooks':'Tắt — không chèn sách kiến thức',
+    'Custom allowlist':'Danh sách cho phép tùy chỉnh','Snapped to left of chat':'Đã ghim vào bên trái trò chuyện','Free positioning enabled':'Đã bật định vị tự do',
+    'Generation already in progress':'Quá trình tạo đang diễn ra','ScenePulse is disabled':'ScenePulse đã bị tắt','Regenerating thoughts':'Đang tái tạo suy nghĩ',
+    'From settings':'Từ cài đặt','Remove all tracker snapshots from this chat? Your settings are preserved.':'Xóa tất cả ảnh chụp trình theo dõi khỏi cuộc trò chuyện này? Cài đặt của bạn được giữ nguyên.','Reset all ScenePulse settings to defaults? Tracker data is preserved.':'Đặt lại tất cả cài đặt ScenePulse về mặc định? Dữ liệu trình theo dõi được giữ nguyên.',
 },
 'Italian': {
     // Section headers
@@ -1351,6 +1455,14 @@ const TRANSLATIONS = {
     'Drag to reorder':'Trascina per riordinare','No custom panels yet':'Nessun pannello personalizzato',
     // Quest dialog
     'Quest name':'Nome missione','1-2 sentences from your perspective':'1-2 frasi dal tuo punto di vista',
+    // New keys — dropdown options, toasts, dialogs
+    'Debug Log':'Log di debug','Recommended for most setups.':'Consigliato per la maggior parte delle configurazioni.','(return only changes — saves tokens)':'(restituire solo le modifiche — risparmia token)',
+    'Together (AI appends tracker to its response)':'Insieme (l’IA aggiunge il tracker alla risposta)','Separate (dedicated API call after AI response)':'Separato (chiamata API dedicata dopo la risposta dell’IA)','(Same as current)':'(Uguale all’attuale)',
+    '(Built-in: ScenePulse GLM-5)':'(Integrato: ScenePulse GLM-5)','Native API':'API nativa','System (recommended)':'Sistema (consigliato)',
+    'Attached (character, chat & global)':'Allegati (personaggio, chat e globale)','Character lorebook only':'Solo libro di conoscenza del personaggio','Disabled — don\'t inject lorebooks':'Disabilitato — non iniettare libri di conoscenza',
+    'Custom allowlist':'Lista consentiti personalizzata','Snapped to left of chat':'Ancorato a sinistra della chat','Free positioning enabled':'Posizionamento libero abilitato',
+    'Generation already in progress':'Generazione già in corso','ScenePulse is disabled':'ScenePulse è disabilitato','Regenerating thoughts':'Rigenerazione dei pensieri',
+    'From settings':'Dalle impostazioni','Remove all tracker snapshots from this chat? Your settings are preserved.':'Rimuovere tutti gli snapshot del tracker da questa chat? Le impostazioni vengono preservate.','Reset all ScenePulse settings to defaults? Tracker data is preserved.':'Ripristinare tutte le impostazioni di ScenePulse? I dati del tracker vengono preservati.',
 },
 'Thai': {
     // Section headers
@@ -1452,6 +1564,14 @@ const TRANSLATIONS = {
     'Drag to reorder':'ลากเพื่อเรียงลำดับ','No custom panels yet':'ยังไม่มีแผงกำหนดเอง',
     // Quest dialog
     'Quest name':'ชื่อภารกิจ','1-2 sentences from your perspective':'1-2 ประโยคจากมุมมองของคุณ',
+    // New keys — dropdown options, toasts, dialogs
+    'Debug Log':'บันทึกดีบัก','Recommended for most setups.':'แนะนำสำหรับการตั้งค่าส่วนใหญ่','(return only changes — saves tokens)':'(ส่งคืนเฉพาะการเปลี่ยนแปลง — ประหยัดโทเค็น)',
+    'Together (AI appends tracker to its response)':'รวมกัน (AI เพิ่มตัวติดตามในคำตอบ)','Separate (dedicated API call after AI response)':'แยก (เรียก API เฉพาะหลังคำตอบ AI)','(Same as current)':'(เหมือนกับปัจจุบัน)',
+    '(Built-in: ScenePulse GLM-5)':'(ในตัว: ScenePulse GLM-5)','Native API':'API ดั้งเดิม','System (recommended)':'ระบบ (แนะนำ)',
+    'Attached (character, chat & global)':'แนบ (ตัวละคร แชท และทั่วไป)','Character lorebook only':'เฉพาะหนังสือความรู้ตัวละคร','Disabled — don\'t inject lorebooks':'ปิดใช้งาน — ไม่ฉีดหนังสือความรู้',
+    'Custom allowlist':'รายการอนุญาตที่กำหนดเอง','Snapped to left of chat':'ยึดไว้ทางซ้ายของแชท','Free positioning enabled':'เปิดใช้งานการวางตำแหน่งอิสระ',
+    'Generation already in progress':'การสร้างกำลังดำเนินอยู่แล้ว','ScenePulse is disabled':'ScenePulse ถูกปิดใช้งาน','Regenerating thoughts':'กำลังสร้างความคิดใหม่',
+    'From settings':'จากการตั้งค่า','Remove all tracker snapshots from this chat? Your settings are preserved.':'ลบสแน็ปช็อตตัวติดตามทั้งหมดจากแชทนี้? การตั้งค่าของคุณจะถูกเก็บรักษาไว้','Reset all ScenePulse settings to defaults? Tracker data is preserved.':'รีเซ็ตการตั้งค่า ScenePulse ทั้งหมด? ข้อมูลตัวติดตามจะถูกเก็บรักษาไว้',
 },
 'Polish': {
     // Section headers
@@ -1553,6 +1673,14 @@ const TRANSLATIONS = {
     'Drag to reorder':'Przeciągnij, aby zmienić kolejność','No custom panels yet':'Brak własnych paneli',
     // Quest dialog
     'Quest name':'Nazwa misji','1-2 sentences from your perspective':'1-2 zdania z Twojej perspektywy',
+    // New keys — dropdown options, toasts, dialogs
+    'Debug Log':'Dziennik debugowania','Recommended for most setups.':'Zalecane dla większości konfiguracji.','(return only changes — saves tokens)':'(zwróć tylko zmiany — oszczędza tokeny)',
+    'Together (AI appends tracker to its response)':'Razem (AI dołącza tracker do odpowiedzi)','Separate (dedicated API call after AI response)':'Oddzielnie (dedykowane wywołanie API po odpowiedzi AI)','(Same as current)':'(Tak jak bieżący)',
+    '(Built-in: ScenePulse GLM-5)':'(Wbudowany: ScenePulse GLM-5)','Native API':'Natywne API','System (recommended)':'System (zalecany)',
+    'Attached (character, chat & global)':'Dołączone (postać, czat i globalne)','Character lorebook only':'Tylko księga wiedzy postaci','Disabled — don\'t inject lorebooks':'Wyłączono — nie wstrzykuj ksiąg wiedzy',
+    'Custom allowlist':'Własna lista dozwolonych','Snapped to left of chat':'Przypięto po lewej stronie czatu','Free positioning enabled':'Swobodne pozycjonowanie włączone',
+    'Generation already in progress':'Generowanie już trwa','ScenePulse is disabled':'ScenePulse jest wyłączony','Regenerating thoughts':'Regenerowanie myśli',
+    'From settings':'Z ustawień','Remove all tracker snapshots from this chat? Your settings are preserved.':'Usunąć wszystkie migawki trackera z tego czatu? Ustawienia zostaną zachowane.','Reset all ScenePulse settings to defaults? Tracker data is preserved.':'Zresetować wszystkie ustawienia ScenePulse? Dane trackera zostaną zachowane.',
 },
 'Ukrainian': {
     // Section headers
@@ -1654,6 +1782,14 @@ const TRANSLATIONS = {
     'Drag to reorder':'Перетягніть для сортування','No custom panels yet':'Немає власних панелей',
     // Quest dialog
     'Quest name':'Назва квесту','1-2 sentences from your perspective':'1-2 речення від вашої особи',
+    // New keys — dropdown options, toasts, dialogs
+    'Debug Log':'Журнал зневадження','Recommended for most setups.':'Рекомендовано для більшості налаштувань.','(return only changes — saves tokens)':'(повертати лише зміни — економить токени)',
+    'Together (AI appends tracker to its response)':'Разом (ШІ додає трекер до відповіді)','Separate (dedicated API call after AI response)':'Окремо (окремий виклик API після відповіді ШІ)','(Same as current)':'(Як поточний)',
+    '(Built-in: ScenePulse GLM-5)':'(Вбудований: ScenePulse GLM-5)','Native API':'Рідний API','System (recommended)':'Система (рекомендовано)',
+    'Attached (character, chat & global)':'Прикріплені (персонаж, чат та глобальні)','Character lorebook only':'Лише книга знань персонажа','Disabled — don\'t inject lorebooks':'Вимкнено — не вставляти книги знань',
+    'Custom allowlist':'Власний список дозволених','Snapped to left of chat':'Прикріплено ліворуч від чату','Free positioning enabled':'Вільне позиціювання увімкнено',
+    'Generation already in progress':'Генерація вже виконується','ScenePulse is disabled':'ScenePulse вимкнено','Regenerating thoughts':'Оновлення думок',
+    'From settings':'З налаштувань','Remove all tracker snapshots from this chat? Your settings are preserved.':'Видалити всі знімки трекера з цього чату? Ваші налаштування збережуться.','Reset all ScenePulse settings to defaults? Tracker data is preserved.':'Скинути всі налаштування ScenePulse? Дані трекера збережуться.',
 },
 'Indonesian': {
     // Section headers
@@ -1755,6 +1891,14 @@ const TRANSLATIONS = {
     'Drag to reorder':'Seret untuk mengurutkan','No custom panels yet':'Belum ada panel kustom',
     // Quest dialog
     'Quest name':'Nama misi','1-2 sentences from your perspective':'1-2 kalimat dari sudut pandang Anda',
+    // New keys — dropdown options, toasts, dialogs
+    'Debug Log':'Log Debug','Recommended for most setups.':'Disarankan untuk sebagian besar pengaturan.','(return only changes — saves tokens)':'(hanya kembalikan perubahan — hemat token)',
+    'Together (AI appends tracker to its response)':'Bersama (AI menambahkan pelacak ke responsnya)','Separate (dedicated API call after AI response)':'Terpisah (panggilan API khusus setelah respons AI)','(Same as current)':'(Sama dengan saat ini)',
+    '(Built-in: ScenePulse GLM-5)':'(Bawaan: ScenePulse GLM-5)','Native API':'API Asli','System (recommended)':'Sistem (disarankan)',
+    'Attached (character, chat & global)':'Terlampir (karakter, obrolan & global)','Character lorebook only':'Hanya buku pengetahuan karakter','Disabled — don\'t inject lorebooks':'Nonaktif — jangan injeksi buku pengetahuan',
+    'Custom allowlist':'Daftar izin kustom','Snapped to left of chat':'Disematkan di kiri obrolan','Free positioning enabled':'Penempatan bebas diaktifkan',
+    'Generation already in progress':'Pembuatan sedang berlangsung','ScenePulse is disabled':'ScenePulse dinonaktifkan','Regenerating thoughts':'Meregenerasi pikiran',
+    'From settings':'Dari pengaturan','Remove all tracker snapshots from this chat? Your settings are preserved.':'Hapus semua snapshot pelacak dari obrolan ini? Pengaturan Anda tetap tersimpan.','Reset all ScenePulse settings to defaults? Tracker data is preserved.':'Reset semua pengaturan ScenePulse ke default? Data pelacak tetap tersimpan.',
 },
 'Dutch': {
     // Section headers
@@ -1856,6 +2000,14 @@ const TRANSLATIONS = {
     'Drag to reorder':'Slepen om te herschikken','No custom panels yet':'Nog geen aangepaste panelen',
     // Quest dialog
     'Quest name':'Questnaam','1-2 sentences from your perspective':'1-2 zinnen vanuit jouw perspectief',
+    // New keys — dropdown options, toasts, dialogs
+    'Debug Log':'Debuglogboek','Recommended for most setups.':'Aanbevolen voor de meeste configuraties.','(return only changes — saves tokens)':'(alleen wijzigingen retourneren — bespaart tokens)',
+    'Together (AI appends tracker to its response)':'Samen (AI voegt tracker toe aan antwoord)','Separate (dedicated API call after AI response)':'Apart (aparte API-aanroep na AI-antwoord)','(Same as current)':'(Zelfde als huidig)',
+    '(Built-in: ScenePulse GLM-5)':'(Ingebouwd: ScenePulse GLM-5)','Native API':'Native API','System (recommended)':'Systeem (aanbevolen)',
+    'Attached (character, chat & global)':'Bijgevoegd (personage, chat & globaal)','Character lorebook only':'Alleen karakter kennisboek','Disabled — don\'t inject lorebooks':'Uitgeschakeld — geen kennisboeken injecteren',
+    'Custom allowlist':'Aangepaste toelatingslijst','Snapped to left of chat':'Vastgezet links van chat','Free positioning enabled':'Vrije positionering ingeschakeld',
+    'Generation already in progress':'Generatie is al bezig','ScenePulse is disabled':'ScenePulse is uitgeschakeld','Regenerating thoughts':'Gedachten worden geregenereerd',
+    'From settings':'Vanuit instellingen','Remove all tracker snapshots from this chat? Your settings are preserved.':'Alle tracker-snapshots uit deze chat verwijderen? Uw instellingen blijven behouden.','Reset all ScenePulse settings to defaults? Tracker data is preserved.':'Alle ScenePulse-instellingen resetten? Tracker-gegevens blijven behouden.',
 },
 'Romanian': {
     // Section headers
@@ -1957,6 +2109,14 @@ const TRANSLATIONS = {
     'Drag to reorder':'Trage pentru reordonare','No custom panels yet':'Niciun panou personalizat',
     // Quest dialog
     'Quest name':'Nume misiune','1-2 sentences from your perspective':'1-2 propoziții din perspectiva ta',
+    // New keys — dropdown options, toasts, dialogs
+    'Debug Log':'Jurnal de depanare','Recommended for most setups.':'Recomandat pentru majoritatea configurărilor.','(return only changes — saves tokens)':'(returnează doar modificările — economisește tokeni)',
+    'Together (AI appends tracker to its response)':'Împreūnă (AI adaugă tracker-ul la răspunsul său)','Separate (dedicated API call after AI response)':'Separat (apel API dedicat după răspunsul AI)','(Same as current)':'(La fel ca actualul)',
+    '(Built-in: ScenePulse GLM-5)':'(Încorporat: ScenePulse GLM-5)','Native API':'API nativ','System (recommended)':'Sistem (recomandat)',
+    'Attached (character, chat & global)':'Atașate (personaj, chat și global)','Character lorebook only':'Doar cartea de cunoștințe a personajului','Disabled — don\'t inject lorebooks':'Dezactivat — nu injecta cărți de cunoștințe',
+    'Custom allowlist':'Listă de permisiuni personalizată','Snapped to left of chat':'Fixat la stânga chatului','Free positioning enabled':'Poziționare liberă activată',
+    'Generation already in progress':'Generarea este deja în curs','ScenePulse is disabled':'ScenePulse este dezactivat','Regenerating thoughts':'Regenerare gânduri',
+    'From settings':'Din setări','Remove all tracker snapshots from this chat? Your settings are preserved.':'Eliminați toate instantaneele tracker-ului din acest chat? Setările dvs. sunt păstrate.','Reset all ScenePulse settings to defaults? Tracker data is preserved.':'Resetați toate setările ScenePulse la implicit? Datele tracker-ului sunt păstrate.',
 },
 'Czech': {
     // Section headers
@@ -2058,6 +2218,14 @@ const TRANSLATIONS = {
     'Drag to reorder':'Přetáhněte pro změnu pořadí','No custom panels yet':'Žádné vlastní panely',
     // Quest dialog
     'Quest name':'Název úkolu','1-2 sentences from your perspective':'1-2 věty z vaší perspektivy',
+    // New keys — dropdown options, toasts, dialogs
+    'Debug Log':'Protokol ladění','Recommended for most setups.':'Doporučeno pro většinu konfigurací.','(return only changes — saves tokens)':'(vrátit pouze změny — šetří tokeny)',
+    'Together (AI appends tracker to its response)':'Společně (AI připojí tracker k odpovědi)','Separate (dedicated API call after AI response)':'Odděleně (vyhrazené volání API po odpovědi AI)','(Same as current)':'(Stejné jako aktuální)',
+    '(Built-in: ScenePulse GLM-5)':'(Vestavěný: ScenePulse GLM-5)','Native API':'Nativní API','System (recommended)':'Systém (doporučeno)',
+    'Attached (character, chat & global)':'Připojené (postava, chat a globální)','Character lorebook only':'Pouze kniha znalostí postavy','Disabled — don\'t inject lorebooks':'Vypnuto — nevkládat knihy znalostí',
+    'Custom allowlist':'Vlastní seznam povolených','Snapped to left of chat':'Připnuto vlevo od chatu','Free positioning enabled':'Volné umístění povoleno',
+    'Generation already in progress':'Generování již probíhá','ScenePulse is disabled':'ScenePulse je vypnutý','Regenerating thoughts':'Regenerace myšlenek',
+    'From settings':'Z nastavení','Remove all tracker snapshots from this chat? Your settings are preserved.':'Odstranit všechny snímky trackeru z tohoto chatu? Vaše nastavení zůstanou zachována.','Reset all ScenePulse settings to defaults? Tracker data is preserved.':'Resetovat všechna nastavení ScenePulse na výchozí? Data trackeru zůstanou zachována.',
 },
 'Greek': {
     // Section headers
@@ -2159,6 +2327,14 @@ const TRANSLATIONS = {
     'Drag to reorder':'Σύρετε για αναδιάταξη','No custom panels yet':'Χωρίς προσαρμοσμένα πάνελ',
     // Quest dialog
     'Quest name':'Όνομα αποστολής','1-2 sentences from your perspective':'1-2 προτάσεις από τη δική σας οπτική',
+    // New keys — dropdown options, toasts, dialogs
+    'Debug Log':'Αρχείο αποσφαλμάτωσης','Recommended for most setups.':'Συνιστάται για τις περισσότερες ρυθμίσεις.','(return only changes — saves tokens)':'(επιστρέφει μόνο αλλαγές — εξοικονομεί tokens)',
+    'Together (AI appends tracker to its response)':'Μαζί (η ΤΝ προσαρτά τον ιχνηλάτη στην απάντησή της)','Separate (dedicated API call after AI response)':'Χωριστά (αποκλειστική κλήση API μετά την απάντηση ΤΝ)','(Same as current)':'(Ίδιο με τρέχον)',
+    '(Built-in: ScenePulse GLM-5)':'(Ενσωματωμένο: ScenePulse GLM-5)','Native API':'Εγγενές API','System (recommended)':'Σύστημα (συνιστάται)',
+    'Attached (character, chat & global)':'Συνημμένα (χαρακτήρας, συνομιλία & καθολικά)','Character lorebook only':'Μόνο βιβλίο γνώσης χαρακτήρα','Disabled — don\'t inject lorebooks':'Απενεργοποιημένο — μην εισάγεις βιβλία γνώσης',
+    'Custom allowlist':'Προσαρμοσμένη λίστα επιτρεπόμενων','Snapped to left of chat':'Αγκυρώθηκε αριστερά της συνομιλίας','Free positioning enabled':'Ελεύθερη τοποθέτηση ενεργή',
+    'Generation already in progress':'Η δημιουργία βρίσκεται ήδη σε εξέλιξη','ScenePulse is disabled':'Το ScenePulse είναι απενεργοποιημένο','Regenerating thoughts':'Αναδημιουργία σκέψεων',
+    'From settings':'Από ρυθμίσεις','Remove all tracker snapshots from this chat? Your settings are preserved.':'Αφαίρεση όλων των στιγμιοτύπων ιχνηλάτη; Οι ρυθμίσεις σας διατηρούνται.','Reset all ScenePulse settings to defaults? Tracker data is preserved.':'Επαναφορά όλων των ρυθμίσεων ScenePulse; Τα δεδομένα ιχνηλάτη διατηρούνται.',
 },
 'Hungarian': {
     // Section headers
@@ -2260,6 +2436,14 @@ const TRANSLATIONS = {
     'Drag to reorder':'Húzza az átrendezéshez','No custom panels yet':'Nincs egyéni panel',
     // Quest dialog
     'Quest name':'Küldetés neve','1-2 sentences from your perspective':'1-2 mondat az Ön szemszögéből',
+    // New keys — dropdown options, toasts, dialogs
+    'Debug Log':'Hibakeresési napló','Recommended for most setups.':'A legtöbb beállításhoz ajánlott.','(return only changes — saves tokens)':'(csak változásokat ad vissza — tokeneket takarít meg)',
+    'Together (AI appends tracker to its response)':'Együtt (az AI hozzáfűzi a nyomkövetőt a válaszához)','Separate (dedicated API call after AI response)':'Külön (dedikált API-hívás az AI válasza után)','(Same as current)':'(Ugyanaz mint a jelenlegi)',
+    '(Built-in: ScenePulse GLM-5)':'(Beépített: ScenePulse GLM-5)','Native API':'Natív API','System (recommended)':'Rendszer (ajánlott)',
+    'Attached (character, chat & global)':'Csatolva (karakter, chat és globális)','Character lorebook only':'Csak karakter tudástár','Disabled — don\'t inject lorebooks':'Letiltva — ne injektáljon tudástárakat',
+    'Custom allowlist':'Egyéni engedélyezési lista','Snapped to left of chat':'Chat bal oldalához rögzítve','Free positioning enabled':'Szabad elhelyezés engedélyezve',
+    'Generation already in progress':'A generálás már folyamatban van','ScenePulse is disabled':'A ScenePulse le van tiltva','Regenerating thoughts':'Gondolatok újrагenerálása',
+    'From settings':'Beállításokból','Remove all tracker snapshots from this chat? Your settings are preserved.':'Eltávolítja az összes nyomkövető pillanatképet ebből a chatből? A beállításai megmaradnak.','Reset all ScenePulse settings to defaults? Tracker data is preserved.':'Visszaállítja az összes ScenePulse beállítást? A nyomkövető adatai megmaradnak.',
 },
 'Swedish': {
     // Section headers
@@ -2361,6 +2545,14 @@ const TRANSLATIONS = {
     'Drag to reorder':'Dra för att ordna om','No custom panels yet':'Inga anpassade paneler ännu',
     // Quest dialog
     'Quest name':'Uppdragsnamn','1-2 sentences from your perspective':'1-2 meningar ur ditt perspektiv',
+    // New keys — dropdown options, toasts, dialogs
+    'Debug Log':'Felsökningslogg','Recommended for most setups.':'Rekommenderat för de flesta konfigurationer.','(return only changes — saves tokens)':'(returnera bara ändringar — sparar tokens)',
+    'Together (AI appends tracker to its response)':'Tillsammans (AI bifogar spåraren till sitt svar)','Separate (dedicated API call after AI response)':'Separat (dedikerat API-anrop efter AI-svar)','(Same as current)':'(Samma som nuvarande)',
+    '(Built-in: ScenePulse GLM-5)':'(Inbyggd: ScenePulse GLM-5)','Native API':'Nativt API','System (recommended)':'System (rekommenderat)',
+    'Attached (character, chat & global)':'Bifogade (karaktär, chatt & globala)','Character lorebook only':'Bara karaktärens kunskapsbok','Disabled — don\'t inject lorebooks':'Inaktiverat — injicera inte kunskapsböcker',
+    'Custom allowlist':'Anpassad tillåtlista','Snapped to left of chat':'Fäst till vänster om chatten','Free positioning enabled':'Fri positionering aktiverad',
+    'Generation already in progress':'Generering pågår redan','ScenePulse is disabled':'ScenePulse är inaktiverat','Regenerating thoughts':'Återskapar tankar',
+    'From settings':'Från inställningar','Remove all tracker snapshots from this chat? Your settings are preserved.':'Ta bort alla spårarbilder från denna chatt? Dina inställningar bevaras.','Reset all ScenePulse settings to defaults? Tracker data is preserved.':'Återställ alla ScenePulse-inställningar? Spårardata bevaras.',
 },
 'Malay': {
     // Section headers
@@ -2462,6 +2654,14 @@ const TRANSLATIONS = {
     'Drag to reorder':'Seret untuk susun semula','No custom panels yet':'Tiada panel tersuai lagi',
     // Quest dialog
     'Quest name':'Nama misi','1-2 sentences from your perspective':'1-2 ayat dari perspektif anda',
+    // New keys — dropdown options, toasts, dialogs
+    'Debug Log':'Log Nyahpepijat','Recommended for most setups.':'Disyorkan untuk kebanyakan tetapan.','(return only changes — saves tokens)':'(kembalikan perubahan sahaja — jimat token)',
+    'Together (AI appends tracker to its response)':'Bersama (AI menambah penjejak pada responsnya)','Separate (dedicated API call after AI response)':'Berasingan (panggilan API khusus selepas respons AI)','(Same as current)':'(Sama seperti semasa)',
+    '(Built-in: ScenePulse GLM-5)':'(Terbina dalam: ScenePulse GLM-5)','Native API':'API Asli','System (recommended)':'Sistem (disyorkan)',
+    'Attached (character, chat & global)':'Dilampirkan (watak, sembang & global)','Character lorebook only':'Buku pengetahuan watak sahaja','Disabled — don\'t inject lorebooks':'Dilumpuhkan — jangan suntik buku pengetahuan',
+    'Custom allowlist':'Senarai kebenaran tersuai','Snapped to left of chat':'Dilekatkan di kiri sembang','Free positioning enabled':'Kedudukan bebas diaktifkan',
+    'Generation already in progress':'Penjanaan sudah berlangsung','ScenePulse is disabled':'ScenePulse dilumpuhkan','Regenerating thoughts':'Menjana semula fikiran',
+    'From settings':'Dari tetapan','Remove all tracker snapshots from this chat? Your settings are preserved.':'Padam semua syot kilat penjejak daripada sembang ini? Tetapan anda dikekalkan.','Reset all ScenePulse settings to defaults? Tracker data is preserved.':'Tetapkan semula semua tetapan ScenePulse? Data penjejak dikekalkan.',
 },
 'Finnish': {
     // Section headers
@@ -2563,6 +2763,14 @@ const TRANSLATIONS = {
     'Drag to reorder':'Vedä järjestääksesi','No custom panels yet':'Ei mukautettuja paneeleita',
     // Quest dialog
     'Quest name':'Tehtävän nimi','1-2 sentences from your perspective':'1-2 lausetta omasta näkökulmastasi',
+    // New keys — dropdown options, toasts, dialogs
+    'Debug Log':'Virheenkorjausloki','Recommended for most setups.':'Suositellaan useimpiin asetuksiin.','(return only changes — saves tokens)':'(palauta vain muutokset — säästää tokeneita)',
+    'Together (AI appends tracker to its response)':'Yhdessä (tekoäly lisää seurannan vastaukseensa)','Separate (dedicated API call after AI response)':'Erikseen (omistettu API-kutsu tekoälyvastauksen jälkeen)','(Same as current)':'(Sama kuin nykyinen)',
+    '(Built-in: ScenePulse GLM-5)':'(Sisäänrakennettu: ScenePulse GLM-5)','Native API':'Natiivi API','System (recommended)':'Järjestelmä (suositeltu)',
+    'Attached (character, chat & global)':'Liitetyt (hahmo, keskustelu & yleinen)','Character lorebook only':'Vain hahmon tietokirja','Disabled — don\'t inject lorebooks':'Pois käytöstä — älä lisää tietokirjoja',
+    'Custom allowlist':'Mukautettu sallittujen lista','Snapped to left of chat':'Kiinnitetty keskustelun vasemmalle puolelle','Free positioning enabled':'Vapaa sijoittelu käytössä',
+    'Generation already in progress':'Luonti on jo käynnissä','ScenePulse is disabled':'ScenePulse on pois käytöstä','Regenerating thoughts':'Ajatuksia luodaan uudelleen',
+    'From settings':'Asetuksista','Remove all tracker snapshots from this chat? Your settings are preserved.':'Poista kaikki seurannan tilannekuvat tästä keskustelusta? Asetuksesi säilyvät.','Reset all ScenePulse settings to defaults? Tracker data is preserved.':'Palauta kaikki ScenePulse-asetukset oletuksiin? Seurantatiedot säilyvät.',
 },
 'Danish': {
     // Section headers
@@ -2664,6 +2872,14 @@ const TRANSLATIONS = {
     'Drag to reorder':'Træk for at omarrangere','No custom panels yet':'Ingen brugerdefinerede paneler endnu',
     // Quest dialog
     'Quest name':'Opgavenavn','1-2 sentences from your perspective':'1-2 sætninger fra dit perspektiv',
+    // New keys — dropdown options, toasts, dialogs
+    'Debug Log':'Fejlsøgningslog','Recommended for most setups.':'Anbefales til de fleste opsætninger.','(return only changes — saves tokens)':'(returner kun ændringer — sparer tokens)',
+    'Together (AI appends tracker to its response)':'Sammen (AI tilføjer tracker til sit svar)','Separate (dedicated API call after AI response)':'Separat (dedikeret API-kald efter AI-svar)','(Same as current)':'(Samme som nuværende)',
+    '(Built-in: ScenePulse GLM-5)':'(Indbygget: ScenePulse GLM-5)','Native API':'Nativt API','System (recommended)':'System (anbefalet)',
+    'Attached (character, chat & global)':'Vedhæftede (karakter, chat & globale)','Character lorebook only':'Kun karakterens vidensbok','Disabled — don\'t inject lorebooks':'Deaktiveret — injicer ikke vidensbøger',
+    'Custom allowlist':'Tilpasset tilladelsesliste','Snapped to left of chat':'Fastgjort til venstre for chatten','Free positioning enabled':'Fri positionering aktiveret',
+    'Generation already in progress':'Generering er allerede i gang','ScenePulse is disabled':'ScenePulse er deaktiveret','Regenerating thoughts':'Gendanner tanker',
+    'From settings':'Fra indstillinger','Remove all tracker snapshots from this chat? Your settings are preserved.':'Fjern alle tracker-snapshots fra denne chat? Dine indstillinger bevares.','Reset all ScenePulse settings to defaults? Tracker data is preserved.':'Nulstil alle ScenePulse-indstillinger til standard? Tracker-data bevares.',
 },
 'Norwegian': {
     // Section headers
@@ -2765,6 +2981,14 @@ const TRANSLATIONS = {
     'Drag to reorder':'Dra for å omorganisere','No custom panels yet':'Ingen egendefinerte paneler ennå',
     // Quest dialog
     'Quest name':'Oppdragsnavn','1-2 sentences from your perspective':'1-2 setninger fra ditt perspektiv',
+    // New keys — dropdown options, toasts, dialogs
+    'Debug Log':'Feilsøkingslogg','Recommended for most setups.':'Anbefalt for de fleste oppsett.','(return only changes — saves tokens)':'(returner bare endringer — sparer tokens)',
+    'Together (AI appends tracker to its response)':'Sammen (AI legger til sporer i svaret)','Separate (dedicated API call after AI response)':'Separat (dedikert API-kall etter AI-svar)','(Same as current)':'(Samme som nåværende)',
+    '(Built-in: ScenePulse GLM-5)':'(Innebygd: ScenePulse GLM-5)','Native API':'Nativt API','System (recommended)':'System (anbefalt)',
+    'Attached (character, chat & global)':'Vedlagte (karakter, chat & globale)','Character lorebook only':'Kun karakterens kunnskapsbok','Disabled — don\'t inject lorebooks':'Deaktivert — ikke injiser kunnskapsbøker',
+    'Custom allowlist':'Tilpasset tillateliste','Snapped to left of chat':'Festet til venstre for chatten','Free positioning enabled':'Fri posisjonering aktivert',
+    'Generation already in progress':'Generering pågår allerede','ScenePulse is disabled':'ScenePulse er deaktivert','Regenerating thoughts':'Gjenskaper tanker',
+    'From settings':'Fra innstillinger','Remove all tracker snapshots from this chat? Your settings are preserved.':'Fjern alle sporingsbilder fra denne chatten? Innstillingene dine bevares.','Reset all ScenePulse settings to defaults? Tracker data is preserved.':'Tilbakestill alle ScenePulse-innstillinger? Sporingsdata bevares.',
 },
 'Hebrew': {
     // Section headers
@@ -2866,6 +3090,14 @@ const TRANSLATIONS = {
     'Drag to reorder':'גרור לסידור מחדש','No custom panels yet':'אין לוחות מותאמים עדיין',
     // Quest dialog
     'Quest name':'שם משימה','1-2 sentences from your perspective':'1-2 משפטים מנקודת המבט שלך',
+    // New keys — dropdown options, toasts, dialogs
+    'Debug Log':'יומן ניפוי','Recommended for most setups.':'מומלץ לרוב ההגדרות.','(return only changes — saves tokens)':'(החזר רק שינויים — חוסך אסימונים)',
+    'Together (AI appends tracker to its response)':'יחד (הבינה המלאכותית מוסיפה את העוקב לתגובתה)','Separate (dedicated API call after AI response)':'נפרד (קריאת API ייעודית אחרי תגובת הבינה המלאכותית)','(Same as current)':'(זהה לנוכחי)',
+    '(Built-in: ScenePulse GLM-5)':'(מובנה: ScenePulse GLM-5)','Native API':'API מקורי','System (recommended)':'מערכת (מומלץ)',
+    'Attached (character, chat & global)':'מצורפים (דמות, צ׳אט וגלובלי)','Character lorebook only':'ספר ידע של הדמות בלבד','Disabled — don\'t inject lorebooks':'מושבת — אל תזריק ספרי ידע',
+    'Custom allowlist':'רשימת היתר מותאמת','Snapped to left of chat':'הוצמד משמאל לצ׳אט','Free positioning enabled':'מיקום חופשי מופעל',
+    'Generation already in progress':'הפקה כבר מתבצעת','ScenePulse is disabled':'ScenePulse מושבת','Regenerating thoughts':'מחדש מחשבות',
+    'From settings':'מהגדרות','Remove all tracker snapshots from this chat? Your settings are preserved.':'להסיר את כל תמונות המצב של העוקב מצ׳אט זה? ההגדרות שלך נשמרות.','Reset all ScenePulse settings to defaults? Tracker data is preserved.':'לאפס את כל הגדרות ScenePulse לברירת מחדל? נתוני העוקב נשמרים.',
 },
 };
 

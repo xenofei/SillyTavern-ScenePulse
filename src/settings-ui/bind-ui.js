@@ -216,10 +216,10 @@ export function bindUI(){const s=getSettings();
     $('#sp-lore-add').on('click',()=>{const sel=document.getElementById('sp-lore-sel');if(!sel?.value)return;const name=sel.selectedOptions[0]?.textContent?.trim();if(!name)return;if(!s.lorebookAllowlist)s.lorebookAllowlist=[];if(!s.lorebookAllowlist.includes(name)){s.lorebookAllowlist.push(name);saveSettings();renderLoreTags()}sel.value=''});
     $('#sp-btn-gen').on('click',async()=>{const{chat}=SillyTavern.getContext();if(!chat.length)return;toastr.info('Generating\u2026');
         const body=document.getElementById('sp-panel-body');
-        showLoadingOverlay(body,'Generating Scene','From settings');
+        showLoadingOverlay(body,t('Generating Scene'),t('From settings'));
         setLastGenSource('manual:settings');
         spAutoShow();showStopButton();startElapsedTimer();
-        showThoughtLoading('Updating thoughts','Analyzing context');
+        showThoughtLoading(t('Updating thoughts'),t('Analyzing context'));
         const preNonce=genNonce;
         const r=await generateTracker(chat.length-1);
         if(genNonce>preNonce+1){log('Settings gen: stale caller');return}
@@ -228,11 +228,11 @@ export function bindUI(){const s=getSettings();
         if(r)toastr.success(t('Done'));
         else{toastr.error(t('Failed'));const snap=getLatestSnapshot();if(snap){const norm=normalizeTracker(snap);updatePanel(norm)}}});
     $('#sp-btn-clear').on('click',async()=>{
-        if(!await spConfirm('Clear Data','Remove all tracker snapshots from this chat? Your settings are preserved.'))return;
+        if(!await spConfirm(t('Clear Data'),t('Remove all tracker snapshots from this chat? Your settings are preserved.')))return;
         getTrackerData().snapshots={};SillyTavern.getContext().saveMetadata();document.querySelectorAll('.sp-thoughts').forEach(e=>e.remove());const tp=document.getElementById('sp-thought-panel');if(tp)tp.classList.remove('sp-tp-visible');const body=document.getElementById('sp-panel-body');if(body)body.innerHTML='<div class="sp-empty-state"><div class="sp-empty-icon">\uD83D\uDCE1</div><div class="sp-empty-title">'+t('Data cleared')+'</div><div class="sp-empty-sub">Send a message or click <strong>\u27F3</strong> to generate.</div></div>';genMeta.promptTokens=0;genMeta.completionTokens=0;genMeta.elapsed=0;toastr.info(t('Cleared'));
     });
     $('#sp-btn-reset').on('click',async()=>{
-        if(!await spConfirm('Reset Settings','Reset all ScenePulse settings to defaults? Tracker data is preserved.'))return;
+        if(!await spConfirm(t('Reset Settings'),t('Reset all ScenePulse settings to defaults? Tracker data is preserved.')))return;
         SillyTavern.getContext().extensionSettings[MODULE_NAME]=structuredClone(DEFAULTS);saveSettings();try{localStorage.removeItem(SP_LS_KEY)}catch(e){}loadUI();toastr.info(t('Settings reset to defaults'));
     });
     $('#sp-btn-debug').on('click',()=>{const _t='ScenePulse Debug ('+new Date().toISOString()+')\n'+debugLog.join('\n');navigator.clipboard.writeText(_t).then(()=>toastr.success(t('SP Log copied')+' ('+debugLog.length+')')).catch(()=>{const ta=document.createElement('textarea');ta.value=_t;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);toastr.success(t('SP Log copied'))})});
