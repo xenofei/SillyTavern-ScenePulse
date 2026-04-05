@@ -300,6 +300,14 @@ const TRANSLATIONS = {
     'Restored':'Восстановлено',
     'Remove':'Удалить',
     'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Экспериментально. LLM возвращает только изменённые поля. Неизменённые переносятся. Может не работать со всеми моделями.',
+    // Enum display values
+    'calm':'спокойно','low':'низкий','moderate':'умеренный','high':'высокий','critical':'критический',
+    'pristine':'безупречный','neat':'аккуратный','casual':'повседневный','slightly disheveled':'слегка растрёпанный','disheveled':'растрёпанный','partially undressed':'частично раздет','undressed':'раздет',
+    'active':'активный','N/A':'Н/Д',
+    'menstrual':'менструальная','follicular':'фолликулярная','ovulation':'овуляция','luteal':'лютеиновая',
+    'infertile':'бесплодный','peak':'пик',
+    'not pregnant':'не беременна','possibly conceived':'возможно зачатие','confirmed pregnant':'беременность подтверждена','unknown':'неизвестно',
+    'none':'нет','minimal':'минимальный','growing':'растущий','strong':'сильный','very high':'очень высокий','intense':'интенсивный','overwhelming':'подавляющий','desperate':'отчаянный','absolute':'абсолютный','consumed':'поглощённый','complete':'полный','rebuilding':'восстановление','fragile':'хрупкий','natural':'естественный','excellent':'отличный','no attraction':'нет влечения','no desire':'нет желания',
     'Jan':'Янв','Feb':'Фев','Mar':'Мар','Apr':'Апр','May':'Май','Jun':'Июн','Jul':'Июл','Aug':'Авг','Sep':'Сен','Oct':'Окт','Nov':'Ноя','Dec':'Дек',
 },
 'Japanese': {
@@ -594,6 +602,14 @@ const TRANSLATIONS = {
     'Restored':'復元済み',
     'Remove':'削除',
     'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'実験的。LLMは変更フィールドのみ返却。未変更データは引き継ぎ。全モデル対応とは限りません。',
+    // Enum display values
+    'calm':'穏やか','low':'低い','moderate':'普通','high':'高い','critical':'危機的',
+    'pristine':'完璧','neat':'きちんと','casual':'カジュアル','slightly disheveled':'少し乱れ','disheveled':'乱れ','partially undressed':'半脱衣','undressed':'脱衣',
+    'active':'活動中','N/A':'該当なし',
+    'menstrual':'月経期','follicular':'卵胞期','ovulation':'排卵期','luteal':'黄体期',
+    'infertile':'不妊','peak':'ピーク',
+    'not pregnant':'妊娠していない','possibly conceived':'受胎の可能性','confirmed pregnant':'妊娠確認','unknown':'不明',
+    'none':'なし','minimal':'最小','growing':'成長中','strong':'強い','very high':'非常に高い','intense':'激しい','overwhelming':'圧倒的','desperate':'必死','absolute':'絶対的','consumed':'没頭','complete':'完全','rebuilding':'再構築中','fragile':'脆い','natural':'自然','excellent':'優秀','no attraction':'魅力なし','no desire':'欲望なし',
     'Jan':'1月','Feb':'2月','Mar':'3月','Apr':'4月','May':'5月','Jun':'6月','Jul':'7月','Aug':'8月','Sep':'9月','Oct':'10月','Nov':'11月','Dec':'12月',
 },
 'Korean': {
@@ -888,6 +904,14 @@ const TRANSLATIONS = {
     'Restored':'복원됨',
     'Remove':'제거',
     'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'실험적. LLM이 변경 필드만 반환. 미변경 데이터 유지. 모든 모델에서 동작하지 않을 수 있음.',
+    // Enum display values
+    'calm':'차분','low':'낮음','moderate':'보통','high':'높음','critical':'위기',
+    'pristine':'완벽','neat':'단정','casual':'캐주얼','slightly disheveled':'약간 흐트러짐','disheveled':'흐트러짐','partially undressed':'부분 탈의','undressed':'탈의',
+    'active':'활성','N/A':'해당 없음',
+    'menstrual':'월경기','follicular':'난포기','ovulation':'배란기','luteal':'황체기',
+    'infertile':'비가임','peak':'최고',
+    'not pregnant':'임신 아님','possibly conceived':'수정 가능성','confirmed pregnant':'임신 확인','unknown':'불명',
+    'none':'없음','minimal':'최소','growing':'성장 중','strong':'강함','very high':'매우 높음','intense':'강렬','overwhelming':'압도적','desperate':'절박','absolute':'절대적','consumed':'몰두','complete':'완전','rebuilding':'재건 중','fragile':'취약','natural':'자연스러움','excellent':'훌륭','no attraction':'매력 없음','no desire':'욕망 없음',
     'Jan':'1월','Feb':'2월','Mar':'3월','Apr':'4월','May':'5월','Jun':'6월','Jul':'7월','Aug':'8월','Sep':'9월','Oct':'10월','Nov':'11월','Dec':'12월',
 },
 'Chinese (Simplified)': {
@@ -1182,6 +1206,14 @@ const TRANSLATIONS = {
     'Restored':'已恢复',
     'Remove':'移除',
     'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'实验性功能。LLM仅返回更改的字段。未更改的数据会继承。可能不适用于所有模型。',
+    // Enum display values
+    'calm':'平静','low':'低','moderate':'中等','high':'高','critical':'危急',
+    'pristine':'完美','neat':'整洁','casual':'休闲','slightly disheveled':'略显凌乱','disheveled':'凌乱','partially undressed':'部分脱衣','undressed':'脱衣',
+    'active':'活跃','N/A':'不适用',
+    'menstrual':'经期','follicular':'卵泡期','ovulation':'排卵期','luteal':'黄体期',
+    'infertile':'不孕期','peak':'高峰',
+    'not pregnant':'未怀孕','possibly conceived':'可能受孕','confirmed pregnant':'确认怀孕','unknown':'未知',
+    'none':'无','minimal':'极少','growing':'增长中','strong':'强烈','very high':'非常高','intense':'激烈','overwhelming':'压倒性','desperate':'绝望','absolute':'绝对','consumed':'沉迷','complete':'完全','rebuilding':'重建中','fragile':'脆弱','natural':'自然','excellent':'极佳','no attraction':'无吸引力','no desire':'无欲望',
     'Jan':'1月','Feb':'2月','Mar':'3月','Apr':'4月','May':'5月','Jun':'6月','Jul':'7月','Aug':'8月','Sep':'9月','Oct':'10月','Nov':'11月','Dec':'12月',
 },
 'Chinese (Traditional)': {
@@ -1476,6 +1508,14 @@ const TRANSLATIONS = {
     'Restored':'已恢復',
     'Remove':'移除',
     'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'實驗性功能。LLM僅返回更改的欄位。未更改的資料會繼承。可能不適用於所有模型。',
+    // Enum display values
+    'calm':'平靜','low':'低','moderate':'中等','high':'高','critical':'危急',
+    'pristine':'完美','neat':'整潔','casual':'休閒','slightly disheveled':'略顯凌亂','disheveled':'凌亂','partially undressed':'部分脫衣','undressed':'脫衣',
+    'active':'活躍','N/A':'不適用',
+    'menstrual':'經期','follicular':'卵泡期','ovulation':'排卵期','luteal':'黃體期',
+    'infertile':'不孕期','peak':'高峰',
+    'not pregnant':'未懷孕','possibly conceived':'可能受孕','confirmed pregnant':'確認懷孕','unknown':'未知',
+    'none':'無','minimal':'極少','growing':'增長中','strong':'強烈','very high':'非常高','intense':'激烈','overwhelming':'壓倒性','desperate':'絕望','absolute':'絕對','consumed':'沉迷','complete':'完全','rebuilding':'重建中','fragile':'脆弱','natural':'自然','excellent':'極佳','no attraction':'無吸引力','no desire':'無慾望',
     'Jan':'1月','Feb':'2月','Mar':'3月','Apr':'4月','May':'5月','Jun':'6月','Jul':'7月','Aug':'8月','Sep':'9月','Oct':'10月','Nov':'11月','Dec':'12月',
 },
 'Spanish': {
@@ -1770,6 +1810,14 @@ const TRANSLATIONS = {
     'Restored':'Restaurado',
     'Remove':'Eliminar',
     'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Experimental. El LLM devuelve solo campos modificados. Los datos sin cambios se mantienen. Puede no funcionar con todos los modelos.',
+    // Enum display values
+    'calm':'calma','low':'bajo','moderate':'moderado','high':'alto','critical':'crítico',
+    'pristine':'impecable','neat':'pulcro','casual':'casual','slightly disheveled':'ligeramente despeinado','disheveled':'despeinado','partially undressed':'parcialmente desvestido','undressed':'desvestido',
+    'active':'activo','N/A':'N/D',
+    'menstrual':'menstrual','follicular':'folicular','ovulation':'ovulación','luteal':'lútea',
+    'infertile':'infértil','peak':'pico',
+    'not pregnant':'no embarazada','possibly conceived':'posible concepción','confirmed pregnant':'embarazo confirmado','unknown':'desconocido',
+    'none':'ninguno','minimal':'mínimo','growing':'creciente','strong':'fuerte','very high':'muy alto','intense':'intenso','overwhelming':'abrumador','desperate':'desesperado','absolute':'absoluto','consumed':'consumido','complete':'completo','rebuilding':'reconstruyendo','fragile':'frágil','natural':'natural','excellent':'excelente','no attraction':'sin atracción','no desire':'sin deseo',
     'Jan':'Ene','Feb':'Feb','Mar':'Mar','Apr':'Abr','May':'May','Jun':'Jun','Jul':'Jul','Aug':'Ago','Sep':'Sep','Oct':'Oct','Nov':'Nov','Dec':'Dic',
 },
 'Hindi': {
@@ -2064,6 +2112,14 @@ const TRANSLATIONS = {
     'Restored':'पुनर्स्थापित',
     'Remove':'हटाएं',
     'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'प्रयोगात्मक। LLM केवल बदले हुए फ़ील्ड लौटाता है। अपरिवर्तित डेटा आगे बढ़ता है। सभी मॉडलों के साथ काम नहीं कर सकता।',
+    // Enum display values
+    'calm':'शांत','low':'कम','moderate':'मध्यम','high':'उच्च','critical':'गंभीर',
+    'pristine':'बेदाग़','neat':'सुव्यवस्थित','casual':'सामान्य','slightly disheveled':'थोड़ा बिखरा','disheveled':'बिखरा','partially undressed':'आंशिक रूप से कपड़े उतारे','undressed':'कपड़े उतारे',
+    'active':'सक्रिय','N/A':'लागू नहीं',
+    'menstrual':'मासिक','follicular':'फॉलिक्युलर','ovulation':'ओव्यूलेशन','luteal':'ल्यूटियल',
+    'infertile':'अनुर्वर','peak':'चरम',
+    'not pregnant':'गर्भवती नहीं','possibly conceived':'संभवतः गर्भधारण','confirmed pregnant':'गर्भावस्था पुष्ट','unknown':'अज्ञात',
+    'none':'कुछ नहीं','minimal':'न्यूनतम','growing':'बढ़ता हुआ','strong':'मज़बूत','very high':'बहुत उच्च','intense':'तीव्र','overwhelming':'भारी','desperate':'बेताब','absolute':'पूर्ण','consumed':'ग्रस्त','complete':'संपूर्ण','rebuilding':'पुनर्निर्माण','fragile':'नाज़ुक','natural':'स्वाभाविक','excellent':'उत्कृष्ट','no attraction':'कोई आकर्षण नहीं','no desire':'कोई इच्छा नहीं',
     'Jan':'जन','Feb':'फर','Mar':'मार्च','Apr':'अप्रै','May':'मई','Jun':'जून','Jul':'जुल','Aug':'अग','Sep':'सित','Oct':'अक्टू','Nov':'नव','Dec':'दिस',
 },
 'Arabic': {
@@ -2358,6 +2414,14 @@ const TRANSLATIONS = {
     'Restored':'تمت الاستعادة',
     'Remove':'إزالة',
     'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'تجريبي. يُعيد LLM الحقول المتغيرة فقط. البيانات غير المتغيرة تُنقل. قد لا يعمل مع جميع النماذج.',
+    // Enum display values
+    'calm':'هادئ','low':'منخفض','moderate':'معتدل','high':'عالي','critical':'حرج',
+    'pristine':'نقي','neat':'مرتب','casual':'عادي','slightly disheveled':'أشعث قليلاً','disheveled':'أشعث','partially undressed':'شبه عارٍ','undressed':'عارٍ',
+    'active':'نشط','N/A':'غ/م',
+    'menstrual':'الحيض','follicular':'الجريبية','ovulation':'الإباضة','luteal':'اللوتينية',
+    'infertile':'غير خصب','peak':'ذروة',
+    'not pregnant':'غير حامل','possibly conceived':'احتمال حمل','confirmed pregnant':'حمل مؤكد','unknown':'غير معروف',
+    'none':'لا شيء','minimal':'أدنى','growing':'متزايد','strong':'قوي','very high':'عالي جداً','intense':'شديد','overwhelming':'طاغٍ','desperate':'يائس','absolute':'مطلق','consumed':'مستهلَك','complete':'كامل','rebuilding':'إعادة بناء','fragile':'هش','natural':'طبيعي','excellent':'ممتاز','no attraction':'لا انجذاب','no desire':'لا رغبة',
     'Jan':'يناير','Feb':'فبراير','Mar':'مارس','Apr':'أبريل','May':'مايو','Jun':'يونيو','Jul':'يوليو','Aug':'أغسطس','Sep':'سبتمبر','Oct':'أكتوبر','Nov':'نوفمبر','Dec':'ديسمبر',
 },
 'Portuguese': {
@@ -2652,6 +2716,14 @@ const TRANSLATIONS = {
     'Restored':'Restaurado',
     'Remove':'Remover',
     'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Experimental. O LLM retorna apenas campos alterados. Dados inalterados são mantidos. Pode não funcionar com todos os modelos.',
+    // Enum display values
+    'calm':'calmo','low':'baixo','moderate':'moderado','high':'alto','critical':'crítico',
+    'pristine':'impecável','neat':'arrumado','casual':'casual','slightly disheveled':'levemente desalinhado','disheveled':'desalinhado','partially undressed':'parcialmente despido','undressed':'despido',
+    'active':'ativo','N/A':'N/D',
+    'menstrual':'menstrual','follicular':'folicular','ovulation':'ovulação','luteal':'lútea',
+    'infertile':'infértil','peak':'pico',
+    'not pregnant':'não grávida','possibly conceived':'possível concepção','confirmed pregnant':'gravidez confirmada','unknown':'desconhecido',
+    'none':'nenhum','minimal':'mínimo','growing':'crescente','strong':'forte','very high':'muito alto','intense':'intenso','overwhelming':'avassalador','desperate':'desesperado','absolute':'absoluto','consumed':'consumido','complete':'completo','rebuilding':'reconstruindo','fragile':'frágil','natural':'natural','excellent':'excelente','no attraction':'sem atração','no desire':'sem desejo',
     'Jan':'Jan','Feb':'Fev','Mar':'Mar','Apr':'Abr','May':'Mai','Jun':'Jun','Jul':'Jul','Aug':'Ago','Sep':'Set','Oct':'Out','Nov':'Nov','Dec':'Dez',
 },
 'French': {
@@ -2946,6 +3018,14 @@ const TRANSLATIONS = {
     'Restored':'Restauré',
     'Remove':'Supprimer',
     'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Expérimental. Le LLM ne renvoie que les champs modifiés. Les données inchangées sont conservées. Peut ne pas fonctionner avec tous les modèles.',
+    // Enum display values
+    'calm':'calme','low':'faible','moderate':'modéré','high':'élevé','critical':'critique',
+    'pristine':'impeccable','neat':'soigné','casual':'décontracté','slightly disheveled':'légèrement décoiffé','disheveled':'décoiffé','partially undressed':'partiellement déshabillé','undressed':'déshabillé',
+    'active':'actif','N/A':'N/D',
+    'menstrual':'menstruel','follicular':'folliculaire','ovulation':'ovulation','luteal':'lutéale',
+    'infertile':'infertile','peak':'pic',
+    'not pregnant':'non enceinte','possibly conceived':'conception possible','confirmed pregnant':'grossesse confirmée','unknown':'inconnu',
+    'none':'aucun','minimal':'minimal','growing':'croissant','strong':'fort','very high':'très élevé','intense':'intense','overwhelming':'accablant','desperate':'désespéré','absolute':'absolu','consumed':'consumé','complete':'complet','rebuilding':'reconstruction','fragile':'fragile','natural':'naturel','excellent':'excellent','no attraction':'aucune attirance','no desire':'aucun désir',
     'Jan':'Jan','Feb':'Fév','Mar':'Mar','Apr':'Avr','May':'Mai','Jun':'Juin','Jul':'Juil','Aug':'Août','Sep':'Sep','Oct':'Oct','Nov':'Nov','Dec':'Déc',
 },
 'German': {
@@ -3240,6 +3320,14 @@ const TRANSLATIONS = {
     'Restored':'Wiederhergestellt',
     'Remove':'Entfernen',
     'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Experimentell. LLM gibt nur geänderte Felder zurück. Unveränderte Daten werden übernommen. Funktioniert möglicherweise nicht mit allen Modellen.',
+    // Enum display values
+    'calm':'ruhig','low':'niedrig','moderate':'mäßig','high':'hoch','critical':'kritisch',
+    'pristine':'makellos','neat':'ordentlich','casual':'lässig','slightly disheveled':'leicht zerzaust','disheveled':'zerzaust','partially undressed':'teilweise entkleidet','undressed':'entkleidet',
+    'active':'aktiv','N/A':'k. A.',
+    'menstrual':'Menstruation','follicular':'Follikelphase','ovulation':'Eisprung','luteal':'Lutealphase',
+    'infertile':'unfruchtbar','peak':'Höhepunkt',
+    'not pregnant':'nicht schwanger','possibly conceived':'möglicherweise empfangen','confirmed pregnant':'Schwangerschaft bestätigt','unknown':'unbekannt',
+    'none':'keins','minimal':'minimal','growing':'wachsend','strong':'stark','very high':'sehr hoch','intense':'intensiv','overwhelming':'überwältigend','desperate':'verzweifelt','absolute':'absolut','consumed':'verzehrt','complete':'vollständig','rebuilding':'Wiederaufbau','fragile':'zerbrechlich','natural':'natürlich','excellent':'ausgezeichnet','no attraction':'keine Anziehung','no desire':'kein Verlangen',
     'Jan':'Jan','Feb':'Feb','Mar':'Mär','Apr':'Apr','May':'Mai','Jun':'Jun','Jul':'Jul','Aug':'Aug','Sep':'Sep','Oct':'Okt','Nov':'Nov','Dec':'Dez',
 },
 'Turkish': {
@@ -3534,6 +3622,14 @@ const TRANSLATIONS = {
     'Restored':'Geri yüklendi',
     'Remove':'Kaldır',
     'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Deneysel. LLM yalnızca değişen alanları döndürür. Değişmeyen veriler aktarılır. Tüm modellerle çalışmayabilir.',
+    // Enum display values
+    'calm':'sakin','low':'düşük','moderate':'orta','high':'yüksek','critical':'kritik',
+    'pristine':'kusursuz','neat':'düzgün','casual':'rahat','slightly disheveled':'hafif dağınık','disheveled':'dağınık','partially undressed':'kısmen soyunmuş','undressed':'soyunmuş',
+    'active':'aktif','N/A':'Yok',
+    'menstrual':'adet','follicular':'foliküler','ovulation':'yumurtlama','luteal':'luteal',
+    'infertile':'kısır','peak':'zirve',
+    'not pregnant':'hamile değil','possibly conceived':'olası gebe kalma','confirmed pregnant':'hamilelik onaylandı','unknown':'bilinmiyor',
+    'none':'hiç','minimal':'asgari','growing':'büyüyen','strong':'güçlü','very high':'çok yüksek','intense':'yoğun','overwhelming':'bunaltıcı','desperate':'çaresiz','absolute':'mutlak','consumed':'tükenmiş','complete':'tam','rebuilding':'yeniden inşa','fragile':'kırılgan','natural':'doğal','excellent':'mükemmel','no attraction':'çekim yok','no desire':'arzu yok',
     'Jan':'Oca','Feb':'Şub','Mar':'Mar','Apr':'Nis','May':'May','Jun':'Haz','Jul':'Tem','Aug':'Ağu','Sep':'Eyl','Oct':'Eki','Nov':'Kas','Dec':'Ara',
 },
 'Vietnamese': {
@@ -3828,6 +3924,14 @@ const TRANSLATIONS = {
     'Restored':'Đã khôi phục',
     'Remove':'Xóa',
     'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Thử nghiệm. LLM chỉ trả về các trường đã thay đổi. Dữ liệu không thay đổi được giữ lại. Có thể không hoạt động với tất cả mô hình.',
+    // Enum display values
+    'calm':'bình tĩnh','low':'thấp','moderate':'trung bình','high':'cao','critical':'nguy cấp',
+    'pristine':'hoàn hảo','neat':'gọn gàng','casual':'bình thường','slightly disheveled':'hơi xộc xệch','disheveled':'xộc xệch','partially undressed':'cởi bớt đồ','undressed':'cởi đồ',
+    'active':'hoạt động','N/A':'Không áp dụng',
+    'menstrual':'kinh nguyệt','follicular':'nang trứng','ovulation':'rụng trứng','luteal':'hoàng thể',
+    'infertile':'vô sinh','peak':'đỉnh',
+    'not pregnant':'không mang thai','possibly conceived':'có thể thụ thai','confirmed pregnant':'xác nhận mang thai','unknown':'không rõ',
+    'none':'không','minimal':'tối thiểu','growing':'đang tăng','strong':'mạnh','very high':'rất cao','intense':'mãnh liệt','overwhelming':'áp đảo','desperate':'tuyệt vọng','absolute':'tuyệt đối','consumed':'bị cuốn','complete':'hoàn toàn','rebuilding':'tái xây dựng','fragile':'mong manh','natural':'tự nhiên','excellent':'xuất sắc','no attraction':'không hấp dẫn','no desire':'không ham muốn',
     'Jan':'Th1','Feb':'Th2','Mar':'Th3','Apr':'Th4','May':'Th5','Jun':'Th6','Jul':'Th7','Aug':'Th8','Sep':'Th9','Oct':'Th10','Nov':'Th11','Dec':'Th12',
 },
 'Italian': {
@@ -4122,6 +4226,14 @@ const TRANSLATIONS = {
     'Restored':'Ripristinato',
     'Remove':'Rimuovi',
     'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Sperimentale. Il LLM restituisce solo i campi modificati. I dati invariati vengono mantenuti. Potrebbe non funzionare con tutti i modelli.',
+    // Enum display values
+    'calm':'calmo','low':'basso','moderate':'moderato','high':'alto','critical':'critico',
+    'pristine':'impeccabile','neat':'ordinato','casual':'casual','slightly disheveled':'leggermente spettinato','disheveled':'spettinato','partially undressed':'parzialmente svestito','undressed':'svestito',
+    'active':'attivo','N/A':'N/D',
+    'menstrual':'mestruale','follicular':'follicolare','ovulation':'ovulazione','luteal':'luteale',
+    'infertile':'infertile','peak':'picco',
+    'not pregnant':'non incinta','possibly conceived':'possibile concepimento','confirmed pregnant':'gravidanza confermata','unknown':'sconosciuto',
+    'none':'nessuno','minimal':'minimo','growing':'crescente','strong':'forte','very high':'molto alto','intense':'intenso','overwhelming':'travolgente','desperate':'disperato','absolute':'assoluto','consumed':'consumato','complete':'completo','rebuilding':'ricostruzione','fragile':'fragile','natural':'naturale','excellent':'eccellente','no attraction':'nessuna attrazione','no desire':'nessun desiderio',
     'Jan':'Gen','Feb':'Feb','Mar':'Mar','Apr':'Apr','May':'Mag','Jun':'Giu','Jul':'Lug','Aug':'Ago','Sep':'Set','Oct':'Ott','Nov':'Nov','Dec':'Dic',
 },
 'Thai': {
@@ -4416,6 +4528,14 @@ const TRANSLATIONS = {
     'Restored':'กู้คืนแล้ว',
     'Remove':'ลบ',
     'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'ทดลอง LLM ส่งคืนเฉพาะฟิลด์ที่เปลี่ยนแปลง ข้อมูลที่ไม่เปลี่ยนจะถูกรักษาไว้ อาจไม่ทำงานกับทุกโมเดล',
+    // Enum display values
+    'calm':'สงบ','low':'ต่ำ','moderate':'ปานกลาง','high':'สูง','critical':'วิกฤต',
+    'pristine':'สมบูรณ์แบบ','neat':'เรียบร้อย','casual':'ลำลอง','slightly disheveled':'ยุ่งเล็กน้อย','disheveled':'ยุ่งเหยิง','partially undressed':'ถอดเสื้อผ้าบางส่วน','undressed':'ถอดเสื้อผ้า',
+    'active':'ใช้งาน','N/A':'ไม่ระบุ',
+    'menstrual':'ประจำเดือน','follicular':'ฟอลลิคิวลาร์','ovulation':'ตกไข่','luteal':'ลูเทียล',
+    'infertile':'ไม่สามารถตั้งครรภ์','peak':'สูงสุด',
+    'not pregnant':'ไม่ตั้งครรภ์','possibly conceived':'อาจปฏิสนธิ','confirmed pregnant':'ยืนยันตั้งครรภ์','unknown':'ไม่ทราบ',
+    'none':'ไม่มี','minimal':'น้อยที่สุด','growing':'เพิ่มขึ้น','strong':'แข็งแกร่ง','very high':'สูงมาก','intense':'รุนแรง','overwhelming':'ท่วมท้น','desperate':'สิ้นหวัง','absolute':'สมบูรณ์','consumed':'หมกมุ่น','complete':'ครบถ้วน','rebuilding':'สร้างใหม่','fragile':'เปราะบาง','natural':'เป็นธรรมชาติ','excellent':'ยอดเยี่ยม','no attraction':'ไม่มีแรงดึงดูด','no desire':'ไม่มีความปรารถนา',
     'Jan':'ม.ค.','Feb':'ก.พ.','Mar':'มี.ค.','Apr':'เม.ย.','May':'พ.ค.','Jun':'มิ.ย.','Jul':'ก.ค.','Aug':'ส.ค.','Sep':'ก.ย.','Oct':'ต.ค.','Nov':'พ.ย.','Dec':'ธ.ค.',
 },
 'Polish': {
@@ -4710,6 +4830,14 @@ const TRANSLATIONS = {
     'Restored':'Przywrócono',
     'Remove':'Usuń',
     'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Eksperymentalne. LLM zwraca tylko zmienione pola. Niezmienione dane są przenoszone. Może nie działać ze wszystkimi modelami.',
+    // Enum display values
+    'calm':'spokojny','low':'niski','moderate':'umiarkowany','high':'wysoki','critical':'krytyczny',
+    'pristine':'nieskazitelny','neat':'schludny','casual':'swobodny','slightly disheveled':'lekko rozczochrany','disheveled':'rozczochrany','partially undressed':'częściowo rozebrany','undressed':'rozebrany',
+    'active':'aktywny','N/A':'Nie dot.',
+    'menstrual':'menstruacyjna','follicular':'folikularna','ovulation':'owulacja','luteal':'lutealna',
+    'infertile':'bezpłodny','peak':'szczyt',
+    'not pregnant':'nie w ciąży','possibly conceived':'możliwe poczęcie','confirmed pregnant':'ciąża potwierdzona','unknown':'nieznany',
+    'none':'brak','minimal':'minimalny','growing':'rosnący','strong':'silny','very high':'bardzo wysoki','intense':'intensywny','overwhelming':'przytłaczający','desperate':'zdesperowany','absolute':'absolutny','consumed':'pochłonięty','complete':'pełny','rebuilding':'odbudowa','fragile':'kruchy','natural':'naturalny','excellent':'doskonały','no attraction':'brak przyciągania','no desire':'brak pożądania',
     'Jan':'Sty','Feb':'Lut','Mar':'Mar','Apr':'Kwi','May':'Maj','Jun':'Cze','Jul':'Lip','Aug':'Sie','Sep':'Wrz','Oct':'Paź','Nov':'Lis','Dec':'Gru',
 },
 'Ukrainian': {
@@ -5004,6 +5132,14 @@ const TRANSLATIONS = {
     'Restored':'Відновлено',
     'Remove':'Видалити',
     'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Експериментально. LLM повертає лише змінені поля. Незмінені дані переносяться. Може не працювати з усіма моделями.',
+    // Enum display values
+    'calm':'спокійно','low':'низький','moderate':'помірний','high':'високий','critical':'критичний',
+    'pristine':'бездоганний','neat':'охайний','casual':'повсякденний','slightly disheveled':'злегка розпатланий','disheveled':'розпатланий','partially undressed':'частково роздягнений','undressed':'роздягнений',
+    'active':'активний','N/A':'Н/З',
+    'menstrual':'менструальна','follicular':'фолікулярна','ovulation':'овуляція','luteal':'лютеїнова',
+    'infertile':'безплідний','peak':'пік',
+    'not pregnant':'не вагітна','possibly conceived':'можливе зачаття','confirmed pregnant':'вагітність підтверджена','unknown':'невідомо',
+    'none':'немає','minimal':'мінімальний','growing':'зростаючий','strong':'сильний','very high':'дуже високий','intense':'інтенсивний','overwhelming':'приголомшливий','desperate':'відчайдушний','absolute':'абсолютний','consumed':'поглинутий','complete':'повний','rebuilding':'відновлення','fragile':'крихкий','natural':'природний','excellent':'відмінний','no attraction':'немає потягу','no desire':'немає бажання',
     'Jan':'Січ','Feb':'Лют','Mar':'Бер','Apr':'Кві','May':'Тра','Jun':'Чер','Jul':'Лип','Aug':'Сер','Sep':'Вер','Oct':'Жов','Nov':'Лис','Dec':'Гру',
 },
 'Indonesian': {
@@ -5298,6 +5434,14 @@ const TRANSLATIONS = {
     'Restored':'Dipulihkan',
     'Remove':'Hapus',
     'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Eksperimental. LLM hanya mengembalikan bidang yang berubah. Data yang tidak berubah diteruskan. Mungkin tidak berfungsi dengan semua model.',
+    // Enum display values
+    'calm':'tenang','low':'rendah','moderate':'sedang','high':'tinggi','critical':'kritis',
+    'pristine':'sempurna','neat':'rapi','casual':'santai','slightly disheveled':'sedikit berantakan','disheveled':'berantakan','partially undressed':'sebagian terbuka','undressed':'telanjang',
+    'active':'aktif','N/A':'T/A',
+    'menstrual':'menstruasi','follicular':'folikular','ovulation':'ovulasi','luteal':'luteal',
+    'infertile':'tidak subur','peak':'puncak',
+    'not pregnant':'tidak hamil','possibly conceived':'mungkin hamil','confirmed pregnant':'hamil dikonfirmasi','unknown':'tidak diketahui',
+    'none':'tidak ada','minimal':'minimal','growing':'bertumbuh','strong':'kuat','very high':'sangat tinggi','intense':'intens','overwhelming':'luar biasa','desperate':'putus asa','absolute':'mutlak','consumed':'terkonsumsi','complete':'lengkap','rebuilding':'membangun kembali','fragile':'rapuh','natural':'alami','excellent':'sangat baik','no attraction':'tidak ada ketertarikan','no desire':'tidak ada hasrat',
     'Jan':'Jan','Feb':'Feb','Mar':'Mar','Apr':'Apr','May':'Mei','Jun':'Jun','Jul':'Jul','Aug':'Agt','Sep':'Sep','Oct':'Okt','Nov':'Nov','Dec':'Des',
 },
 'Dutch': {
@@ -5592,6 +5736,14 @@ const TRANSLATIONS = {
     'Restored':'Hersteld',
     'Remove':'Verwijderen',
     'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Experimenteel. LLM retourneert alleen gewijzigde velden. Ongewijzigde gegevens worden overgedragen. Werkt mogelijk niet met alle modellen.',
+    // Enum display values
+    'calm':'kalm','low':'laag','moderate':'matig','high':'hoog','critical':'kritiek',
+    'pristine':'onberispelijk','neat':'netjes','casual':'casual','slightly disheveled':'licht slordig','disheveled':'slordig','partially undressed':'gedeeltelijk ontkleed','undressed':'ontkleed',
+    'active':'actief','N/A':'N.v.t.',
+    'menstrual':'menstruatie','follicular':'folliculair','ovulation':'ovulatie','luteal':'luteaal',
+    'infertile':'onvruchtbaar','peak':'piek',
+    'not pregnant':'niet zwanger','possibly conceived':'mogelijk ontvangen','confirmed pregnant':'zwangerschap bevestigd','unknown':'onbekend',
+    'none':'geen','minimal':'minimaal','growing':'groeiend','strong':'sterk','very high':'zeer hoog','intense':'intens','overwhelming':'overweldigend','desperate':'wanhopig','absolute':'absoluut','consumed':'verteerd','complete':'volledig','rebuilding':'heropbouw','fragile':'fragiel','natural':'natuurlijk','excellent':'uitstekend','no attraction':'geen aantrekking','no desire':'geen verlangen',
     'Jan':'Jan','Feb':'Feb','Mar':'Mrt','Apr':'Apr','May':'Mei','Jun':'Jun','Jul':'Jul','Aug':'Aug','Sep':'Sep','Oct':'Okt','Nov':'Nov','Dec':'Dec',
 },
 'Romanian': {
@@ -5886,6 +6038,14 @@ const TRANSLATIONS = {
     'Restored':'Restaurat',
     'Remove':'Elimină',
     'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Experimental. LLM returnează doar câmpurile modificate. Datele nemodificate sunt păstrate. Poate să nu funcționeze cu toate modelele.',
+    // Enum display values
+    'calm':'calm','low':'scăzut','moderate':'moderat','high':'ridicat','critical':'critic',
+    'pristine':'impecabil','neat':'îngrijit','casual':'casual','slightly disheveled':'ușor dezordonat','disheveled':'dezordonat','partially undressed':'parțial dezbrăcat','undressed':'dezbrăcat',
+    'active':'activ','N/A':'N/A',
+    'menstrual':'menstruală','follicular':'foliculară','ovulation':'ovulație','luteal':'luteală',
+    'infertile':'infertil','peak':'vârf',
+    'not pregnant':'nu este însărcinată','possibly conceived':'posibil concepută','confirmed pregnant':'sarcină confirmată','unknown':'necunoscut',
+    'none':'nimic','minimal':'minim','growing':'în creștere','strong':'puternic','very high':'foarte ridicat','intense':'intens','overwhelming':'copleșitor','desperate':'disperat','absolute':'absolut','consumed':'consumat','complete':'complet','rebuilding':'reconstruire','fragile':'fragil','natural':'natural','excellent':'excelent','no attraction':'fără atracție','no desire':'fără dorință',
     'Jan':'Ian','Feb':'Feb','Mar':'Mar','Apr':'Apr','May':'Mai','Jun':'Iun','Jul':'Iul','Aug':'Aug','Sep':'Sep','Oct':'Oct','Nov':'Nov','Dec':'Dec',
 },
 'Czech': {
@@ -6180,6 +6340,14 @@ const TRANSLATIONS = {
     'Restored':'Obnoveno',
     'Remove':'Odstranit',
     'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Experimentální. LLM vrací pouze změněná pole. Nezměněná data se přenášejí. Nemusí fungovat se všemi modely.',
+    // Enum display values
+    'calm':'klidný','low':'nízký','moderate':'střední','high':'vysoký','critical':'kritický',
+    'pristine':'bezchybný','neat':'upravený','casual':'neformální','slightly disheveled':'mírně rozcuchaný','disheveled':'rozcuchaný','partially undressed':'částečně svlečený','undressed':'svlečený',
+    'active':'aktivní','N/A':'Neplatí',
+    'menstrual':'menstruační','follicular':'folikulární','ovulation':'ovulace','luteal':'luteální',
+    'infertile':'neplodný','peak':'vrchol',
+    'not pregnant':'není těhotná','possibly conceived':'možné početí','confirmed pregnant':'těhotenství potvrzeno','unknown':'neznámý',
+    'none':'žádný','minimal':'minimální','growing':'rostoucí','strong':'silný','very high':'velmi vysoký','intense':'intenzivní','overwhelming':'zdrcující','desperate':'zoufalý','absolute':'absolutní','consumed':'pohlcený','complete':'úplný','rebuilding':'obnova','fragile':'křehký','natural':'přirozený','excellent':'vynikající','no attraction':'žádná přitažlivost','no desire':'žádná touha',
     'Jan':'Led','Feb':'Úno','Mar':'Bře','Apr':'Dub','May':'Kvě','Jun':'Čvn','Jul':'Čvc','Aug':'Srp','Sep':'Zář','Oct':'Říj','Nov':'Lis','Dec':'Pro',
 },
 'Greek': {
@@ -6474,6 +6642,14 @@ const TRANSLATIONS = {
     'Restored':'Επαναφέρθηκε',
     'Remove':'Αφαίρεση',
     'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Πειραματικό. Το LLM επιστρέφει μόνο τα αλλαγμένα πεδία. Τα αμετάβλητα δεδομένα μεταφέρονται. Μπορεί να μη λειτουργεί με όλα τα μοντέλα.',
+    // Enum display values
+    'calm':'ήρεμο','low':'χαμηλό','moderate':'μέτριο','high':'υψηλό','critical':'κρίσιμο',
+    'pristine':'άψογο','neat':'τακτοποιημένο','casual':'χαλαρό','slightly disheveled':'ελαφρώς ατημέλητο','disheveled':'ατημέλητο','partially undressed':'μερικώς γδυμένο','undressed':'γδυμένο',
+    'active':'ενεργό','N/A':'Δ/Ε',
+    'menstrual':'εμμηνορρυσία','follicular':'ωοθυλακική','ovulation':'ωορρηξία','luteal':'ωχρινική',
+    'infertile':'άγονο','peak':'κορύφωση',
+    'not pregnant':'μη έγκυος','possibly conceived':'πιθανή σύλληψη','confirmed pregnant':'επιβεβαιωμένη εγκυμοσύνη','unknown':'άγνωστο',
+    'none':'κανένα','minimal':'ελάχιστο','growing':'αυξανόμενο','strong':'δυνατό','very high':'πολύ υψηλό','intense':'έντονο','overwhelming':'συντριπτικό','desperate':'απεγνωσμένο','absolute':'απόλυτο','consumed':'απορροφημένο','complete':'πλήρες','rebuilding':'ανοικοδόμηση','fragile':'εύθραυστο','natural':'φυσικό','excellent':'εξαιρετικό','no attraction':'χωρίς έλξη','no desire':'χωρίς επιθυμία',
     'Jan':'Ιαν','Feb':'Φεβ','Mar':'Μάρ','Apr':'Απρ','May':'Μάι','Jun':'Ιού','Jul':'Ιούλ','Aug':'Αύγ','Sep':'Σεπ','Oct':'Οκτ','Nov':'Νοέ','Dec':'Δεκ',
 },
 'Hungarian': {
@@ -6768,6 +6944,14 @@ const TRANSLATIONS = {
     'Restored':'Visszaállítva',
     'Remove':'Eltávolítás',
     'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Kísérleti. Az LLM csak a módosított mezőket adja vissza. A változatlan adatok öröklődnek. Nem minden modellel működik.',
+    // Enum display values
+    'calm':'nyugodt','low':'alacsony','moderate':'mérsékelt','high':'magas','critical':'kritikus',
+    'pristine':'makulátlan','neat':'rendezett','casual':'laza','slightly disheveled':'enyhén kócos','disheveled':'kócos','partially undressed':'részben levetkőzött','undressed':'levetkőzött',
+    'active':'aktív','N/A':'N/A',
+    'menstrual':'menstruációs','follicular':'follikuláris','ovulation':'ovuláció','luteal':'luteális',
+    'infertile':'meddő','peak':'csúcs',
+    'not pregnant':'nem terhes','possibly conceived':'lehetséges fogamzás','confirmed pregnant':'terhesség megerősítve','unknown':'ismeretlen',
+    'none':'nincs','minimal':'minimális','growing':'növekvő','strong':'erős','very high':'nagyon magas','intense':'intenzív','overwhelming':'elsöprő','desperate':'kétségbeesett','absolute':'abszolút','consumed':'felemészt','complete':'teljes','rebuilding':'újjáépítés','fragile':'törékeny','natural':'természetes','excellent':'kiváló','no attraction':'nincs vonzalom','no desire':'nincs vágy',
     'Jan':'Jan','Feb':'Feb','Mar':'Már','Apr':'Ápr','May':'Máj','Jun':'Jún','Jul':'Júl','Aug':'Aug','Sep':'Sze','Oct':'Okt','Nov':'Nov','Dec':'Dec',
 },
 'Swedish': {
@@ -7062,6 +7246,14 @@ const TRANSLATIONS = {
     'Restored':'Återställd',
     'Remove':'Ta bort',
     'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Experimentellt. LLM returnerar bara ändrade fält. Oförändrade data förs vidare. Kanske inte fungerar med alla modeller.',
+    // Enum display values
+    'calm':'lugn','low':'låg','moderate':'måttlig','high':'hög','critical':'kritisk',
+    'pristine':'felfri','neat':'prydlig','casual':'avslappnad','slightly disheveled':'lätt ovårdad','disheveled':'ovårdad','partially undressed':'delvis avklädd','undressed':'avklädd',
+    'active':'aktiv','N/A':'Ej tillämplig',
+    'menstrual':'menstruation','follicular':'follikulär','ovulation':'ägglossning','luteal':'lutealfas',
+    'infertile':'infertil','peak':'topp',
+    'not pregnant':'inte gravid','possibly conceived':'möjlig befruktning','confirmed pregnant':'graviditet bekräftad','unknown':'okänd',
+    'none':'ingen','minimal':'minimal','growing':'växande','strong':'stark','very high':'mycket hög','intense':'intensiv','overwhelming':'överväldigande','desperate':'desperat','absolute':'absolut','consumed':'uppslukad','complete':'fullständig','rebuilding':'återuppbyggnad','fragile':'skör','natural':'naturlig','excellent':'utmärkt','no attraction':'ingen attraktion','no desire':'ingen önskan',
     'Jan':'Jan','Feb':'Feb','Mar':'Mar','Apr':'Apr','May':'Maj','Jun':'Jun','Jul':'Jul','Aug':'Aug','Sep':'Sep','Oct':'Okt','Nov':'Nov','Dec':'Dec',
 },
 'Malay': {
@@ -7356,6 +7548,14 @@ const TRANSLATIONS = {
     'Restored':'Dipulihkan',
     'Remove':'Buang',
     'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Eksperimen. LLM hanya mengembalikan medan yang berubah. Data tidak berubah diteruskan. Mungkin tidak berfungsi dengan semua model.',
+    // Enum display values
+    'calm':'tenang','low':'rendah','moderate':'sederhana','high':'tinggi','critical':'kritikal',
+    'pristine':'sempurna','neat':'kemas','casual':'santai','slightly disheveled':'sedikit kucar-kacir','disheveled':'kucar-kacir','partially undressed':'separuh berbuka','undressed':'berbuka',
+    'active':'aktif','N/A':'T/B',
+    'menstrual':'haid','follicular':'folikular','ovulation':'ovulasi','luteal':'luteal',
+    'infertile':'tidak subur','peak':'puncak',
+    'not pregnant':'tidak mengandung','possibly conceived':'mungkin hamil','confirmed pregnant':'pengesahan mengandung','unknown':'tidak diketahui',
+    'none':'tiada','minimal':'minimum','growing':'berkembang','strong':'kuat','very high':'sangat tinggi','intense':'sengit','overwhelming':'luar biasa','desperate':'terdesak','absolute':'mutlak','consumed':'terhanyut','complete':'lengkap','rebuilding':'membina semula','fragile':'rapuh','natural':'semula jadi','excellent':'cemerlang','no attraction':'tiada tarikan','no desire':'tiada keinginan',
     'Jan':'Jan','Feb':'Feb','Mar':'Mac','Apr':'Apr','May':'Mei','Jun':'Jun','Jul':'Jul','Aug':'Ogo','Sep':'Sep','Oct':'Okt','Nov':'Nov','Dec':'Dis',
 },
 'Finnish': {
@@ -7650,6 +7850,14 @@ const TRANSLATIONS = {
     'Restored':'Palautettu',
     'Remove':'Poista',
     'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Kokeellinen. LLM palauttaa vain muuttuneet kentät. Muuttumaton data siirtyy eteenpäin. Ei välttämättä toimi kaikkien mallien kanssa.',
+    // Enum display values
+    'calm':'rauhallinen','low':'matala','moderate':'kohtalainen','high':'korkea','critical':'kriittinen',
+    'pristine':'moitteeton','neat':'siisti','casual':'rento','slightly disheveled':'hieman epäsiisti','disheveled':'epäsiisti','partially undressed':'osittain riisuutunut','undressed':'riisuutunut',
+    'active':'aktiivinen','N/A':'Ei sovellettavissa',
+    'menstrual':'kuukautis','follicular':'follikulaarinen','ovulation':'ovulaatio','luteal':'luteaali',
+    'infertile':'hedelmätön','peak':'huippu',
+    'not pregnant':'ei raskaana','possibly conceived':'mahdollinen hedelmöitys','confirmed pregnant':'raskaus vahvistettu','unknown':'tuntematon',
+    'none':'ei mitään','minimal':'minimaalinen','growing':'kasvava','strong':'vahva','very high':'erittäin korkea','intense':'intensiivinen','overwhelming':'musertava','desperate':'epätoivoinen','absolute':'ehdoton','consumed':'nielty','complete':'täydellinen','rebuilding':'jälleenrakennus','fragile':'hauras','natural':'luonnollinen','excellent':'erinomainen','no attraction':'ei vetovoimaa','no desire':'ei halua',
     'Jan':'Tam','Feb':'Hel','Mar':'Maa','Apr':'Huh','May':'Tou','Jun':'Kes','Jul':'Hei','Aug':'Elo','Sep':'Syy','Oct':'Lok','Nov':'Mar','Dec':'Jou',
 },
 'Danish': {
@@ -7944,6 +8152,14 @@ const TRANSLATIONS = {
     'Restored':'Gendannet',
     'Remove':'Fjern',
     'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Eksperimentelt. LLM returnerer kun ændrede felter. Uændrede data videreføres. Fungerer muligvis ikke med alle modeller.',
+    // Enum display values
+    'calm':'rolig','low':'lav','moderate':'moderat','high':'høj','critical':'kritisk',
+    'pristine':'upåklagelig','neat':'pæn','casual':'afslappet','slightly disheveled':'let usoigneret','disheveled':'usoigneret','partially undressed':'delvist afklædt','undressed':'afklædt',
+    'active':'aktiv','N/A':'Ikke relevant',
+    'menstrual':'menstruation','follicular':'follikulær','ovulation':'ægløsning','luteal':'lutealfase',
+    'infertile':'ufrugtbar','peak':'top',
+    'not pregnant':'ikke gravid','possibly conceived':'mulig undfangelse','confirmed pregnant':'graviditet bekræftet','unknown':'ukendt',
+    'none':'ingen','minimal':'minimal','growing':'voksende','strong':'stærk','very high':'meget høj','intense':'intens','overwhelming':'overvældende','desperate':'desperat','absolute':'absolut','consumed':'opslugt','complete':'fuldstændig','rebuilding':'genopbygning','fragile':'skrøbelig','natural':'naturlig','excellent':'fremragende','no attraction':'ingen tiltrækning','no desire':'intet ønske',
     'Jan':'Jan','Feb':'Feb','Mar':'Mar','Apr':'Apr','May':'Maj','Jun':'Jun','Jul':'Jul','Aug':'Aug','Sep':'Sep','Oct':'Okt','Nov':'Nov','Dec':'Dec',
 },
 'Norwegian': {
@@ -8238,6 +8454,14 @@ const TRANSLATIONS = {
     'Restored':'Gjenopprettet',
     'Remove':'Fjern',
     'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'Eksperimentelt. LLM returnerer bare endrede felt. Uendrede data videreføres. Fungerer kanskje ikke med alle modeller.',
+    // Enum display values
+    'calm':'rolig','low':'lav','moderate':'moderat','high':'høy','critical':'kritisk',
+    'pristine':'upåklagelig','neat':'pen','casual':'avslappet','slightly disheveled':'litt ustelt','disheveled':'ustelt','partially undressed':'delvis avkledd','undressed':'avkledd',
+    'active':'aktiv','N/A':'Ikke aktuelt',
+    'menstrual':'menstruasjon','follicular':'follikulær','ovulation':'eggløsning','luteal':'lutealfase',
+    'infertile':'ufruktbar','peak':'topp',
+    'not pregnant':'ikke gravid','possibly conceived':'mulig befruktning','confirmed pregnant':'graviditet bekreftet','unknown':'ukjent',
+    'none':'ingen','minimal':'minimal','growing':'voksende','strong':'sterk','very high':'svært høy','intense':'intens','overwhelming':'overveldende','desperate':'desperat','absolute':'absolutt','consumed':'oppslukt','complete':'fullstendig','rebuilding':'gjenoppbygging','fragile':'skjør','natural':'naturlig','excellent':'utmerket','no attraction':'ingen tiltrekning','no desire':'intet ønske',
     'Jan':'Jan','Feb':'Feb','Mar':'Mar','Apr':'Apr','May':'Mai','Jun':'Jun','Jul':'Jul','Aug':'Aug','Sep':'Sep','Oct':'Okt','Nov':'Nov','Dec':'Des',
 },
 'Hebrew': {
@@ -8532,6 +8756,14 @@ const TRANSLATIONS = {
     'Restored':'שוחזר',
     'Remove':'הסר',
     'Experimental. LLM returns only changed fields. Unchanged data carries forward. May not work with all models.':'ניסיוני. ה-LLM מחזיר רק שדות שהשתנו. נתונים שלא השתנו מועברים. ייתכן שלא יעבוד עם כל הדגמים.',
+    // Enum display values
+    'calm':'רגוע','low':'נמוך','moderate':'בינוני','high':'גבוה','critical':'קריטי',
+    'pristine':'מושלם','neat':'מסודר','casual':'יומיומי','slightly disheveled':'מעט מבולגן','disheveled':'מבולגן','partially undressed':'חלקית פשוט','undressed':'פשוט',
+    'active':'פעיל','N/A':'לא רלוונטי',
+    'menstrual':'מחזור','follicular':'פוליקולרי','ovulation':'ביוץ','luteal':'לוטאלי',
+    'infertile':'לא פורה','peak':'שיא',
+    'not pregnant':'לא בהריון','possibly conceived':'ייתכן הריון','confirmed pregnant':'הריון מאושר','unknown':'לא ידוע',
+    'none':'אין','minimal':'מינימלי','growing':'גדל','strong':'חזק','very high':'גבוה מאוד','intense':'אינטנסיבי','overwhelming':'מציף','desperate':'נואש','absolute':'מוחלט','consumed':'נצרך','complete':'מלא','rebuilding':'בנייה מחדש','fragile':'שביר','natural':'טבעי','excellent':'מצוין','no attraction':'ללא משיכה','no desire':'ללא תשוקה',
     'Jan':'ינו','Feb':'פבר','Mar':'מרץ','Apr':'אפר','May':'מאי','Jun':'יונ','Jul':'יול','Aug':'אוג','Sep':'ספט','Oct':'אוק','Nov':'נוב','Dec':'דצמ',
 },
 };
