@@ -1,6 +1,7 @@
 // src/ui/thoughts.js — Thought Panel (draggable, shows internal dialogue + goals)
 import { log, warn } from '../logger.js';
 import { esc } from '../utils.js';
+import { t } from '../i18n.js';
 import { getSettings, saveSettings } from '../settings.js';
 import { charColor } from '../color.js';
 import { generating, genNonce, lastGenSource, setLastGenSource } from '../state.js';
@@ -18,14 +19,14 @@ export function createThoughtPanel(){
     tp.style.left=pos.x+'px';tp.style.top=pos.y+'px';
     tp.innerHTML=`<div class="sp-tp-header" id="sp-tp-drag">
         <svg class="sp-tp-drag-grip" width="16" height="4" viewBox="0 0 16 4" style="opacity:0.15"><rect y="0" width="16" height="1.5" rx="0.75" fill="currentColor"/><rect y="2.5" width="16" height="1.5" rx="0.75" fill="currentColor"/></svg>
-        <span class="sp-tp-title">Inner Thoughts</span>
+        <span class="sp-tp-title">${t('Inner Thoughts')}</span>
         <span class="sp-tp-header-spacer"></span>
-        <button class="sp-tp-snapleft${s.thoughtSnapLeft!==false?' sp-tb-active':''}" title="Snap to left of chat"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><rect x="1" y="2" width="6" height="12" rx="1" stroke="currentColor" stroke-width="1.2" opacity="0.8"/><rect x="9" y="2" width="6" height="12" rx="1" stroke="currentColor" stroke-width="1.2" opacity="0.35"/><path d="M4.5 6.5L2.5 8l2 1.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-        <button class="sp-tp-ghost${s.thoughtGhost!==false?' sp-tb-active':''}" title="Ghost mode \u2014 hide panel frame"><svg viewBox="0 0 20 20" width="15" height="15" fill="none"><path d="M10 2C6.5 2 4 4.8 4 7.5v7c0 .4.2.7.5.5l1.5-1.2 1.5 1.2c.3.2.7.2 1 0L10 13.8l1.5 1.2c.3.2.7.2 1 0l1.5-1.2 1.5 1.2c.3.2.5-.1.5-.5v-7C16 4.8 13.5 2 10 2z" fill="currentColor" opacity="0.12" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/><ellipse cx="7.8" cy="8" rx="1.3" ry="1.6" fill="currentColor" opacity="0.7"/><ellipse cx="12.2" cy="8" rx="1.3" ry="1.6" fill="currentColor" opacity="0.7"/><circle cx="7.8" cy="7.6" r="0.5" fill="var(--sp-bg, #161820)"/><circle cx="12.2" cy="7.6" r="0.5" fill="var(--sp-bg, #161820)"/><ellipse cx="10" cy="11" rx="1.5" ry="1" fill="currentColor" opacity="0.2"/></svg></button>
-        <button class="sp-tp-regen" title="Regenerate thoughts"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M13.5 8a5.5 5.5 0 1 1-1.3-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M13.5 3v2.5h-2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-        <button class="sp-tp-close" title="Hide thoughts"><svg viewBox="0 0 12 12" width="13" height="13" fill="none"><line x1="2" y1="2" x2="10" y2="10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="10" y1="2" x2="2" y2="10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+        <button class="sp-tp-snapleft${s.thoughtSnapLeft!==false?' sp-tb-active':''}" title="${t('Snap to left of chat')}"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><rect x="1" y="2" width="6" height="12" rx="1" stroke="currentColor" stroke-width="1.2" opacity="0.8"/><rect x="9" y="2" width="6" height="12" rx="1" stroke="currentColor" stroke-width="1.2" opacity="0.35"/><path d="M4.5 6.5L2.5 8l2 1.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button class="sp-tp-ghost${s.thoughtGhost!==false?' sp-tb-active':''}" title="${t('Ghost mode')}"><svg viewBox="0 0 20 20" width="15" height="15" fill="none"><path d="M10 2C6.5 2 4 4.8 4 7.5v7c0 .4.2.7.5.5l1.5-1.2 1.5 1.2c.3.2.7.2 1 0L10 13.8l1.5 1.2c.3.2.7.2 1 0l1.5-1.2 1.5 1.2c.3.2.5-.1.5-.5v-7C16 4.8 13.5 2 10 2z" fill="currentColor" opacity="0.12" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/><ellipse cx="7.8" cy="8" rx="1.3" ry="1.6" fill="currentColor" opacity="0.7"/><ellipse cx="12.2" cy="8" rx="1.3" ry="1.6" fill="currentColor" opacity="0.7"/><circle cx="7.8" cy="7.6" r="0.5" fill="var(--sp-bg, #161820)"/><circle cx="12.2" cy="7.6" r="0.5" fill="var(--sp-bg, #161820)"/><ellipse cx="10" cy="11" rx="1.5" ry="1" fill="currentColor" opacity="0.2"/></svg></button>
+        <button class="sp-tp-regen" title="${t('Regenerate thoughts')}"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M13.5 8a5.5 5.5 0 1 1-1.3-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M13.5 3v2.5h-2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button class="sp-tp-close" title="${t('Hide thoughts')}"><svg viewBox="0 0 12 12" width="13" height="13" fill="none"><line x1="2" y1="2" x2="10" y2="10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="10" y1="2" x2="2" y2="10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
     </div><div id="sp-tp-body"></div>
-    <div class="sp-tp-resize" title="Resize"><svg viewBox="0 0 16 16" fill="none"><line x1="14" y1="2" x2="2" y2="14" stroke="currentColor" stroke-width="1" opacity="0.4"/><line x1="14" y1="6" x2="6" y2="14" stroke="currentColor" stroke-width="1" opacity="0.4"/><line x1="14" y1="10" x2="10" y2="14" stroke="currentColor" stroke-width="1" opacity="0.4"/></svg></div>`;
+    <div class="sp-tp-resize" title="${t('Resize')}"><svg viewBox="0 0 16 16" fill="none"><line x1="14" y1="2" x2="2" y2="14" stroke="currentColor" stroke-width="1" opacity="0.4"/><line x1="14" y1="6" x2="6" y2="14" stroke="currentColor" stroke-width="1" opacity="0.4"/><line x1="14" y1="10" x2="10" y2="14" stroke="currentColor" stroke-width="1" opacity="0.4"/></svg></div>`;
     document.body.appendChild(tp);
 
     // Snap-left toggle button
@@ -81,9 +82,9 @@ export function createThoughtPanel(){
         if(result){
             const norm=normalizeTracker(result);
             updatePanel(norm);
-            toastr.success('Regenerated');
+            toastr.success(t('Regenerated'));
         } else {
-            toastr.error('Regeneration failed');
+            toastr.error(t('Regeneration failed'));
         }
     });
 

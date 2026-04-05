@@ -1,6 +1,7 @@
 // src/ui/loading.js — Loading overlays, stop button, elapsed timer
 import { log } from '../logger.js';
 import { esc } from '../utils.js';
+import { t } from '../i18n.js';
 import { elapsedInterval, setElapsedInterval } from '../state.js';
 import { spDetectMode } from './mobile.js';
 import { cancelGeneration } from '../generation/engine.js';
@@ -20,7 +21,7 @@ export function showStopButton(){
         btn.style.width=r.width+'px';
         btn.style.bottom='0px';
     }
-    btn.textContent='\u25A0 Stop Generation';btn.disabled=false;btn.style.display='flex';
+    btn.textContent=t('Stop Generation');btn.disabled=false;btn.style.display='flex';
 }
 export function hideStopButton(){const btn=document.getElementById('sp-stop-btn');if(btn)btn.style.display='none'}
 

@@ -3,6 +3,7 @@
 
 import { log } from '../logger.js';
 import { esc } from '../utils.js';
+import { t } from '../i18n.js';
 import { getSnapshotFor, getPrevSnapshot, getSettings } from '../settings.js';
 import { currentSnapshotMesIdx, lastDeltaPayload } from '../state.js';
 
@@ -34,22 +35,22 @@ export function openDiffViewer(mesIdx) {
     overlay.innerHTML = `
         <div class="sp-diff-container">
             <div class="sp-diff-header">
-                <span class="sp-diff-title">Payload Inspector</span>
+                <span class="sp-diff-title">${t('Payload Inspector')}</span>
                 <span class="sp-diff-meta">Message #${mesIdx}${previous ? '' : ' (first snapshot — no previous)'}${deltaJson ? ' · Delta' : ''}</span>
                 <span class="sp-diff-spacer"></span>
-                ${diffResult ? `<button class="sp-diff-tab sp-diff-tab-active" data-tab="diff">Changes Only</button>
-                <button class="sp-diff-tab" data-tab="full">Full Diff</button>
-                <button class="sp-diff-tab" data-tab="side">Side by Side</button>
-                ${deltaJson ? '<button class="sp-diff-tab" data-tab="delta">Delta Payload</button>' : ''}
-                <button class="sp-diff-tab" data-tab="prev">Previous</button>
-                <button class="sp-diff-tab" data-tab="curr">Current</button>` :
-                `<button class="sp-diff-tab sp-diff-tab-active" data-tab="curr">Full Payload</button>
-                ${deltaJson ? '<button class="sp-diff-tab" data-tab="delta">Delta Payload</button>' : ''}`}
-                <button class="sp-diff-copy" title="Copy to clipboard">Copy</button>
+                ${diffResult ? `<button class="sp-diff-tab sp-diff-tab-active" data-tab="diff">${t('Changes Only')}</button>
+                <button class="sp-diff-tab" data-tab="full">${t('Full Diff')}</button>
+                <button class="sp-diff-tab" data-tab="side">${t('Side by Side')}</button>
+                ${deltaJson ? '<button class="sp-diff-tab" data-tab="delta">' + t('Delta Payload') + '</button>' : ''}
+                <button class="sp-diff-tab" data-tab="prev">${t('Previous')}</button>
+                <button class="sp-diff-tab" data-tab="curr">${t('Current')}</button>` :
+                `<button class="sp-diff-tab sp-diff-tab-active" data-tab="curr">${t('Full Payload')}</button>
+                ${deltaJson ? '<button class="sp-diff-tab" data-tab="delta">' + t('Delta Payload') + '</button>' : ''}`}
+                <button class="sp-diff-copy" title="${t('Copy')}">${t('Copy')}</button>
             </div>
             <div class="sp-diff-body" id="sp-diff-body"></div>
         </div>
-        <button class="sp-diff-close-float" title="Close">&times;</button>
+        <button class="sp-diff-close-float" title="${t('Close')}">&times;</button>
     `;
     // Append to documentElement (not body) to escape SillyTavern's
     // body { position: fixed; overflow: hidden } at <=1000px viewports
@@ -111,8 +112,8 @@ export function openDiffViewer(mesIdx) {
         }
         navigator.clipboard.writeText(text).then(() => {
             const btn = overlay.querySelector('.sp-diff-copy');
-            btn.textContent = 'Copied!';
-            setTimeout(() => btn.textContent = 'Copy', 1500);
+            btn.textContent = t('Copied!');
+            setTimeout(() => btn.textContent = t('Copy'), 1500);
         });
     });
 
@@ -289,12 +290,12 @@ function renderSideBySideHtml(prevText, currText) {
     }
 
     let html = `<div class="sp-diff-stats"><span class="sp-diff-stat-add">+${diff.stats.added} added</span><span class="sp-diff-stat-del">-${diff.stats.removed} removed</span><span class="sp-diff-stat-same">${diff.stats.unchanged} unchanged</span></div>`;
-    html += '<div class="sp-diff-sbs"><div class="sp-diff-sbs-pane sp-diff-sbs-left" id="sp-diff-sbs-left"><div class="sp-diff-sbs-label">Previous</div><pre class="sp-diff-pre">';
+    html += '<div class="sp-diff-sbs"><div class="sp-diff-sbs-pane sp-diff-sbs-left" id="sp-diff-sbs-left"><div class="sp-diff-sbs-label">' + t('Previous') + '</div><pre class="sp-diff-pre">';
     for (const l of left) {
         const cls = l.type === 'del' ? 'sp-diff-line-del' : l.type === 'pad' ? 'sp-diff-line-pad' : 'sp-diff-line-same';
         html += `<div class="${cls}">${l.text ? esc(l.text) : '&nbsp;'}</div>`;
     }
-    html += '</pre></div><div class="sp-diff-sbs-pane sp-diff-sbs-right" id="sp-diff-sbs-right"><div class="sp-diff-sbs-label">Current</div><pre class="sp-diff-pre">';
+    html += '</pre></div><div class="sp-diff-sbs-pane sp-diff-sbs-right" id="sp-diff-sbs-right"><div class="sp-diff-sbs-label">' + t('Current') + '</div><pre class="sp-diff-pre">';
     for (const l of right) {
         const cls = l.type === 'add' ? 'sp-diff-line-add' : l.type === 'pad' ? 'sp-diff-line-pad' : 'sp-diff-line-same';
         html += `<div class="${cls}">${l.text ? esc(l.text) : '&nbsp;'}</div>`;

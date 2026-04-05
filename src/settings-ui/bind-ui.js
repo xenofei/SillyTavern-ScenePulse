@@ -29,6 +29,7 @@ import {
 import { generateTracker } from '../generation/engine.js';
 import { showSetupGuide } from './setup-guide.js';
 import { startGuidedTour } from './guided-tour.js';
+import { t, resetI18nCache } from '../i18n.js';
 
 export function updateBadge(){const on=getSettings().enabled;const b=document.getElementById('sp-badge');if(b){b.className='sp-drawer-badge '+(on?'sp-on':'sp-off');b.innerHTML=`<span class="sp-drawer-badge-dot"></span>${on?'Active':'Off'}`}}
 
@@ -162,7 +163,7 @@ export function bindUI(){const s=getSettings();
     $('#sp-show-devbtns').on('change',function(){s.devButtons=this.checked;saveSettings();const dv=this.checked?'':'none';const dw=document.getElementById('sp-dev-wx-wrap');if(dw)dw.style.display=dv;const dt=document.getElementById('sp-dev-time-wrap');if(dt)dt.style.display=dv});
     $('#sp-font-scale').on('input',function(){const v=+this.value;s.fontScale=v;$('#sp-font-scale-val').text(v.toFixed(1)+'x');_applyFontScaleFromUI(v);saveSettings()});
     $('#sp-font-scale-reset').on('click',function(){s.fontScale=1;$('#sp-font-scale').val(1);$('#sp-font-scale-val').text('1.0x');_applyFontScaleFromUI(1);saveSettings()});
-    $('#sp-language').on('change',function(){s.language=this.value;saveSettings();log('Language:',this.value||'auto-detect')});
+    $('#sp-language').on('change',function(){s.language=this.value;saveSettings();resetI18nCache();log('Language:',this.value||'auto-detect')});
     $('#sp-ctx').on('change',function(){s.contextMessages=clamp(+this.value,1,30);saveSettings();_spSaveLS()});
     $('#sp-retries').on('change',function(){s.maxRetries=clamp(+this.value,0,5);saveSettings();_spSaveLS()});
     $('#sp-profile').on('change',function(){s.connectionProfile=this.value;saveSettings();_spSaveLS()});

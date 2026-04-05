@@ -1,5 +1,6 @@
 // src/ui/timeline.js — Timeline Scrubber
 import { log } from '../logger.js';
+import { t } from '../i18n.js';
 import { currentSnapshotMesIdx, setCurrentSnapshotMesIdx, _isTimelineScrub, set_isTimelineScrub, _tlScrubDebounce, set_tlScrubDebounce, _tlScrubRaf, set_tlScrubRaf } from '../state.js';
 import { getTrackerData } from '../settings.js';
 import { normalizeTracker } from '../normalize.js';
@@ -142,7 +143,7 @@ export function renderTimeline(){
     tl.appendChild(bar);
     if(selectedKey!==latest){
         const disc=document.createElement('div');disc.className='sp-tl-disclaimer';
-        disc.innerHTML=`<span class="sp-tl-disc-icon">\u26A0</span> Viewing scene from an older message (msg #${selectedKey}) \u2014 not the current scene. <button class="sp-tl-disc-btn">Jump to latest</button>`;
+        disc.innerHTML=`<span class="sp-tl-disc-icon">\u26A0</span> Viewing scene from an older message (msg #${selectedKey}) \u2014 not the current scene. <button class="sp-tl-disc-btn">${t('Jump to latest')}</button>`;
         disc.querySelector('.sp-tl-disc-btn').addEventListener('click',()=>{
             const latestSnap=all.snapshots[String(latest)];if(!latestSnap)return;
             if(currentSnapshotMesIdx===latest)return;

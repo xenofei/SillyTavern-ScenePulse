@@ -1,6 +1,7 @@
 // src/ui/panel.js — Side Panel Creation, Show/Hide, Toolbar Event Handling
 import { log, warn } from '../logger.js';
 import { esc, clamp, str } from '../utils.js';
+import { t } from '../i18n.js';
 import { MASCOT_SVG, DEFAULTS, VERSION } from '../constants.js';
 import { getSettings, saveSettings } from '../settings.js';
 import { BUILTIN_PANELS } from '../constants.js';
@@ -115,9 +116,9 @@ export function createPanel(){
         <div class="sp-brand-icon" id="sp-brand-icon" title="ScenePulse v${VERSION}">${MASCOT_SVG}</div>
         <div class="sp-brand-title">Scene<span class="sp-brand-accent">Pulse</span></div>
         <span class="sp-toolbar-spacer"></span>
-        <button class="sp-toolbar-btn" id="sp-tb-regen" title="Regenerate all"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M13.5 8a5.5 5.5 0 1 1-1.3-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M13.5 3v2.5h-2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button class="sp-toolbar-btn" id="sp-tb-regen" title="${t('Regenerate all')}"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M13.5 8a5.5 5.5 0 1 1-1.3-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M13.5 3v2.5h-2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         <span class="sp-toolbar-sep"></span>
-        <button class="sp-toolbar-btn" id="sp-tb-panels" title="Panel Manager"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><rect x="1" y="2" width="6" height="4" rx="1" stroke="currentColor" stroke-width="1.1" opacity="0.6"/><rect x="9" y="2" width="6" height="4" rx="1" stroke="currentColor" stroke-width="1.1" opacity="0.6"/><rect x="1" y="8" width="6" height="4" rx="1" stroke="currentColor" stroke-width="1.1" fill="currentColor" opacity="0.15"/><rect x="9" y="8" width="6" height="4" rx="1" stroke="currentColor" stroke-width="1.1"/><line x1="3" y1="14" x2="13" y2="14" stroke="currentColor" stroke-width="1" opacity="0.25" stroke-linecap="round"/></svg></button>
+        <button class="sp-toolbar-btn" id="sp-tb-panels" title="${t('Panel Manager')}"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><rect x="1" y="2" width="6" height="4" rx="1" stroke="currentColor" stroke-width="1.1" opacity="0.6"/><rect x="9" y="2" width="6" height="4" rx="1" stroke="currentColor" stroke-width="1.1" opacity="0.6"/><rect x="1" y="8" width="6" height="4" rx="1" stroke="currentColor" stroke-width="1.1" fill="currentColor" opacity="0.15"/><rect x="9" y="8" width="6" height="4" rx="1" stroke="currentColor" stroke-width="1.1"/><line x1="3" y1="14" x2="13" y2="14" stroke="currentColor" stroke-width="1" opacity="0.25" stroke-linecap="round"/></svg></button>
         <button class="sp-toolbar-btn" id="sp-tb-toggle" title="Expand/Collapse sections"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><rect x="2" y="2" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="2" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="2" y="9" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="9" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/></svg></button>
         <button class="sp-toolbar-btn" id="sp-tb-compact" title="Condense view"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><rect x="2" y="2" width="12" height="2.5" rx="1" fill="currentColor" opacity="0.3"/><rect x="2" y="6" width="9" height="2" rx="0.8" fill="currentColor" opacity="0.2"/><rect x="2" y="9.5" width="11" height="2" rx="0.8" fill="currentColor" opacity="0.15"/><rect x="2" y="13" width="7" height="1.5" rx="0.7" fill="currentColor" opacity="0.1"/><path d="M14 5.5L14 12" stroke="currentColor" stroke-width="1" stroke-linecap="round" opacity="0.3"/><path d="M12.5 7l1.5-1.5L15.5 7" stroke="currentColor" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round" opacity="0.4"/><path d="M12.5 10.5l1.5 1.5 1.5-1.5" stroke="currentColor" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round" opacity="0.4"/></svg></button>
         <span class="sp-toolbar-sep"></span>
@@ -126,20 +127,20 @@ export function createPanel(){
         <button class="sp-toolbar-btn sp-tb-active" id="sp-tb-timeTint" title="Toggle time-of-day ambience"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><circle cx="8" cy="8" r="3" fill="currentColor" opacity="0.25" stroke="currentColor" stroke-width="1.2"/><line x1="8" y1="1.5" x2="8" y2="3.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.5"/><line x1="8" y1="12.5" x2="8" y2="14.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.5"/><line x1="1.5" y1="8" x2="3.5" y2="8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.5"/><line x1="12.5" y1="8" x2="14.5" y2="8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.5"/><line x1="3.4" y1="3.4" x2="4.8" y2="4.8" stroke="currentColor" stroke-width="1" stroke-linecap="round" opacity="0.35"/><line x1="11.2" y1="11.2" x2="12.6" y2="12.6" stroke="currentColor" stroke-width="1" stroke-linecap="round" opacity="0.35"/><line x1="3.4" y1="12.6" x2="4.8" y2="11.2" stroke="currentColor" stroke-width="1" stroke-linecap="round" opacity="0.35"/><line x1="11.2" y1="4.8" x2="12.6" y2="3.4" stroke="currentColor" stroke-width="1" stroke-linecap="round" opacity="0.35"/></svg></button>
         <button class="sp-toolbar-btn sp-tb-active" id="sp-tb-sceneTrans" title="Toggle location change popups"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M2 12V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z" stroke="currentColor" stroke-width="1.1" fill="currentColor" opacity="0.08"/><path d="M5 8h6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.5"/><path d="M9.5 5.5L12 8l-2.5 2.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         <span class="sp-toolbar-sep"></span>
-        <button class="sp-toolbar-btn" id="sp-tb-edit" title="Toggle edit mode"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M11.5 1.5l3 3-8.5 8.5H3v-3l8.5-8.5z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><line x1="9.5" y1="3.5" x2="12.5" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.4"/><line x1="3" y1="14.5" x2="13" y2="14.5" stroke="currentColor" stroke-width="1" opacity="0.3" stroke-linecap="round"/></svg></button>
-        <button class="sp-toolbar-btn" id="sp-tb-empty" title="Show empty fields"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><rect x="2" y="3" width="12" height="2" rx="0.8" stroke="currentColor" stroke-width="1" opacity="0.6"/><rect x="2" y="7" width="12" height="2" rx="0.8" stroke="currentColor" stroke-width="1" opacity="0.3" stroke-dasharray="2 1.5"/><rect x="2" y="11" width="12" height="2" rx="0.8" stroke="currentColor" stroke-width="1" opacity="0.6"/></svg></button>
+        <button class="sp-toolbar-btn" id="sp-tb-edit" title="${t('Toggle edit mode')}"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M11.5 1.5l3 3-8.5 8.5H3v-3l8.5-8.5z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><line x1="9.5" y1="3.5" x2="12.5" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.4"/><line x1="3" y1="14.5" x2="13" y2="14.5" stroke="currentColor" stroke-width="1" opacity="0.3" stroke-linecap="round"/></svg></button>
+        <button class="sp-toolbar-btn" id="sp-tb-empty" title="${t('Show empty fields')}"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><rect x="2" y="3" width="12" height="2" rx="0.8" stroke="currentColor" stroke-width="1" opacity="0.6"/><rect x="2" y="7" width="12" height="2" rx="0.8" stroke="currentColor" stroke-width="1" opacity="0.3" stroke-dasharray="2 1.5"/><rect x="2" y="11" width="12" height="2" rx="0.8" stroke="currentColor" stroke-width="1" opacity="0.6"/></svg></button>
         <div class="sp-dev-wrap" id="sp-dev-wx-wrap" style="display:none"><button class="sp-toolbar-btn sp-tb-dev" id="sp-tb-dev-wx" title="DEV: Weather overlays"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M4 12c-1.8 0-3-1-3-2.5S2 7.5 3.5 7C4 4.5 6 3 8.5 3c2.2 0 4 1.5 4.2 3.5C14 6.8 15 8 15 9.5S13.5 12 12 12z" stroke="currentColor" stroke-width="1.1" fill="currentColor" opacity="0.15"/><path d="M6 8l2-3 2 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/><line x1="8" y1="8" x2="8" y2="13" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/></svg></button><div class="sp-dev-dropdown" id="sp-dev-wx-menu"></div></div>
         <div class="sp-dev-wrap" id="sp-dev-time-wrap" style="display:none"><button class="sp-toolbar-btn sp-tb-dev" id="sp-tb-dev-time" title="DEV: Time-of-day tints"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><circle cx="8" cy="8" r="5.5" stroke="currentColor" stroke-width="1.2"/><line x1="8" y1="8" x2="8" y2="4.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><line x1="8" y1="8" x2="11" y2="9.5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/><circle cx="8" cy="8" r="0.8" fill="currentColor"/></svg></button><div class="sp-dev-dropdown" id="sp-dev-time-menu"></div></div>
-        <button class="sp-toolbar-btn" id="sp-tb-minimize" title="Hide panel" style="display:none"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><line x1="2" y1="13" x2="14" y2="13" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity="0.4"/></svg></button>
+        <button class="sp-toolbar-btn" id="sp-tb-minimize" title="${t('Hide panel')}" style="display:none"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><line x1="2" y1="13" x2="14" y2="13" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity="0.4"/></svg></button>
     </div>
-    <div id="sp-panel-body"><div class="sp-empty-state"><div class="sp-empty-icon">\uD83D\uDCE1</div><div class="sp-empty-title">No scene data yet</div><div class="sp-empty-sub">Send a message or click <strong>\u27F3</strong> to generate.</div></div></div>`;
+    <div id="sp-panel-body"><div class="sp-empty-state"><div class="sp-empty-icon">\uD83D\uDCE1</div><div class="sp-empty-title">${t('No scene data yet')}</div><div class="sp-empty-sub">${t('Send a message or click ⟳ to generate.')}</div></div></div>`;
     document.body.appendChild(panel);
     log('Panel appended to body');
 
     // ── Mobile FAB (floating action button to restore panel) ──
     if(!document.getElementById('sp-mobile-fab')){
         const fab=document.createElement('button');fab.id='sp-mobile-fab';fab.className='sp-mobile-fab';
-        fab.title='Show ScenePulse';fab.innerHTML=MASCOT_SVG;
+        fab.title=t('Show ScenePulse');fab.innerHTML=MASCOT_SVG;
         fab.addEventListener('click',spRestorePanel);
         document.body.appendChild(fab);
     }
@@ -167,7 +168,7 @@ export function createPanel(){
         if(generating){toastr.warning('Generation already in progress');return}
         const{chat}=SillyTavern.getContext();if(!chat.length)return;
         const body=document.getElementById('sp-panel-body');
-        showLoadingOverlay(body,'Regenerating Scene','Analyzing context and building tracker');
+        showLoadingOverlay(body,t('Generating Scene'),t('Analyzing context'));
         setLastGenSource('manual:full');
         showStopButton();startElapsedTimer();
         // Manual regen always shows thought panel
@@ -179,7 +180,7 @@ export function createPanel(){
         const cb=document.getElementById('sp-show-thoughts');if(cb)cb.checked=true;
         if(tp){
             tp.classList.add('sp-tp-visible');
-            showThoughtLoading('Updating thoughts','Analyzing context');
+            showThoughtLoading(t('Generating Scene'),t('Analyzing context'));
         }
         const preNonce=genNonce;
         const result=await generateTracker(chat.length-1);
@@ -190,7 +191,7 @@ export function createPanel(){
         if(!result){
             const snap=getLatestSnapshot();
             if(snap){const norm=normalizeTracker(snap);updatePanel(norm)}
-            else body.innerHTML='<div class="sp-empty-state"><div class="sp-empty-icon">\u27F3</div><div class="sp-empty-title">No scene data yet</div><div class="sp-empty-sub">Send a message or click <strong>\u27F3</strong> to generate.</div></div>';
+            else body.innerHTML='<div class="sp-empty-state"><div class="sp-empty-icon">\u27F3</div><div class="sp-empty-title">'+t('No scene data yet')+'</div><div class="sp-empty-sub">'+t('Send a message or click ⟳ to generate.')+'</div></div>';
         }
     });
     document.getElementById('sp-tb-toggle').addEventListener('click',()=>{
@@ -263,7 +264,7 @@ export function createPanel(){
         btn.classList.add('sp-tb-active');
         mgr=document.createElement('div');mgr.id='sp-panel-mgr';mgr.className='sp-panel-mgr sp-mgr-closing';
         const s=getSettings();
-        mgr.innerHTML=`<div class="sp-mgr-header"><span class="sp-mgr-title">Panel Manager</span><button class="sp-mgr-close" title="Close">\u2715</button></div><div class="sp-mgr-hint">Toggle panels on/off. Disabled panels are excluded from the LLM prompt.</div>`;
+        mgr.innerHTML=`<div class="sp-mgr-header"><span class="sp-mgr-title">${t('Panel Manager')}</span><button class="sp-mgr-close" title="${t('Close')}">\u2715</button></div><div class="sp-mgr-hint">Toggle panels on/off. Disabled panels are excluded from the LLM prompt.</div>`;
         mgr.querySelector('.sp-mgr-close').addEventListener('click',closeMgr);
         // Built-in panel toggles -- collapsible
         const builtinWrap=document.createElement('div');builtinWrap.className='sp-mgr-collapsible';

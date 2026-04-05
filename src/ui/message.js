@@ -1,5 +1,6 @@
 // src/ui/message.js — Message Integration (per-message buttons, onCharMsg, renderExisting)
 import { log, warn, err } from '../logger.js';
+import { t } from '../i18n.js';
 import { MES_ICON_SVG } from '../constants.js';
 import { SP_MARKER_START } from '../generation/extraction.js';
 import { getSettings } from '../settings.js';
@@ -63,8 +64,8 @@ export function addMesButton(el){
         if(this.classList.contains('sp-generating')){log('Already generating');return}
         this.classList.add('sp-generating');
         const panel=document.getElementById('sp-panel');
-        if(panel){spAutoShow();const body=document.getElementById('sp-panel-body');showLoadingOverlay(body,'Generating Scene','Reading context and analyzing characters');showStopButton();startElapsedTimer()}
-        showThoughtLoading('Updating thoughts','Analyzing context');
+        if(panel){spAutoShow();const body=document.getElementById('sp-panel-body');showLoadingOverlay(body,t('Generating Scene'),t('Analyzing context'));showStopButton();startElapsedTimer()}
+        showThoughtLoading(t('Generating Scene'),t('Analyzing context'));
         const preNonce=genNonce;
         try{
             const r=await generateTracker(id);
@@ -72,7 +73,7 @@ export function addMesButton(el){
             hideStopButton();stopElapsedTimer();
             clearLoadingOverlay(document.getElementById('sp-panel-body'));clearThoughtLoading();
             this.classList.remove('sp-generating');
-            if(!r){const snap=getLatestSnapshot();const body=document.getElementById('sp-panel-body');if(snap){const norm=normalizeTracker(snap);updatePanel(norm)}else if(body)body.innerHTML='<div class="sp-error"><div style="font-weight:700;margin-bottom:4px">Generation Failed</div><div style="font-size:10px">Network timeout or API issue. Try \u27F3 Regen or check debug log.</div></div>'}
+            if(!r){const snap=getLatestSnapshot();const body=document.getElementById('sp-panel-body');if(snap){const norm=normalizeTracker(snap);updatePanel(norm)}else if(body)body.innerHTML='<div class="sp-error"><div style="font-weight:700;margin-bottom:4px">'+t('Generation Failed')+'</div><div style="font-size:10px">'+t('Network timeout or API issue. Try \u27F3 Regen or check debug log.')+'</div></div>'}
         }catch(ex){
             err('Mes button gen error:',ex);
             hideStopButton();clearLoadingOverlay(document.getElementById('sp-panel-body'));clearThoughtLoading();
@@ -168,7 +169,7 @@ export async function onCharMsg(idx){
                     stopStreamingHider(); // Stop the hider since we're switching to separate mode
                     setLastGenSource('auto:together:fallback');
                     const panel=document.getElementById('sp-panel');
-                    if(panel){spAutoShow();showLoadingOverlay(document.getElementById('sp-panel-body'),'Generating Scene','Together mode missed \u2014 running separate');showStopButton();startElapsedTimer()}
+                    if(panel){spAutoShow();showLoadingOverlay(document.getElementById('sp-panel-body'),t('Generating Scene'),t('Analyzing context'));showStopButton();startElapsedTimer()}
                     showChatBanner('Generating tracker');
                     const result=await generateTracker(idx,null,{profile:fbProfile,preset:fbPreset});
                     hideStopButton();stopElapsedTimer();
@@ -210,8 +211,8 @@ export async function onCharMsg(idx){
         if(!freshChat[idx]){log('onCharMsg: message gone after delay, aborting');return}
         if(generating){log('onCharMsg: already generating after delay, skipping');return}
         const panel=document.getElementById('sp-panel');
-        if(panel){spAutoShow();showLoadingOverlay(document.getElementById('sp-panel-body'),'Generating Scene','Reading context and analyzing characters');showStopButton();startElapsedTimer()}
-        showChatBanner('Updating thoughts');
+        if(panel){spAutoShow();showLoadingOverlay(document.getElementById('sp-panel-body'),t('Generating Scene'),t('Analyzing context'));showStopButton();startElapsedTimer()}
+        showChatBanner(t('Generating Scene'));
         const preNonce=genNonce;
         snap=await generateTracker(idx);
         if(genNonce>preNonce+1){log('Auto-gen: stale caller, cancel handled UI');return}
@@ -222,7 +223,7 @@ export async function onCharMsg(idx){
             // Cancelled or failed -- restore previous or show empty
             const prev=getLatestSnapshot();const body=document.getElementById('sp-panel-body');
             if(prev){const norm=normalizeTracker(prev);updatePanel(norm)}
-            else if(body)body.innerHTML='<div class="sp-empty-state"><div class="sp-empty-icon">\u27F3</div><div class="sp-empty-title">No scene data yet</div><div class="sp-empty-sub">Send a message or click <strong>\u27F3</strong> to generate.</div></div>';
+            else if(body)body.innerHTML='<div class="sp-empty-state"><div class="sp-empty-icon">\u27F3</div><div class="sp-empty-title">'+t('No scene data yet')+'</div><div class="sp-empty-sub">'+t('Send a message or click ⟳ to generate.')+'</div></div>';
         }
     }else if(snap){
         const norm=normalizeTracker(snap);updatePanel(norm);
@@ -282,7 +283,7 @@ export async function renderExisting(){
         // No data yet -- show empty panel with centered waiting message
         spAutoShow();
         const body=document.getElementById('sp-panel-body');
-        if(body)body.innerHTML='<div class="sp-empty-state"><div class="sp-empty-icon">\u27F3</div><div class="sp-empty-title">No scene data yet</div><div class="sp-empty-sub">Send a message or click <strong>\u27F3</strong> to generate.</div></div>';
+        if(body)body.innerHTML='<div class="sp-empty-state"><div class="sp-empty-icon">\u27F3</div><div class="sp-empty-title">'+t('No scene data yet')+'</div><div class="sp-empty-sub">'+t('Send a message or click ⟳ to generate.')+'</div></div>';
         log('renderExisting: no snapshots, showing empty panel');
     }
     try{document.querySelectorAll('.mes:not([is_user="true"])').forEach(el=>addMesButton(el))}catch(e){warn('addButtons:',e)}
