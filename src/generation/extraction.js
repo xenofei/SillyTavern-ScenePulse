@@ -65,9 +65,28 @@ export function extractInlineTracker(mesIdx){
                         if(raw[i]==='{')depth--;
                         if(depth===0){openIdx=i;break}
                     }
-                    if(openIdx!==-1&&(lastBrace-openIdx)>500){
+                    if(openIdx!==-1&&(lastBrace-openIdx)>200){
                         jsonStr=raw.substring(openIdx,lastBrace+1);
                         extractMethod='RAW_JSON_SCAN';
+                    }
+                }
+                // Fallback 3: look for raw JSON with "time" key anywhere in message
+                if(!jsonStr){
+                    const timeMatch=raw.match(/\{"time"\s*:\s*"[^"]+"/);
+                    if(timeMatch){
+                        const jsonStart=timeMatch.index;
+                        const remaining=raw.substring(jsonStart);
+                        // Find matching closing brace
+                        let d2=0;let endIdx=-1;
+                        for(let i=0;i<remaining.length;i++){
+                            if(remaining[i]==='{')d2++;
+                            if(remaining[i]==='}')d2--;
+                            if(d2===0){endIdx=i;break}
+                        }
+                        if(endIdx>100){
+                            jsonStr=remaining.substring(0,endIdx+1);
+                            extractMethod='RAW_TIME_KEY_SCAN';
+                        }
                     }
                 }
             }
