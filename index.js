@@ -68,29 +68,15 @@ eventSource.on(event_types.APP_READY, () => { try {
         setTimeout(() => showSetupGuide(), 2000);
     }
     log('v' + VERSION + ' ready');
-    // Register ST regex filter to strip tracker JSON from display (prevents flash during streaming)
+    // Clean up any previously-registered regex filter (v5.9.0 registered one that
+    // broke extraction — ST's regex pipeline modifies msg.mes BEFORE extraction)
     try {
         const _ctx = SillyTavern.getContext();
-        if (_ctx.extensionSettings) {
-            if (!_ctx.extensionSettings.regex) _ctx.extensionSettings.regex = [];
-            const _existing = _ctx.extensionSettings.regex.findIndex(r => r.scriptName === 'ScenePulse Tracker Hider');
-            if (_existing === -1) {
-                _ctx.extensionSettings.regex.push({
-                    scriptName: 'ScenePulse Tracker Hider',
-                    findRegex: '<!--SP_TRACKER_START-->[\\s\\S]*?<!--SP_TRACKER_END-->|```json\\s*\\n[\\s\\S]*?```\\s*$',
-                    replaceString: '',
-                    trimStrings: [],
-                    placement: [2],
-                    disabled: false,
-                    markdownOnly: false,
-                    promptOnly: false,
-                    runOnEdit: true,
-                    substituteRegex: 0,
-                });
-                log('Registered ST regex filter for tracker hiding');
-            }
+        if (_ctx.extensionSettings?.regex) {
+            const _oldIdx = _ctx.extensionSettings.regex.findIndex(r => r.scriptName === 'ScenePulse Tracker Hider');
+            if (_oldIdx !== -1) { _ctx.extensionSettings.regex.splice(_oldIdx, 1); log('Removed stale regex filter from v5.9.0'); }
         }
-    } catch (e) { warn('Could not register regex filter:', e); }
+    } catch (e) {}
     // Check for updates (non-blocking)
     setTimeout(async () => {
         try {
