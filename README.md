@@ -10,7 +10,7 @@
 
 <div align="center">
 
-<img src="https://img.shields.io/badge/version-5.8.7-4db8a4?style=flat-square&labelColor=1a1c24" alt="Version">
+<img src="https://img.shields.io/badge/version-5.9.8-4db8a4?style=flat-square&labelColor=1a1c24" alt="Version">
 <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square&labelColor=1a1c24" alt="License">
 <img src="https://img.shields.io/badge/platform-SillyTavern%201.12%2B-orange?style=flat-square&labelColor=1a1c24" alt="Platform">
 <img src="https://img.shields.io/badge/languages-29-9b7ac4?style=flat-square&labelColor=1a1c24" alt="Languages">
@@ -288,12 +288,19 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Known Issues
 
-- **JSON visibility during streaming** — The proactive streaming hider catches most cases, but very fast token rates may briefly show tracker JSON before the `max-height` cap takes effect
-- **Model compliance** — Some models intermittently skip the tracker block; the fallback system handles this, but it adds a second API call
+- **Model compliance** — Some models intermittently skip the tracker block or output mangled markers; the fallback system handles this with a separate API call, and extraction supports multiple marker variants
+- **Delta mode** — Experimental. Some models may not reliably return only changed fields, leading to missing data. Disable delta mode if you see incomplete snapshots
 - **Mobile** — Weather effects, time-of-day tint, inner thoughts panel, and condense view are disabled on mobile to optimize performance
-- **Character naming** — When a model omits the `name` field, ScenePulse uses a multi-tier confidence system: 1:1 relationship matching, positional `charactersPresent` alignment, `{{char}}` identification, role↔relType cross-referencing, and last-resort elimination. Ambiguous cases (2+ unnamed characters with insufficient clues) display as neutral gray cards until the next generation resolves them
+- **Character naming** — When a model omits the `name` field, ScenePulse uses a multi-tier confidence system: 1:1 relationship matching, positional `charactersPresent` alignment, `{{char}}` identification, role↔relType cross-referencing, and last-resort elimination. Ambiguous cases display as neutral gray cards until the next generation resolves them
+- **Translations** — While all 29 languages have full translation coverage, some translations may be imperfect. Community corrections welcome in [`src/i18n.js`](https://github.com/xenofei/SillyTavern-ScenePulse/blob/main/src/i18n.js)
 
 ## Changelog
+
+### v5.9.8
+- **Payload hiding during streaming** — Tracker JSON is now hidden from the user during streaming using SillyTavern's regex pipeline (`markdownOnly: true`). JSON is stripped from rendered display but preserved in raw message for extraction. Handles SP markers, mangled marker variants, and markerless raw JSON patterns.
+- **Markerless JSON extraction** — New `RAW_TIME_KEY_SCAN` fallback detects `{"time":` patterns anywhere in the message when the LLM omits SP markers.
+- **JSON repair** — Enhanced repair pipeline for malformed tracker JSON (trailing commas, unquoted keys, unescaped quotes inside strings).
+- **Stop button fix** — Stop Generation button now always clickable above the loading overlay.
 
 ### v5.8.7
 - **Localization** — Full UI translation for 29 languages (344 keys each, zero English placeholders). Enum values (tension, dress state, fertility, meter labels) and month abbreviations translated at display time. Live language switch re-renders entire UI instantly.
@@ -329,7 +336,7 @@ Found a bug? Have a feature idea? Contributions welcome!
 ScenePulse started as a desire for something more — a scene-aware companion that could grow alongside the stories being told. These projects paved the way and remain worth checking out:
 
 - [**RPG Companion**](https://github.com/SpicyMarinara/rpg-companion-sillytavern) by SpicyMarinara — The original RPG tracking extension for SillyTavern
-- [**Dooms Enhancement Suite**](https://github.com/DangerDaza/Dooms-Enhancement-Suite) by DangerDaza — Feature-rich enhancement suite with inline JSON extraction, regex-based payload hiding, and modular architecture. Their `markdownOnly` regex approach for hiding streamed JSON directly informed ScenePulse's payload hiding system.
+- [**Dooms Enhancement Suite**](https://github.com/DangerDaza/Dooms-Enhancement-Suite) by DangerDaza — A comprehensive SillyTavern enhancement suite for RPG tracking and scene management
 - [**WTracker**](https://github.com/bmen25124/SillyTavern-WTracker) by bmen25124 — Lightweight world state tracking
 - [**zTracker**](https://github.com/Zaakh/SillyTavern-zTracker) by Zaakh — Scene and character tracking with a clean UI
 
