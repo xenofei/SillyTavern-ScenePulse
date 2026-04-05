@@ -55,6 +55,14 @@
     color: var(--sp-text-bright); line-height: 1; white-space: nowrap;
 }
 .sp-brand-accent { color: var(--sp-accent); }
+/* Update notification dot on brand icon */
+.sp-update-dot {
+    position: absolute; top: -2px; right: -2px;
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #d4915e; border: 1.5px solid var(--sp-bg-solid, #161820);
+    animation: sp-update-pulse 2s ease-in-out infinite;
+}
+@keyframes sp-update-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
 .sp-toolbar-spacer { flex: 1; }
 .sp-toolbar-btn {
     background: var(--sp-surface); border: 1px solid var(--sp-border);

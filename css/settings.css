@@ -13,6 +13,7 @@
 .sp-drawer-title-block { display: flex; flex-direction: column; gap: 0; line-height: 1.1; }
 .sp-drawer-header-content .sp-drawer-title { font-weight: 800; font-size: 13px; letter-spacing: 0.01em; }
 .sp-drawer-version { font-size: 8px; color: var(--sp-text-dim); letter-spacing: 0.04em; font-weight: 500; }
+.sp-drawer-branch { font-size: 7px; color: var(--sp-text-dim); opacity: 0.5; font-family: var(--sp-font-mono); display: block; margin-top: 1px; }
 .sp-drawer-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; padding: 2px 7px; border-radius: 8px; line-height: 1.2; margin-left: 4px; }
 .sp-drawer-badge.sp-on { background: var(--sp-accent-dim); color: var(--sp-accent); border: 1px solid rgba(77,184,164,0.2); }
 .sp-drawer-badge.sp-off { background: rgba(100,100,100,0.12); color: var(--sp-text-dim); border: 1px solid rgba(100,100,100,0.15); }

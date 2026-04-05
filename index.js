@@ -44,6 +44,7 @@ import { cleanupGenUI, clearThoughtLoading } from './src/ui/loading.js';
 import { createSettings } from './src/settings-ui/create-settings.js';
 import { loadUI } from './src/settings-ui/bind-ui.js';
 import { showSetupGuide } from './src/settings-ui/setup-guide.js';
+import { checkForUpdate, showUpdateBadge } from './src/update-check.js';
 
 // ── Register interceptor on globalThis (required by manifest.json "generate_interceptor") ──
 globalThis.scenePulseInterceptor = scenePulseInterceptor;
@@ -67,6 +68,17 @@ eventSource.on(event_types.APP_READY, () => { try {
         setTimeout(() => showSetupGuide(), 2000);
     }
     log('v' + VERSION + ' ready');
+    // Check for updates (non-blocking)
+    setTimeout(async () => {
+        try {
+            const info = await checkForUpdate();
+            if (info) {
+                const branchEl = document.getElementById('sp-branch-info');
+                if (branchEl) branchEl.textContent = `${info.branch} · ${info.commit}`;
+                if (!info.isUpToDate) showUpdateBadge();
+            }
+        } catch (e) {}
+    }, 3000);
 } catch (e) { err('APP_READY:', e); } });
 
 eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, idx => onCharMsg(idx));
