@@ -1,6 +1,7 @@
 // ScenePulse — Dynamic Schema & Prompt Builder Module
 
 import { DEFAULTS, BUILTIN_PANELS, BUILTIN_SCHEMA } from './constants.js';
+import { getLanguage } from './settings.js';
 
 // ── Sub-field toggle → schema property mappings ──
 const CHAR_SUBFIELD_MAP={
@@ -124,6 +125,9 @@ You are a precise scene analysis engine. Read the story context and output a sin
 
 ## FIELD SPECIFICATIONS
 `;
+    // Language instruction
+    const _lang=getLanguage();
+    if(_lang)prompt+=`\n## LANGUAGE\nAll narrative string values MUST be in ${_lang}. This includes: sceneMood, sceneTopic, sceneSummary, sceneInteraction, soundEnvironment, character innerThought, goals, appearance descriptions, quest names and details, northStar, relationship labels and milestones, plotBranch names and hooks, custom field values.\nJSON keys, enum values (critical/high/moderate/low/resolved, calm/low/moderate/high/critical, pristine/neat/casual/etc.), and time/date formats remain in English.\n`;
     // Dashboard
     if(panels.dashboard){
         const dc=s.dashCards||DEFAULTS.dashCards;

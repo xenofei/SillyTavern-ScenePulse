@@ -2,7 +2,7 @@
 
 import { log } from '../logger.js';
 import { DEFAULTS } from '../constants.js';
-import { getSettings, getActiveSchema, getActivePrompt, getLatestSnapshot } from '../settings.js';
+import { getSettings, getActiveSchema, getActivePrompt, getLatestSnapshot, getLanguage } from '../settings.js';
 import { anyPanelsActive } from '../settings.js';
 import {
     generating, inlineGenStartMs, inlineExtractionDone, pendingInlineIdx,
@@ -44,6 +44,8 @@ export function buildInlineTrackerPrompt(){
         mandatoryHints+=`\n- ${cp.fields.map(f=>f.key).join(', ')}: ${cp.name} fields \u2014 populate from story context.`;
     }
     const isDelta = s.deltaMode && snap;
+    const _lang=getLanguage();
+    const _langBlock=_lang?`\nLANGUAGE: All narrative string values MUST be in ${_lang}. JSON keys and enum values remain in English.\n`:'';
 
     if(isDelta){
         return `[SCENE TRACKER \u2014 MANDATORY APPENDIX \u2014 DELTA MODE]
@@ -57,7 +59,7 @@ DELTA RULES:
 ${mandatoryHints?'\nWHEN INCLUDING:'+mandatoryHints:''}
 
 ${fieldSpecs}
-${prevState}
+${_langBlock}${prevState}
 
 REQUIRED FORMAT \u2014 append AFTER your narrative:
 
@@ -78,7 +80,7 @@ Do NOT include schema metadata. Output only actual tracker data as a flat JSON o
 CRITICAL: Every field in the schema MUST have a non-empty value. NEVER return "" or []. If unsure, infer from context or carry forward the previous value.
 
 ${fieldSpecs}
-${prevState}
+${_langBlock}${prevState}
 
 REQUIRED OUTPUT FORMAT \u2014 append this AFTER your narrative:
 

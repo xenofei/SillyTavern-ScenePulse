@@ -63,6 +63,15 @@ export function getActivePrompt(opts){
     return buildDynamicPrompt(s, opts);
 }
 
+// ── Language ──
+const _LOCALE_MAP={ru:'Russian',ja:'Japanese',ko:'Korean','zh-cn':'Chinese (Simplified)','zh-tw':'Chinese (Traditional)',es:'Spanish','pt-br':'Portuguese',fr:'French',de:'German',it:'Italian',ar:'Arabic',tr:'Turkish',th:'Thai',vi:'Vietnamese',pl:'Polish',uk:'Ukrainian',id:'Indonesian',nl:'Dutch',cs:'Czech',ro:'Romanian',hu:'Hungarian',sv:'Swedish',fi:'Finnish',da:'Danish',no:'Norwegian',el:'Greek',he:'Hebrew',hi:'Hindi',ms:'Malay'};
+export function getLanguage(){
+    const s=getSettings();
+    if(s.language)return s.language==='English'?'':s.language;
+    try{const lsLang=localStorage.getItem('language');if(lsLang)return _LOCALE_MAP[lsLang]||''}catch{}
+    return'';
+}
+
 // ── External Access ──
 export function getConnectionProfiles(){try{const o=document.querySelectorAll('#connection_profiles option, #connection_profile option');if(o.length)return Array.from(o).filter(x=>x.value).map(x=>({id:x.value,name:x.textContent.trim()}))}catch(e){warn('Profiles:',e)}return[]}
 
