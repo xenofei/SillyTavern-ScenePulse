@@ -119,8 +119,8 @@ export function createPanel(){
         <button class="sp-toolbar-btn" id="sp-tb-regen" title="${t('Regenerate all')}"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M13.5 8a5.5 5.5 0 1 1-1.3-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M13.5 3v2.5h-2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         <span class="sp-toolbar-sep"></span>
         <button class="sp-toolbar-btn" id="sp-tb-panels" title="${t('Panel Manager')}"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><rect x="1" y="2" width="6" height="4" rx="1" stroke="currentColor" stroke-width="1.1" opacity="0.6"/><rect x="9" y="2" width="6" height="4" rx="1" stroke="currentColor" stroke-width="1.1" opacity="0.6"/><rect x="1" y="8" width="6" height="4" rx="1" stroke="currentColor" stroke-width="1.1" fill="currentColor" opacity="0.15"/><rect x="9" y="8" width="6" height="4" rx="1" stroke="currentColor" stroke-width="1.1"/><line x1="3" y1="14" x2="13" y2="14" stroke="currentColor" stroke-width="1" opacity="0.25" stroke-linecap="round"/></svg></button>
-        <button class="sp-toolbar-btn" id="sp-tb-toggle" title="Expand/Collapse sections"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><rect x="2" y="2" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="2" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="2" y="9" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="9" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/></svg></button>
-        <button class="sp-toolbar-btn" id="sp-tb-compact" title="Condense view"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><rect x="2" y="2" width="12" height="2.5" rx="1" fill="currentColor" opacity="0.3"/><rect x="2" y="6" width="9" height="2" rx="0.8" fill="currentColor" opacity="0.2"/><rect x="2" y="9.5" width="11" height="2" rx="0.8" fill="currentColor" opacity="0.15"/><rect x="2" y="13" width="7" height="1.5" rx="0.7" fill="currentColor" opacity="0.1"/><path d="M14 5.5L14 12" stroke="currentColor" stroke-width="1" stroke-linecap="round" opacity="0.3"/><path d="M12.5 7l1.5-1.5L15.5 7" stroke="currentColor" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round" opacity="0.4"/><path d="M12.5 10.5l1.5 1.5 1.5-1.5" stroke="currentColor" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round" opacity="0.4"/></svg></button>
+        <button class="sp-toolbar-btn" id="sp-tb-toggle" title="${t('Expand/Collapse sections')}"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><rect x="2" y="2" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="2" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="2" y="9" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="9" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/></svg></button>
+        <button class="sp-toolbar-btn" id="sp-tb-compact" title="${t('Condense view')}"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><rect x="2" y="2" width="12" height="2.5" rx="1" fill="currentColor" opacity="0.3"/><rect x="2" y="6" width="9" height="2" rx="0.8" fill="currentColor" opacity="0.2"/><rect x="2" y="9.5" width="11" height="2" rx="0.8" fill="currentColor" opacity="0.15"/><rect x="2" y="13" width="7" height="1.5" rx="0.7" fill="currentColor" opacity="0.1"/><path d="M14 5.5L14 12" stroke="currentColor" stroke-width="1" stroke-linecap="round" opacity="0.3"/><path d="M12.5 7l1.5-1.5L15.5 7" stroke="currentColor" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round" opacity="0.4"/><path d="M12.5 10.5l1.5 1.5 1.5-1.5" stroke="currentColor" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round" opacity="0.4"/></svg></button>
         <span class="sp-toolbar-sep"></span>
         <button class="sp-toolbar-btn sp-tb-active" id="sp-tb-thoughts" title="Toggle thoughts"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M2 9.5c0 1.5 1.5 3 4 3l2 2v-2c2.5 0 4-1.5 4-3V6c0-1.5-1.5-3-4-3H6C3.5 3 2 4.5 2 6v3.5z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" fill="currentColor" opacity="0.15"/><circle cx="5.5" cy="7.2" r="0.8" fill="currentColor" opacity="0.6"/><circle cx="8" cy="7.2" r="0.8" fill="currentColor" opacity="0.6"/><circle cx="10.5" cy="7.2" r="0.8" fill="currentColor" opacity="0.6"/></svg></button>
         <button class="sp-toolbar-btn sp-tb-active" id="sp-tb-weather" title="Toggle weather overlay"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M4.5 11.5c-2 0-3.5-1.2-3.5-3 0-1.4 1-2.6 2.4-3C4 2.8 6.2 1 9 1c2.6 0 4.8 1.8 5 4 1.5.3 2.5 1.4 2.5 2.8 0 1.7-1.5 3-3.2 3H4.5z" fill="currentColor" opacity="0.15" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><line x1="5" y1="13" x2="4" y2="15.5" stroke="currentColor" stroke-width="1" stroke-linecap="round" opacity="0.4"/><line x1="8.5" y1="13" x2="7.5" y2="15.5" stroke="currentColor" stroke-width="1" stroke-linecap="round" opacity="0.4"/><line x1="12" y1="13" x2="11" y2="15.5" stroke="currentColor" stroke-width="1" stroke-linecap="round" opacity="0.4"/></svg></button>
@@ -218,8 +218,8 @@ export function createPanel(){
         const p=document.getElementById('sp-panel');if(!p)return;
         const isEdit=p.classList.toggle('sp-edit-mode');
         document.getElementById('sp-tb-edit').classList.toggle('sp-tb-active',isEdit);
-        if(isEdit)toastr.info('Click any highlighted field to edit','Edit Mode On');
-        else toastr.info('Edit mode off','Edit Mode Off');
+        if(isEdit)toastr.info(t('Click any highlighted field to edit'),t('Edit Mode On'));
+        else toastr.info(t('Edit Mode Off'),t('Edit Mode Off'));
         log('Edit mode:',isEdit);
     });
     // Show empty fields toggle
@@ -417,8 +417,8 @@ export function createPanel(){
         // Enable/Disable All buttons + performance warning
         const enableAllRow=document.createElement('div');enableAllRow.className='sp-mgr-enable-all';
         const btnRow=document.createElement('div');btnRow.className='sp-mgr-btn-row';
-        const enableAllBtn=document.createElement('button');enableAllBtn.className='sp-mgr-enable-btn sp-mgr-btn-enable';enableAllBtn.textContent='Enable All';
-        const disableAllBtn=document.createElement('button');disableAllBtn.className='sp-mgr-enable-btn sp-mgr-btn-disable';disableAllBtn.textContent='Disable All';
+        const enableAllBtn=document.createElement('button');enableAllBtn.className='sp-mgr-enable-btn sp-mgr-btn-enable';enableAllBtn.textContent=t('Enable All');
+        const disableAllBtn=document.createElement('button');disableAllBtn.className='sp-mgr-enable-btn sp-mgr-btn-disable';disableAllBtn.textContent=t('Disable All');
         // State check helpers
         function checkAllState(){
             const p=s.panels||DEFAULTS.panels;const dc=s.dashCards||DEFAULTS.dashCards;const ft=s.fieldToggles||{};
@@ -507,12 +507,12 @@ export function createPanel(){
         checkAllState();
         mgr.appendChild(builtinWrap);
         // Custom panels section
-        const cpHeader=document.createElement('div');cpHeader.className='sp-mgr-subheader';cpHeader.textContent='Custom Panels';
+        const cpHeader=document.createElement('div');cpHeader.className='sp-mgr-subheader';cpHeader.textContent=t('Custom Panels');
         mgr.appendChild(cpHeader);
         const cpList=document.createElement('div');cpList.id='sp-panel-mgr-custom';
         mgr.appendChild(cpList);
         renderCustomPanelsMgr(s,cpList,body);
-        const addBtn=document.createElement('button');addBtn.className='sp-btn sp-mgr-add-panel';addBtn.textContent='+ Add Custom Panel';
+        const addBtn=document.createElement('button');addBtn.className='sp-btn sp-mgr-add-panel';addBtn.textContent=t('+ Add Custom Panel');
         addBtn.addEventListener('click',()=>{
             if(!s.customPanels)s.customPanels=[];
             const newPanel={name:'',fields:[{key:'',label:'',type:'text',desc:''}]};
@@ -587,17 +587,17 @@ export function createPanel(){
         {id:'off',label:'\u23F9 Clear overlay'}
     ];
     const _devWxMenu=document.getElementById('sp-dev-wx-menu');
-    _devWxTypes.forEach(t=>{
-        const item=document.createElement('div');item.className='sp-dev-dropdown-item';item.dataset.id=t.id;item.textContent=t.label;
+    _devWxTypes.forEach(wt=>{
+        const item=document.createElement('div');item.className='sp-dev-dropdown-item';item.dataset.id=wt.id;item.textContent=wt.label;
         item.addEventListener('click',()=>{
-            if(t.id==='off'){setCurrentWeatherType('');clearWeatherOverlay();log('[DEV] Weather cleared');_devWxMenu.classList.remove('sp-dev-open');_devWxMenu.querySelectorAll('.sp-dev-dropdown-item').forEach(i=>i.classList.remove('sp-dev-active'));item.classList.add('sp-dev-active');return}
+            if(wt.id==='off'){setCurrentWeatherType('');clearWeatherOverlay();log('[DEV] Weather cleared');_devWxMenu.classList.remove('sp-dev-open');_devWxMenu.querySelectorAll('.sp-dev-dropdown-item').forEach(i=>i.classList.remove('sp-dev-active'));item.classList.add('sp-dev-active');return}
             const s=getSettings();s.weatherOverlay=true;saveSettings();
             const btn=document.getElementById('sp-tb-weather');if(btn)btn.classList.add('sp-tb-active');
             setCurrentWeatherType('');
-            const fakeWx={rain:'rain',snow:'snow',hail:'hail storm',storm:'thunderstorm',fog:'fog',sandstorm:'sandstorm',ash:'volcanic ash',wind:'wind',aurora:'aurora'}[t.id]||t.id;
+            const fakeWx={rain:'rain',snow:'snow',hail:'hail storm',storm:'thunderstorm',fog:'fog',sandstorm:'sandstorm',ash:'volcanic ash',wind:'wind',aurora:'aurora'}[wt.id]||wt.id;
             updateWeatherOverlay(fakeWx);
             _devWxMenu.querySelectorAll('.sp-dev-dropdown-item').forEach(i=>i.classList.remove('sp-dev-active'));item.classList.add('sp-dev-active');
-            log('[DEV] Weather \u2192',t.id);
+            log('[DEV] Weather \u2192',wt.id);
         });
         _devWxMenu.appendChild(item);
     });
@@ -615,16 +615,16 @@ export function createPanel(){
         {id:'night',label:'Night (10 PM\u20135 AM)',time:'23:00'},{id:'off',label:'\u23F9 Clear tint'}
     ];
     const _devTimeMenu=document.getElementById('sp-dev-time-menu');
-    _devTimePeriods.forEach(t=>{
-        const item=document.createElement('div');item.className='sp-dev-dropdown-item';item.dataset.id=t.id;item.textContent=t.label;
+    _devTimePeriods.forEach(tp=>{
+        const item=document.createElement('div');item.className='sp-dev-dropdown-item';item.dataset.id=tp.id;item.textContent=tp.label;
         item.addEventListener('click',()=>{
-            if(t.id==='off'){setCurrentTimePeriod('');clearTimeTint();log('[DEV] Time tint cleared');_devTimeMenu.classList.remove('sp-dev-open');_devTimeMenu.querySelectorAll('.sp-dev-dropdown-item').forEach(i=>i.classList.remove('sp-dev-active'));item.classList.add('sp-dev-active');return}
+            if(tp.id==='off'){setCurrentTimePeriod('');clearTimeTint();log('[DEV] Time tint cleared');_devTimeMenu.classList.remove('sp-dev-open');_devTimeMenu.querySelectorAll('.sp-dev-dropdown-item').forEach(i=>i.classList.remove('sp-dev-active'));item.classList.add('sp-dev-active');return}
             const s=getSettings();s.timeTint=true;saveSettings();
             const btn=document.getElementById('sp-tb-timeTint');if(btn)btn.classList.add('sp-tb-active');
             setCurrentTimePeriod('');
-            updateTimeTint(t.time);
+            updateTimeTint(tp.time);
             _devTimeMenu.querySelectorAll('.sp-dev-dropdown-item').forEach(i=>i.classList.remove('sp-dev-active'));item.classList.add('sp-dev-active');
-            log('[DEV] Time tint \u2192',t.id);
+            log('[DEV] Time tint \u2192',tp.id);
         });
         _devTimeMenu.appendChild(item);
     });

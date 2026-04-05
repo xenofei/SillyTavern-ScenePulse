@@ -1,5 +1,6 @@
 // src/ui/mobile.js — Mobile/Tablet detection & responsive UI
 import { SP_MOBILE_MAX, SP_TABLET_MAX, MASCOT_SVG, LOG } from '../constants.js';
+import { t } from '../i18n.js';
 import { log } from '../logger.js';
 import { _spMobileMinimized, set_spMobileMinimized } from '../state.js';
 import { hidePanel, showPanel } from './panel.js';
@@ -71,7 +72,7 @@ export function spUpdateFab(){
             ||document.querySelector('#form_sheld .justifyLeft')
             ||document.querySelector('#form_sheld');
         if(anchor){
-            btn=document.createElement('div');btn.id='sp-st-restore';btn.title='Open ScenePulse';
+            btn=document.createElement('div');btn.id='sp-st-restore';btn.title=t('Open ScenePulse');
             btn.className='sp-st-restore';
             btn.innerHTML=MASCOT_SVG;
             btn.addEventListener('click',(e)=>{e.preventDefault();e.stopPropagation();spRestorePanel()});
@@ -134,7 +135,7 @@ export function spSetGenerating(active){
 export function spPostGenShow(){
     const mode=spDetectMode();
     if((mode==='mobile'||mode==='tablet')&&_spMobileMinimized){
-        spShowBanner('Scene updated');
+        spShowBanner(t('Scene updated'));
         spUpdateFab();
         return;
     }

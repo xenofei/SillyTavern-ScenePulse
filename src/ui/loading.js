@@ -126,7 +126,7 @@ export function showChatBanner(label){
         if(body){
             const tpBanner=document.createElement('div');
             tpBanner.className='sp-chat-banner sp-inline-wait';
-            tpBanner.innerHTML=`<div class="sp-inline-wait-spinner"></div><span>Updating scene data<span class="sp-ellipsis"></span></span><span class="sp-banner-timer" id="sp-banner-timer-tp">0s</span>`;
+            tpBanner.innerHTML=`<div class="sp-inline-wait-spinner"></div><span>${t('Updating scene data')}<span class="sp-ellipsis"></span></span><span class="sp-banner-timer" id="sp-banner-timer-tp">0s</span>`;
             tp.insertBefore(tpBanner,body);
             tp.classList.add('sp-tp-visible');
             tpBanner._timerInterval=setInterval(()=>{

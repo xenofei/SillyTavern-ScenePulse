@@ -31,7 +31,7 @@ import { showSetupGuide } from './setup-guide.js';
 import { startGuidedTour } from './guided-tour.js';
 import { t, resetI18nCache } from '../i18n.js';
 
-export function updateBadge(){const on=getSettings().enabled;const b=document.getElementById('sp-badge');if(b){b.className='sp-drawer-badge '+(on?'sp-on':'sp-off');b.innerHTML=`<span class="sp-drawer-badge-dot"></span>${on?'Active':'Off'}`}}
+export function updateBadge(){const on=getSettings().enabled;const b=document.getElementById('sp-badge');if(b){b.className='sp-drawer-badge '+(on?'sp-on':'sp-off');b.innerHTML=`<span class="sp-drawer-badge-dot"></span>${on?t('Active'):t('Off')}`}}
 
 export function loadUI(){const s=getSettings();$('#sp-enabled').prop('checked',s.enabled);$('#sp-auto-gen').prop('checked',s.autoGenerate);$('#sp-show-thoughts').prop('checked',s.showThoughts!==false);$('#sp-show-weather').prop('checked',s.weatherOverlay!==false);$('#sp-show-timetint').prop('checked',s.timeTint!==false);$('#sp-show-devbtns').prop('checked',s.devButtons===true);$('#sp-delta-mode').prop('checked',s.deltaMode===true);$('#sp-font-scale').val(s.fontScale||1);$('#sp-font-scale-val').text((s.fontScale||1).toFixed(1)+'x');$('#sp-language').val(s.language||'');$('#sp-ctx').val(s.contextMessages);$('#sp-retries').val(s.maxRetries);$('#sp-mode').val(s.promptMode||'json');$('#sp-embed-n').val(s.embedSnapshots);$('#sp-embed-role').val(s.embedRole);$('#sp-lore-mode').val(s.lorebookMode||'character_attached');
     // Rebuild profile/preset dropdowns from current DOM (ST may load them late)
@@ -179,28 +179,28 @@ export function bindUI(){const s=getSettings();
     $('#sp-embed-role').on('change',function(){s.embedRole=this.value;saveSettings();_spSaveLS()});
     $('#sp-lore-mode').on('change',function(){s.lorebookMode=this.value;saveSettings();_spSaveLS();$('#sp-lore-section').toggle(this.value==='allowlist');refreshLorebookDisplay();updateLorebookRec()});
     $('#sp-sysprompt').on('change',function(){const v=this.value.trim();const dynamicPrompt=buildDynamicPrompt(s).trim();s.systemPrompt=(v===dynamicPrompt)?null:v||null;saveSettings()});
-    $('#sp-schema').on('change',function(){const v=this.value.trim();const dynamicStr=JSON.stringify(buildDynamicSchema(s),null,2);if(v===dynamicStr){s.schema=null;saveSettings();return}if(v){try{JSON.parse(v);s.schema=v}catch{toastr.error('Invalid JSON');return}}else s.schema=null;saveSettings()});
+    $('#sp-schema').on('change',function(){const v=this.value.trim();const dynamicStr=JSON.stringify(buildDynamicSchema(s),null,2);if(v===dynamicStr){s.schema=null;saveSettings();return}if(v){try{JSON.parse(v);s.schema=v}catch{toastr.error(t('Invalid JSON'));return}}else s.schema=null;saveSettings()});
     // Default and Copy buttons
-    $('#sp-sysprompt-default').on('click',()=>{s.systemPrompt=null;saveSettings();$('#sp-sysprompt').val(buildDynamicPrompt(s));toastr.info('System prompt reset to default')});
-    $('#sp-sysprompt-copy').on('click',()=>{navigator.clipboard.writeText($('#sp-sysprompt').val());toastr.success('Prompt copied')});
-    $('#sp-schema-default').on('click',()=>{s.schema=null;saveSettings();$('#sp-schema').val(JSON.stringify(buildDynamicSchema(s),null,2));toastr.info('Schema reset to default')});
-    $('#sp-schema-copy').on('click',()=>{navigator.clipboard.writeText($('#sp-schema').val());toastr.success('Schema copied')});
+    $('#sp-sysprompt-default').on('click',()=>{s.systemPrompt=null;saveSettings();$('#sp-sysprompt').val(buildDynamicPrompt(s));toastr.info(t('System prompt reset to default'))});
+    $('#sp-sysprompt-copy').on('click',()=>{navigator.clipboard.writeText($('#sp-sysprompt').val());toastr.success(t('Prompt copied'))});
+    $('#sp-schema-default').on('click',()=>{s.schema=null;saveSettings();$('#sp-schema').val(JSON.stringify(buildDynamicSchema(s),null,2));toastr.info(t('Schema reset to default'))});
+    $('#sp-schema-copy').on('click',()=>{navigator.clipboard.writeText($('#sp-schema').val());toastr.success(t('Schema copied'))});
     $('#sp-btn-refresh').on('click',()=>{
         const _rp=getConnectionProfiles(),_rpr=getChatPresets();
         let h='<option value="">(Current)</option>';for(const p of _rp)h+=`<option value="${esc(p.id)}">${esc(p.name)}</option>`;$('#sp-profile').html(h).val(s.connectionProfile||'');
         let pr='<option value="">(Built-in: ScenePulse GLM-5)</option>';for(const p of _rpr)pr+=`<option value="${esc(p.id)}">${esc(p.name)}</option>`;$('#sp-preset').html(pr).val(s.chatPreset||'');
-        toastr.info('Profiles refreshed');
+        toastr.info(t('Profiles refreshed'));
     });
     $('#sp-btn-refresh-fb').on('click',()=>{
         const _rp=getConnectionProfiles(),_rpr=getChatPresets();
         let fh='<option value="">(Same as current)</option>';for(const p of _rp)fh+=`<option value="${esc(p.id)}">${esc(p.name)}</option>`;$('#sp-fallback-profile').html(fh).val(s.fallbackProfile||'');
         let fp='<option value="">(Built-in: ScenePulse GLM-5)</option>';for(const p of _rpr)fp+=`<option value="${esc(p.id)}">${esc(p.name)}</option>`;$('#sp-fallback-preset').html(fp).val(s.fallbackPreset||'');
-        toastr.info('Fallback profiles refreshed');
+        toastr.info(t('Fallback profiles refreshed'));
     });
     $('#sp-btn-refresh-lore').on('click',()=>{
         let lo='<option value="">(Select)</option>';for(const p of getLorebooks())lo+=`<option value="${esc(p.id)}">${esc(p.name)}</option>`;$('#sp-lore-sel').html(lo);
         refreshLorebookDisplay();updateLorebookRec();
-        toastr.info('Lorebooks refreshed');
+        toastr.info(t('Lorebooks refreshed'));
     });
     $('#sp-lore-add').on('click',()=>{const sel=document.getElementById('sp-lore-sel');if(!sel?.value)return;const name=sel.selectedOptions[0]?.textContent?.trim();if(!name)return;if(!s.lorebookAllowlist)s.lorebookAllowlist=[];if(!s.lorebookAllowlist.includes(name)){s.lorebookAllowlist.push(name);saveSettings();renderLoreTags()}sel.value=''});
     $('#sp-btn-gen').on('click',async()=>{const{chat}=SillyTavern.getContext();if(!chat.length)return;toastr.info('Generating\u2026');
@@ -214,25 +214,25 @@ export function bindUI(){const s=getSettings();
         if(genNonce>preNonce+1){log('Settings gen: stale caller');return}
         hideStopButton();stopElapsedTimer();
         clearLoadingOverlay(body);clearThoughtLoading();
-        if(r)toastr.success('Done');
-        else{toastr.error('Failed');const snap=getLatestSnapshot();if(snap){const norm=normalizeTracker(snap);updatePanel(norm)}}});
+        if(r)toastr.success(t('Done'));
+        else{toastr.error(t('Failed'));const snap=getLatestSnapshot();if(snap){const norm=normalizeTracker(snap);updatePanel(norm)}}});
     $('#sp-btn-clear').on('click',async()=>{
         if(!await spConfirm('Clear Data','Remove all tracker snapshots from this chat? Your settings are preserved.'))return;
-        getTrackerData().snapshots={};SillyTavern.getContext().saveMetadata();document.querySelectorAll('.sp-thoughts').forEach(e=>e.remove());const tp=document.getElementById('sp-thought-panel');if(tp)tp.classList.remove('sp-tp-visible');const body=document.getElementById('sp-panel-body');if(body)body.innerHTML='<div class="sp-empty-state"><div class="sp-empty-icon">\uD83D\uDCE1</div><div class="sp-empty-title">Data cleared</div><div class="sp-empty-sub">Send a message or click <strong>\u27F3</strong> to generate.</div></div>';genMeta.promptTokens=0;genMeta.completionTokens=0;genMeta.elapsed=0;toastr.info('Cleared');
+        getTrackerData().snapshots={};SillyTavern.getContext().saveMetadata();document.querySelectorAll('.sp-thoughts').forEach(e=>e.remove());const tp=document.getElementById('sp-thought-panel');if(tp)tp.classList.remove('sp-tp-visible');const body=document.getElementById('sp-panel-body');if(body)body.innerHTML='<div class="sp-empty-state"><div class="sp-empty-icon">\uD83D\uDCE1</div><div class="sp-empty-title">'+t('Data cleared')+'</div><div class="sp-empty-sub">Send a message or click <strong>\u27F3</strong> to generate.</div></div>';genMeta.promptTokens=0;genMeta.completionTokens=0;genMeta.elapsed=0;toastr.info(t('Cleared'));
     });
     $('#sp-btn-reset').on('click',async()=>{
         if(!await spConfirm('Reset Settings','Reset all ScenePulse settings to defaults? Tracker data is preserved.'))return;
-        SillyTavern.getContext().extensionSettings[MODULE_NAME]=structuredClone(DEFAULTS);saveSettings();try{localStorage.removeItem(SP_LS_KEY)}catch(e){}loadUI();toastr.info('Settings reset to defaults');
+        SillyTavern.getContext().extensionSettings[MODULE_NAME]=structuredClone(DEFAULTS);saveSettings();try{localStorage.removeItem(SP_LS_KEY)}catch(e){}loadUI();toastr.info(t('Settings reset to defaults'));
     });
-    $('#sp-btn-debug').on('click',()=>{const t='ScenePulse Debug ('+new Date().toISOString()+')\n'+debugLog.join('\n');navigator.clipboard.writeText(t).then(()=>toastr.success('SP Log copied ('+debugLog.length+' entries)')).catch(()=>{const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);toastr.success('Copied')})});
+    $('#sp-btn-debug').on('click',()=>{const _t='ScenePulse Debug ('+new Date().toISOString()+')\n'+debugLog.join('\n');navigator.clipboard.writeText(_t).then(()=>toastr.success(t('SP Log copied')+' ('+debugLog.length+')')).catch(()=>{const ta=document.createElement('textarea');ta.value=_t;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);toastr.success(t('SP Log copied'))})});
     $('#sp-btn-copy-console').on('click',()=>{
-        const t='Browser Console Capture ('+new Date().toISOString()+')\nEntries: '+consoleBuf.length+'\n\n'+consoleBuf.join('\n');
-        navigator.clipboard.writeText(t).then(()=>toastr.success('Console copied ('+consoleBuf.length+' entries)')).catch(()=>toastr.error('Copy failed'));
+        const _t='Browser Console Capture ('+new Date().toISOString()+')\nEntries: '+consoleBuf.length+'\n\n'+consoleBuf.join('\n');
+        navigator.clipboard.writeText(_t).then(()=>toastr.success(t('Console copied')+' ('+consoleBuf.length+')')).catch(()=>toastr.error(t('Copy failed')));
     });
     $('#sp-btn-copy-response').on('click',()=>{
-        if(!lastRawResponse){toastr.warning('No API response captured yet');return}
-        const t='ScenePulse Last API Response ('+new Date().toISOString()+')\nLength: '+lastRawResponse.length+' chars\n\n'+lastRawResponse;
-        navigator.clipboard.writeText(t).then(()=>toastr.success('Last response copied ('+lastRawResponse.length+' chars)')).catch(()=>toastr.error('Copy failed'));
+        if(!lastRawResponse){toastr.warning(t('No API response captured yet'));return}
+        const _t='ScenePulse Last API Response ('+new Date().toISOString()+')\nLength: '+lastRawResponse.length+' chars\n\n'+lastRawResponse;
+        navigator.clipboard.writeText(_t).then(()=>toastr.success(t('Last response copied')+' ('+lastRawResponse.length+')')).catch(()=>toastr.error(t('Copy failed')));
     });
     let debugRefreshInterval=null;
     function refreshDebugViewer(){
@@ -272,7 +272,7 @@ export function bindUI(){const s=getSettings();
         }
     });
     $('#sp-debug-close').on('click',()=>{const v=document.getElementById('sp-debug-viewer');if(v)v.style.display='none';if(debugRefreshInterval){clearInterval(debugRefreshInterval);debugRefreshInterval=null}});
-    $('#sp-debug-copy-inline').on('click',()=>{const t='ScenePulse Debug ('+new Date().toISOString()+')\n'+debugLog.join('\n');navigator.clipboard.writeText(t).then(()=>toastr.success('Debug log copied')).catch(()=>toastr.error('Copy failed'))});
+    $('#sp-debug-copy-inline').on('click',()=>{const _t='ScenePulse Debug ('+new Date().toISOString()+')\n'+debugLog.join('\n');navigator.clipboard.writeText(_t).then(()=>toastr.success(t('Debug log copied'))).catch(()=>toastr.error(t('Copy failed')))});
 }
 
-function renderLoreTags(){const s=getSettings();const c=document.getElementById('sp-lore-tags');if(!c)return;c.innerHTML='';for(const n of(s.lorebookAllowlist||[])){const t=document.createElement('span');t.className='sp-lore-tag';t.innerHTML=`${esc(n)} <span class="sp-lore-tag-x" data-n="${esc(n)}">✕</span>`;t.querySelector('.sp-lore-tag-x').addEventListener('click',function(){s.lorebookAllowlist=s.lorebookAllowlist.filter(x=>x!==this.dataset.n);saveSettings();renderLoreTags()});c.appendChild(t)}}
+function renderLoreTags(){const s=getSettings();const c=document.getElementById('sp-lore-tags');if(!c)return;c.innerHTML='';for(const n of(s.lorebookAllowlist||[])){const tag=document.createElement('span');tag.className='sp-lore-tag';tag.innerHTML=`${esc(n)} <span class="sp-lore-tag-x" data-n="${esc(n)}">✕</span>`;tag.querySelector('.sp-lore-tag-x').addEventListener('click',function(){s.lorebookAllowlist=s.lorebookAllowlist.filter(x=>x!==this.dataset.n);saveSettings();renderLoreTags()});c.appendChild(tag)}}

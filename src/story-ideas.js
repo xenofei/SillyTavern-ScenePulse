@@ -1,6 +1,7 @@
 // ScenePulse — Story Idea Injection
 import { log, warn } from './logger.js';
 import { getSettings } from './settings.js';
+import { t } from './i18n.js';
 
 export function injectStoryIdea(idea,cat){
     if(!getSettings().enabled){log('injectStoryIdea: extension disabled');return}
@@ -22,7 +23,7 @@ export function injectStoryIdea(idea,cat){
             sendBtn.click();
             log('Story idea sent via textarea');
             // Flash the card to confirm
-            toastr?.success?.(`${cat?.label}: ${idea.name}`,'Story direction sent');
+            toastr?.success?.(`${cat?.label}: ${idea.name}`,t('Story direction sent'));
         },100);
     } else {
         // Fallback: try context API
@@ -31,11 +32,11 @@ export function injectStoryIdea(idea,cat){
             if(typeof ctx.sendMessage==='function'){
                 ctx.sendMessage(direction);
                 log('Story idea sent via context API');
-                toastr?.success?.(`${cat?.label}: ${idea.name}`,'Story direction sent');
+                toastr?.success?.(`${cat?.label}: ${idea.name}`,t('Story direction sent'));
             } else {
                 // Last resort: copy to clipboard
                 navigator.clipboard.writeText(direction).then(()=>{
-                    toastr?.info?.('Story idea copied — paste it in the chat input','Copied');
+                    toastr?.info?.(t('Story idea copied'),'Copied');
                 });
             }
         }catch(e){warn('injectStoryIdea fallback:',e)}
