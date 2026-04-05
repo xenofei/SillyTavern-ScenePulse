@@ -25,6 +25,23 @@ import { renderCustomPanelsMgr } from '../settings-ui/custom-panels.js';
 import { mkSection } from './section.js';
 import { injectStoryIdea } from '../story-ideas.js';
 
+// Font scale: injects a <style> element that scales only font-size on all panel text
+export function _applyFontScale(scale){
+    const v=scale||1;
+    let el=document.getElementById('sp-font-scale-style');
+    if(v===1){if(el)el.remove();return}
+    if(!el){el=document.createElement('style');el.id='sp-font-scale-style';document.head.appendChild(el)}
+    // Scale the base font-size on both panels. Child elements with px font-sizes
+    // don't inherit, so we use a broad selector to multiply each element's font-size.
+    // CSS doesn't support "multiply current computed value", so we set a custom property
+    // and use it as a multiplier on the panel root. Elements with hardcoded px sizes
+    // are overridden via the * selector with font-size: calc(inherit * var) which doesn't
+    // work in CSS. Instead, use the -webkit-text-size-adjust approach or simply scale
+    // the panel's base and let inheritance handle what it can, plus set font-size on
+    // the panel body which contains all content text.
+    el.textContent=`#sp-panel{font-size:${(13*v).toFixed(1)}px}#sp-panel .sp-section-header{font-size:${(11*v).toFixed(1)}px}#sp-panel .sp-plot-name{font-size:${(12*v).toFixed(1)}px}#sp-panel .sp-quest-detail{font-size:${(11*v).toFixed(1)}px}#sp-panel .sp-char-val{font-size:${(11*v).toFixed(1)}px}#sp-panel .sp-char-field{font-size:${(9*v).toFixed(1)}px}#sp-panel .sp-meter-label{font-size:${(9*v).toFixed(1)}px}#sp-panel .sp-meter-value,#sp-panel .sp-meter-value-na{font-size:${(11*v).toFixed(1)}px}#sp-panel .sp-meter-tag{font-size:${(8*v).toFixed(1)}px}#sp-panel .sp-rel-meta-item{font-size:${(10*v).toFixed(1)}px}#sp-panel .sp-dash-value{font-size:${(13*v).toFixed(1)}px}#sp-panel .sp-dash-sub{font-size:${(9*v).toFixed(1)}px}#sp-panel .sp-dash-day{font-size:${(11*v).toFixed(1)}px}#sp-panel .sp-row-label{font-size:${(9*v).toFixed(1)}px}#sp-panel .sp-row-value{font-size:${(12*v).toFixed(1)}px}#sp-panel .sp-plot-status{font-size:${(8*v).toFixed(1)}px}#sp-panel .sp-quest-status{font-size:${(7*v).toFixed(1)}px}#sp-panel .sp-tier-status{font-size:${(7*v).toFixed(1)}px}#sp-panel .sp-idea-name{font-size:${(11*v).toFixed(1)}px}#sp-panel .sp-idea-hook{font-size:${(11*v).toFixed(1)}px}#sp-panel .sp-idea-type{font-size:${(8*v).toFixed(1)}px}#sp-panel .sp-gen-footer{font-size:${(9*v).toFixed(1)}px}#sp-panel .sp-plot-tier-title{font-size:${(10*v).toFixed(1)}px}#sp-panel .sp-quest-star{font-size:${(12*v).toFixed(1)}px}#sp-panel .sp-tl-label{font-size:${(8*v).toFixed(1)}px}#sp-thought-panel .sp-tp-card{font-size:${(11*v).toFixed(1)}px}#sp-thought-panel .sp-tp-title{font-size:${(11*v).toFixed(1)}px}#sp-thought-panel .sp-tp-name{font-size:${(12*v).toFixed(1)}px}`;
+}
+
 export function showPanel(){
     const p=document.getElementById('sp-panel');if(!p)return;
     if(!getSettings().enabled){p.classList.remove('sp-visible');return}
@@ -54,8 +71,8 @@ export function showPanel(){
         }
     }
     p.classList.add('sp-visible');
-    // Apply font scale
-    const _fsc=getSettings().fontScale;p.style.zoom=(_fsc&&_fsc!==1)?_fsc:'';
+    // Apply font scale via injected stylesheet (text only, not layout)
+    _applyFontScale(getSettings().fontScale);
     // Must call AFTER sp-visible is set so spInjectTopBar sees panel as visible
     spInjectTopBar(mode);
     syncThoughts();
@@ -116,8 +133,6 @@ export function createPanel(){
     </div>
     <div id="sp-panel-body"><div class="sp-empty-state"><div class="sp-empty-icon">\uD83D\uDCE1</div><div class="sp-empty-title">No scene data yet</div><div class="sp-empty-sub">Send a message or click <strong>\u27F3</strong> to generate.</div></div></div>`;
     document.body.appendChild(panel);
-    // Apply saved font scale
-    const _fs=getSettings().fontScale;if(_fs&&_fs!==1)panel.style.zoom=_fs;
     log('Panel appended to body');
 
     // ── Mobile FAB (floating action button to restore panel) ──
