@@ -68,15 +68,32 @@ eventSource.on(event_types.APP_READY, () => { try {
         setTimeout(() => showSetupGuide(), 2000);
     }
     log('v' + VERSION + ' ready');
-    // Clean up any previously-registered regex filter (v5.9.0 registered one that
-    // broke extraction — ST's regex pipeline modifies msg.mes BEFORE extraction)
+    // Register regex script to hide tracker JSON from DOM display.
+    // markdownOnly:true = only runs during markdown rendering (display), NOT on raw msg.mes.
+    // This is the same approach used by RPG Companion and Dooms Enhancement Suite.
     try {
         const _ctx = SillyTavern.getContext();
-        if (_ctx.extensionSettings?.regex) {
+        if (_ctx.extensionSettings) {
+            if (!_ctx.extensionSettings.regex) _ctx.extensionSettings.regex = [];
+            // Remove old broken version (v5.9.0 had markdownOnly:false which stripped msg.mes)
             const _oldIdx = _ctx.extensionSettings.regex.findIndex(r => r.scriptName === 'ScenePulse Tracker Hider');
-            if (_oldIdx !== -1) { _ctx.extensionSettings.regex.splice(_oldIdx, 1); log('Removed stale regex filter from v5.9.0'); }
+            if (_oldIdx !== -1) _ctx.extensionSettings.regex.splice(_oldIdx, 1);
+            // Register with markdownOnly:true — cleans display but preserves msg.mes for extraction
+            _ctx.extensionSettings.regex.push({
+                scriptName: 'ScenePulse Tracker Hider',
+                findRegex: '<!--SP_TRACKER_START-->[\\s\\S]*?<!--SP_TRACKER_END-->|\\{\\s*"time"\\s*:\\s*"[^"]*"\\s*,\\s*"date"[\\s\\S]*$',
+                replaceString: '',
+                trimStrings: [],
+                placement: [2],
+                disabled: false,
+                markdownOnly: true,
+                promptOnly: false,
+                runOnEdit: true,
+                substituteRegex: 0,
+            });
+            log('Registered ST regex filter (markdownOnly) for tracker hiding');
         }
-    } catch (e) {}
+    } catch (e) { warn('Could not register regex filter:', e); }
     // Check for updates (non-blocking)
     setTimeout(async () => {
         try {
