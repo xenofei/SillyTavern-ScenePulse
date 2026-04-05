@@ -132,7 +132,7 @@ You are a precise scene analysis engine. Read the story context and output a sin
         if(dc.date!==false)envFields.push('- date: MM/DD/YYYY (DayName) \u2014 e.g. "03/17/2025 (Monday)"');
         if(dc.location!==false)envFields.push('- location: Immediate > Parent \u2014 only 2 levels \u2014 e.g. "Kitchen > Windbloom Apartment"');
         if(dc.weather!==false)envFields.push('- weather: Sky/precipitation only.');
-        if(dc.temperature!==false)envFields.push('- temperature: Felt or exact.');
+        if(dc.temperature!==false)envFields.push('- temperature: Include both number AND description. Example: "72°F — warm and humid" or "3°C — biting cold". Never just a number alone.');
         if(envFields.length)prompt+='\n### Environment\n'+envFields.join('\n')+'\n';
     }
     // Scene

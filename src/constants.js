@@ -2,7 +2,7 @@
 // Extracted from index.js lines 1-365, plus TOUR_EXAMPLE_DATA (~4720-4747)
 
 export const MODULE_NAME='scenepulse';
-export const VERSION = '5.6.1';
+export const VERSION = '5.6.2';
 export const LOG='[ScenePulse]';
 export const SP_LS_KEY='scenepulse_config';
 
@@ -25,7 +25,7 @@ export const BUILTIN_PANELS={
             {key:'date',type:'string',desc:'MM/DD/YYYY (DayName)',dashCard:'date',label:'Date'},
             {key:'location',type:'string',desc:'Immediate location > Parent area. Only 2 levels. Example: Kitchen > Windbloom Apartment',dashCard:'location',label:'Location'},
             {key:'weather',type:'string',desc:'Sky/precipitation only.',dashCard:'weather',label:'Weather'},
-            {key:'temperature',type:'string',desc:'Felt or exact.',dashCard:'temperature',label:'Temperature'}
+            {key:'temperature',type:'string',desc:'Number AND description. Example: 72°F — warm and humid. Never just a number.',dashCard:'temperature',label:'Temperature'}
         ]
     },
     scene:{
@@ -101,7 +101,7 @@ export const BUILTIN_PRESET={
 };
 
 export const BUILTIN_SCHEMA={name:'ScenePulse',description:'Scene tracker.',strict:false,
-value:{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"time":{"type":"string","description":"HH:MM:SS only."},"date":{"type":"string","description":"MM/DD/YYYY (DayName)"},"elapsed":{"type":"string","description":"Time elapsed since last action. Format: duration (context). Example: 30s (dialogue), 2m (walking)"},"location":{"type":"string","description":"Immediate location > Parent area. Only 2 levels. Example: Kitchen > Windbloom Apartment, Bridge > USS Enterprise, Alley > Chinatown"},"weather":{"type":"string","description":"Sky/precipitation only."},"temperature":{"type":"string","description":"Felt or exact."},"soundEnvironment":{"type":"string","description":"Audible sounds right now."},"witnesses":{"type":"array","items":{"type":"string"},"description":"[] if none."},"sceneTopic":{"type":"string"},"sceneMood":{"type":"string"},"sceneInteraction":{"type":"string"},"sceneTension":{"type":"string","enum":["calm","low","moderate","high","critical"]},"sceneSummary":{"type":"string"},
+value:{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"time":{"type":"string","description":"HH:MM:SS only."},"date":{"type":"string","description":"MM/DD/YYYY (DayName)"},"elapsed":{"type":"string","description":"Time elapsed since last action. Format: duration (context). Example: 30s (dialogue), 2m (walking)"},"location":{"type":"string","description":"Immediate location > Parent area. Only 2 levels. Example: Kitchen > Windbloom Apartment, Bridge > USS Enterprise, Alley > Chinatown"},"weather":{"type":"string","description":"Sky/precipitation only."},"temperature":{"type":"string","description":"Number AND description. Example: 72°F — warm and humid. Never just a number."},"soundEnvironment":{"type":"string","description":"Audible sounds right now."},"witnesses":{"type":"array","items":{"type":"string"},"description":"[] if none."},"sceneTopic":{"type":"string"},"sceneMood":{"type":"string"},"sceneInteraction":{"type":"string"},"sceneTension":{"type":"string","enum":["calm","low","moderate","high","critical"]},"sceneSummary":{"type":"string"},
 "northStar":{"type":"string","description":"{{user}}'s ONE overarching life purpose -- the deepest motivation behind everything they do. If not yet established: Not yet revealed. Always about {{user}}, never other characters."},
 "mainQuests":{"type":"array","description":"Important objectives {{user}} must eventually resolve -- big goals that persist across scenes and drive the story forward. Always {{user}}'s perspective. WRONG: {{char}} wants revenge. RIGHT: Deal with {{char}}'s vendetta.","items":{"type":"object","properties":{"name":{"type":"string"},"urgency":{"type":"string","enum":["critical","high","moderate","low","resolved"]},"detail":{"type":"string","description":"1-2 sentences from {{user}}'s perspective. What {{user}} knows and needs to do. NEVER describe {{char}}'s emotions or internal thoughts."}},"required":["name","urgency","detail"]}},
 "sideQuests":{"type":"array","description":"Optional objectives {{user}} could pursue but doesn't have to -- enriching but not required. Always {{user}}'s perspective. WRONG: {{char}} has a secret. RIGHT: Uncover {{char}}'s secret.","items":{"type":"object","properties":{"name":{"type":"string"},"urgency":{"type":"string","enum":["critical","high","moderate","low","resolved"]},"detail":{"type":"string","description":"1-2 sentences from {{user}}'s perspective. What {{user}} could do and why it matters. NEVER write {{char}}'s internal state."}},"required":["name","urgency","detail"]}},
@@ -128,7 +128,7 @@ You are a precise scene analysis engine. Read the story context and output a sin
 - date: MM/DD/YYYY (DayName) \u2014 e.g. "03/17/2025 (Monday)"
 - elapsed: duration + context \u2014 e.g. "30s (dialogue continues)" or "2h (time skip to evening)"
 - location: Immediate > Parent \u2014 only 2 levels \u2014 e.g. "Kitchen > Windbloom Apartment" or "Bridge > USS Enterprise"
-- weather: Sky/precipitation only. temperature: Separate field. soundEnvironment: What is audible.
+- weather: Sky/precipitation only. temperature: Number AND description (e.g. "72°F — warm and humid"). Never just a number. soundEnvironment: What is audible.
 
 ### Scene Analysis (REQUIRED \u2014 do not skip these)
 - sceneTopic: What is happening in this scene in 1-5 words. E.g. "Intimate encounter in bedroom"
