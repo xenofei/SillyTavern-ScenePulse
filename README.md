@@ -4,7 +4,7 @@
 >
 > ScenePulse is under active development. Expect rough edges, visual glitches, and frequent updates. Some AI models may not reliably produce tracker data in Together mode. Mobile support is functional but still being refined. If something breaks, please [open an issue](https://github.com/xenofei/SillyTavern-ScenePulse/issues) — your feedback shapes what gets fixed next.
 
-> **🌐 Localization:** The most up-to-date translations are in **v5.8.7** ([`src/i18n.js`](src/i18n.js)) — 29 languages, 344 translation keys, full UI + enum value coverage. Community translation contributions welcome.
+> **🌐 Localization:** The most up-to-date translations are in **v5.8.7** ([`src/i18n.js`](https://github.com/xenofei/SillyTavern-ScenePulse/blob/main/src/i18n.js)) — 29 languages, 344 translation keys, full UI + enum value coverage. Community translation contributions welcome.
 
 ---
 
