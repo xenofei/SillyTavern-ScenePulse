@@ -1,0 +1,61 @@
+/* ═══ TOKEN ANALYTICS OVERLAY ═══ */
+.sp-analytics-overlay {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; height: 100dvh;
+    background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); z-index: 100001;
+    display: flex; align-items: center; justify-content: center;
+    animation: sp-glass-in 0.2s ease-out;
+}
+.sp-analytics-container {
+    background: var(--sp-bg, rgba(18,20,26,0.98)); border: 1px solid var(--sp-border, rgba(255,255,255,0.06));
+    border-radius: 12px; padding: 20px; max-width: min(700px, calc(100vw - 32px)); max-height: calc(100vh - 32px);
+    box-shadow: 0 16px 48px rgba(0,0,0,0.6); overflow: auto; width: 100%;
+}
+.sp-analytics-header {
+    display: flex; align-items: center; margin-bottom: 16px;
+}
+.sp-analytics-title { font-size: 15px; font-weight: 700; color: var(--sp-text-bright, #e8ecf4); flex: 1; }
+.sp-analytics-close {
+    background: none; border: 1px solid var(--sp-border, rgba(255,255,255,0.1)); color: var(--sp-text-dim, #6b7280);
+    cursor: pointer; font-size: 14px; width: 28px; height: 28px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+}
+.sp-analytics-close:hover { color: var(--sp-text, #c8ccd4); background: var(--sp-surface, rgba(28,32,42,0.9)); }
+
+/* Summary cards */
+.sp-analytics-summary {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px; margin-bottom: 16px;
+}
+.sp-analytics-card {
+    background: var(--sp-surface, rgba(28,32,42,0.9)); border: 1px solid var(--sp-border, rgba(255,255,255,0.06));
+    border-radius: 8px; padding: 10px; text-align: center;
+}
+.sp-analytics-card-value { font-size: 18px; font-weight: 700; color: var(--sp-accent, #4db8a4); font-family: var(--sp-font-mono); }
+.sp-analytics-card-label { font-size: 9px; color: var(--sp-text-dim, #6b7280); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
+
+/* Breakdown rows */
+.sp-analytics-breakdown { margin-bottom: 16px; }
+.sp-analytics-row {
+    display: flex; justify-content: space-between; padding: 4px 8px; font-size: 11px; color: var(--sp-text, #c8ccd4);
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+.sp-analytics-row-header { font-weight: 700; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--sp-text-dim, #6b7280); border-bottom: 1px solid var(--sp-border, rgba(255,255,255,0.06)); margin-bottom: 2px; }
+.sp-analytics-row span:last-child { font-weight: 600; font-family: var(--sp-font-mono); color: var(--sp-text-bright, #e8ecf4); }
+
+/* Per-snapshot table */
+.sp-analytics-table-wrap { max-height: 300px; overflow-y: auto; border: 1px solid var(--sp-border, rgba(255,255,255,0.06)); border-radius: 6px; }
+.sp-analytics-table-wrap::-webkit-scrollbar { width: 3px; }
+.sp-analytics-table-wrap::-webkit-scrollbar-thumb { background: rgba(100,110,130,0.3); border-radius: 2px; }
+.sp-analytics-table { width: 100%; border-collapse: collapse; font-size: 10px; }
+.sp-analytics-table thead { position: sticky; top: 0; z-index: 1; }
+.sp-analytics-table th {
+    background: var(--sp-surface, rgba(28,32,42,0.95)); color: var(--sp-text-dim, #6b7280);
+    font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+    padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--sp-border, rgba(255,255,255,0.06));
+}
+.sp-analytics-table td {
+    padding: 4px 8px; color: var(--sp-text, #c8ccd4); border-bottom: 1px solid rgba(255,255,255,0.02);
+    font-family: var(--sp-font-mono);
+}
+.sp-analytics-table tr:hover td { background: rgba(255,255,255,0.02); }
+.sp-analytics-src { padding: 1px 4px; border-radius: 3px; font-size: 9px; font-family: var(--sp-font); }
+.sp-analytics-src-warn { background: rgba(212,145,94,0.1); color: var(--sp-amber, #d4915e); }

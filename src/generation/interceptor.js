@@ -6,7 +6,8 @@ import { getSettings, getActiveSchema, getActivePrompt, getLatestSnapshot, getLa
 import { anyPanelsActive } from '../settings.js';
 import {
     generating, inlineGenStartMs, inlineExtractionDone, pendingInlineIdx,
-    setGenerating, setInlineGenStartMs, setInlineExtractionDone, setPendingInlineIdx
+    setGenerating, setInlineGenStartMs, setInlineExtractionDone, setPendingInlineIdx,
+    _inlineWaitTimerId, set_inlineWaitTimerId
 } from '../state.js';
 import { spSetGenerating } from '../ui/mobile.js';
 import { startStreamingHider } from './streaming.js';
@@ -67,7 +68,7 @@ REQUIRED FORMAT \u2014 append AFTER your narrative:
 {"time":"...","date":"...", ...only changed fields...}
 <!--SP_TRACKER_END-->
 
-This is NOT optional. Every single response MUST end with this block. The markers are parsed by software and stripped from the display. If you omit the block, scene tracking breaks completely.`;
+CRITICAL: You MUST include the <!--SP_TRACKER_START--> and <!--SP_TRACKER_END--> markers. Without these exact markers, the tracker system cannot find your JSON and the entire scene tracking pipeline fails silently. The markers are invisible to the user \u2014 they are stripped by software before display. Never skip them, even if the response is short.`;
     }
 
     return `[SCENE TRACKER \u2014 MANDATORY APPENDIX]
@@ -88,7 +89,7 @@ REQUIRED OUTPUT FORMAT \u2014 append this AFTER your narrative:
 {"time":"...","date":"...","location":"...", ...all fields...}
 <!--SP_TRACKER_END-->
 
-This is NOT optional. Every single response MUST end with this block. The markers are parsed by software and stripped from the display. If you omit the block, scene tracking breaks completely.`;
+CRITICAL: You MUST include the <!--SP_TRACKER_START--> and <!--SP_TRACKER_END--> markers. Without these exact markers, the tracker system cannot find your JSON and the entire scene tracking pipeline fails silently. The markers are invisible to the user \u2014 they are stripped by software before display. Never skip them, even if the response is short.`;
 }
 
 export const scenePulseInterceptor=async function(chat,cs,abort,type){
@@ -106,24 +107,29 @@ export const scenePulseInterceptor=async function(chat,cs,abort,type){
     if(!anyPanelsActive()){log('Interceptor: skipped \u2014 all panels disabled, no custom panels');return}
 
     if(s.injectionMethod==='inline'){
-        // TOGETHER MODE: Inject full tracker prompt into the generation context
-        // This tells the AI to append JSON after its normal response
         setInlineGenStartMs(Date.now());
-        setInlineExtractionDone(false); // Reset — will be set true when extraction succeeds
-        setPendingInlineIdx(-1); // Will be set by onCharMsg when the message arrives
-        spSetGenerating(true); // Pulse the mobile restore icon
+        setInlineExtractionDone(false);
+        setPendingInlineIdx(-1);
+        spSetGenerating(true);
+
+        // ── TOGETHER MODE: Inject inline tracker prompt ──
+        {
         const prompt=buildInlineTrackerPrompt();
         chat.splice(Math.max(0,chat.length-1),0,{
             is_user:false,is_system:true,name:'System',
             mes:prompt,
             extra:{isSmallSys:true}
         });
+        chat.push({
+            is_user:false,is_system:true,name:'System',
+            mes:'[Remember: After your narrative, you MUST append <!--SP_TRACKER_START-->{ JSON }<!--SP_TRACKER_END-->. This is mandatory.]',
+            extra:{isSmallSys:true}
+        });
         log('Interceptor [inline/together]: injected tracker prompt (~'+Math.round(prompt.length/4)+' tokens)',
             'state: extDone=',inlineExtractionDone,'pendingIdx=',pendingInlineIdx,'generating=',generating);
-        // STREAMING HIDER: Hide tracker JSON as it appears during streaming
-        // Uses a periodic check on the last .mes_text to hide SP marker content
         startStreamingHider();
-        // Show waiting animation on panel
+        }
+        // Show waiting animation on panel (both tool calling and inline)
         try{
             const body=document.getElementById('sp-panel-body');
             if(body){
@@ -132,8 +138,9 @@ export const scenePulseInterceptor=async function(chat,cs,abort,type){
                     wait=document.createElement('div');wait.id='sp-inline-wait';wait.className='sp-inline-wait';
                     wait.innerHTML='<div class="sp-inline-wait-spinner"></div><span>Updating scene data<span class="sp-ellipsis"></span></span><span class="sp-banner-timer" id="sp-inline-wait-timer">0s</span>';
                     body.insertBefore(wait,body.firstChild);
+                    if(_inlineWaitTimerId)clearInterval(_inlineWaitTimerId);
                     const _iwStart=Date.now();
-                    wait._timerInterval=setInterval(()=>{const el=document.getElementById('sp-inline-wait-timer');if(el)el.textContent=((Date.now()-_iwStart)/1000|0)+'s'},1000);
+                    set_inlineWaitTimerId(setInterval(()=>{const el=document.getElementById('sp-inline-wait-timer');if(el)el.textContent=((Date.now()-_iwStart)/1000|0)+'s'},1000));
                 }
             }
             // Also show banner on thought panel (no full overlay — auto-gen)

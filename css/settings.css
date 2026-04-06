@@ -22,8 +22,8 @@
 .sp-off .sp-drawer-badge-dot { background: var(--sp-disabled); }
 @keyframes sp-badge-pulse { 0%,100% { box-shadow: 0 0 4px var(--sp-accent-glow); opacity: 1; } 50% { box-shadow: 0 0 10px var(--sp-accent-glow), 0 0 20px rgba(77,184,164,0.2); opacity: 0.7; } }
 /* Enable ScenePulse checkbox — always interactive, never greyed out */
-#scenepulse-settings .sp-ck:has(#sp-enabled) { opacity: 1 !important; pointer-events: auto !important; position: relative; }
-#scenepulse-settings .sp-ck:has(#sp-enabled) input { pointer-events: auto !important; cursor: pointer !important; }
+/* Enable checkbox — always interactive regardless of sp-disabled state */
+#scenepulse-settings .sp-ck:has(#sp-enabled) { position: relative; }
 #sp-enabled { accent-color: var(--sp-accent); }
 
 #scenepulse-settings .sp-sh { margin: 20px 0 8px 0; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--sp-accent); padding-bottom: 5px; border-bottom: 1px solid var(--sp-border); }
@@ -72,8 +72,17 @@
 .sp-ctx-note { display: block; margin-top: 4px; font-style: italic; opacity: 0.7; }
 
 /* Disabled state */
-#scenepulse-settings .sp-disabled { opacity: 0.4; pointer-events: none; filter: grayscale(0.5); }
-#scenepulse-settings .sp-disabled label:has(#sp-enabled) { opacity: 1; pointer-events: auto; filter: none; }
+/* When disabled: gray out everything EXCEPT the enable checkbox */
+#scenepulse-settings .sp-disabled .sp-settings-tabs,
+#scenepulse-settings .sp-disabled .sp-tab-panel[data-tab="generation"],
+#scenepulse-settings .sp-disabled .sp-tab-panel[data-tab="prompts"],
+#scenepulse-settings .sp-disabled .sp-tab-panel[data-tab="advanced"],
+#scenepulse-settings .sp-disabled .sp-settings-after-enable {
+    opacity: 0.35; pointer-events: none; filter: grayscale(0.6);
+}
+#scenepulse-settings .sp-disabled .sp-ck:has(#sp-enabled) {
+    opacity: 1 !important; pointer-events: auto !important; filter: none !important;
+}
 
 /* Empty plot tier */
 .sp-plot-empty {
@@ -116,6 +125,30 @@
 #sp-schema-unlock {
     margin: 4px 0; font-size: 11px;
 }
+
+/* ═══ SETTINGS TABS ═══ */
+.sp-settings-tabs {
+    display: flex; gap: 0; margin-bottom: 8px;
+    border-bottom: 1px solid var(--sp-border);
+    background: var(--sp-surface);
+    border-radius: var(--sp-radius) var(--sp-radius) 0 0;
+    overflow: hidden;
+}
+.sp-settings-tab {
+    flex: 1; padding: 6px 4px; font-size: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    background: none; border: none; color: var(--sp-text-dim);
+    cursor: pointer; transition: all 0.15s;
+    border-bottom: 2px solid transparent;
+    text-align: center;
+}
+.sp-settings-tab:hover { color: var(--sp-text); background: var(--sp-surface-hover); }
+.sp-settings-tab.sp-settings-tab-active {
+    color: var(--sp-accent); border-bottom-color: var(--sp-accent);
+    background: var(--sp-accent-dim);
+}
+.sp-tab-panel { display: none; }
+.sp-tab-panel.sp-tab-active { display: block; }
 
 /* Make prompt/schema textareas properly sized */
 #sp-sysprompt, #sp-schema {

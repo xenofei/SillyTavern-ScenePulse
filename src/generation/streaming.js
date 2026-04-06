@@ -20,14 +20,19 @@ export function startStreamingHider(){
     log('StreamHider: started');
 
     const _hasJson=(txt)=>{
-        if(txt.includes('SP_TRACKER_START'))return true;
-        if(txt.includes('<!--SP_T'))return true; // Partial marker detection
+        if(txt.includes('SP_TRACKER'))return true;    // Any part of SP_TRACKER_START or _END
+        if(txt.includes('<!--SP_'))return true;       // Earliest partial marker (just 7 chars)
         if(txt.includes('```json'))return true;
-        // Catch raw JSON with tracker-like keys
-        if(txt.includes('"time"')&&(txt.includes('"sceneTopic"')||txt.includes('"sceneMood"')||txt.includes('"sceneTension"')||txt.includes('"location"')))return true;
+        // Catch raw JSON — detect as early as possible
+        if(txt.includes('"time":')&&txt.includes('"elapsed":'))return true;
         if(txt.includes('"time":')&&txt.includes('"date":'))return true;
+        if(txt.includes('"time":')&&txt.includes('"location":'))return true;
+        if(txt.includes('"sceneTopic"'))return true;  // Unique to SP schema
+        if(txt.includes('"sceneMood"'))return true;
+        if(txt.includes('"sceneTension"'))return true;
+        // Detect opening brace followed by "time" key near the end of message
         const lo=txt.lastIndexOf('{');
-        if(lo>50&&txt.indexOf('"time"',lo)!==-1&&txt.indexOf('"time"',lo)-lo<60)return true;
+        if(lo>50&&txt.indexOf('"time"',lo)!==-1&&txt.indexOf('"time"',lo)-lo<80)return true;
         return false;
     };
 
@@ -72,8 +77,8 @@ export function startStreamingHider(){
         _observer.observe(_lastMes,{childList:true,subtree:true,characterData:true});
     };
 
-    // Polling fallback at 40ms (fast detection)
-    const interval=setInterval(()=>{
+    // Polling fallback at 20ms (aggressive detection)
+    const interval=setInterval(()=>{  // 20ms polling
         try{
             if(Date.now()-_streamHiderStart>180000){log('StreamHider: safety timeout (180s)');stopStreamingHider();return}
             _setupObserver();
@@ -83,7 +88,7 @@ export function startStreamingHider(){
             }
             _updateCap();
         }catch(e){}
-    },40);
+    },20);
     set_streamHiderInterval(interval);
 }
 export function stopStreamingHider(){

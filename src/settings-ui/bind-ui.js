@@ -34,7 +34,7 @@ import { createSettings } from './create-settings.js';
 
 export function updateBadge(){const on=getSettings().enabled;const b=document.getElementById('sp-badge');if(b){b.className='sp-drawer-badge '+(on?'sp-on':'sp-off');b.innerHTML=`<span class="sp-drawer-badge-dot"></span>${on?t('Active'):t('Off')}`}}
 
-export function loadUI(){const s=getSettings();$('#sp-enabled').prop('checked',s.enabled);$('#sp-auto-gen').prop('checked',s.autoGenerate);$('#sp-show-thoughts').prop('checked',s.showThoughts!==false);$('#sp-show-weather').prop('checked',s.weatherOverlay!==false);$('#sp-show-timetint').prop('checked',s.timeTint!==false);$('#sp-show-devbtns').prop('checked',s.devButtons===true);$('#sp-delta-mode').prop('checked',s.deltaMode===true);$('#sp-font-scale').val(s.fontScale||1);$('#sp-font-scale-val').text((s.fontScale||1).toFixed(1)+'x');$('#sp-language').val(s.language||'');$('#sp-ctx').val(s.contextMessages);$('#sp-retries').val(s.maxRetries);$('#sp-mode').val(s.promptMode||'json');$('#sp-embed-n').val(s.embedSnapshots);$('#sp-embed-role').val(s.embedRole);$('#sp-lore-mode').val(s.lorebookMode||'character_attached');
+export function loadUI(){const s=getSettings();$('#sp-enabled').prop('checked',s.enabled);$('#sp-auto-gen').prop('checked',s.autoGenerate);$('#sp-show-thoughts').prop('checked',s.showThoughts!==false);$('#sp-show-weather').prop('checked',s.weatherOverlay!==false);$('#sp-show-timetint').prop('checked',s.timeTint!==false);$('#sp-show-devbtns').prop('checked',s.devButtons===true);$('#sp-delta-mode').prop('checked',s.deltaMode===true);$('#sp-function-tool').prop('checked',s.functionToolEnabled===true);$('#sp-font-scale').val(s.fontScale||1);$('#sp-font-scale-val').text((s.fontScale||1).toFixed(1)+'x');$('#sp-language').val(s.language||'');$('#sp-ctx').val(s.contextMessages);$('#sp-retries').val(s.maxRetries);$('#sp-mode').val(s.promptMode||'json');$('#sp-embed-n').val(s.embedSnapshots);$('#sp-embed-role').val(s.embedRole);$('#sp-lore-mode').val(s.lorebookMode||'character_attached');
     // Rebuild profile/preset dropdowns from current DOM (ST may load them late)
     const profiles=getConnectionProfiles();const presets=getChatPresets();
     // ── localStorage is the source of truth for config persistence ──
@@ -154,9 +154,23 @@ export function _spSaveLS(){
 }
 
 export function bindUI(){const s=getSettings();
+    // Settings tab switching
+    document.querySelectorAll('.sp-settings-tab').forEach(tab=>{
+        tab.addEventListener('click',()=>{
+            const target=tab.dataset.tab;if(!target)return;
+            document.querySelectorAll('.sp-settings-tab').forEach(t=>t.classList.remove('sp-settings-tab-active'));
+            document.querySelectorAll('.sp-tab-panel').forEach(p=>p.classList.remove('sp-tab-active'));
+            tab.classList.add('sp-settings-tab-active');
+            const panel=document.querySelector(`.sp-tab-panel[data-tab="${target}"]`);
+            if(panel)panel.classList.add('sp-tab-active');
+        });
+    });
     $('#sp-enabled').on('change',function(){s.enabled=this.checked;saveSettings();updateBadge();$('#scenepulse-settings .inline-drawer-content').toggleClass('sp-disabled',!this.checked);if(!this.checked){hidePanel();const tp=document.getElementById('sp-thought-panel');if(tp)tp.classList.remove('sp-tp-visible')}else{renderExisting()}});
     $('#sp-auto-gen').on('change',function(){s.autoGenerate=this.checked;saveSettings()});
     $('#sp-delta-mode').on('change',function(){s.deltaMode=this.checked;saveSettings();log('Delta mode:',this.checked)});
+    $('#sp-function-tool').on('change',function(){s.functionToolEnabled=this.checked;saveSettings();log('Function tool:',this.checked);
+        import('../generation/function-tool.js').then(m=>m.refreshFunctionTool()).catch(e=>warn('Function tool refresh:',e));
+    });
     $('#sp-injection-method').on('change',function(){s.injectionMethod=this.value;saveSettings();_spSaveLS();$('#sp-method-inline').toggle(this.value==='inline');$('#sp-method-separate').toggle(this.value!=='inline');$('#sp-embed-section').toggle(this.value!=='inline');$('#sp-separate-settings').toggle(this.value!=='inline');updateLorebookRec()});
     $('#sp-show-thoughts').on('change',function(){s.showThoughts=this.checked;saveSettings();_spSaveLS();const tp=document.getElementById('sp-thought-panel');if(tp){if(this.checked){const snap=getLatestSnapshot();if(snap)updateThoughts(normalizeTracker(snap))}else tp.classList.remove('sp-tp-visible')}});
     $('#sp-show-weather').on('change',function(){s.weatherOverlay=this.checked;saveSettings();_spSaveLS();const btn=document.getElementById('sp-tb-weather');if(btn)btn.classList.toggle('sp-tb-active',this.checked);if(!this.checked)clearWeatherOverlay();else{const snap=getLatestSnapshot();if(snap){const n=normalizeTracker(snap);updateWeatherOverlay(n.weather)}}});
@@ -175,6 +189,13 @@ export function bindUI(){const s=getSettings();
         const old=document.getElementById('scenepulse-settings');if(old)old.remove();
         createSettings();loadUI();
     });
+    // Theme selector
+    $('#sp-theme').val(s.theme||'default');
+    $('#sp-theme').on('change',function(){
+        s.theme=this.value;saveSettings();
+        import('../themes.js').then(m=>m.applyTheme(this.value)).catch(e=>warn('Theme apply:',e));
+        log('Theme:',this.value);
+    });
     $('#sp-ctx').on('change',function(){s.contextMessages=clamp(+this.value,1,30);saveSettings();_spSaveLS()});
     $('#sp-retries').on('change',function(){s.maxRetries=clamp(+this.value,0,5);saveSettings();_spSaveLS()});
     $('#sp-profile').on('change',function(){s.connectionProfile=this.value;saveSettings();_spSaveLS()});
@@ -192,7 +213,22 @@ export function bindUI(){const s=getSettings();
     $('#sp-sysprompt').on('change',function(){const v=this.value.trim();const dynamicPrompt=buildDynamicPrompt(s).trim();s.systemPrompt=(v===dynamicPrompt)?null:v||null;saveSettings()});
     $('#sp-schema').on('change',function(){const v=this.value.trim();const dynamicStr=JSON.stringify(buildDynamicSchema(s),null,2);if(v===dynamicStr){s.schema=null;saveSettings();return}if(v){try{JSON.parse(v);s.schema=v}catch{toastr.error(t('Invalid JSON'));return}}else s.schema=null;saveSettings()});
     // Schema edit protection
-    $('#sp-schema-unlock').on('click',function(){$('#sp-schema-locked').hide();$('#sp-schema-unlocked').show()});
+    $('#sp-schema-unlock').on('click',function(){
+        $('#sp-schema-locked').hide();$('#sp-schema-unlocked').show();
+        // Pre-populate with current dynamic schema if no custom override exists
+        const schemaEl=$('#sp-schema');
+        if(!schemaEl.val()||schemaEl.val().trim()===''){
+            const dynSchema=buildDynamicSchema(s);
+            schemaEl.val(JSON.stringify(dynSchema,null,2));
+        }
+    });
+    $('#sp-schema-lock').on('click',async function(){
+        if(!await spConfirm(t('Lock Schema'),t('This will lock the schema editor and reset to the built-in default. Any custom schema changes will be permanently lost.')))return;
+        s.schema=null;saveSettings();
+        $('#sp-schema').val('');
+        $('#sp-schema-unlocked').hide();$('#sp-schema-locked').show();
+        toastr.info(t('Schema locked and reset to default'));
+    });
     // Default and Copy buttons
     $('#sp-sysprompt-default').on('click',()=>{s.systemPrompt=null;saveSettings();$('#sp-sysprompt').val(buildDynamicPrompt(s));toastr.info(t('System prompt reset to default'))});
     $('#sp-sysprompt-copy').on('click',()=>{navigator.clipboard.writeText($('#sp-sysprompt').val());toastr.success(t('Prompt copied'))});
@@ -236,6 +272,44 @@ export function bindUI(){const s=getSettings();
     $('#sp-btn-reset').on('click',async()=>{
         if(!await spConfirm(t('Reset Settings'),t('Reset all ScenePulse settings to defaults? Tracker data is preserved.')))return;
         SillyTavern.getContext().extensionSettings[MODULE_NAME]=structuredClone(DEFAULTS);saveSettings();try{localStorage.removeItem(SP_LS_KEY)}catch(e){}loadUI();toastr.info(t('Settings reset to defaults'));
+    });
+    // Config export/import
+    $('#sp-btn-export-config').on('click',()=>{
+        const s=getSettings();
+        // Clean openSections: remove keys for deleted custom panels
+        const _validSections=['scene','quests','relationships','characters','branches','env','plots'];
+        const _cpNames=(s.customPanels||[]).map(cp=>'custom_'+cp.name?.replace(/\s+/g,'_').toLowerCase()).filter(Boolean);
+        const _cleanOpen={};
+        for(const[k,v]of Object.entries(s.openSections||{})){if(_validSections.includes(k)||_cpNames.includes(k))_cleanOpen[k]=v}
+        const exportData={extension:'ScenePulse',version:'6.0.0',exportedAt:new Date().toISOString(),
+            settings:{injectionMethod:s.injectionMethod,deltaMode:s.deltaMode,language:s.language,theme:s.theme,
+                fontScale:s.fontScale,contextMessages:s.contextMessages,maxRetries:s.maxRetries,promptMode:s.promptMode,
+                embedSnapshots:s.embedSnapshots,embedRole:s.embedRole,lorebookMode:s.lorebookMode,autoGenerate:s.autoGenerate,
+                showThoughts:s.showThoughts,showEmptyFields:s.showEmptyFields,sceneTransitions:s.sceneTransitions,
+                panels:{...DEFAULTS.panels,...s.panels},dashCards:{...DEFAULTS.dashCards,...s.dashCards},
+                fieldToggles:s.fieldToggles,customPanels:s.customPanels||[],
+                openSections:_cleanOpen}};
+        const json=JSON.stringify(exportData,null,2);
+        const blob=new Blob([json],{type:'application/json'});
+        const url=URL.createObjectURL(blob);const a=document.createElement('a');
+        a.href=url;a.download=`scenepulse-config-${Date.now()}.json`;
+        document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+        toastr.success('Config exported');
+    });
+    $('#sp-btn-import-config').on('click',()=>document.getElementById('sp-import-file')?.click());
+    $('#sp-import-file').on('change',async function(){
+        const file=this.files?.[0];if(!file)return;this.value='';
+        try{
+            const text=await file.text();const data=JSON.parse(text);
+            if(data.extension!=='ScenePulse'||!data.settings){toastr.error('Invalid ScenePulse config file');return}
+            if(!await spConfirm('Import Config','Apply settings from this file? Your current settings will be overwritten.')){return}
+            const s=getSettings();const imported=data.settings;
+            for(const[k,v]of Object.entries(imported)){if(v!==undefined&&k in DEFAULTS)s[k]=v}
+            saveSettings();loadUI();
+            // Apply theme if changed
+            if(imported.theme)import('../themes.js').then(m=>m.applyTheme(imported.theme)).catch(()=>{});
+            toastr.success('Config imported from '+file.name);log('Config imported:',Object.keys(imported).join(', '));
+        }catch(e){toastr.error('Failed to import: '+e?.message);warn('Import config:',e)}
     });
     $('#sp-btn-debug').on('click',()=>{const _t='ScenePulse Debug ('+new Date().toISOString()+')\n'+debugLog.join('\n');navigator.clipboard.writeText(_t).then(()=>toastr.success(t('SP Log copied')+' ('+debugLog.length+')')).catch(()=>{const ta=document.createElement('textarea');ta.value=_t;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);toastr.success(t('SP Log copied'))})});
     $('#sp-btn-copy-console').on('click',()=>{

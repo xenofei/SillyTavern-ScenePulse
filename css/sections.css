@@ -10,7 +10,7 @@
 .sp-section-spacer { flex: 1; }
 .sp-section-refresh {
     background: none; border: none; color: var(--sp-text-dim); cursor: pointer;
-    width: 22px; height: 22px; padding: 0; border-radius: 50%; opacity: 0;
+    width: 22px; height: 22px; padding: 0; border-radius: 50%; opacity: 0.3;
     transition: all var(--sp-transition); display: inline-flex; align-items: center; justify-content: center;
 }
 .sp-section-header:hover .sp-section-refresh { opacity: 0.6; }

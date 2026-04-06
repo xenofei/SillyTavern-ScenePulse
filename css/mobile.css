@@ -171,7 +171,8 @@ body:has(#sp-panel.sp-mode-mobile.sp-visible) #top-settings-holder { display: no
 #sp-panel.sp-mode-mobile .sp-rel-type-badge, #sp-panel.sp-mode-mobile .sp-rel-phase-badge { font-size: 10px; padding: 3px 8px; }
 #sp-panel.sp-mode-mobile .sp-rel-meta-label { font-size: 11px; min-width: 70px; }
 #sp-panel.sp-mode-mobile .sp-rel-meta-value { font-size: 12px; }
-#sp-panel.sp-mode-mobile .sp-meter-row { grid-template-columns: 56px 1fr 48px; gap: 6px; }
+#sp-panel.sp-mode-mobile .sp-meter-row { grid-template-columns: 50px 1fr 90px; gap: 4px; padding: 3px 0; }
+#sp-panel.sp-mode-mobile .sp-sparkline { width: 40px !important; height: 16px !important; }
 #sp-panel.sp-mode-mobile .sp-meter-label { font-size: 10px; }
 #sp-panel.sp-mode-mobile .sp-meter-bar-wrap { height: 14px; border-radius: 7px; }
 #sp-panel.sp-mode-mobile .sp-meter-value { font-size: 10px; }
@@ -259,5 +260,7 @@ body:has(#sp-panel.sp-mode-mobile) .sp-tour-spotlight { z-index: 100003; }
     #sp-panel.sp-mode-mobile .sp-brand-title { font-size: 12px; }
     #sp-panel.sp-mode-mobile .sp-dashboard .sp-dash-card { flex: 1 1 100%; }
     #sp-panel.sp-mode-mobile .sp-char-grid { grid-template-columns: 1fr; }
-    #sp-panel.sp-mode-mobile .sp-meter-row { grid-template-columns: 48px 1fr 40px; }
+    #sp-panel.sp-mode-mobile .sp-meter-row { grid-template-columns: 44px 1fr 70px; }
+    #sp-panel.sp-mode-mobile .sp-meter-face { display: none !important; }
+    #sp-panel.sp-mode-mobile .sp-sparkline { display: none !important; }
 }

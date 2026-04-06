@@ -13,7 +13,8 @@ import {
     genMeta, lastGenSource,
     currentSnapshotMesIdx,
     currentWeatherType,
-    _isTimelineScrub
+    _isTimelineScrub,
+    _sessionTokensUsed, _lastDeltaSavings
 } from '../state.js';
 import { updateWeatherOverlay } from './weather.js';
 import { updateTimeTint } from './time-tint.js';
@@ -28,6 +29,8 @@ import { showLoadingOverlay, clearLoadingOverlay, showStopButton, hideStopButton
 import { generating, genNonce, setLastGenSource } from '../state.js';
 import { generateTracker } from '../generation/engine.js';
 import { openDiffViewer } from './diff-viewer.js';
+import { createSparklineCanvas } from './sparklines.js';
+import { detectStagnation } from '../stagnation.js';
 
 let _wdmFrameId = null;
 let _wdmObserver = null;
@@ -97,11 +100,14 @@ export function updatePanel(d,_force=false){
     if(!_isTimelineScrub)updateThoughts(d);
     const body=document.getElementById('sp-panel-body');
     if(!body)return;
+    // Snapshot previous content for error boundary recovery
+    const _prevContent=body.innerHTML;
     // Preserve panel manager during rebuild
     const mgrNode=document.getElementById('sp-panel-mgr');
     if(mgrNode)mgrNode.remove();
     body.innerHTML='';
     if(mgrNode)body.appendChild(mgrNode);
+    try { // Error boundary: if rendering fails, restore previous panel content
     const s=getSettings();
     const ft=s.fieldToggles||{};
 
@@ -440,11 +446,41 @@ export function updatePanel(d,_force=false){
         const cc=charColor(displayName);const bl=document.createElement('div');bl.className='sp-rel-block';if(sortedRels.length<=1||_ri===0)bl.classList.add('sp-card-open');bl.style.setProperty('--char-bg',cc.bg);bl.style.setProperty('--char-border',cc.border);bl.style.setProperty('--char-accent',cc.accent);let hh=`<div class="sp-rel-header"><span class="sp-rel-chevron">\u25B6</span><span class="sp-rel-name">${esc(displayName)}</span>`;if(rel.relType)hh+=`<span class="sp-rel-type-badge" data-ft="rel_type">${esc(rel.relType)}</span>`;if(rel.relPhase)hh+=`<span class="sp-rel-phase-badge" data-ft="rel_phase">${esc(rel.relPhase)}</span>`;hh+=`</div>`;bl.innerHTML=hh;bl.querySelector('.sp-rel-header').addEventListener('click',()=>bl.classList.toggle('sp-card-open'));
         const _body=document.createElement('div');_body.className='sp-rel-body';
         {const meta=document.createElement('div');meta.className='sp-rel-meta';{const ttItem=document.createElement('div');ttItem.className='sp-rel-meta-item';ttItem.dataset.ft='rel_timeknown';ttItem.innerHTML=`<span class="sp-rel-meta-label">${t('Time Known')}</span>`;const ttVal=document.createElement('span');ttVal.textContent=rel.timeTogether||'\u2014';if(!rel.timeTogether){ttItem.classList.add('sp-empty-field');ttVal.dataset.placeholder='Time known'}mkEditable(ttVal,()=>rel.timeTogether||'',v=>{rel.timeTogether=v;const snap=getLatestSnapshot();if(snap){const sr=snap.relationships?.find(r=>r.name===rel.name);if(sr)sr.timeTogether=v}});ttItem.appendChild(ttVal);meta.appendChild(ttItem)}{const msItem=document.createElement('div');msItem.className='sp-rel-meta-item sp-rel-milestone';msItem.dataset.ft='rel_milestone';msItem.innerHTML=`<span class="sp-rel-meta-label">${t('Milestone')}</span>`;const msVal=document.createElement('span');msVal.textContent=rel.milestone||'\u2014';if(!rel.milestone){msItem.classList.add('sp-empty-field');msVal.dataset.placeholder='Milestone'}mkEditable(msVal,()=>rel.milestone||'',v=>{rel.milestone=v;const snap=getLatestSnapshot();if(snap){const sr=snap.relationships?.find(r=>r.name===rel.name);if(sr)sr.milestone=v}});msItem.appendChild(msVal);meta.appendChild(msItem)}_body.appendChild(meta)}
-        for(const m of[{k:'affection',l:t('Affection'),ft:'rel_affection'},{k:'desire',l:t('Desire'),ft:'rel_desire'},{k:'trust',l:t('Trust'),ft:'rel_trust'},{k:'stress',l:t('Stress'),ft:'rel_stress'},{k:'compatibility',l:t('Compat'),ft:'rel_compatibility'}]){const v=rel[m.k];const label=rel[m.k+'Label']||'';const meterWrap=document.createElement('div');meterWrap.dataset.ft=m.ft;const row=document.createElement('div');row.className=`sp-meter-row sp-meter-${m.k}`;const labelLow=label.toLowerCase();const _prevRel=_prevRelMap[(rel.name||'').toLowerCase()];const _prevVal=_prevRel?.[m.k];const _delta=(typeof v==='number'&&typeof _prevVal==='number'&&v!==_prevVal)?v-_prevVal:null;const _deltaHtml=_delta?`<span class="sp-meter-delta ${_delta>0?'sp-meter-delta-up':'sp-meter-delta-down'}"><span class="sp-meter-delta-arrow">${_delta>0?'\u25B2':'\u25BC'}</span>${_delta>0?'+':''}${_delta}</span>`:'';const _prevMarker=(typeof _prevVal==='number'&&_prevVal>=0&&_prevVal<=100)?`<div class="sp-meter-bar-prev" style="left:${clamp(_prevVal,0,100)}%"></div>`:'';const _isUnknown=labelLow.includes('unknown')||labelLow.includes('unclear')||labelLow.includes('???');const _hasTag=label&&label!=='N/A'&&!_isUnknown;const _tagHtml=_hasTag?`<div class="sp-meter-tag" data-ft="rel_labels">${esc(t(label))}</div>`:'';if(_hasTag||(_isUnknown&&label))row.classList.add('sp-meter-has-tag');const _bar=(w)=>`<div class="sp-meter-bar-wrap"><div class="sp-meter-bar-track"><div class="sp-meter-bar-fill" style="width:${w}%"></div></div>${_prevMarker}</div>`;
+        // Unique per-meter delta icons — emotionally distinct UP and DOWN variants
+        const _H='<svg viewBox="0 0 14 14" width="13" height="13">';
+        // UP: full heart (love growing)  |  DOWN: cracked heart (love fading)
+        // UP: bright star (trust earned)  |  DOWN: dim broken star (trust lost)
+        // UP: Adinkra heart-spiral symbol (desire rising)  |  DOWN: same symbol with X (desire fading)
+        // UP: calm shield (stress easing)  |  DOWN: lightning bolt (stress spiking)
+        // UP: linked rings (bond strengthening)  |  DOWN: separated rings (bond weakening)
+        const _faceUp={
+            affection:_H+'<path d="M7 12C4 9.5 2 7.8 2 5.8 2 4.2 3.2 3 4.6 3c.8 0 1.6.4 2.4 1.2C7.8 3.4 8.6 3 9.4 3 10.8 3 12 4.2 12 5.8 12 7.8 10 9.5 7 12z" fill="#4ade80"/></svg>',
+            trust:_H+'<path d="M7 1.5l1.8 3.6 4 .6-2.9 2.8.7 3.9L7 10.5l-3.6 1.9.7-3.9L1.2 5.7l4-.6z" fill="#4ade80"/></svg>',
+            desire:_H+'<circle cx="7" cy="7" r="6" stroke="#4ade80" stroke-width="1.2" fill="none"/><path d="M7 3.2c-.3 0-.5.2-.5.5 0 .4.5.8.5.8s.5-.4.5-.8c0-.3-.2-.5-.5-.5z" fill="#4ade80"/><path d="M4.8 6.5c0-1.2.5-2 1.2-2.3.3-.1.5 0 .6.2.2.4 0 1-.4 1.5-.3.4-.4.8-.2 1.1" stroke="#4ade80" stroke-width="1" fill="none" stroke-linecap="round"/><path d="M9.2 6.5c0-1.2-.5-2-1.2-2.3-.3-.1-.5 0-.6.2-.2.4 0 1 .4 1.5.3.4.4.8.2 1.1" stroke="#4ade80" stroke-width="1" fill="none" stroke-linecap="round"/><path d="M7 7.5l-.8 1.5.8 1.5.8-1.5z" fill="#4ade80"/></svg>',
+            stress:_H+'<path d="M8.5 1.5L6.5 6h2.5L5.5 12.5" stroke="#facc15" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 6.5l1-2" stroke="#facc15" stroke-width=".8" opacity=".5" stroke-linecap="round"/></svg>',
+            compatibility:_H+'<circle cx="5.5" cy="7" r="3" stroke="#4ade80" stroke-width="1.4" fill="none"/><circle cx="8.5" cy="7" r="3" stroke="#4ade80" stroke-width="1.4" fill="none"/><path d="M6.2 5v4" stroke="#4ade80" stroke-width=".6" opacity=".5"/></svg>',
+        };
+        const _faceDown={
+            affection:_H+'<path d="M7 12C4 9.5 2 7.8 2 5.8 2 4.2 3.2 3 4.6 3c.8 0 1.6.4 2.4 1.2C7.8 3.4 8.6 3 9.4 3 10.8 3 12 4.2 12 5.8 12 7.8 10 9.5 7 12z" fill="#f87171"/><line x1="4" y1="4" x2="10" y2="10" stroke="#0c0e14" stroke-width="1.2"/></svg>',
+            trust:_H+'<path d="M7 1.5l1.8 3.6 4 .6-2.9 2.8.7 3.9L7 10.5l-3.6 1.9.7-3.9L1.2 5.7l4-.6z" fill="#f87171" opacity=".7"/><line x1="4.5" y1="4" x2="9.5" y2="9" stroke="#0c0e14" stroke-width="1"/></svg>',
+            desire:_H+'<circle cx="7" cy="7" r="6" stroke="#f87171" stroke-width="1.2" fill="none" opacity=".6"/><path d="M7 3.2c-.3 0-.5.2-.5.5 0 .4.5.8.5.8s.5-.4.5-.8c0-.3-.2-.5-.5-.5z" fill="#f87171" opacity=".5"/><path d="M4.8 6.5c0-1.2.5-2 1.2-2.3.3-.1.5 0 .6.2.2.4 0 1-.4 1.5-.3.4-.4.8-.2 1.1" stroke="#f87171" stroke-width="1" fill="none" stroke-linecap="round" opacity=".5"/><path d="M9.2 6.5c0-1.2-.5-2-1.2-2.3-.3-.1-.5 0-.6.2-.2.4 0 1 .4 1.5.3.4.4.8.2 1.1" stroke="#f87171" stroke-width="1" fill="none" stroke-linecap="round" opacity=".5"/><path d="M7 7.5l-.8 1.5.8 1.5.8-1.5z" fill="#f87171" opacity=".5"/><line x1="3.5" y1="3.5" x2="10.5" y2="10.5" stroke="#f87171" stroke-width="1.5" stroke-linecap="round"/><line x1="10.5" y1="3.5" x2="3.5" y2="10.5" stroke="#f87171" stroke-width="1.5" stroke-linecap="round"/></svg>',
+            stress:_H+'<path d="M3 7c0-2 1.5-4 4-5 2.5 1 4 3 4 5s-1.5 3.5-4 4.5C4.5 10.5 3 9 3 7z" fill="#4ade80" opacity=".9"/><path d="M5.5 7.5Q7 5.5 8.5 7.5" stroke="#0c0e14" stroke-width=".8" fill="none" stroke-linecap="round"/></svg>',
+            compatibility:_H+'<circle cx="4.5" cy="7" r="3" stroke="#f87171" stroke-width="1.3" fill="none"/><circle cx="9.5" cy="7" r="3" stroke="#f87171" stroke-width="1.3" fill="none"/></svg>',
+        };
+        for(const m of[{k:'affection',l:t('Affection'),ft:'rel_affection'},{k:'desire',l:t('Desire'),ft:'rel_desire'},{k:'trust',l:t('Trust'),ft:'rel_trust'},{k:'stress',l:t('Stress'),ft:'rel_stress'},{k:'compatibility',l:t('Compat'),ft:'rel_compatibility'}]){const v=rel[m.k];const label=rel[m.k+'Label']||'';const meterWrap=document.createElement('div');meterWrap.dataset.ft=m.ft;const row=document.createElement('div');row.className=`sp-meter-row sp-meter-${m.k}`;const labelLow=label.toLowerCase();const _prevRel=_prevRelMap[(rel.name||'').toLowerCase()];const _prevVal=_prevRel?.[m.k];const _delta=(typeof v==='number'&&typeof _prevVal==='number'&&v!==_prevVal)?v-_prevVal:null;const _stressCls=m.k==='stress';const _deltaHtml=_delta?`<span class="sp-meter-delta ${_stressCls?(_delta>0?'sp-meter-delta-stress-up':'sp-meter-delta-stress-down'):(_delta>0?'sp-meter-delta-up':'sp-meter-delta-down')}">${_delta>0?'+':''}${_delta}</span>`:'';const _isUnknown=labelLow.includes('unknown')||labelLow.includes('unclear')||labelLow.includes('???');const _hasTag=label&&label!=='N/A'&&!_isUnknown;const _tagHtml=_hasTag?`<div class="sp-meter-tag" data-ft="rel_labels">${esc(t(label))}</div>`:'';if(_hasTag||(_isUnknown&&label))row.classList.add('sp-meter-has-tag');
+        // Build bar — icon goes inline inside value cell after delta text
+        const _faceInline=_delta?`<span class="sp-meter-face">${_delta>0?(_faceUp[m.k]||''):(_faceDown[m.k]||'')}</span>`:'';
+        const _bar=(curW)=>{
+            const prevMarker=(typeof _prevVal==='number'&&_prevVal>=0&&_prevVal<=100&&_delta)?`<div class="sp-meter-bar-prev" style="left:${clamp(_prevVal,0,100)}%"></div>`:'';
+            return `<div class="sp-meter-bar-wrap"><div class="sp-meter-bar-track"><div class="sp-meter-bar-fill" style="width:${curW}%"></div></div>${prevMarker}</div>`;
+        };
         if(labelLow.includes('unknown')||labelLow.includes('unclear')||labelLow.includes('unreadable')||labelLow.includes('???')||labelLow.includes('not yet')){const _uTag=label?`<div class="sp-meter-tag" data-ft="rel_labels">${esc(t(label))}</div>`:'';row.innerHTML=_uTag+`<div class="sp-meter-label">${esc(m.l)}</div>${_bar(0)}<div class="sp-meter-value-na">?</div>`;meterWrap.appendChild(row)}
-        else if(m.k==='desire'&&(v===-1||v===0||label==='N/A'||labelLow.includes('n/a'))){row.innerHTML=_tagHtml+`<div class="sp-meter-label">${esc(m.l)}</div>${_bar(0)}<div class="sp-meter-value">0${_deltaHtml}</div>`;meterWrap.appendChild(row)}
+        else if(m.k==='desire'&&(v===-1||v===0||label==='N/A'||labelLow.includes('n/a'))){row.innerHTML=_tagHtml+`<div class="sp-meter-label">${esc(m.l)}</div>${_bar(0)}<div class="sp-meter-value">0${_deltaHtml}${_faceInline}</div>`;meterWrap.appendChild(row)}
         else if(v===-1||label==='N/A'){row.innerHTML=`<div class="sp-meter-label">${esc(m.l)}</div><div class="sp-meter-bar-na"></div><div class="sp-meter-value-na">N/A</div>`;meterWrap.appendChild(row)}
-        else{const cv=clamp(v,0,100);row.innerHTML=_tagHtml+`<div class="sp-meter-label">${esc(m.l)}</div>${_bar(cv)}<div class="sp-meter-value">${cv}${_deltaHtml}</div>`;meterWrap.appendChild(row)}
+        else{const cv=clamp(v,0,100);row.innerHTML=_tagHtml+`<div class="sp-meter-label">${esc(m.l)}</div>${_bar(cv)}<div class="sp-meter-value">${cv}${_deltaHtml}${_faceInline}</div>`;meterWrap.appendChild(row)}
+        // Add sparkline to meter value cell
+        const _sparkCanvas=createSparklineCanvas(displayName,m.k);
+        if(_sparkCanvas){const _valCell=row.querySelector('.sp-meter-value');if(_valCell)_valCell.appendChild(_sparkCanvas)}
         _body.appendChild(meterWrap)}bl.appendChild(_body);f.appendChild(bl)}return f;
     },s);if(s.panels?.relationships===false)_sec.classList.add('sp-panel-hidden');body.appendChild(_sec)}
 
@@ -482,6 +518,18 @@ export function updatePanel(d,_force=false){
     // Timeline
     if(!_isTimelineScrub)renderTimeline();
 
+    // Stagnation detection — show a subtle banner if scene is stale
+    if(!_isTimelineScrub){
+        try{
+            const _stag=detectStagnation();
+            if(_stag){
+                const sb=document.createElement('div');sb.className='sp-stagnation-banner';
+                sb.innerHTML=`<span class="sp-stag-icon">💤</span><span class="sp-stag-text">${esc(_stag.suggestion)}</span><button class="sp-stag-dismiss" title="${t('Dismiss')}">✕</button>`;
+                sb.querySelector('.sp-stag-dismiss').addEventListener('click',()=>sb.remove());
+                body.appendChild(sb);
+            }
+        }catch{}
+    }
     // Generation stats footer
     const _meta=d._spMeta||{};
     const _mTokens=_meta.completionTokens||genMeta.completionTokens||0;
@@ -497,12 +545,47 @@ export function updatePanel(d,_force=false){
         if(_mInject==='inline')fhtml+=`<span title="${t('Together')}" class="sp-gen-badge-mode"><svg viewBox="0 0 14 14" width="11" height="11" fill="none"><path d="M2 7h4l1.5-3 2 6 1.5-3h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg> ${t('Together')}</span>`;
         else fhtml+=`<span title="${t('Separate')}" class="sp-gen-badge-mode"><svg viewBox="0 0 14 14" width="11" height="11" fill="none"><circle cx="4.5" cy="7" r="3" stroke="currentColor" stroke-width="1"/><circle cx="9.5" cy="7" r="3" stroke="currentColor" stroke-width="1"/></svg> ${t('Separate')}</span>`;
         if(_mSource){const srcMap={'auto:together':t('Auto'),'auto:together:backup':t('Backup'),'auto:together:fallback':t('Fallback'),'auto:separate':t('Auto'),'manual:full':t('Full regen'),'manual:settings':t('Settings'),'manual:message':t('Msg regen'),'manual:thoughts':t('Thoughts')};let srcLabel=srcMap[_mSource]||'';if(!srcLabel&&_mSource.startsWith('manual:section:'))srcLabel=_mSource.replace('manual:section:','');const isFallback=_mSource.includes('fallback');const isBackup=_mSource.includes('backup');const cls=isFallback?'sp-gen-src sp-gen-src-warn':isBackup?'sp-gen-src sp-gen-src-warn':'sp-gen-src';if(srcLabel)fhtml+=`<span title="Source: ${esc(_mSource)}" class="${cls}"><svg viewBox="0 0 14 14" width="11" height="11" fill="none"><circle cx="7" cy="7" r="2" fill="currentColor" opacity="0.4"/><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1" opacity="0.4"/></svg> ${esc(srcLabel)}</span>`}
+        // Tracking-only token cost (just the tracker portion, not narrative)
+        if(_mTokens>0)fhtml+=`<span title="${t('Tracker data tokens only (excludes narrative)')}" class="sp-gen-badge-tracker">${t('Tracker')}: ~${_mTokens.toLocaleString()}</span>`;
+        // Delta savings indicator (read from snapshot metadata for historical nodes, fallback to current session)
+        const _deltaPct=_meta.deltaSavings||_lastDeltaSavings||0;
+        if(_deltaPct>0&&(_meta.deltaMode||s.deltaMode)){
+            const pct=Math.round(_deltaPct);
+            const _fullEst=Math.round(_mTokens/(1-pct/100));
+            const _saved=_fullEst-_mTokens;
+            fhtml+=`<span title="${t('Delta mode saved')} ~${_saved} ${t('tokens')} (${t('full output would be')} ~${_fullEst} ${t('tokens')})" class="sp-gen-badge-delta"><svg viewBox="0 0 14 14" width="11" height="11" fill="none"><path d="M7 2v10M4 5l3-3 3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg> -${pct}%</span>`;
+        }
+        // Session cumulative tokens
+        if(_sessionTokensUsed>0)fhtml+=`<span title="${t('Session total tokens')}" class="sp-gen-badge-session">\u03A3 ${_sessionTokensUsed>1000?(_sessionTokensUsed/1000).toFixed(1)+'k':_sessionTokensUsed}</span>`;
         // Inspect payload button
         if(currentSnapshotMesIdx>=0)fhtml+=`<span class="sp-gen-inspect" title="${t('Inspect')}"><svg viewBox="0 0 14 14" width="11" height="11" fill="none"><path d="M9.5 1.5h3v3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.5 1.5L8 6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><path d="M7 2H2.5a1 1 0 0 0-1 1v8.5a1 1 0 0 0 1 1H11a1 1 0 0 0 1-1V7" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg> ${t('Inspect')}</span>`;
+        // Analytics button
+        fhtml+=`<span class="sp-gen-analytics" title="${t('Token analytics')}"><svg viewBox="0 0 14 14" width="11" height="11" fill="none"><rect x="1.5" y="8" width="2" height="4.5" rx="0.4" fill="currentColor" opacity="0.4"/><rect x="4.5" y="5.5" width="2" height="7" rx="0.4" fill="currentColor" opacity="0.5"/><rect x="7.5" y="3" width="2" height="9.5" rx="0.4" fill="currentColor" opacity="0.6"/><rect x="10.5" y="1" width="2" height="11.5" rx="0.4" fill="currentColor" opacity="0.7"/></svg> ${t('Analytics')}</span>`;
+        // Tool calling status indicator (Separate mode only)
+        {const _isFnTool=_mSource==='auto:function_tool';const _fnEnabled=s.functionToolEnabled&&s.injectionMethod==='separate';
+        const _fnFellBack=_fnEnabled&&!_isFnTool&&_mSource&&_mSource!=='';
+        if(_fnEnabled||_isFnTool){
+            const _fnCls=_isFnTool?'sp-gen-badge-fn sp-gen-badge-fn-ok':_fnFellBack?'sp-gen-badge-fn sp-gen-badge-fn-fail':'sp-gen-badge-fn sp-gen-badge-fn-standby';
+            const _fnTip=_isFnTool?t('Function tool calling succeeded')
+                :_fnFellBack?t('Tool calling enabled but model did not call the tool — fell back to inline extraction')
+                :t('Function tool calling enabled — awaiting generation');
+            const _fnLabel=_isFnTool?t('Tool OK'):_fnFellBack?t('Tool Miss'):t('Tool');
+            const _fnIcon=_isFnTool
+                ?'<svg viewBox="0 0 14 14" width="11" height="11" fill="none"><path d="M2 7.5l3 3 7-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+                :_fnFellBack
+                ?'<svg viewBox="0 0 14 14" width="11" height="11" fill="none"><circle cx="7" cy="7" r="5.5" stroke="currentColor" stroke-width="1.1"/><line x1="4.5" y1="4.5" x2="9.5" y2="9.5" stroke="currentColor" stroke-width="1.2"/><line x1="9.5" y1="4.5" x2="4.5" y2="9.5" stroke="currentColor" stroke-width="1.2"/></svg>'
+                :'<svg viewBox="0 0 14 14" width="11" height="11" fill="none"><path d="M8 2L5 7h3l-1 5 4-6H8l1-4z" stroke="currentColor" stroke-width="1" fill="currentColor" opacity="0.5"/></svg>';
+            fhtml+=`<span class="${_fnCls}" title="${_fnTip}">${_fnIcon} ${_fnLabel}</span>`;
+        }}
         footer.innerHTML=fhtml;
         // Bind inspect button
         const inspectBtn=footer.querySelector('.sp-gen-inspect');
         if(inspectBtn)inspectBtn.addEventListener('click',()=>openDiffViewer(currentSnapshotMesIdx));
+        // Bind analytics button
+        const analyticsBtn=footer.querySelector('.sp-gen-analytics');
+        if(analyticsBtn)analyticsBtn.addEventListener('click',()=>{
+            import('./analytics.js').then(m=>m.openAnalytics()).catch(()=>{});
+        });
         body.appendChild(footer);
     }
     // Apply field toggle visibility
@@ -510,4 +593,10 @@ export function updatePanel(d,_force=false){
     const _dc=s.dashCards||DEFAULTS.dashCards;
     body.querySelectorAll('[data-ft]').forEach(el=>{const k=el.dataset.ft;const on=_dc[k]!==undefined?_dc[k]!==false:_ft[k]!==false;el.style.display=on?'':'none'});
     log('\u23F1 updatePanel:',((performance.now()-_perfStart)|0)+'ms');
+    } catch(_renderErr) {
+        // Error boundary: restore previous panel content on failure
+        log('ERROR updatePanel render failed — restoring previous content:', _renderErr?.message||_renderErr);
+        console.error('[ScenePulse] updatePanel render error:', _renderErr);
+        if(body&&_prevContent){body.innerHTML=_prevContent}
+    }
 }

@@ -1,0 +1,59 @@
+/* ═══ ACCESSIBILITY ═══ */
+
+/* Focus indicators for keyboard navigation */
+#sp-panel :focus-visible,
+#sp-thought-panel :focus-visible {
+    outline: 2px solid var(--sp-accent);
+    outline-offset: 1px;
+    border-radius: 3px;
+}
+
+/* Suppress focus ring on mouse click (only show for keyboard) */
+#sp-panel :focus:not(:focus-visible),
+#sp-thought-panel :focus:not(:focus-visible) {
+    outline: none;
+}
+
+/* Status badges: add text indicators alongside color */
+.sp-quest-badge-new::before { content: '\25CF '; /* bullet */ }
+.sp-quest-badge-updated::before { content: '\25B2 '; /* triangle */ }
+.sp-quest-badge-resolved::before { content: '\2713 '; /* checkmark */ }
+
+/* Reduced motion: disable all animations */
+@media (prefers-reduced-motion: reduce) {
+    #sp-panel *,
+    #sp-thought-panel *,
+    .sp-loading-glass *,
+    .sp-weather-overlay *,
+    .sp-time-tint *,
+    .sp-diff-overlay * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+
+    /* Disable weather particle animations */
+    .sp-weather-overlay { display: none !important; }
+
+    /* Disable pulsing effects */
+    .sp-mascot-pulse,
+    .sp-logo-glow,
+    .sp-update-dot,
+    .sp-badge-pulse { animation: none !important; }
+
+    /* Disable scene transition */
+    .sp-scene-transition { display: none !important; }
+}
+
+/* Screen reader only class */
+.sp-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}

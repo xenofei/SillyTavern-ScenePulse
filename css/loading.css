@@ -146,8 +146,44 @@ body:has(#sp-panel.sp-mode-mobile) .sp-loading-glass-fixed {
 .sp-gen-badge-mode { padding: 1px 5px; border-radius: 4px; background: rgba(77,184,164,0.08); color: var(--sp-accent); }
 .sp-gen-src { padding: 1px 5px; border-radius: 4px; }
 .sp-gen-src-warn { background: rgba(212,165,94,0.1); color: var(--sp-amber); }
-.sp-gen-inspect { padding: 1px 5px; border-radius: 4px; cursor: pointer; background: rgba(100,160,220,0.08); color: #64a0dc; transition: all 0.15s; }
-.sp-gen-inspect:hover { background: rgba(100,160,220,0.18); color: #8cc0f0; }
+.sp-gen-badge-delta { padding: 1px 5px; border-radius: 4px; background: rgba(91,196,122,0.1); color: var(--sp-green, #5bc47a); font-weight: 600; }
+.sp-gen-badge-session { padding: 1px 5px; border-radius: 4px; background: rgba(155,122,196,0.08); color: var(--sp-purple, #9b7ac4); font-weight: 500; }
+.sp-gen-badge-tracker { padding: 1px 5px; border-radius: 4px; background: rgba(91,140,196,0.08); color: var(--sp-blue, #5b8cc4); font-weight: 500; }
+.sp-gen-inspect, .sp-gen-analytics { padding: 1px 5px; border-radius: 4px; cursor: pointer; background: rgba(100,160,220,0.08); color: #64a0dc; transition: all 0.15s; }
+.sp-gen-inspect:hover, .sp-gen-analytics:hover { background: rgba(100,160,220,0.18); color: #8cc0f0; }
+/* Tool calling status */
+.sp-gen-badge-fn { padding: 1px 5px; border-radius: 4px; font-weight: 500; }
+.sp-gen-badge-fn-standby { background: rgba(155,122,196,0.08); color: #9b7ac4; }
+.sp-gen-badge-fn-ok { background: rgba(74,222,128,0.1); color: #4ade80; }
+.sp-gen-badge-fn-fail { background: rgba(248,113,113,0.1); color: #f87171; }
+
+/* ═══ STAGNATION BANNER ═══ */
+.sp-stagnation-banner {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 10px; margin: 4px 8px;
+    background: rgba(155,122,196,0.06); border: 1px solid rgba(155,122,196,0.15);
+    border-radius: var(--sp-radius); font-size: 10px; color: var(--sp-text-dim);
+    animation: sp-glass-in 0.3s ease-out;
+}
+.sp-stag-icon { font-size: 14px; flex-shrink: 0; }
+.sp-stag-text { flex: 1; line-height: 1.4; }
+.sp-stag-dismiss { background: none; border: none; color: var(--sp-text-dim); cursor: pointer; font-size: 11px; padding: 2px 4px; opacity: 0.5; transition: opacity 0.15s; }
+.sp-stag-dismiss:hover { opacity: 1; }
+
+/* ═══ RECOVERY CARD ═══ */
+.sp-recovery-card {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: 12px 16px; margin: 8px;
+    background: rgba(212,145,94,0.08); border: 1px solid rgba(212,145,94,0.2);
+    border-radius: var(--sp-radius); text-align: center;
+    animation: sp-glass-in 0.3s ease-out;
+}
+.sp-recovery-icon { font-size: 20px; opacity: 0.7; }
+.sp-recovery-title { font-size: 12px; font-weight: 700; color: var(--sp-amber); }
+.sp-recovery-sub { font-size: 10px; color: var(--sp-text-dim); }
+.sp-recovery-actions { display: flex; gap: 6px; margin-top: 4px; }
+.sp-recovery-actions .sp-btn { font-size: 10px; padding: 3px 10px; }
+.sp-recovery-retry { background: var(--sp-accent-dim) !important; color: var(--sp-accent) !important; border: 1px solid var(--sp-accent) !important; }
 
 /* ═══ DIFF VIEWER OVERLAY ═══ */
 /* Appended to <html> (not body) to escape ST's body { overflow: hidden } at <=1000px */

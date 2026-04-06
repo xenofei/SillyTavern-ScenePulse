@@ -8,7 +8,8 @@ import {
     _savedSamplerValues,
     setGenerating, setCancelRequested, setGenNonce, setGenMeta,
     setCurrentSnapshotMesIdx, setLastGenSource, setLastRawResponse, setLastDeltaPayload,
-    set_savedSamplerValues
+    set_savedSamplerValues,
+    addSessionTokens, setLastDeltaSavings
 } from '../state.js';
 import {
     getSettings, getActiveSchema, getActivePrompt, getTrackerData,
@@ -30,7 +31,7 @@ export function applyBuiltinPreset(){
         {key:'top_p',selectors:['#top_p_openai','#top_p_slider','#top_p'],val:BUILTIN_PRESET.top_p},
         {key:'frequency_penalty',selectors:['#freq_pen_openai','#frequency_penalty_slider','#freq_pen'],val:BUILTIN_PRESET.frequency_penalty},
         {key:'presence_penalty',selectors:['#pres_pen_openai','#presence_penalty_slider','#pres_pen'],val:BUILTIN_PRESET.presence_penalty},
-        {key:'max_tokens',selectors:['#openai_max_tokens','#max_tokens_slider','#max_tokens'],val:BUILTIN_PRESET.max_tokens},
+        // max_tokens intentionally omitted — user's SillyTavern preset controls token budget
     ];
     for(const m of mappings){
         for(const sel of m.selectors){
@@ -150,6 +151,45 @@ export function cancelGeneration(){
     }
 }
 
+// Smart snapshot selection: score snapshots by significance (location changes, new characters, quest completions, tension shifts)
+function _selectSignificantSnapshots(allSnaps,sortedDesc,count){
+    // Always include the most recent
+    const scores=[];
+    let prevSnap=null;
+    // Walk chronologically
+    const chronological=[...sortedDesc].reverse();
+    for(const key of chronological){
+        const snap=allSnaps[String(key)];if(!snap)continue;
+        let score=0;
+        if(prevSnap){
+            // Location change
+            if(snap.location&&snap.location!==prevSnap.location)score+=3;
+            // Tension shift
+            if(snap.sceneTension&&snap.sceneTension!==prevSnap.sceneTension)score+=2;
+            // New characters
+            const prevChars=new Set((prevSnap.characters||[]).map(c=>(c.name||'').toLowerCase()));
+            const newChars=(snap.characters||[]).filter(c=>!prevChars.has((c.name||'').toLowerCase()));
+            if(newChars.length)score+=2*newChars.length;
+            // Quest completions
+            const prevQuests=new Set([...(prevSnap.mainQuests||[]),...(prevSnap.sideQuests||[]),...(prevSnap.activeTasks||[])].filter(q=>q.urgency!=='resolved').map(q=>(q.name||'').toLowerCase()));
+            const resolved=[...(snap.mainQuests||[]),...(snap.sideQuests||[]),...(snap.activeTasks||[])].filter(q=>q.urgency==='resolved'&&prevQuests.has((q.name||'').toLowerCase()));
+            if(resolved.length)score+=3*resolved.length;
+        } else {
+            score=1; // First snapshot gets baseline
+        }
+        scores.push({key,score});
+        prevSnap=snap;
+    }
+    // Always include latest (last in chronological)
+    const latest=chronological[chronological.length-1];
+    // Sort by score descending, pick top (count-1), then add latest and sort chronologically
+    const candidates=scores.filter(s=>s.key!==latest).sort((a,b)=>b.score-a.score);
+    const selected=[latest,...candidates.slice(0,count-1).map(s=>s.key)];
+    const result=selected.sort((a,b)=>a-b);
+    log('Smart snapshot selection:',result.join(','),'scores:',scores.filter(s=>result.includes(s.key)).map(s=>s.key+':'+s.score).join(','));
+    return result;
+}
+
 export async function generateTracker(mesIdx,partKey,opts){
     if(!getSettings().enabled){log('generateTracker: extension disabled, skipping');return null}
     if(generating){warn('Busy, nonce=',genNonce);return null}
@@ -189,7 +229,13 @@ export async function generateTracker(mesIdx,partKey,opts){
             const allSnaps=getTrackerData().snapshots;
             const sorted=Object.keys(allSnaps).map(Number).sort((a,b)=>b-a);
             const snapCount=Math.min(settings.embedSnapshots||1, sorted.length);
-            const snapsToEmbed=sorted.slice(0,snapCount).reverse();
+            // Smart snapshot selection: pick most significant state changes instead of just N most recent
+            let snapsToEmbed;
+            if(snapCount>1&&sorted.length>2){
+                snapsToEmbed=_selectSignificantSnapshots(allSnaps,sorted,snapCount);
+            }else{
+                snapsToEmbed=sorted.slice(0,snapCount).reverse();
+            }
             const hasEmptyChars=!lastSnap.characters||!lastSnap.characters.length;
             if(snapCount<=1){
                 snapCtx=`\n\nPREVIOUS STATE (for reference \u2014 update as needed):\n${JSON.stringify(_cleanSnapForPrompt(lastSnap),null,2)}`;
@@ -287,14 +333,19 @@ export async function generateTracker(mesIdx,partKey,opts){
                 meta.completionTokens=Math.round(rawLen/4);
                 meta.elapsed=((Date.now()-genStartMs)/1000);
                 setGenMeta(meta);
+                addSessionTokens(meta.promptTokens + meta.completionTokens);
                 const parsed=cleanJson(raw);
                 // Delta merge: combine delta response with previous snapshot
                 if(settings.deltaMode && lastSnap){
                     log('Delta mode: merging',Object.keys(parsed).length,'delta keys with previous');
                     setLastDeltaPayload(parsed);
+                    // Estimate delta savings: compare output tokens to typical full output
+                    const fullEstimate=Math.round(JSON.stringify(lastSnap).length/4);
+                    if(fullEstimate>0){const savings=Math.max(0,Math.round((1-(meta.completionTokens/fullEstimate))*100));setLastDeltaSavings(savings)}
                     return mergeDelta(lastSnap, parsed);
                 }
                 setLastDeltaPayload(null);
+                setLastDeltaSavings(0);
                 log('Parsed JSON keys:',Object.keys(parsed).join(', '));
                 for(const[pk,pv]of Object.entries(parsed)){
                     if(pv&&typeof pv==='object'&&!Array.isArray(pv)){log('  nested object:',pk,'\u2192 keys:',Object.keys(pv).join(', '))}

@@ -15,7 +15,7 @@
 .sp-rel-meta-label { font-weight: 600; color: var(--sp-text-dim); text-transform: uppercase; font-size: 9px; letter-spacing: 0.04em; min-width: 80px; }
 .sp-rel-milestone { color: var(--sp-amber); }
 
-.sp-meter-row { display: grid; grid-template-columns: 55px 1fr 44px; align-items: center; gap: 4px; padding: 2px 0; }
+.sp-meter-row { display: grid; grid-template-columns: 50px 1fr 105px; align-items: center; gap: 3px; padding: 2px 0; }
 .sp-meter-row.sp-meter-has-tag { grid-template-rows: auto auto; }
 .sp-meter-row.sp-meter-has-tag > .sp-meter-label { grid-row: 2; }
 .sp-meter-row.sp-meter-has-tag > .sp-meter-bar-wrap { grid-row: 2; }
@@ -28,8 +28,17 @@
 .sp-meter-bar-fill::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(255,255,255,0.15) 0%, transparent 60%); border-radius: 5px; }
 .sp-meter-bar-track { position: absolute; inset: 0; border-radius: 5px; overflow: hidden; } /* clips the fill */
 .sp-meter-bar-prev { position: absolute; top: 0; bottom: 0; width: 2px; background: rgba(255,255,255,0.5); border-radius: 1px; z-index: 2; box-shadow: 0 0 4px rgba(255,255,255,0.3); }
+/* Delta gain/loss bar segments */
+.sp-meter-bar-delta { position: absolute; top: 0; height: 100%; z-index: 1; border-radius: 5px; animation: sp-delta-bar-in 0.5s ease-out; }
+.sp-meter-bar-gain { background: #2d8a4e; }
+.sp-meter-bar-loss { background: #a83a3a; }
+@keyframes sp-delta-bar-in { from { opacity: 0; } to { opacity: 1; } }
 .sp-meter-bar-na { height: 10px; background: repeating-linear-gradient(90deg,rgba(100,110,130,0.08) 0,rgba(100,110,130,0.08) 4px,transparent 4px,transparent 8px); border-radius: 5px; }
-.sp-meter-face { position: absolute; right: -16px; top: 50%; transform: translateY(-50%); width: 13px; height: 13px; z-index: 3; }
+.sp-meter-face {
+    display: inline-flex; align-items: center; justify-content: center;
+    margin-left: 2px; vertical-align: middle;
+}
+.sp-meter-face svg { width: 13px; height: 13px; flex-shrink: 0; animation: sp-delta-pop 0.4s ease-out; }
 .sp-meter-value { font-size: 9px; font-weight: 700; font-family: var(--sp-font-mono); color: var(--sp-text-dim); text-align: right; min-width: 22px; display: flex; align-items: center; justify-content: flex-end; gap: 2px; }
 .sp-meter-value-na { font-size: 9px; color: var(--sp-text-dim); font-style: italic; text-align: right; }
 .sp-meter-tag { grid-column: 2 / 3; grid-row: 1; font-size: 8.5px; font-style: italic; color: var(--sp-text-dim); opacity: 0.6; text-align: right; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 1px; margin-bottom: -1px; }
@@ -37,11 +46,64 @@
 .sp-meter-delta { font-size: 8px; font-weight: 700; font-family: var(--sp-font-mono); line-height: 1; white-space: nowrap; display: inline-flex; align-items: center; gap: 1px; animation: sp-delta-pop 0.4s ease-out; }
 .sp-meter-delta-up { color: #4ade80; text-shadow: 0 0 6px rgba(74,222,128,0.4); }
 .sp-meter-delta-down { color: #f87171; text-shadow: 0 0 6px rgba(248,113,113,0.4); }
-.sp-meter-delta-arrow { font-size: 6px; line-height: 1; }
+.sp-meter-delta-stress-up { color: #facc15; text-shadow: 0 0 6px rgba(250,204,21,0.4); }
+.sp-meter-delta-stress-down { color: #4ade80; text-shadow: 0 0 6px rgba(74,222,128,0.4); }
+.sp-delta-icon { vertical-align: middle; margin-left: 1px; animation: sp-delta-pop 0.4s ease-out; }
 @keyframes sp-delta-pop { 0% { opacity: 0; transform: scale(0.6); } 50% { transform: scale(1.15); } 100% { opacity: 1; transform: scale(1); } }
 
+/* ═══ SPARKLINES ═══ */
+.sp-sparkline { display: inline-block; vertical-align: middle; margin-left: 4px; border-radius: 3px; opacity: 0.9; transition: opacity 0.15s; }
+.sp-sparkline:hover { opacity: 1; }
+
+/* Full-screen graph overlay */
+.sp-graph-overlay {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; height: 100dvh;
+    background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); z-index: 100001;
+    display: flex; align-items: center; justify-content: center;
+    animation: sp-glass-in 0.2s ease-out;
+}
+.sp-graph-container {
+    background: var(--sp-bg, rgba(18,20,26,0.98)); border: 1px solid var(--sp-border, rgba(255,255,255,0.06));
+    border-radius: 12px; padding: 20px; width: min(92vw, 1400px); max-height: calc(100vh - 40px);
+    box-shadow: 0 16px 48px rgba(0,0,0,0.6); overflow: auto;
+}
+@media (max-width: 600px) {
+    .sp-graph-container { padding: 10px; width: calc(100vw - 16px); max-height: calc(100vh - 16px); border-radius: 8px; }
+}
+@media (min-width: 1921px) {
+    .sp-graph-container { width: min(85vw, 1800px); }
+}
+.sp-graph-header {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+}
+.sp-graph-title { font-size: 14px; font-weight: 700; color: var(--sp-text-bright, #e8ecf4); flex: 1; }
+.sp-graph-close {
+    background: none; border: 1px solid var(--sp-border, rgba(255,255,255,0.1)); color: var(--sp-text-dim, #6b7280);
+    cursor: pointer; font-size: 14px; width: 28px; height: 28px; border-radius: 50%; display: flex;
+    align-items: center; justify-content: center; transition: all 0.15s;
+}
+.sp-graph-close:hover { color: var(--sp-text, #c8ccd4); background: var(--sp-surface, rgba(28,32,42,0.9)); }
+.sp-graph-svg-wrap { margin-bottom: 10px; border-radius: 6px; overflow: hidden; min-height: 200px; }
+@media (min-height: 800px) { .sp-graph-svg-wrap { min-height: 350px; } }
+@media (min-height: 1080px) { .sp-graph-svg-wrap { min-height: 500px; } }
+.sp-graph-legend { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; justify-content: center; }
+.sp-graph-legend-btn {
+    font-size: 13px; color: var(--sp-text-dim, #6b7280); display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03);
+    cursor: pointer; transition: all 0.15s; font-family: inherit; opacity: 0.6;
+}
+.sp-graph-legend-btn:hover { opacity: 0.9; background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.15); }
+.sp-graph-legend-btn.sp-graph-legend-active {
+    opacity: 1; font-weight: 700; color: var(--sp-text-bright, #e8ecf4);
+    background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.2);
+}
+.sp-graph-legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+/* Clickable X-axis labels */
+.sp-graph-xlabel:hover { fill: var(--sp-accent, #4db8a4) !important; }
+.sp-graph-stats { display: flex; flex-wrap: wrap; gap: 12px; font-size: 10px; color: var(--sp-text-dim, #6b7280); padding-top: 4px; border-top: 1px solid var(--sp-border, rgba(255,255,255,0.06)); }
+
 .sp-meter-affection .sp-meter-bar-fill { background: linear-gradient(90deg,#d46a7e,#f08ca0); }
-.sp-meter-trust .sp-meter-bar-fill { background: linear-gradient(90deg,#d4a55e,#e8c88a); }
-.sp-meter-desire .sp-meter-bar-fill { background: linear-gradient(90deg,#c44080,#e860a0); }
+.sp-meter-trust .sp-meter-bar-fill { background: linear-gradient(90deg,#4aaa60,#6ad480); }
+.sp-meter-desire .sp-meter-bar-fill { background: linear-gradient(90deg,#b060a0,#d480c0); }
 .sp-meter-stress .sp-meter-bar-fill { background: linear-gradient(90deg,#c47040,#e89060); }
 .sp-meter-compatibility .sp-meter-bar-fill { background: linear-gradient(90deg,#40a0c4,#60c8e8); }

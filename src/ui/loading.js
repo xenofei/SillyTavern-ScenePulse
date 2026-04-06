@@ -2,7 +2,11 @@
 import { log } from '../logger.js';
 import { esc } from '../utils.js';
 import { t } from '../i18n.js';
-import { elapsedInterval, setElapsedInterval } from '../state.js';
+import {
+    elapsedInterval, setElapsedInterval,
+    _tpLoadingTimerId, set_tpLoadingTimerId,
+    _tpBannerTimerId, set_tpBannerTimerId
+} from '../state.js';
 import { spDetectMode } from './mobile.js';
 import { cancelGeneration } from '../generation/engine.js';
 
@@ -107,12 +111,13 @@ export function showThoughtLoading(label,sub){
         <div class="sp-tp-loading-elapsed" id="sp-tp-elapsed"></div>
     </div>`;
     tpb.appendChild(ov);
-    // Start elapsed timer
+    // Start elapsed timer — stored in module state to prevent leak on innerHTML teardown
+    if(_tpLoadingTimerId)clearInterval(_tpLoadingTimerId);
     const start=Date.now();
-    ov._tpTimer=setInterval(()=>{
+    set_tpLoadingTimerId(setInterval(()=>{
         const el=document.getElementById('sp-tp-elapsed');
         if(el)el.textContent=((Date.now()-start)/1000|0)+'s';
-    },1000);
+    },1000));
     log('Overlay [thought]: "'+label+'"');
 }
 // ── Thought Banner -- slim banner at top of Inner Thoughts panel during together-mode auto-gen ──
@@ -129,15 +134,17 @@ export function showChatBanner(label){
             tpBanner.innerHTML=`<div class="sp-inline-wait-spinner"></div><span>${t('Updating scene data')}<span class="sp-ellipsis"></span></span><span class="sp-banner-timer" id="sp-banner-timer-tp">0s</span>`;
             tp.insertBefore(tpBanner,body);
             tp.classList.add('sp-tp-visible');
-            tpBanner._timerInterval=setInterval(()=>{
+            if(_tpBannerTimerId)clearInterval(_tpBannerTimerId);
+            set_tpBannerTimerId(setInterval(()=>{
                 const el=document.getElementById('sp-banner-timer-tp');
                 if(el)el.textContent=((Date.now()-bannerStart)/1000|0)+'s';
-            },1000);
+            },1000));
         }
     }
 }
 export function hideChatBanner(){
-    document.querySelectorAll('.sp-chat-banner').forEach(b=>{if(b._timerInterval)clearInterval(b._timerInterval);b.remove()});
+    if(_tpBannerTimerId){clearInterval(_tpBannerTimerId);set_tpBannerTimerId(null)}
+    document.querySelectorAll('.sp-chat-banner').forEach(b=>b.remove());
 }
 export function clearThoughtLoading(){
     const tp=document.getElementById('sp-thought-panel');
@@ -146,7 +153,7 @@ export function clearThoughtLoading(){
     if(tpb){
         const ov=tpb.querySelector('.sp-loading-glass');
         if(ov){
-            if(ov._tpTimer)clearInterval(ov._tpTimer);
+            if(_tpLoadingTimerId){clearInterval(_tpLoadingTimerId);set_tpLoadingTimerId(null)}
             ov.remove();log('Overlay [thought]: cleared');
         }
         tpb.style.height='';

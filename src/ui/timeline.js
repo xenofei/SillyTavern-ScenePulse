@@ -16,7 +16,7 @@ export function renderTimeline(){
     if(sorted.length<2)return;
     const latest=sorted[sorted.length-1];
     let selectedKey=currentSnapshotMesIdx>=0?currentSnapshotMesIdx:latest;
-    // Cap displayed nodes -- always include first + last, sample middle evenly
+    // Display max 8 nodes on scrubber (sampled), but all snapshots remain stored for graphs/analytics
     const MAX_DISPLAY=8;
     let displayKeys=sorted;
     if(sorted.length>MAX_DISPLAY){
@@ -141,6 +141,14 @@ export function renderTimeline(){
         bar.appendChild(wrap);
     }
     tl.appendChild(bar);
+    // "Browse All" button — opens full snapshot list
+    if(sorted.length>1){
+        const browseBtn=document.createElement('button');
+        browseBtn.className='sp-tl-browse-btn';
+        browseBtn.textContent=t('Browse All')+` (${sorted.length})`;
+        browseBtn.addEventListener('click',()=>_showSnapshotBrowser(all,sorted));
+        tl.appendChild(browseBtn);
+    }
     if(selectedKey!==latest){
         const disc=document.createElement('div');disc.className='sp-tl-disclaimer';
         disc.innerHTML=`<span class="sp-tl-disc-icon">\u26A0</span> Viewing scene from an older message (msg #${selectedKey}) \u2014 not the current scene. <button class="sp-tl-disc-btn">${t('Jump to latest')}</button>`;
@@ -162,4 +170,47 @@ export function renderTimeline(){
     }
     body.appendChild(tl);
     log('\u23F1 renderTimeline:',((performance.now()-_tlStart)|0)+'ms','nodes:',displayKeys.length);
+}
+
+function _showSnapshotBrowser(all,sorted){
+    document.querySelectorAll('.sp-browse-overlay').forEach(el=>el.remove());
+    const overlay=document.createElement('div');overlay.className='sp-browse-overlay';
+    let html=`<div class="sp-browse-container"><div class="sp-browse-header"><span class="sp-browse-title">${t('All Snapshots')} (${sorted.length})</span><button class="sp-browse-close">\u2715</button></div><div class="sp-browse-list">`;
+    for(const k of sorted){
+        const snap=all.snapshots[String(k)];if(!snap)continue;
+        const time=snap.time||'';
+        const loc=(snap.location||'').split('>')[0].trim();
+        const topic=snap.sceneTopic||'';
+        const tension=snap.sceneTension||'';
+        const chars=(snap.characters||[]).length;
+        const meta=snap._spMeta||{};
+        const tokens=(meta.promptTokens||0)+(meta.completionTokens||0);
+        const elapsed=meta.elapsed||0;
+        const isSelected=k===currentSnapshotMesIdx;
+        html+=`<div class="sp-browse-item${isSelected?' sp-browse-selected':''}" data-key="${k}">
+            <span class="sp-browse-idx">#${k}</span>
+            <span class="sp-browse-info">${time?time+' \u00B7 ':''}${loc||topic||'\u2014'}</span>
+            <span class="sp-browse-meta">${tension?tension+' \u00B7 ':''}${chars} chars${tokens?' \u00B7 ~'+tokens+'t':''}</span>
+        </div>`;
+    }
+    html+=`</div></div>`;
+    overlay.innerHTML=html;
+    // Click handlers
+    overlay.querySelector('.sp-browse-close').addEventListener('click',()=>overlay.remove());
+    overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove()});
+    overlay.querySelectorAll('.sp-browse-item').forEach(item=>{
+        item.addEventListener('click',()=>{
+            const k=Number(item.dataset.key);
+            const snap=all.snapshots[String(k)];if(!snap)return;
+            overlay.remove();
+            setCurrentSnapshotMesIdx(k);
+            const norm=normalizeTracker(snap);
+            updatePanel(norm);
+            if(!document.getElementById('sp-panel')?.classList.contains('sp-visible'))showPanel();
+            renderTimeline();
+        });
+    });
+    const escH=(e)=>{if(e.key==='Escape'){overlay.remove();document.removeEventListener('keydown',escH)}};
+    document.addEventListener('keydown',escH);
+    document.documentElement.appendChild(overlay);
 }

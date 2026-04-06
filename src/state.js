@@ -98,3 +98,21 @@ export function set_streamHiderStyleEl(v) { _streamHiderStyleEl = v; }
 
 export let _streamHiderObserver = null;
 export function set_streamHiderObserver(v) { _streamHiderObserver = v; }
+
+// ── Token tracking (cumulative session counter) ──
+export let _sessionTokensUsed = 0;
+export function addSessionTokens(n) { _sessionTokensUsed += n; }
+export function resetSessionTokens() { _sessionTokensUsed = 0; }
+
+export let _lastDeltaSavings = 0;
+export function setLastDeltaSavings(v) { _lastDeltaSavings = v; }
+
+// ── Timer leak fixes: module-level timer IDs ──
+export let _inlineWaitTimerId = null;
+export function set_inlineWaitTimerId(v) { _inlineWaitTimerId = v; }
+
+export let _tpLoadingTimerId = null;
+export function set_tpLoadingTimerId(v) { _tpLoadingTimerId = v; }
+
+export let _tpBannerTimerId = null;
+export function set_tpBannerTimerId(v) { _tpBannerTimerId = v; }

@@ -9,16 +9,18 @@ import { log, warn, err } from './src/logger.js';
 // ── Core Logic ──
 import {
     generating, genNonce, genMeta,
-    inlineGenStartMs, lastGenSource,
+    inlineGenStartMs,
     inlineExtractionDone,
     setGenerating, setGenNonce, setCancelRequested,
-    setInlineGenStartMs, setCurrentSnapshotMesIdx, setLastGenSource, setLastRawResponse, setLastDeltaPayload,
+    setInlineGenStartMs,
     setPendingInlineIdx, setInlineExtractionDone,
-    setPrevLocation, setPrevTimePeriod
+    setPrevLocation, setPrevTimePeriod,
+    resetSessionTokens,
+    _inlineWaitTimerId, set_inlineWaitTimerId
 } from './src/state.js';
 import {
     getSettings, anyPanelsActive,
-    getLatestSnapshot, saveSnapshot,
+    getLatestSnapshot,
     ensureChatSaved, invalidateSettingsCache
 } from './src/settings.js';
 import { normalizeTracker, clearNormCache } from './src/normalize.js';
@@ -26,18 +28,18 @@ import { resetColorMap } from './src/color.js';
 
 // ── Generation ──
 import { extractInlineTracker } from './src/generation/extraction.js';
-import { mergeDelta } from './src/generation/delta-merge.js';
 import { stopStreamingHider } from './src/generation/streaming.js';
 import { cancelGeneration } from './src/generation/engine.js';
 import { scenePulseInterceptor } from './src/generation/interceptor.js';
+import { processExtraction } from './src/generation/pipeline.js';
 
 // ── UI ──
-import { spSetGenerating, spPostGenShow } from './src/ui/mobile.js';
+import { spSetGenerating } from './src/ui/mobile.js';
 import { createPanel } from './src/ui/panel.js';
 import { updatePanel } from './src/ui/update-panel.js';
 import { clearWeatherOverlay } from './src/ui/weather.js';
 import { clearTimeTint } from './src/ui/time-tint.js';
-import { addMesButton, onCharMsg, renderExisting, spOnMessageDeleted } from './src/ui/message.js';
+import { onCharMsg, renderExisting, spOnMessageDeleted } from './src/ui/message.js';
 import { cleanupGenUI, clearThoughtLoading } from './src/ui/loading.js';
 
 // ── Settings UI ──
@@ -45,6 +47,13 @@ import { createSettings } from './src/settings-ui/create-settings.js';
 import { loadUI } from './src/settings-ui/bind-ui.js';
 import { showSetupGuide } from './src/settings-ui/setup-guide.js';
 import { checkForUpdate, showUpdateBadge } from './src/update-check.js';
+
+// ── Slash Commands & Macros ──
+import { registerSlashCommands } from './src/slash-commands.js';
+import { registerMacros } from './src/macros.js';
+
+// ── Function Tool Calling ──
+import { registerFunctionTool } from './src/generation/function-tool.js';
 
 // ── Register interceptor on globalThis (required by manifest.json "generate_interceptor") ──
 globalThis.scenePulseInterceptor = scenePulseInterceptor;
@@ -59,6 +68,10 @@ eventSource.on(event_types.APP_READY, () => { try {
     log('APP_READY: start');
     createPanel(); log('APP_READY: panel ok');
     createSettings(); log('APP_READY: settings ok');
+    // Register slash commands & macros
+    try { registerSlashCommands(); log('APP_READY: slash commands ok'); } catch (e) { warn('Slash commands:', e); }
+    try { registerMacros(); log('APP_READY: macros ok'); } catch (e) { warn('Macros:', e); }
+    try { registerFunctionTool(); log('APP_READY: function tool ok'); } catch (e) { warn('Function tool:', e); }
     // Delayed retry: ST may populate profile dropdowns after our init
     setTimeout(() => { try { loadUI(); log('APP_READY: delayed profile refresh'); } catch (e) {} }, 2000);
     renderExisting(); log('APP_READY: render ok');
@@ -68,6 +81,30 @@ eventSource.on(event_types.APP_READY, () => { try {
         setTimeout(() => showSetupGuide(), 2000);
     }
     log('v' + VERSION + ' ready');
+    // Apply saved theme
+    try {
+        const _ts = getSettings();
+        if (_ts.theme && _ts.theme !== 'default') {
+            import('./src/themes.js').then(m => m.applyTheme(_ts.theme)).catch(() => {});
+        }
+    } catch {}
+    // ST version compatibility check
+    try {
+        const _ctx = SillyTavern.getContext();
+        const _stVer = _ctx.version || _ctx.getVersion?.() || '';
+        if (_stVer) {
+            log('SillyTavern version:', _stVer);
+            // Known minimum: 1.12.0 required, tested up to 1.16.x
+            const _verMatch = String(_stVer).match(/(\d+)\.(\d+)/);
+            if (_verMatch) {
+                const _major = Number(_verMatch[1]);
+                const _minor = Number(_verMatch[2]);
+                if (_major < 1 || (_major === 1 && _minor < 12)) {
+                    toastr.warning('ScenePulse requires SillyTavern 1.12.0 or newer. Some features may not work.', 'ScenePulse', { timeOut: 10000 });
+                }
+            }
+        }
+    } catch {}
     // Register regex script to hide tracker JSON from DOM display.
     // markdownOnly:true = only runs during markdown rendering (display), NOT on raw msg.mes.
     // This is the same approach used by RPG Companion and Dooms Enhancement Suite.
@@ -81,7 +118,7 @@ eventSource.on(event_types.APP_READY, () => { try {
             // Register with markdownOnly:true — cleans display but preserves msg.mes for extraction
             _ctx.extensionSettings.regex.push({
                 scriptName: 'ScenePulse Tracker Hider',
-                findRegex: '<!--SP_TRACKER_START-->[\\s\\S]*?<!--SP_TRACKER_END-->|\\{\\{//SP_TRACKER_START\\}\\}[\\s\\S]*?(\\{\\{//SP_TRACKER_END\\}\\}|$)|\\{\\s*"time"\\s*:\\s*"[^"]*"\\s*,\\s*"date"[\\s\\S]*$',
+                findRegex: '<!--SP_TRACKER_START-->[\\s\\S]*?(<!--SP_TRACKER_END-->|$)|\\{\\{//SP_TRACKER_START\\}\\}[\\s\\S]*?(\\{\\{//SP_TRACKER_END\\}\\}|$)|\\{\\s*"time"\\s*:\\s*"\\d{1,2}:\\d{2}[\\s\\S]*$',
                 replaceString: '',
                 trimStrings: [],
                 placement: [2],
@@ -112,7 +149,7 @@ eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, idx => onCharMsg(idx));
 // CRITICAL: Save chat the INSTANT generation ends, BEFORE other extensions
 // can trigger profile switches that cause CHAT_CHANGED → chat reload → message loss.
 eventSource.on(event_types.GENERATION_ENDED, async () => {
-    try { const w = document.getElementById('sp-inline-wait'); if (w) { if (w._timerInterval) clearInterval(w._timerInterval); w.remove(); } } catch {}
+    try { if(_inlineWaitTimerId){clearInterval(_inlineWaitTimerId);set_inlineWaitTimerId(null)} const w = document.getElementById('sp-inline-wait'); if (w) w.remove(); } catch {}
     clearThoughtLoading();
     // ── PRIMARY EXTRACTION for Together/Inline mode ──
     const s = getSettings();
@@ -129,40 +166,17 @@ eventSource.on(event_types.GENERATION_ENDED, async () => {
             if (extracted) {
                 log('GENERATION_ENDED: primary extraction SUCCESS for message', targetIdx);
                 setInlineExtractionDone(true); setPendingInlineIdx(-1);
-                genMeta.promptTokens = 0;
-                genMeta.completionTokens = Math.round(fullMsgLen / 4);
-                genMeta.elapsed = inlineGenStartMs > 0 ? ((Date.now() - inlineGenStartMs) / 1000) : 0;
+                const _compTokens = Math.round(fullMsgLen / 4);
+                const _elapsed = inlineGenStartMs > 0 ? ((Date.now() - inlineGenStartMs) / 1000) : 0;
                 setInlineGenStartMs(0);
-                setLastGenSource('auto:together');
-                setLastRawResponse(JSON.stringify(extracted, null, 2));
-                // Delta merge for inline mode
-                const prevSnap = getLatestSnapshot();
-                if(s.deltaMode && prevSnap){
-                    setLastDeltaPayload(extracted);
-                    extracted = mergeDelta(prevSnap, extracted);
-                    log('GENERATION_ENDED: delta merge applied');
-                } else {
-                    setLastDeltaPayload(null);
-                }
-                const norm = normalizeTracker(extracted);
-                setCurrentSnapshotMesIdx(targetIdx);
-                log('=== TOGETHER MODE SUMMARY === source=', lastGenSource);
-                log('  chars:', norm.characters?.length || 0, 'rels:', norm.relationships?.length || 0);
-                log('  quests: main=', norm.mainQuests?.length || 0, 'side=', norm.sideQuests?.length || 0, 'tasks=', norm.activeTasks?.length || 0);
-                log('  ideas:', norm.plotBranches?.length || 0, 'northStar:', JSON.stringify(norm.northStar || '').substring(0, 50));
-                log('  scene: topic=' + (norm.sceneTopic ? '✓' : '✗'), 'mood=' + (norm.sceneMood ? '✓' : '✗'), 'tension=' + (norm.sceneTension ? '✓' : '✗'));
-                if (norm.characters?.length) for (const c of norm.characters) log('  char:', c.name, 'role=', c.role ? '✓' : '✗', 'thought=', c.innerThought ? '✓' : '✗');
-                if (norm.relationships?.length) for (const r of norm.relationships) log('  rel:', r.name, 'aff=', r.affection, 'trust=', r.trust, 'desire=', r.desire, 'compat=', r.compatibility);
-                extracted._spMeta = { promptTokens: 0, completionTokens: genMeta.completionTokens, elapsed: genMeta.elapsed, source: 'auto:together', injectionMethod: 'inline' };
-                saveSnapshot(targetIdx, extracted);
-                updatePanel(norm); spPostGenShow();
-                spSetGenerating(false);
-                stopStreamingHider();
-                log('GENERATION_ENDED: panel updated — extraction complete before cascade');
-                const el = document.querySelector(`.mes[mesid="${targetIdx}"]`);
-                if (el) addMesButton(el);
-                try { await ensureChatSaved(); log('GENERATION_ENDED: chat saved'); }
-                catch (e) { warn('GENERATION_ENDED save failed:', e); }
+                genMeta.promptTokens = 0;
+                genMeta.completionTokens = _compTokens;
+                genMeta.elapsed = _elapsed;
+                await processExtraction(targetIdx, extracted, 'auto:together', {
+                    promptTokens: 0, completionTokens: _compTokens, elapsed: _elapsed,
+                    stopHider: true, unlockGen: true
+                });
+                log('GENERATION_ENDED: pipeline complete');
                 return;
             } else {
                 const msgLen = (chat[targetIdx]?.mes || '').length;
@@ -207,6 +221,7 @@ eventSource.on(event_types.CHAT_CHANGED, async () => {
     clearNormCache();
     resetColorMap();
     invalidateSettingsCache();
+    resetSessionTokens();
     setPrevLocation(''); setPrevTimePeriod('');
     setTimeout(() => {
         renderExisting();
@@ -226,5 +241,61 @@ if (event_types.MESSAGE_DELETED) {
 if (event_types.MESSAGE_UPDATED) {
     eventSource.on(event_types.MESSAGE_UPDATED, () => { setTimeout(renderExisting, 300); });
 }
+
+// ── Keyboard shortcuts ──
+document.addEventListener('keydown', (e) => {
+    // Escape: close diff viewer or overlays
+    if (e.key === 'Escape') {
+        try {
+            const diffOverlay = document.querySelector('.sp-diff-overlay');
+            if (diffOverlay) { diffOverlay.remove(); e.preventDefault(); return; }
+            const graphPopup = document.querySelector('.sp-graph-popup');
+            if (graphPopup) { graphPopup.remove(); e.preventDefault(); return; }
+            const confirmOverlay = document.querySelector('.sp-confirm-overlay');
+            if (confirmOverlay) { confirmOverlay.remove(); e.preventDefault(); return; }
+        } catch {}
+    }
+    // Alt+Shift+P: toggle panel (avoids Firefox Ctrl+Shift+P print conflict)
+    if (e.altKey && e.shiftKey && e.key === 'P') {
+        e.preventDefault();
+        try {
+            const panel = document.getElementById('sp-panel');
+            if (panel && panel.classList.contains('sp-visible')) {
+                import('./src/ui/panel.js').then(m => m.hidePanel());
+            } else {
+                import('./src/ui/panel.js').then(m => m.showPanel());
+            }
+        } catch {}
+    }
+    // Alt+Shift+R: regenerate tracker with loading animations
+    if (e.altKey && e.shiftKey && e.key === 'R') {
+        e.preventDefault();
+        if (!generating && getSettings().enabled) {
+            const { chat } = SillyTavern.getContext();
+            let mesIdx = -1;
+            for (let i = chat.length - 1; i >= 0; i--) {
+                if (!chat[i].is_user) { mesIdx = i; break; }
+            }
+            if (mesIdx >= 0) {
+                (async () => {
+                    const [stateM, engineM, loadM, mobileM, panelM] = await Promise.all([
+                        import('./src/state.js'), import('./src/generation/engine.js'),
+                        import('./src/ui/loading.js'), import('./src/ui/mobile.js'), import('./src/ui/panel.js')
+                    ]);
+                    stateM.setLastGenSource('shortcut:regen');
+                    mobileM.spAutoShow();
+                    loadM.showLoadingOverlay(document.getElementById('sp-panel-body'), 'Generating Scene', 'Keyboard shortcut');
+                    loadM.showStopButton(); loadM.startElapsedTimer();
+                    loadM.showThoughtLoading('Generating Scene', 'Analyzing context');
+                    const result = await engineM.generateTracker(mesIdx);
+                    loadM.hideStopButton(); loadM.stopElapsedTimer();
+                    loadM.clearLoadingOverlay(document.getElementById('sp-panel-body'));
+                    loadM.clearThoughtLoading();
+                    if (result) panelM.showPanel();
+                })().catch(() => {});
+            }
+        }
+    }
+});
 
 log('v' + VERSION + ' init');

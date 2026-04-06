@@ -8,17 +8,18 @@ import { getTrackerData, getLatestSnapshot, getSnapshotFor, saveSnapshot } from 
 import { normalizeTracker } from '../normalize.js';
 import { esc } from '../utils.js';
 import {
-    generating, genNonce, lastGenSource, setLastGenSource,
+    generating, genNonce, setLastGenSource,
     genMeta, setGenMeta,
     currentSnapshotMesIdx, setCurrentSnapshotMesIdx,
     inlineExtractionDone, setInlineExtractionDone,
     inlineGenStartMs, setInlineGenStartMs,
     pendingInlineIdx, setPendingInlineIdx,
-    lastRawResponse, setLastRawResponse
+    _inlineWaitTimerId, set_inlineWaitTimerId
 } from '../state.js';
 import { generateTracker } from '../generation/engine.js';
 import { extractInlineTracker } from '../generation/extraction.js';
 import { stopStreamingHider } from '../generation/streaming.js';
+import { processExtraction } from '../generation/pipeline.js';
 import { ensureChatSaved, anyPanelsActive } from '../settings.js';
 import { spAutoShow, spPostGenShow, spSetGenerating } from './mobile.js';
 import { showLoadingOverlay, clearLoadingOverlay, showStopButton, hideStopButton, startElapsedTimer, stopElapsedTimer, showThoughtLoading, showChatBanner, clearThoughtLoading } from './loading.js';
@@ -103,7 +104,7 @@ export async function onCharMsg(idx){
         }
         // FALLBACK: GENERATION_ENDED didn't extract (empty msg, timing issue)
         // Remove waiting indicators
-        try{const w=document.getElementById('sp-inline-wait');if(w){if(w._timerInterval)clearInterval(w._timerInterval);w.remove()}}catch{}
+        try{if(_inlineWaitTimerId){clearInterval(_inlineWaitTimerId);set_inlineWaitTimerId(null)}const w=document.getElementById('sp-inline-wait');if(w)w.remove()}catch{}
         clearThoughtLoading();
         setPendingInlineIdx(idx);
         log('onCharMsg [inline]: GENERATION_ENDED missed, retrying as fallback');
@@ -127,31 +128,19 @@ export async function onCharMsg(idx){
         }
         if(extracted){
             // Estimate tokens from together mode -- use full message length (narrative + tracker)
-            const fullMsgLen=(chat[idx]?.mes||'').length+JSON.stringify(extracted).length; // mes already stripped, add tracker back
-            const trackerJson=JSON.stringify(extracted);
-            setGenMeta({...genMeta, promptTokens:0, completionTokens:Math.round(fullMsgLen/4), elapsed:inlineGenStartMs>0?((Date.now()-inlineGenStartMs)/1000):0});
+            const fullMsgLen=(chat[idx]?.mes||'').length+JSON.stringify(extracted).length;
+            const _compTokens=Math.round(fullMsgLen/4);
+            const _elapsed=inlineGenStartMs>0?((Date.now()-inlineGenStartMs)/1000):0;
+            setGenMeta({...genMeta, promptTokens:0, completionTokens:_compTokens, elapsed:_elapsed});
             setInlineGenStartMs(0);
-            log('onCharMsg [inline]: extracted tracker from message',idx,'keys=',Object.keys(extracted).length,'~tracker_tokens:',genMeta.completionTokens);
+            log('onCharMsg [inline]: extracted tracker from message',idx,'keys=',Object.keys(extracted).length,'~tokens:',_compTokens);
             setInlineExtractionDone(true);setPendingInlineIdx(-1);
             stopStreamingHider();
-            log('onCharMsg [inline]: extraction complete, hider stopped');
-            setLastGenSource('auto:together');
-            setLastRawResponse(JSON.stringify(extracted,null,2)); // store for debug copy
-            const norm=normalizeTracker(extracted);
-            // Debug summary
-            log('=== TOGETHER MODE SUMMARY === source=',lastGenSource);
-            log('  chars:',norm.characters?.length||0,'rels:',norm.relationships?.length||0);
-            log('  quests: main=',norm.mainQuests?.length||0,'side=',norm.sideQuests?.length||0,'tasks=',norm.activeTasks?.length||0);
-            log('  ideas:',norm.plotBranches?.length||0,'northStar:',JSON.stringify(norm.northStar||'').substring(0,50));
-            log('  scene: topic='+(norm.sceneTopic?'\u2713':'\u2717'),'mood='+(norm.sceneMood?'\u2713':'\u2717'),'tension='+(norm.sceneTension?'\u2713':'\u2717'));
-            if(norm.characters?.length)for(const c of norm.characters)log('  char:',c.name,'role=',c.role?'\u2713':'\u2717','thought=',c.innerThought?'\u2713':'\u2717');
-            if(norm.relationships?.length)for(const r of norm.relationships)log('  rel:',r.name,'aff=',r.affection,'trust=',r.trust,'desire=',r.desire,'compat=',r.compatibility);
-            setCurrentSnapshotMesIdx(idx);
-            extracted._spMeta={promptTokens:genMeta.promptTokens,completionTokens:genMeta.completionTokens,elapsed:genMeta.elapsed,source:lastGenSource,injectionMethod:'inline'};
-            saveSnapshot(idx,extracted);
-            await ensureChatSaved(); // Flush to disk before profile cascade can trigger CHAT_CHANGED
-            updatePanel(norm);spPostGenShow();
-            spSetGenerating(false); // Pulse off -- onCharMsg extraction succeeded
+            await processExtraction(idx, extracted, 'auto:together', {
+                promptTokens:0, completionTokens:_compTokens, elapsed:_elapsed,
+                stopHider:false, unlockGen:true
+            });
+            log('onCharMsg [inline]: pipeline complete');
         } else {
             const msgLen=(chat[idx]?.mes||'').length;
             log('onCharMsg [inline]: no tracker found in message',idx,'('+msgLen+' chars)');
@@ -160,10 +149,10 @@ export async function onCharMsg(idx){
                 const fbProfile=s.fallbackProfile||s.connectionProfile||'';
                 const fbPreset=s.fallbackPreset||s.chatPreset||'';
                 if(!fbProfile&&!fbPreset){
-                    // No fallback profile configured -- show toast nudge, don't silently fail
+                    // No fallback profile configured -- show recovery card in panel
                     stopStreamingHider();
                     warn('Together mode: AI omitted tracker ('+msgLen+' chars). No fallback profile configured.');
-                    toastr.warning('AI omitted tracker data. Set up a fallback profile in ScenePulse settings for automatic recovery.','ScenePulse',{timeOut:8000});
+                    _showRecoveryCard(idx);
                 } else {
                     warn('Together mode: AI omitted tracker payload ('+msgLen+' chars narrative, no SP markers). Falling back to separate generation.');
                     stopStreamingHider(); // Stop the hider since we're switching to separate mode
@@ -180,6 +169,7 @@ export async function onCharMsg(idx){
                         log('Together fallback: separate generation succeeded via profile=',fbProfile||'(current)');
                     } else {
                         warn('Together fallback: separate generation also failed');
+                        _showRecoveryCard(idx);
                         const prev=getLatestSnapshot();
                         if(prev){const norm=normalizeTracker(prev);updatePanel(norm);spPostGenShow()}
                     }
@@ -288,4 +278,34 @@ export async function renderExisting(){
     }
     try{document.querySelectorAll('.mes:not([is_user="true"])').forEach(el=>addMesButton(el))}catch(e){warn('addButtons:',e)}
     }catch(e){err('renderExisting:',e)}
+}
+
+// ── Recovery card: shown when extraction fails and no fallback is configured ──
+function _showRecoveryCard(mesIdx) {
+    const body = document.getElementById('sp-panel-body');
+    if (!body) return;
+    // Don't duplicate if already showing
+    if (body.querySelector('.sp-recovery-card')) return;
+    const card = document.createElement('div');
+    card.className = 'sp-recovery-card';
+    card.innerHTML = `<div class="sp-recovery-icon">⚠</div>
+        <div class="sp-recovery-title">${t('Extraction Failed')}</div>
+        <div class="sp-recovery-sub">${t('AI did not include tracker data in message')} #${mesIdx}.</div>
+        <div class="sp-recovery-actions">
+            <button class="sp-btn sp-recovery-retry">${t('Retry')}</button>
+            <button class="sp-btn sp-recovery-dismiss">${t('Dismiss')}</button>
+        </div>`;
+    card.querySelector('.sp-recovery-retry').addEventListener('click', async () => {
+        card.remove();
+        setLastGenSource('manual:recovery');
+        const result = await generateTracker(mesIdx);
+        if (result) {
+            const norm = normalizeTracker(result);
+            updatePanel(norm);
+            spPostGenShow();
+        }
+    });
+    card.querySelector('.sp-recovery-dismiss').addEventListener('click', () => card.remove());
+    // Insert at top of panel body
+    body.insertBefore(card, body.firstChild);
 }
