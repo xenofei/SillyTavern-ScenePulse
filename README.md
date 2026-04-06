@@ -1,3 +1,11 @@
+<!-- ⚠️ WORK IN PROGRESS ⚠️ -->
+
+> **⚠️ EARLY ACCESS — WORK IN PROGRESS**
+>
+> ScenePulse is under active development. Expect rough edges, visual glitches, and frequent updates. Some AI models may not reliably produce tracker data in Together mode. Mobile support is functional but still being refined. If something breaks, please [open an issue](https://github.com/xenofei/SillyTavern-ScenePulse/issues) — your feedback shapes what gets fixed next.
+
+---
+
 <div align="center">
 
 <img src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fxenofei%2FSillyTavern-ScenePulse%2Fmain%2Fmanifest.json&query=%24.version&label=version&style=flat-square&labelColor=1a1c24&color=4db8a4" alt="Version">
@@ -20,8 +28,6 @@
 ---
 
 ScenePulse is a SillyTavern extension that automatically extracts and tracks scene data from AI responses — characters, relationships, quests, mood, tension, and more — all displayed in a real-time dashboard alongside your roleplay.
-
-> ScenePulse is actively maintained. Some features marked *(experimental)* are still being refined. If something breaks, please [open an issue](https://github.com/xenofei/SillyTavern-ScenePulse/issues). Community [translations](src/i18n.js) and contributions welcome.
 
 ## Table of Contents
 
