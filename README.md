@@ -1,19 +1,10 @@
-<!-- ⚠️ WORK IN PROGRESS ⚠️ -->
-
-> **⚠️ EARLY ACCESS — WORK IN PROGRESS**
->
-> ScenePulse is under active development. Expect rough edges, visual glitches, and frequent updates. Some AI models may not reliably produce tracker data in Together mode. Mobile support is functional but still being refined. If something breaks, please [open an issue](https://github.com/xenofei/SillyTavern-ScenePulse/issues) — your feedback shapes what gets fixed next.
-
-> **🌐 Localization:** The most up-to-date translations are in [**v5.8.7-i18n**](https://github.com/xenofei/SillyTavern-ScenePulse/blob/v5.8.7-i18n/src/i18n.js) — 29 languages, 344 translation keys, full UI + enum value coverage. Community translation contributions welcome.
-
----
-
 <div align="center">
 
-<img src="https://img.shields.io/badge/version-6.6.0-4db8a4?style=flat-square&labelColor=1a1c24" alt="Version">
+<img src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fxenofei%2FSillyTavern-ScenePulse%2Fmain%2Fmanifest.json&query=%24.version&label=version&style=flat-square&labelColor=1a1c24&color=4db8a4" alt="Version">
 <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square&labelColor=1a1c24" alt="License">
 <img src="https://img.shields.io/badge/platform-SillyTavern%201.12%2B-orange?style=flat-square&labelColor=1a1c24" alt="Platform">
 <img src="https://img.shields.io/badge/languages-29-9b7ac4?style=flat-square&labelColor=1a1c24" alt="Languages">
+<img src="https://img.shields.io/github/stars/xenofei/SillyTavern-ScenePulse?style=flat-square&labelColor=1a1c24&color=e8b341" alt="Stars">
 
 # <img width="836" height="200" alt="image" src="https://github.com/user-attachments/assets/041e92d6-f126-45da-8a2f-7a64a6a8d609" />
 
@@ -29,6 +20,23 @@
 ---
 
 ScenePulse is a SillyTavern extension that automatically extracts and tracks scene data from AI responses — characters, relationships, quests, mood, tension, and more — all displayed in a real-time dashboard alongside your roleplay.
+
+> ScenePulse is actively maintained. Some features marked *(experimental)* are still being refined. If something breaks, please [open an issue](https://github.com/xenofei/SillyTavern-ScenePulse/issues). Community [translations](src/i18n.js) and contributions welcome.
+
+## Table of Contents
+
+- [Features](#features)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [How It Works](#how-it-works)
+- [Architecture](#architecture)
+- [Compatibility](#compatibility)
+- [Configuration](#configuration)
+- [Custom Panels](#custom-panels)
+- [Known Issues](#known-issues)
+- [Changelog](#changelog)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Features
 
