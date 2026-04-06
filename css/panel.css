@@ -56,13 +56,28 @@
 }
 .sp-brand-accent { color: var(--sp-accent); }
 /* Update notification dot on brand icon */
+/* Wrapper holds both icon and dot — dot stays fixed while icon rotates */
+.sp-brand-icon-wrap { position: relative; flex-shrink: 0; }
 .sp-update-dot {
-    position: absolute; top: -2px; right: -2px;
-    width: 8px; height: 8px; border-radius: 50%;
+    position: absolute; top: -3px; right: -3px;
+    width: 9px; height: 9px; border-radius: 50%;
     background: #d4915e; border: 1.5px solid var(--sp-bg-solid, #161820);
-    animation: sp-update-pulse 2s ease-in-out infinite;
+    box-shadow: 0 0 6px rgba(212,145,94,0.6), 0 0 12px rgba(212,145,94,0.3);
+    animation: sp-update-dot-pulse 1.5s ease-in-out infinite;
+    z-index: 5; pointer-events: none;
 }
-@keyframes sp-update-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+@keyframes sp-update-dot-pulse {
+    0%, 100% { box-shadow: 0 0 4px rgba(212,145,94,0.5), 0 0 8px rgba(212,145,94,0.2); }
+    50% { box-shadow: 0 0 12px rgba(212,145,94,0.9), 0 0 24px rgba(212,145,94,0.5); }
+}
+/* Brand icon pulses amber when update available — brighter center = brighter glow */
+.sp-brand-icon-wrap:has(.sp-update-dot) .sp-brand-icon {
+    animation: sp-logo-update-glow 1.5s ease-in-out infinite;
+}
+@keyframes sp-logo-update-glow {
+    0%, 100% { filter: drop-shadow(0 0 3px rgba(212,145,94,0.2)); color: var(--sp-accent); }
+    50% { filter: drop-shadow(0 0 14px rgba(212,145,94,0.8)) drop-shadow(0 0 28px rgba(212,145,94,0.35)); color: #e8b060; }
+}
 .sp-toolbar-spacer { flex: 1; }
 .sp-toolbar-btn {
     background: var(--sp-surface); border: 1px solid var(--sp-border);

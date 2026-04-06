@@ -47,16 +47,27 @@ export function getUpdateInfo() { return _updateInfo; }
  */
 export function showUpdateBadge() {
     if (!_updateInfo || _updateInfo.isUpToDate) return;
-    const brand = document.getElementById('sp-brand-icon');
-    if (!brand) return;
-    let dot = brand.querySelector('.sp-update-dot');
+    const wrap = document.getElementById('sp-brand-icon-wrap');
+    if (!wrap) return;
+    let dot = wrap.querySelector('.sp-update-dot');
     if (!dot) {
         dot = document.createElement('span');
         dot.className = 'sp-update-dot';
-        dot.title = t('Update available');
-        brand.style.position = 'relative';
-        brand.appendChild(dot);
+        wrap.appendChild(dot);
+        // Click the wrapper to re-show the update banner
+        wrap.style.cursor = 'pointer';
+        wrap.addEventListener('click', _onBrandClick);
     }
+}
+
+function _onBrandClick(e) {
+    const wrap = document.getElementById('sp-brand-icon-wrap');
+    if (!wrap?.querySelector('.sp-update-dot')) return;
+    const body = document.getElementById('sp-panel-body');
+    if (body?.querySelector('.sp-update-banner')) return;
+    e.stopPropagation();
+    e.preventDefault();
+    showUpdateBanner();
 }
 
 /**

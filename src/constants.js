@@ -2,7 +2,7 @@
 // Extracted from index.js lines 1-365, plus TOUR_EXAMPLE_DATA (~4720-4747)
 
 export const MODULE_NAME='scenepulse';
-export const VERSION = '6.5.8';
+export const VERSION = '6.6.0';
 export const LOG='[ScenePulse]';
 export const EXTENSION_NAME='SillyTavern-ScenePulse';
 export const SP_LS_KEY='scenepulse_config';
