@@ -12,9 +12,12 @@ let _updateInfo = null;
  */
 export async function checkForUpdate() {
     try {
+        // Use ST's getRequestHeaders() for auth — plain fetch returns 403 in multi-user mode
+        let headers = { 'Content-Type': 'application/json' };
+        try { const ctx = SillyTavern.getContext(); if (ctx.getRequestHeaders) headers = ctx.getRequestHeaders(); } catch {}
         const response = await fetch('/api/extensions/version', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers,
             body: JSON.stringify({ extensionName: EXTENSION_NAME, global: false }),
         });
         if (!response.ok) { if(response.status!==403)warn('Update check: HTTP', response.status); return null; }
