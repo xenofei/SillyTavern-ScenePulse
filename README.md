@@ -10,7 +10,7 @@
 
 <div align="center">
 
-<img src="https://img.shields.io/badge/version-6.3.6-4db8a4?style=flat-square&labelColor=1a1c24" alt="Version">
+<img src="https://img.shields.io/badge/version-6.6.0-4db8a4?style=flat-square&labelColor=1a1c24" alt="Version">
 <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square&labelColor=1a1c24" alt="License">
 <img src="https://img.shields.io/badge/platform-SillyTavern%201.12%2B-orange?style=flat-square&labelColor=1a1c24" alt="Platform">
 <img src="https://img.shields.io/badge/languages-29-9b7ac4?style=flat-square&labelColor=1a1c24" alt="Languages">
@@ -41,9 +41,10 @@ ScenePulse is a SillyTavern extension that automatically extracts and tracks sce
 
 ### Relationship Tracking
 - Animated meter bars for **affection, desire, trust, stress, compatibility** (0–100)
-- **Unique per-meter icons** — heart (affection), Adinkra symbol (desire), star (trust), lightning/shield (stress), venn rings (compatibility) with green/red variants on change
-- **Mini sparklines** showing meter trends across snapshots — click for full-screen SVG graph with all meters, clickable legend, data point labels, and per-snapshot stats
-- Delta indicators showing +/- changes with color coding (green up, red down, yellow stress increase)
+- **Unique per-meter delta icons** — emotionally distinct up/down variants: heart/cracked heart (affection), Adinkra symbol/X'd symbol (desire), star/broken star (trust), calm shield/lightning bolt (stress), linked/separated rings (compatibility)
+- **Mini sparklines** with dark background and 20% gridlines — always visible, even with <2 data points
+- **Full-screen SVG graph** on click — last 30 data points, all meters overlaid, clickable legend, hover tooltips with message preview, click data points to navigate to that message
+- Delta indicators showing +/- changes (green up, red down, yellow stress increase, green stress decrease)
 - **Previous-value white marker** on the bar showing where the meter was last update
 - Relationship phase, milestones, and time together
 - Confidence-based color matching between character and relationship cards
@@ -122,10 +123,12 @@ Template variables for use in character cards, system prompts, Quick Replies:
 - **Scene transitions** — feathered location change popups with backdrop blur and soft radial fade
 
 ### Timeline & Snapshot Browser
-- Every AI message creates a snapshot (up to 30 stored)
-- **Timeline scrubber** — click any dot to load historical scene data
-- **"Browse All" button** — full-screen snapshot list with time, location, tension, character count, token usage
-- Click any row to jump to that snapshot
+- Every AI message creates a snapshot (unlimited storage by default, configurable)
+- **Timeline scrubber** — click any dot to load historical scene data and scroll to the message
+- **"Browse All" button** — paginated snapshot list (10 per page) with time, location, tension, character count, token usage
+- Click any row to jump to that snapshot and scroll to the message in chat
+- **Historical message navigation** — automatically loads lazy-loaded messages via ST's `showMoreMessages` API
+- **Message highlight** — JS-driven glow pulse with graceful fade when scrolling to a message
 - 200ms debounced navigation for smooth scrubbing
 <img width="850" height="82" alt="image" src="https://github.com/user-attachments/assets/5b46e312-2921-4a24-9781-4c297669ea27" />
 
@@ -180,6 +183,15 @@ Template variables for use in character cards, system prompts, Quick Replies:
 - `Alt+Shift+P` — Toggle ScenePulse panel
 - `Alt+Shift+R` — Regenerate tracker (with loading animations)
 - `Escape` — Close overlays (diff viewer, graph, confirm dialogs)
+
+### Auto-Update System
+- **Update check** on startup via ST's `/api/extensions/version` endpoint with proper auth headers
+- **Amber pulsing dot** on brand icon when update available — icon glows amber in sync
+- **Update banner** at top of panel: "Update Available" with **"Update & Reload"** button
+- One-click update calls ST's `/api/extensions/update` (git pull) then reloads the browser
+- **"Later"** dismisses the banner; clicking the glowing icon re-shows it
+- Installing/success/error states with visual feedback
+- Branch and commit hash displayed in settings header
 
 ### Font Scaling
 - Adjustable font size slider (0.7x–1.5x) in settings
@@ -255,10 +267,10 @@ When embedding multiple snapshots in the generation prompt, ScenePulse selects t
 
 ## Architecture
 
-ScenePulse v6.x uses a modular ES module architecture with ~45 focused modules:
+ScenePulse v6.x uses a modular ES module architecture with ~46 focused modules:
 
 ```
-index.js                    ← Thin entry point (~300 lines)
+index.js                    ← Thin entry point (~320 lines)
 style.css                   ← @import directives only
 src/
   constants.js              ← Defaults, schemas, prompts, panel definitions
@@ -270,7 +282,7 @@ src/
   color.js                  ← Character color assignment with fuzzy matching
   normalize.js              ← Data normalization with WeakMap caching
   i18n.js                   ← Internationalization (29 languages, 344 keys)
-  update-check.js           ← Update notification via ST's extension version API
+  update-check.js           ← Update check + one-click updater via ST's extension API
   story-ideas.js            ← Story idea injection
   slash-commands.js          ← Slash command registration (/sp)
   macros.js                  ← Custom macro registration ({{sp_*}})
@@ -315,7 +327,7 @@ No bundler required — SillyTavern loads extensions as `<script type="module">`
 
 ## Compatibility
 
-- **SillyTavern** 1.12.0+ (including 1.16.0 with updated `#connection_profiles` selector)
+- **SillyTavern** 1.12.0+ (tested up to 1.17.x)
 - **Tested models**: GLM-4/5/5.1, Claude, GPT-4o, Gemini, Llama 3, Mistral, Qwen
 - **API providers**: OpenAI-compatible, Anthropic, Google AI, any provider SillyTavern supports
 - **Browsers**: Chrome, Firefox, Safari (mobile & desktop)
@@ -355,6 +367,7 @@ Access settings via **Extensions** → **ScenePulse** in SillyTavern's settings 
 ### Advanced Tab
 | Setting | Description |
 |---------|-------------|
+| **Max snapshots** | Maximum scene snapshots stored per chat (0 = unlimited) |
 | **Generate / Clear / Reset** | Manual generation, data clearing, settings reset |
 | **Export / Import Config** | Save/load ScenePulse configuration as JSON |
 | **Debug tools** | SP Log, Console, Last Response, View Log |
@@ -384,6 +397,20 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 - **Translations** — While all 29 languages have full translation coverage, some translations may be imperfect. Community corrections welcome in [`src/i18n.js`](https://github.com/xenofei/SillyTavern-ScenePulse/blob/main/src/i18n.js)
 
 ## Changelog
+
+### v6.6.0
+- **Auto-update system** — Update check with proper ST auth headers. Amber pulsing dot + banner with one-click "Update & Reload" button. Calls ST's git pull endpoint then reloads browser.
+- **Historical node navigation** — Clicking timeline dots or Browse All items scrolls to the message in chat, auto-loading lazy-loaded messages via `showMoreMessages`. Works with messages not currently in the DOM.
+- **Message highlight animation** — JS-driven glow pulse with graceful synchronized fade on outline + box-shadow. Bypasses CSS animation restrictions from ST themes.
+- **Graph hover tooltips** — Hovering data points shows message preview (150 chars), location, mood, tension near the cursor. Click navigates to that message.
+- **Mobile graph support** — Tap shows info panel with "Go to message" button for touch devices.
+- **Browse All pagination** — 10 items per page with First/Prev/Next/Last navigation. Starts on most recent page. Larger fonts (13-15px).
+- **Unlimited snapshot storage** — Default `maxSnapshots: 0` (unlimited). User-configurable in Advanced settings.
+- **Graph capped to 30 data points** — X-axis labels auto-skip to prevent overlap on high message counts. "Showing last 30" indicator when capped.
+- **Unique per-meter delta icons** — Emotionally distinct up/down SVGs: full/cracked heart, bright/dim star, Adinkra/X'd symbol, calm shield/lightning bolt, linked/separated rings. Stress uses yellow up / green down.
+- **Relationship meter improvements** — Bars aligned across all resolutions with fixed-width columns. Mini sparklines always visible. Icons inline after delta values.
+- **Settings improvements** — Schema lock/unlock with single confirmation. Disabled state grays out everything except enable checkbox. Max snapshots setting.
+- **Streaming hider** — More aggressive early detection (`"time":` + time format pattern). Catches partial SP markers during streaming.
 
 ### v6.3.6
 - **Relationship sparklines** — Mini inline sparklines on each meter, full-screen SVG graph overlay with clickable legend, area fill, value labels, per-snapshot stats, and clickable X-axis labels for historical navigation
