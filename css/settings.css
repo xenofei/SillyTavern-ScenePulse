@@ -21,6 +21,48 @@
 .sp-on .sp-drawer-badge-dot { background: var(--sp-accent); box-shadow: 0 0 4px var(--sp-accent-glow); animation: sp-badge-pulse 2s ease-in-out infinite; }
 .sp-off .sp-drawer-badge-dot { background: var(--sp-disabled); }
 @keyframes sp-badge-pulse { 0%,100% { box-shadow: 0 0 4px var(--sp-accent-glow); opacity: 1; } 50% { box-shadow: 0 0 10px var(--sp-accent-glow), 0 0 20px rgba(77,184,164,0.2); opacity: 0.7; } }
+/* ═══ UPDATE BANNER ═══ */
+.sp-update-banner {
+    margin: 0; padding: 10px 14px;
+    background: linear-gradient(135deg, rgba(77,184,164,0.08) 0%, rgba(77,184,164,0.02) 100%);
+    border-bottom: 1px solid rgba(77,184,164,0.2);
+    animation: sp-glass-in 0.3s ease-out;
+}
+.sp-update-banner-content { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
+.sp-update-banner-icon { color: var(--sp-accent, #4db8a4); flex-shrink: 0; margin-top: 1px; }
+.sp-update-banner-text { flex: 1; min-width: 0; }
+.sp-update-banner-title { font-size: 12px; font-weight: 700; color: var(--sp-text-bright, #e8ecf4); }
+.sp-update-banner-sub { font-size: 10px; color: var(--sp-text-dim, #6b7280); margin-top: 1px; line-height: 1.3; }
+.sp-update-banner-actions { display: flex; gap: 6px; }
+.sp-update-btn-install {
+    flex: 1; padding: 7px 12px; font-size: 11px; font-weight: 700;
+    background: var(--sp-accent, #4db8a4); color: #0c0e14; border: none; border-radius: 5px;
+    cursor: pointer; transition: all 0.15s; font-family: inherit;
+    letter-spacing: 0.02em;
+}
+.sp-update-btn-install:hover { filter: brightness(1.15); box-shadow: 0 2px 8px rgba(77,184,164,0.3); }
+.sp-update-btn-install:disabled { opacity: 0.6; cursor: default; filter: none; }
+.sp-update-btn-dismiss {
+    padding: 7px 12px; font-size: 11px; font-weight: 500;
+    background: none; color: var(--sp-text-dim, #6b7280); border: 1px solid var(--sp-border, rgba(255,255,255,0.08));
+    border-radius: 5px; cursor: pointer; transition: all 0.15s; font-family: inherit;
+}
+.sp-update-btn-dismiss:hover { color: var(--sp-text, #c8ccd4); border-color: rgba(255,255,255,0.15); }
+/* States */
+.sp-update-banner-installing { opacity: 0.7; }
+.sp-update-banner-installing .sp-update-btn-install { animation: sp-update-pulse 1.2s ease-in-out infinite; }
+@keyframes sp-update-pulse { 0%,100% { opacity: 0.6; } 50% { opacity: 1; } }
+.sp-update-banner-success .sp-update-btn-install { background: var(--sp-green, #5bc47a); }
+.sp-update-banner-error .sp-update-btn-install { background: var(--sp-red, #c45b5b); color: #fff; }
+.sp-update-banner-closing { animation: sp-update-out 0.3s ease-in forwards; }
+@keyframes sp-update-out { to { opacity: 0; max-height: 0; padding: 0; margin: 0; overflow: hidden; } }
+/* Mobile */
+@media (max-width: 600px) {
+    .sp-update-banner { padding: 8px 10px; }
+    .sp-update-banner-actions { flex-direction: column; }
+    .sp-update-btn-install, .sp-update-btn-dismiss { padding: 10px; font-size: 12px; text-align: center; }
+}
+
 /* Enable ScenePulse checkbox — always interactive, never greyed out */
 /* Enable checkbox — always interactive regardless of sp-disabled state */
 #scenepulse-settings .sp-ck:has(#sp-enabled) { position: relative; }

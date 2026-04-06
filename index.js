@@ -46,7 +46,7 @@ import { cleanupGenUI, clearThoughtLoading } from './src/ui/loading.js';
 import { createSettings } from './src/settings-ui/create-settings.js';
 import { loadUI } from './src/settings-ui/bind-ui.js';
 import { showSetupGuide } from './src/settings-ui/setup-guide.js';
-import { checkForUpdate, showUpdateBadge } from './src/update-check.js';
+import { checkForUpdate, showUpdateBadge, showUpdateBanner } from './src/update-check.js';
 
 // ── Slash Commands & Macros ──
 import { registerSlashCommands } from './src/slash-commands.js';
@@ -138,7 +138,7 @@ eventSource.on(event_types.APP_READY, () => { try {
             if (info) {
                 const branchEl = document.getElementById('sp-branch-info');
                 if (branchEl) branchEl.textContent = `${info.branch} · ${info.commit}`;
-                if (!info.isUpToDate) showUpdateBadge();
+                if (!info.isUpToDate) { showUpdateBadge(); showUpdateBanner(); }
             }
         } catch (e) {}
     }, 3000);
