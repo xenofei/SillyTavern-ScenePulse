@@ -34,7 +34,7 @@ import { createSettings } from './create-settings.js';
 
 export function updateBadge(){const on=getSettings().enabled;const b=document.getElementById('sp-badge');if(b){b.className='sp-drawer-badge '+(on?'sp-on':'sp-off');b.innerHTML=`<span class="sp-drawer-badge-dot"></span>${on?t('Active'):t('Off')}`}}
 
-export function loadUI(){const s=getSettings();$('#sp-enabled').prop('checked',s.enabled);$('#sp-auto-gen').prop('checked',s.autoGenerate);$('#sp-show-thoughts').prop('checked',s.showThoughts!==false);$('#sp-show-weather').prop('checked',s.weatherOverlay!==false);$('#sp-show-timetint').prop('checked',s.timeTint!==false);$('#sp-show-devbtns').prop('checked',s.devButtons===true);$('#sp-delta-mode').prop('checked',s.deltaMode===true);$('#sp-function-tool').prop('checked',s.functionToolEnabled===true);$('#sp-font-scale').val(s.fontScale||1);$('#sp-font-scale-val').text((s.fontScale||1).toFixed(1)+'x');$('#sp-language').val(s.language||'');$('#sp-ctx').val(s.contextMessages);$('#sp-retries').val(s.maxRetries);$('#sp-mode').val(s.promptMode||'json');$('#sp-embed-n').val(s.embedSnapshots);$('#sp-embed-role').val(s.embedRole);$('#sp-lore-mode').val(s.lorebookMode||'character_attached');
+export function loadUI(){const s=getSettings();$('#sp-enabled').prop('checked',s.enabled);$('#sp-auto-gen').prop('checked',s.autoGenerate);$('#sp-show-thoughts').prop('checked',s.showThoughts!==false);$('#sp-show-weather').prop('checked',s.weatherOverlay!==false);$('#sp-show-timetint').prop('checked',s.timeTint!==false);$('#sp-show-devbtns').prop('checked',s.devButtons===true);$('#sp-delta-mode').prop('checked',s.deltaMode===true);$('#sp-function-tool').prop('checked',s.functionToolEnabled===true);$('#sp-font-scale').val(s.fontScale||1);$('#sp-font-scale-val').text((s.fontScale||1).toFixed(1)+'x');$('#sp-language').val(s.language||'');$('#sp-ctx').val(s.contextMessages);$('#sp-retries').val(s.maxRetries);$('#sp-mode').val(s.promptMode||'json');$('#sp-embed-n').val(s.embedSnapshots);$('#sp-embed-role').val(s.embedRole);$('#sp-lore-mode').val(s.lorebookMode||'character_attached');$('#sp-max-snapshots').val(s.maxSnapshots||0);
     // Rebuild profile/preset dropdowns from current DOM (ST may load them late)
     const profiles=getConnectionProfiles();const presets=getChatPresets();
     // ── localStorage is the source of truth for config persistence ──
@@ -197,6 +197,7 @@ export function bindUI(){const s=getSettings();
         log('Theme:',this.value);
     });
     $('#sp-ctx').on('change',function(){s.contextMessages=clamp(+this.value,1,30);saveSettings();_spSaveLS()});
+    $('#sp-max-snapshots').on('change',function(){s.maxSnapshots=Math.max(0,Math.floor(+this.value||0));saveSettings();log('Max snapshots:',s.maxSnapshots||'unlimited')});
     $('#sp-retries').on('change',function(){s.maxRetries=clamp(+this.value,0,5);saveSettings();_spSaveLS()});
     $('#sp-profile').on('change',function(){s.connectionProfile=this.value;saveSettings();_spSaveLS()});
     $('#sp-preset').on('change',function(){s.chatPreset=this.value;saveSettings();_spSaveLS();$('#sp-preset-info').toggle(!this.value)});

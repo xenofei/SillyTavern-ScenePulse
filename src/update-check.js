@@ -17,7 +17,7 @@ export async function checkForUpdate() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ extensionName: EXTENSION_NAME, global: false }),
         });
-        if (!response.ok) { warn('Update check: HTTP', response.status); return null; }
+        if (!response.ok) { if(response.status!==403)warn('Update check: HTTP', response.status); return null; }
         const data = await response.json();
         _updateInfo = {
             branch: data.currentBranchName || 'unknown',

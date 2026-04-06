@@ -101,6 +101,38 @@
 /* Clickable X-axis labels */
 .sp-graph-xlabel:hover { fill: var(--sp-accent, #4db8a4) !important; }
 .sp-graph-stats { display: flex; flex-wrap: wrap; gap: 12px; font-size: 10px; color: var(--sp-text-dim, #6b7280); padding-top: 4px; border-top: 1px solid var(--sp-border, rgba(255,255,255,0.06)); }
+/* Hover tooltip near data point */
+.sp-graph-tooltip {
+    position: absolute; z-index: 20;
+    background: var(--sp-bg, rgba(14,16,22,0.97)); border: 1px solid var(--sp-accent, #4db8a4);
+    border-radius: 8px; padding: 8px 12px; width: 220px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.6); pointer-events: none;
+    animation: sp-glass-in 0.1s ease-out;
+}
+.sp-graph-tip-header { font-size: 11px; color: var(--sp-text-bright, #e8ecf4); margin-bottom: 3px; }
+.sp-graph-tip-header strong { color: var(--sp-accent, #4db8a4); }
+.sp-graph-tip-loc { font-size: 10px; color: var(--sp-text, #c8ccd4); font-weight: 600; }
+.sp-graph-tip-topic { font-size: 10px; color: var(--sp-text-dim, #6b7280); font-style: italic; }
+.sp-graph-tip-msg { font-size: 10px; color: var(--sp-text, #c8ccd4); margin-top: 4px; padding-top: 4px; border-top: 1px solid rgba(255,255,255,0.06); line-height: 1.4; max-height: 60px; overflow: hidden; }
+.sp-graph-tip-val { font-size: 10px; color: var(--sp-accent, #4db8a4); margin-top: 3px; }
+.sp-graph-tip-hint { font-size: 8px; color: var(--sp-text-dim, #6b7280); opacity: 0.5; margin-top: 2px; }
+.sp-graph-tip-goto {
+    display: block; width: 100%; margin-top: 6px; padding: 6px; font-size: 12px; font-weight: 600;
+    background: var(--sp-accent-dim, rgba(77,184,164,0.15)); color: var(--sp-accent, #4db8a4);
+    border: 1px solid var(--sp-accent, #4db8a4); border-radius: 5px; cursor: pointer; text-align: center;
+    font-family: inherit;
+}
+.sp-graph-tip-goto:hover { background: rgba(77,184,164,0.25); }
+
+/* Mobile graph adjustments */
+@media (max-width: 600px) {
+    .sp-graph-container { padding: 10px; }
+    .sp-graph-title { font-size: 12px; }
+    .sp-graph-legend { gap: 4px; }
+    .sp-graph-legend-btn { font-size: 11px; padding: 5px 10px; }
+    .sp-graph-stats { font-size: 9px; gap: 8px; }
+    .sp-graph-tooltip { width: min(260px, 85vw); }
+}
 
 .sp-meter-affection .sp-meter-bar-fill { background: linear-gradient(90deg,#d46a7e,#f08ca0); }
 .sp-meter-trust .sp-meter-bar-fill { background: linear-gradient(90deg,#4aaa60,#6ad480); }

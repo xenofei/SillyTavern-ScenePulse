@@ -35,10 +35,11 @@ export function getLatestSnapshot(){const d=getTrackerData();const k=Object.keys
 export function saveSnapshot(id,j){
     const data=getTrackerData();
     data.snapshots[String(id)]=j;
-    // Prune: keep max 30 snapshots in storage -- cull oldest
+    // Prune: user-configurable max snapshots (0 = unlimited)
     const keys=Object.keys(data.snapshots).map(Number).sort((a,b)=>a-b);
-    const MAX_STORED=30;
-    if(keys.length>MAX_STORED){
+    const s=getSettings();
+    const MAX_STORED=s.maxSnapshots||0;
+    if(MAX_STORED>0&&keys.length>MAX_STORED){
         const toRemove=keys.slice(0,keys.length-MAX_STORED);
         for(const k of toRemove)delete data.snapshots[String(k)];
         log('Pruned',toRemove.length,'old snapshots, keeping',MAX_STORED);

@@ -343,6 +343,19 @@ export function updatePanel(d,_force=false){
     if(s.panels?.dashboard===false)envDiv.classList.add('sp-panel-hidden');
     body.appendChild(envDiv);
 
+    // Stagnation detection — show banner above scene details if scene is stale
+    if(!_isTimelineScrub){
+        try{
+            const _stag=detectStagnation();
+            if(_stag){
+                const sb=document.createElement('div');sb.className='sp-stagnation-banner';
+                sb.innerHTML=`<span class="sp-stag-icon">💤</span><span class="sp-stag-text">${esc(_stag.suggestion)}</span><button class="sp-stag-dismiss" title="${t('Dismiss')}">✕</button>`;
+                sb.querySelector('.sp-stag-dismiss').addEventListener('click',()=>sb.remove());
+                body.appendChild(sb);
+            }
+        }catch{}
+    }
+
     // Scene Details section
     const sceneBadge=(d.sceneMood||'').split(/[,;]/)[0].trim().substring(0,20)||null;
     {const _sec=mkSection('scene',t('Scene Details'),sceneBadge,()=>{
@@ -515,22 +528,10 @@ export function updatePanel(d,_force=false){
     const customPanels=s.customPanels||[];
     for(const cp of customPanels){if(!cp.fields?.length)continue;const cpKey='custom_'+cp.name.replace(/\s+/g,'_').toLowerCase();let fieldCount=0;for(const f of cp.fields){if(d[f.key]!=null&&d[f.key]!=='')fieldCount++}body.appendChild(mkSection(cpKey,cp.name,fieldCount||null,()=>{const frag=document.createDocumentFragment();for(const f of cp.fields){const r=document.createElement('div');r.className='sp-row';r.innerHTML=`<div class="sp-row-label">${esc(f.label||f.key)}</div>`;if(f.type==='meter'){const num=parseInt(d[f.key])||0;const wrap=document.createElement('div');wrap.className='sp-row-value sp-cp-meter-wrap';wrap.innerHTML=`<div class="sp-cp-meter"><div class="sp-cp-meter-fill" style="width:${clamp(num,0,100)}%"></div></div><span class="sp-cp-meter-val">${num}</span>`;r.appendChild(wrap)}else if(f.type==='list'&&Array.isArray(d[f.key])){const val=document.createElement('div');val.className='sp-row-value';val.textContent=d[f.key].join(', ')||'\u2014';r.appendChild(val)}else{const val=document.createElement('div');val.className='sp-row-value';val.textContent=str(d[f.key])||'\u2014';mkEditable(val,()=>str(d[f.key])||'',v=>{d[f.key]=v;const snap=getLatestSnapshot();if(snap)snap[f.key]=v});r.appendChild(val)}frag.appendChild(r)}return frag},s))}
 
-    // Timeline
-    if(!_isTimelineScrub)renderTimeline();
+    // Timeline (always render — footer must come after)
+    renderTimeline();
 
-    // Stagnation detection — show a subtle banner if scene is stale
-    if(!_isTimelineScrub){
-        try{
-            const _stag=detectStagnation();
-            if(_stag){
-                const sb=document.createElement('div');sb.className='sp-stagnation-banner';
-                sb.innerHTML=`<span class="sp-stag-icon">💤</span><span class="sp-stag-text">${esc(_stag.suggestion)}</span><button class="sp-stag-dismiss" title="${t('Dismiss')}">✕</button>`;
-                sb.querySelector('.sp-stag-dismiss').addEventListener('click',()=>sb.remove());
-                body.appendChild(sb);
-            }
-        }catch{}
-    }
-    // Generation stats footer
+    // Generation stats footer (always last)
     const _meta=d._spMeta||{};
     const _mTokens=_meta.completionTokens||genMeta.completionTokens||0;
     const _mElapsed=_meta.elapsed||genMeta.elapsed||0;
