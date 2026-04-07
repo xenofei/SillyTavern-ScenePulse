@@ -9,6 +9,7 @@ import {
     setGenerating, setCancelRequested, setGenNonce, setGenMeta,
     setCurrentSnapshotMesIdx, setLastGenSource, setLastRawResponse, setLastDeltaPayload,
     set_savedSamplerValues,
+    setInlineGenStartMs, setInlineExtractionDone, setPendingInlineIdx,
     addSessionTokens, setLastDeltaSavings
 } from '../state.js';
 import {
@@ -87,6 +88,11 @@ export function cancelGeneration(){
     setGenNonce(genNonce+1); // invalidate in-flight generation
     setCancelRequested(true);
     setGenerating(false);spSetGenerating(false); // unlock for next generation
+    // Defensive reset: the inline-generation timestamp gates extraction ownership.
+    // If we cancel without clearing it, a subsequent CHARACTER_MESSAGE_RENDERED from
+    // ANOTHER extension (MemoryBooks memory insertion, etc.) would be misattributed
+    // to our still-pending generation and extraction would run on foreign content.
+    setInlineGenStartMs(0);setInlineExtractionDone(false);setPendingInlineIdx(-1);
     log('CANCEL: nonce',oldNonce,'\u2192',genNonce,'— generation unlocked');
 
     // Abort SillyTavern's in-flight HTTP request — try every known method

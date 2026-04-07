@@ -205,6 +205,10 @@ eventSource.on(event_types.GENERATION_STOPPED, () => {
         setGenNonce(genNonce + 1);
         setCancelRequested(true);
         setGenerating(false); spSetGenerating(false);
+        // Defensive: clear inline generation ownership state so a subsequent
+        // message from another extension (e.g. MemoryBooks) does not get
+        // misattributed to our cancelled generation.
+        setInlineGenStartMs(0); setInlineExtractionDone(false); setPendingInlineIdx(-1);
         log('CANCEL (ST stop): nonce', oldNonce, '→', genNonce);
         cleanupGenUI();
         const snap = getLatestSnapshot();

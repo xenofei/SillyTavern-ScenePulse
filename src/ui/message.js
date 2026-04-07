@@ -235,6 +235,13 @@ export async function onCharMsg(idx){
             // Always show existing data if we didn't successfully generate new data
             const prev=getLatestSnapshot();
             if(prev){const norm=normalizeTracker(prev);updatePanel(norm);spPostGenShow()}
+            // Defensive: clear inline generation ownership state on ALL recovery exit
+            // paths — continuation success, continuation→tier2 success, tier2 failure,
+            // recovery card shown, and fallback-disabled. The success path above
+            // already resets these, but the failure branch previously leaked
+            // inlineGenStartMs>0, which could misroute a subsequent message from
+            // another extension (e.g. MemoryBooks) into ScenePulse's extraction path.
+            setInlineGenStartMs(0);setInlineExtractionDone(false);setPendingInlineIdx(-1);
         }
         spSetGenerating(false); // Pulse off -- inline path complete
         return; // Don't do separate generation in inline mode
