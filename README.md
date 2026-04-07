@@ -84,6 +84,19 @@ ScenePulse is a SillyTavern extension that automatically extracts and tracks sce
 <img width="860" height="326" alt="image" src="https://github.com/user-attachments/assets/cb314a4e-a6d4-449d-96ad-929556564d40" />
 
 
+### Character Wiki
+- **Full-screen browser** for every character ever encountered, not just those currently in scene
+- Walks all snapshots once on open to aggregate **first seen, last seen, appearance count, last known location**
+- Per-character cards with appearance grid, relationship meters with mini sparklines, goals, inventory, fertility, history metadata
+- **Search**, filter pills (All / In Scene / Absent), sort options (name, first seen, last seen, appearances, relevance)
+- **Compact grid view**, per-character user notes, avatars, JSON / MD export
+- Reachable from the toolbar (book icon)
+
+### Relationship Web
+- **SVG circular graph** of all characters with relationship edges
+- Edge weight reflects relationship strength; node color matches per-character color assignment
+- Reachable from the Character Wiki header
+
 ### Story Ideas
 - 5 AI-generated plot directions per update (dramatic, intense, comedic, twist, exploratory)
 - One-click **paste to edit** or **inject directly** into chat
@@ -265,7 +278,7 @@ ScenePulse operates in **Together mode** by default:
 3. ScenePulse extracts the JSON, strips it from the visible message, and updates the dashboard
 4. A **regex filter** (`markdownOnly: true`) strips tracker JSON from the DOM during markdown rendering — preventing the payload from ever being visible during streaming
 5. A **streaming hider** (MutationObserver + 20ms polling) provides a CSS fallback layer
-6. Malformed JSON is automatically repaired (trailing commas, unquoted keys, unescaped quotes)
+6. Malformed JSON is automatically repaired by the vendored [`jsonrepair`](src/vendor/) library (handles trailing commas, unquoted keys, unescaped quotes inside strings, single-quoted values, Python literals, comments, markdown fences, and ~20 other common LLM JSON errors via a tokenizer-based parser)
 7. Post-extraction **schema validation** warns about missing fields or invalid enum values
 
 If the AI omits the tracker, ScenePulse can **automatically fall back** to a separate API call using a dedicated connection profile.
@@ -313,7 +326,7 @@ src/
     validation.js            ← Post-extraction schema validation
   ui/
     mobile.js               ← Device detection, FAB, responsive layout
-    panel.js                ← Side panel creation and toolbar
+    panel.js                ← Side panel creation, toolbar, tablet/auto-condense
     update-panel.js         ← Dashboard rendering with leak-safe canvas animation
     section.js              ← Collapsible section builder
     weather.js              ← Weather particle system (9 types)
@@ -325,16 +338,26 @@ src/
     loading.js              ← Loading overlays and timers
     edit-mode.js            ← Inline field editing
     diff-viewer.js          ← Payload inspector with line-level diff
-    sparklines.js            ← Relationship history sparklines + SVG graphs
-    analytics.js             ← Token usage analytics panel
+    sparklines.js           ← Relationship history sparklines + SVG graphs
+    analytics.js            ← Token usage analytics panel
+    character-wiki.js       ← Historical character browser overlay
+    relationship-web.js     ← SVG circular relationship graph
   settings-ui/
     create-settings.js      ← Settings panel HTML template (tabbed)
     bind-ui.js              ← Settings form bindings with live language switch
     custom-panels.js        ← Custom panel manager
     setup-guide.js          ← First-run wizard
     guided-tour.js          ← Interactive feature tour
+  vendor/
+    jsonrepair.mjs          ← Vendored jsonrepair v3.12.0 (ISC) — tokenizer-based JSON repair
+    jsonrepair.LICENSE      ← Full ISC license text
+    README.md               ← Provenance, upgrade procedure, validation pointer
 css/
-  27 modular stylesheets    ← Split by component, loaded via @import
+  29 modular stylesheets    ← Split by component, loaded via @import
+tests/
+  vendor/                   ← Manual dev scripts for the vendored library
+    jsonrepair.test.mjs     ← 106-case smoke suite
+    compare.test.mjs        ← Old regex repair vs jsonrepair head-to-head
 ```
 
 No bundler required — SillyTavern loads extensions as `<script type="module">`, so native ES imports work out of the box.
@@ -411,6 +434,31 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 - **Translations** — While all 29 languages have full translation coverage, some translations may be imperfect. Community corrections welcome in [`src/i18n.js`](https://github.com/xenofei/SillyTavern-ScenePulse/blob/main/src/i18n.js)
 
 ## Changelog
+
+### [6.8.5] — 2026-04-06
+
+#### Added
+- **Character Wiki overlay** — full-screen browser for every character ever encountered, not just those currently in scene. Walks all snapshots once on open to aggregate first-seen / last-seen / appearance count / last known location. Per-character cards with appearance grid, relationship meters with mini sparklines, goals, inventory, fertility, history metadata. Search, filter pills (All / In Scene / Absent), sort options (name / first seen / last seen / appearances / relevance), compact grid view, per-character user notes, avatars, JSON / MD export.
+- **Relationship Web visualization** — SVG circular layout graph of all characters with relationship edges. Edge weight reflects relationship strength; node color reflects per-character color assignment. Reachable from the Character Wiki header.
+- **Container queries for the panel** — `#sp-panel` declares `container-type: inline-size; container-name: sp-panel` so child styles can react to the panel's actual width. Replaces viewport `@media` queries that broke on `position: fixed`. New breakpoints at 550px and 380px.
+- **Tablet fullscreen mode** — 601–1024px viewports now match the mobile fullscreen overlay pattern, with the mobile slide-up animation and the mobile-style top bar.
+- **Auto-condense at intermediate widths** — when the available space between SillyTavern's chat and the viewport edge drops below 360px, the panel automatically engages compact mode and shrinks to a 240–280px sidebar. Releases when space returns. Honors a per-user override flag.
+- **Vendored `jsonrepair` v3.12.0 (ISC)** — proper tokenizer-based JSON repair for malformed inline tracker payloads. See [`src/vendor/`](src/vendor/) and the 106-case validation suite in [`tests/vendor/`](tests/vendor/).
+
+#### Changed
+- **Quest journal UI** — quest entry NEW / UPDATED / RESOLVED badges moved to a right-aligned group alongside the action buttons. Tier-header status counts also right-aligned. Section-header summary badges relocated to sit just before the refresh button. `"upd"` abbreviation replaced with full `t('updated')` localized text, capitalized via CSS so all 29 locales render naturally.
+- **Inline tracker JSON parsing** — `cleanJson()` now delegates to vendored `jsonrepair` after a strict `JSON.parse()` fails, replacing nine in-house regex passes that could not recover from common LLM errors like unescaped quotes inside string values. Worst-case behavior is unchanged — a clean throw still triggers the existing separate-generation fallback path.
+- **Character storage now accumulates** — delta merge no longer prunes characters absent from a delta payload. The full historical character set is preserved in snapshots forever. The view layer trims via `filterForView()`. This is what the Character Wiki overlay browses.
+- **Interceptor prompt** — removed "silently / hidden" wording that some models latched onto and parroted back into narrative. Concrete delta payload examples added to improve schema compliance.
+- **Wiki meter row spacing** — label column widened to 80px desktop / 75px mobile so "Compatibility" no longer overflows into the bar.
+
+#### Fixed
+- **Character / relationship sync** — `filterForView()` reconciles `d.characters` against `d.charactersPresent` and creates stub character entries for any name that appears in `d.relationships` but is missing from `d.characters`. Resolves the "4 relationships shown but only 1 character" gap.
+- **MemoryBooks (and similar extension) compatibility** — `GENERATION_ENDED` handler now guards on `inlineGenStartMs > 0` before attempting primary extraction. Other extensions fire `GENERATION_ENDED` for their own `quietPrompt()` calls; the prior code was attempting to extract a tracker from those messages and corrupting them. Extraction now only runs against generations ScenePulse actually injected into.
+- **Streaming hider regex** — broadened to match `[SCENE TRACKER ...]` echoed instruction headers some models emit during streaming.
+- **JSON parse error logging** — `_parseErrorOffset()` now matches both V8/Chromium `position N` and Firefox `line N column N` parse-error formats. Previously the regex only handled V8, so on Firefox the logged context window was always anchored at position 0 instead of the actual failure point.
+- **Fallback warning text** — the "Together mode: AI omitted tracker payload" warning previously claimed `no SP markers` even when the markers were present and the JSON inside was the problem. It now reports one of two distinct failure kinds: `markers found, JSON unparseable` (sampling/formatting) vs `no SP markers` (prompt-following). These have different root causes and warrant different remediation.
+- **Live language switch** for settings, schema-edit protection (lock confirm), experimental-feature caution labels, and miscellaneous settings i18n fixes.
 
 ### v6.6.0
 - **Auto-update system** — Update check with proper ST auth headers. Amber pulsing dot + banner with one-click "Update & Reload" button. Calls ST's git pull endpoint then reloads browser.
