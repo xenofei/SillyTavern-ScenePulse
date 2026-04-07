@@ -35,6 +35,27 @@ import { detectStagnation } from '../stagnation.js';
 let _wdmFrameId = null;
 let _wdmObserver = null;
 
+// ── Quest mutation index helper ──────────────────────────────────────────
+// View order can differ from storage order because filterForView's per-tier
+// view cap (_capQuestTier in normalize.js) sorts by urgency when storage
+// exceeds the cap. This means a view-array index cannot be used to mutate
+// the storage array — they may point to different quests. All quest delete /
+// complete / undo / edit handlers must look up the storage entry by name
+// (the canonical merge key used by mergeEntityArray) instead of by view index.
+//
+// Returns the storage index of the quest with a matching (case-insensitive,
+// trimmed) name in `snap[tierKey]`, or -1 if not found. Returning -1 means
+// callers should refuse to mutate rather than guess at a position.
+function _findQuestStorageIdx(snap, tierKey, name) {
+    if (!snap || !Array.isArray(snap[tierKey]) || !name) return -1;
+    const target = String(name).toLowerCase().trim();
+    if (!target) return -1;
+    for (let i = 0; i < snap[tierKey].length; i++) {
+        if ((snap[tierKey][i]?.name || '').toLowerCase().trim() === target) return i;
+    }
+    return -1;
+}
+
 function _showAddQuestDialog(tierName,tierKey,d){
     const overlay=document.createElement('div');overlay.className='sp-confirm-overlay';
     overlay.innerHTML=`<div class="sp-confirm-dialog sp-quest-dialog">
@@ -440,17 +461,17 @@ export function updatePanel(d,_force=false){
             {const actWrap=document.createElement('span');actWrap.className='sp-quest-actions';
             if(_isResolved){
                 const undoBtn=document.createElement('button');undoBtn.className='sp-quest-action sp-quest-undo';undoBtn.title=t('Restore quest');undoBtn.innerHTML='<svg viewBox="0 0 14 14" width="12" height="12" fill="none"><path d="M3 7h4a3.5 3.5 0 0 1 0 7H5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M5.5 4.5L3 7l2.5 2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-                undoBtn.addEventListener('click',(ev)=>{ev.stopPropagation();p.urgency=p._prevUrgency||'moderate';delete p._prevUrgency;const snap=getLatestSnapshot();if(snap&&snap[tier.key]?.[qi]){snap[tier.key][qi].urgency=p.urgency;delete snap[tier.key][qi]._prevUrgency}try{SillyTavern.getContext().saveMetadata()}catch(ex){}const norm=normalizeTracker(snap||d);updatePanel(norm);toastr.info(t('Restored')+': '+p.name,tier.t)});
+                undoBtn.addEventListener('click',(ev)=>{ev.stopPropagation();p.urgency=p._prevUrgency||'moderate';delete p._prevUrgency;const snap=getLatestSnapshot();const _si=_findQuestStorageIdx(snap,tier.key,p.name);if(_si>=0){snap[tier.key][_si].urgency=p.urgency;delete snap[tier.key][_si]._prevUrgency}try{SillyTavern.getContext().saveMetadata()}catch(ex){}const norm=normalizeTracker(snap||d);updatePanel(norm);toastr.info(t('Restored')+': '+p.name,tier.t)});
                 actWrap.appendChild(undoBtn);
             } else {
                 const completeBtn=document.createElement('button');completeBtn.className='sp-quest-action sp-quest-complete';completeBtn.title=t('Mark as completed');completeBtn.innerHTML='<svg viewBox="0 0 14 14" width="12" height="12" fill="none"><path d="M3 7.5l3 3 5.5-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-                completeBtn.addEventListener('click',(ev)=>{ev.stopPropagation();p._prevUrgency=p.urgency||'moderate';p.urgency='resolved';const snap=getLatestSnapshot();if(snap&&snap[tier.key]?.[qi]){snap[tier.key][qi]._prevUrgency=p._prevUrgency;snap[tier.key][qi].urgency='resolved'}try{SillyTavern.getContext().saveMetadata()}catch(ex){}const norm=normalizeTracker(snap||d);updatePanel(norm);toastr.success(t('Completed')+': '+p.name,tier.t)});
+                completeBtn.addEventListener('click',(ev)=>{ev.stopPropagation();p._prevUrgency=p.urgency||'moderate';p.urgency='resolved';const snap=getLatestSnapshot();const _si=_findQuestStorageIdx(snap,tier.key,p.name);if(_si>=0){snap[tier.key][_si]._prevUrgency=p._prevUrgency;snap[tier.key][_si].urgency='resolved'}try{SillyTavern.getContext().saveMetadata()}catch(ex){}const norm=normalizeTracker(snap||d);updatePanel(norm);toastr.success(t('Completed')+': '+p.name,tier.t)});
                 const removeBtn=document.createElement('button');removeBtn.className='sp-quest-action sp-quest-remove';removeBtn.title=t('Remove quest');removeBtn.innerHTML='<svg viewBox="0 0 14 14" width="12" height="12" fill="none"><line x1="3" y1="3" x2="11" y2="11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><line x1="11" y1="3" x2="3" y2="11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
-                removeBtn.addEventListener('click',async(ev)=>{ev.stopPropagation();const qName=p.name;const ok=await spConfirm(t('Remove Quest'),t('Remove')+' "'+qName+'" '+t('from')+' '+tier.t+'?');if(!ok)return;if(!d[tier.key])return;d[tier.key].splice(qi,1);const snap=getLatestSnapshot();if(snap&&snap[tier.key]){snap[tier.key].splice(qi,1);try{SillyTavern.getContext().saveMetadata()}catch(ex){}}const norm=normalizeTracker(snap||d);updatePanel(norm);toastr.info(t('Removed')+': '+qName,tier.t)});
+                removeBtn.addEventListener('click',async(ev)=>{ev.stopPropagation();const qName=p.name;const ok=await spConfirm(t('Remove Quest'),t('Remove')+' "'+qName+'" '+t('from')+' '+tier.t+'?');if(!ok)return;if(!d[tier.key])return;d[tier.key].splice(qi,1);const snap=getLatestSnapshot();if(snap&&Array.isArray(snap[tier.key])){const _si=_findQuestStorageIdx(snap,tier.key,qName);if(_si>=0){snap[tier.key].splice(_si,1);try{SillyTavern.getContext().saveMetadata()}catch(ex){}}}const norm=normalizeTracker(snap||d);updatePanel(norm);toastr.info(t('Removed')+': '+qName,tier.t)});
                 actWrap.appendChild(completeBtn);actWrap.appendChild(removeBtn);
             }
             rightGroup.appendChild(actWrap);headerDiv.appendChild(rightGroup)}
-            headerDiv.addEventListener('click',(ev)=>{if(ev.target.closest('.sp-quest-actions'))return;e.classList.toggle('sp-card-open')});e.appendChild(headerDiv);const detailEl=document.createElement('div');detailEl.className='sp-quest-detail';detailEl.textContent=p.detail||'\u2014';if(!p.detail){detailEl.classList.add('sp-empty-field');detailEl.dataset.placeholder='Quest details'}mkEditable(detailEl,()=>p.detail||'',v=>{p.detail=v;const snap=getLatestSnapshot();if(snap&&snap[tier.key]?.[qi])snap[tier.key][qi].detail=v});e.appendChild(detailEl);mkEditable(nameEl,()=>p.name||'',v=>{p.name=v;const snap=getLatestSnapshot();if(snap&&snap[tier.key]?.[qi])snap[tier.key][qi].name=v});tierBody.appendChild(e)}}
+            headerDiv.addEventListener('click',(ev)=>{if(ev.target.closest('.sp-quest-actions'))return;e.classList.toggle('sp-card-open')});e.appendChild(headerDiv);const detailEl=document.createElement('div');detailEl.className='sp-quest-detail';detailEl.textContent=p.detail||'\u2014';if(!p.detail){detailEl.classList.add('sp-empty-field');detailEl.dataset.placeholder='Quest details'}mkEditable(detailEl,()=>p.detail||'',v=>{p.detail=v;const snap=getLatestSnapshot();const _si=_findQuestStorageIdx(snap,tier.key,p.name);if(_si>=0)snap[tier.key][_si].detail=v});e.appendChild(detailEl);mkEditable(nameEl,()=>p.name||'',v=>{const _oldName=p.name;p.name=v;const snap=getLatestSnapshot();const _si=_findQuestStorageIdx(snap,tier.key,_oldName);if(_si>=0)snap[tier.key][_si].name=v});tierBody.appendChild(e)}}
             // Add quest button
             const addBtn=document.createElement('div');addBtn.className='sp-quest-add';addBtn.innerHTML='<svg viewBox="0 0 14 14" width="11" height="11" fill="none"><line x1="7" y1="2" x2="7" y2="12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><line x1="2" y1="7" x2="12" y2="7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg> '+t('Add quest');
             addBtn.addEventListener('click',()=>{_showAddQuestDialog(tier.t,tier.key,d)});
