@@ -118,7 +118,7 @@ eventSource.on(event_types.APP_READY, () => { try {
             // Register with markdownOnly:true — cleans display but preserves msg.mes for extraction
             _ctx.extensionSettings.regex.push({
                 scriptName: 'ScenePulse Tracker Hider',
-                findRegex: '<!--SP_TRACKER_START-->[\\s\\S]*?(<!--SP_TRACKER_END-->|$)|\\{\\{//SP_TRACKER_START\\}\\}[\\s\\S]*?(\\{\\{//SP_TRACKER_END\\}\\}|$)|\\{\\s*"time"\\s*:\\s*"\\d{1,2}:\\d{2}[\\s\\S]*$',
+                findRegex: '<!--SP_TRACKER_START-->[\\s\\S]*?(<!--SP_TRACKER_END-->|$)|\\{\\{//SP_TRACKER_START\\}\\}[\\s\\S]*?(\\{\\{//SP_TRACKER_END\\}\\}|$)|\\[SCENE TRACKER[^\\]]*\\][\\s\\S]*$|\\{\\s*"time"\\s*:\\s*"\\d{1,2}:\\d{2}[\\s\\S]*$',
                 replaceString: '',
                 trimStrings: [],
                 placement: [2],
@@ -152,8 +152,11 @@ eventSource.on(event_types.GENERATION_ENDED, async () => {
     try { if(_inlineWaitTimerId){clearInterval(_inlineWaitTimerId);set_inlineWaitTimerId(null)} const w = document.getElementById('sp-inline-wait'); if (w) w.remove(); } catch {}
     clearThoughtLoading();
     // ── PRIMARY EXTRACTION for Together/Inline mode ──
+    // Guard: only extract when ScenePulse actually injected a prompt (inlineGenStartMs > 0).
+    // Other extensions (e.g. MemoryBooks) may trigger GENERATION_ENDED for their own quiet
+    // generations — we must NOT attempt extraction from messages we didn't inject into.
     const s = getSettings();
-    if (s.enabled && s.injectionMethod === 'inline' && !inlineExtractionDone && anyPanelsActive()) {
+    if (s.enabled && s.injectionMethod === 'inline' && !inlineExtractionDone && anyPanelsActive() && inlineGenStartMs > 0) {
         const { chat } = SillyTavern.getContext();
         let targetIdx = -1;
         for (let i = chat.length - 1; i >= 0; i--) {

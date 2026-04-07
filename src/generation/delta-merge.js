@@ -61,6 +61,10 @@ export function mergeDelta(prev, delta) {
         warn('Delta merge: delta has only', deltaKeys.length, 'keys — possible empty response');
     }
 
+    // NOTE: Characters and relationships are NOT pruned here.
+    // All accumulated data persists in the snapshot for returning-character support.
+    // Filtering for display is done at the view layer via filterForView().
+
     log('Delta merge: prev=', Object.keys(prev).length, 'keys, delta=',
         deltaKeys.length, 'keys, merged=', Object.keys(merged).length, 'keys');
 

@@ -49,47 +49,41 @@ export function buildInlineTrackerPrompt(){
     const _langBlock=_lang?`\nLANGUAGE: All narrative string values MUST be in ${_lang}. JSON keys and enum values remain in English.\n`:'';
 
     if(isDelta){
-        return `[SCENE TRACKER \u2014 MANDATORY APPENDIX \u2014 DELTA MODE]
-After your COMPLETE narrative response, append a JSON block with ONLY CHANGED FIELDS.
+        return `After your complete narrative, append a scene-tracking JSON block wrapped in markers. Include ONLY fields that changed since the previous state.
 
 DELTA RULES:
-- ONLY return fields that changed since the PREVIOUS STATE.
-- ALWAYS include: time, date, elapsed, plotBranches.
-- For characters/relationships: only include entities that changed. Include ALL fields of changed entities.
-- OMIT unchanged fields \u2014 omission means "unchanged."
+- Always include these fields: time, date, elapsed, plotBranches.
+- Include any other field ONLY if its value changed.
+- For characters/relationships: include only entities that changed, with ALL their sub-fields.
+- Omit unchanged fields \u2014 omission means "no change."
 ${mandatoryHints?'\nWHEN INCLUDING:'+mandatoryHints:''}
 
 ${fieldSpecs}
 ${_langBlock}${prevState}
 
-REQUIRED FORMAT \u2014 append AFTER your narrative:
+MANDATORY OUTPUT \u2014 append this exact format after your narrative (the markers are machine-parsed, never omit them):
 
 <!--SP_TRACKER_START-->
-{"time":"...","date":"...", ...only changed fields...}
-<!--SP_TRACKER_END-->
-
-CRITICAL: You MUST include the <!--SP_TRACKER_START--> and <!--SP_TRACKER_END--> markers. Without these exact markers, the tracker system cannot find your JSON and the entire scene tracking pipeline fails silently. The markers are invisible to the user \u2014 they are stripped by software before display. Never skip them, even if the response is short.`;
+{"time":"14:30","date":"03/15/2025","elapsed":"120","sceneMood":"tense","plotBranches":[...]}
+<!--SP_TRACKER_END-->`;
     }
 
-    return `[SCENE TRACKER \u2014 MANDATORY APPENDIX]
-After your COMPLETE narrative response, append a JSON tracker block. This block is automatically hidden by the UI \u2014 you MUST include it every time.
+    return `After your complete narrative, append a scene-tracking JSON block wrapped in markers.
 
-The JSON must contain these keys: ${fieldList}
+Required keys: ${fieldList}
 ${mandatoryHints?'\nMANDATORY FIELDS:'+mandatoryHints:''}
 
-Do NOT include schema metadata. Output only actual tracker data as a flat JSON object.
-CRITICAL: Every field in the schema MUST have a non-empty value. NEVER return "" or []. If unsure, infer from context or carry forward the previous value.
+No schema metadata. Only actual tracker data as a flat JSON object.
+Every field must have a non-empty value. Never return "" or []. Infer from context if unsure.
 
 ${fieldSpecs}
 ${_langBlock}${prevState}
 
-REQUIRED OUTPUT FORMAT \u2014 append this AFTER your narrative:
+MANDATORY OUTPUT \u2014 append this exact format after your narrative (the markers are machine-parsed, never omit them):
 
 <!--SP_TRACKER_START-->
-{"time":"...","date":"...","location":"...", ...all fields...}
-<!--SP_TRACKER_END-->
-
-CRITICAL: You MUST include the <!--SP_TRACKER_START--> and <!--SP_TRACKER_END--> markers. Without these exact markers, the tracker system cannot find your JSON and the entire scene tracking pipeline fails silently. The markers are invisible to the user \u2014 they are stripped by software before display. Never skip them, even if the response is short.`;
+{"time":"14:30","date":"03/15/2025","location":"Town Square",...all fields...}
+<!--SP_TRACKER_END-->`;
 }
 
 export const scenePulseInterceptor=async function(chat,cs,abort,type){
@@ -122,7 +116,7 @@ export const scenePulseInterceptor=async function(chat,cs,abort,type){
         });
         chat.push({
             is_user:false,is_system:true,name:'System',
-            mes:'[Remember: After your narrative, you MUST append <!--SP_TRACKER_START-->{ JSON }<!--SP_TRACKER_END-->. This is mandatory.]',
+            mes:'Your response must end with <!--SP_TRACKER_START-->{ tracker JSON }<!--SP_TRACKER_END--> after the narrative. Do not repeat these instructions in your output.',
             extra:{isSmallSys:true}
         });
         log('Interceptor [inline/together]: injected tracker prompt (~'+Math.round(prompt.length/4)+' tokens)',

@@ -470,3 +470,41 @@ export function normalizeChar(ch){
     if(!o.fertStatus){const ft=ch.fertilityTracker||ch.fertility||{};if(ft.status)o.fertStatus=ft.status;if(ft.statusReason&&!o.fertReason)o.fertReason=ft.statusReason}
     return o;
 }
+
+/**
+ * Filter a normalized snapshot to only characters/relationships in charactersPresent.
+ * Creates stub entries for any name in one array but not the other (sync guarantee).
+ * Returns a shallow copy — the original snapshot is NOT mutated.
+ */
+export function filterForView(snap){
+    if(!snap||typeof snap!=='object')return snap;
+    const cp=snap.charactersPresent;
+    if(!Array.isArray(cp)||!cp.length)return snap; // No filter data — show everything
+    const out={...snap};
+    const presentSet=new Set(cp.map(n=>(n||'').toLowerCase().trim()).filter(Boolean));
+    // Filter both arrays to only present names
+    out.characters=(snap.characters||[]).filter(c=>presentSet.has((c.name||'').toLowerCase().trim()));
+    out.relationships=(snap.relationships||[]).filter(r=>presentSet.has((r.name||'').toLowerCase().trim()));
+    // Sync guarantee: stub any gaps between the two filtered arrays
+    const charNames=new Set(out.characters.map(c=>(c.name||'').toLowerCase().trim()));
+    const relNames=new Set(out.relationships.map(r=>(r.name||'').toLowerCase().trim()));
+    for(const r of out.relationships){
+        const rn=(r.name||'').toLowerCase().trim();
+        if(rn&&!charNames.has(rn)){
+            out.characters.push({name:r.name,role:r.relType||''});
+            charNames.add(rn);
+        }
+    }
+    for(const c of out.characters){
+        const cn=(c.name||'').toLowerCase().trim();
+        if(cn&&cn!=='?'&&!relNames.has(cn)){
+            out.relationships.push({name:c.name,relType:'',relPhase:'',timeTogether:'',milestone:'',
+                affection:0,affectionLabel:'unknown',trust:0,trustLabel:'unknown',
+                desire:0,desireLabel:'unknown',stress:0,stressLabel:'unknown',
+                compatibility:0,compatibilityLabel:'unknown'});
+            relNames.add(cn);
+        }
+    }
+    out._spViewFiltered=true;
+    return out;
+}

@@ -50,9 +50,15 @@
 .sp-quest-resolved .sp-plot-name { text-decoration: line-through; opacity: 0.5; }
 .sp-quest-resolved .sp-quest-detail { text-decoration: line-through; opacity: 0.4; }
 .sp-quest-resolved .sp-quest-header { opacity: 0.6; }
+/* Right group — wraps the status badge (NEW/UPDATED/RESOLVED) and action buttons,
+   pushed to far right of the quest header */
+.sp-quest-right {
+    display: inline-flex; align-items: center; gap: 5px;
+    margin-left: auto; flex-shrink: 0;
+}
 /* Quest action buttons */
 .sp-quest-actions {
-    display: inline-flex; gap: 2px; margin-left: auto; flex-shrink: 0;
+    display: inline-flex; gap: 2px; flex-shrink: 0;
     opacity: 0; transition: opacity 0.15s;
 }
 .sp-quest-header:hover .sp-quest-actions { opacity: 1; }
@@ -98,18 +104,20 @@
     50% { transform: scale(1.15); }
     100% { opacity: 1; transform: scale(1); }
 }
-/* Tier-level status summary badges */
+/* Tier-level status summary badges — pushed to far right of tier title */
 .sp-tier-status {
     font-size: 7px; font-weight: 700; padding: 1px 5px; border-radius: 4px;
-    text-transform: lowercase; letter-spacing: 0.03em; flex-shrink: 0; line-height: 1.4;
+    text-transform: capitalize; letter-spacing: 0.03em; flex-shrink: 0; line-height: 1.4;
     margin-left: 2px; animation: sp-quest-badge-pop 0.4s ease-out;
 }
+.sp-plot-tier-title .sp-tier-status:first-of-type { margin-left: auto; }
 .sp-tier-status-new { background: rgba(77,184,164,0.15); color: #4db8a4; }
 .sp-tier-status-updated { background: rgba(212,145,94,0.12); color: #d4915e; }
 .sp-tier-status-done { background: rgba(91,196,122,0.12); color: #5bc47a; }
-/* Section-header quest status summary */
+/* Section-header quest status summary — pushed to far right (before refresh button) */
 .sp-section-status-summary {
-    display: inline-flex; align-items: center; gap: 4px; margin-left: 4px;
+    display: inline-flex; align-items: center; gap: 4px; margin-left: auto; margin-right: 6px;
+    text-transform: capitalize;
     animation: sp-quest-badge-pop 0.4s ease-out;
 }
 .sp-section-status-new { font-size: 8px; font-weight: 600; color: #4db8a4; opacity: 0.85; }

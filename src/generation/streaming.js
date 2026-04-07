@@ -22,6 +22,9 @@ export function startStreamingHider(){
     const _hasJson=(txt)=>{
         if(txt.includes('SP_TRACKER'))return true;    // Any part of SP_TRACKER_START or _END
         if(txt.includes('<!--SP_'))return true;       // Earliest partial marker (just 7 chars)
+        if(txt.includes('[SCENE TRACKER'))return true; // Echoed instruction header
+        if(txt.includes('MANDATORY APPENDIX'))return true; // Echoed instruction fragment
+        if(txt.includes('SP_TRACKER_START'))return true; // Instruction text echoed verbatim
         if(txt.includes('```json'))return true;
         // Catch raw JSON — detect as early as possible
         if(txt.includes('"time":')&&txt.includes('"elapsed":'))return true;

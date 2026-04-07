@@ -5,7 +5,7 @@ import { t } from '../i18n.js';
 import { DEFAULTS } from '../constants.js';
 import { getSettings, saveSettings } from '../settings.js';
 import { getLatestSnapshot, getPrevSnapshot, getTrackerData } from '../settings.js';
-import { normalizeTracker } from '../normalize.js';
+import { normalizeTracker, filterForView } from '../normalize.js';
 import { charColor } from '../color.js';
 import {
     _lastPanelUpdate, set_lastPanelUpdate,
@@ -83,6 +83,8 @@ export function updatePanel(d,_force=false){
     if(!_force&&_now-_lastPanelUpdate<150){return}
     set_lastPanelUpdate(_now);
     const _perfStart=_now;
+    // Filter to only charactersPresent — sync characters/relationships name sets
+    if(!d?._spViewFiltered)d=filterForView(d);
     set_cachedNormData(d); // Cache for panel manager toggles
     // Restore generation metadata from persisted snapshot data
     if(d?._spMeta){
@@ -406,7 +408,7 @@ export function updatePanel(d,_force=false){
             const _tc=_tierStatusCounts[tier.key]||{};
             let _tierBadges='';
             if(_tc.n>0)_tierBadges+=`<span class="sp-tier-status sp-tier-status-new">${_tc.n} ${t('new')}</span>`;
-            if(_tc.u>0)_tierBadges+=`<span class="sp-tier-status sp-tier-status-updated">${_tc.u} upd</span>`;
+            if(_tc.u>0)_tierBadges+=`<span class="sp-tier-status sp-tier-status-updated">${_tc.u} ${t('updated')}</span>`;
             if(_tc.d>0)_tierBadges+=`<span class="sp-tier-status sp-tier-status-done">${_tc.d} ${t('resolved')}</span>`;
             tierTitle.innerHTML=`<span class="sp-tier-chevron">\u25B6</span>${tier.icon} ${t(tier.t)}${countBadge}${_tierBadges}`;
             tierTitle.addEventListener('click',()=>b.classList.toggle('sp-tier-open'));
@@ -421,7 +423,19 @@ export function updatePanel(d,_force=false){
                 emptyDiv.addEventListener('blur',saveNewQuest);
                 emptyDiv.addEventListener('keydown',(e)=>{if(e.key==='Enter'){e.preventDefault();saveNewQuest()}});
                 tierBody.appendChild(emptyDiv);
-            } else {for(let qi=0;qi<tier.i.length;qi++){const p=tier.i[qi];const _qs=_classifyQuest(p,tier.key);const _isResolved=p.urgency==='resolved';const e=document.createElement('div');e.className='sp-plot-entry';if(_qs==='new'||_qs==='updated')e.classList.add('sp-card-open');if(_isResolved)e.classList.add('sp-quest-resolved');const nameEl=document.createElement('span');nameEl.className='sp-plot-name';nameEl.textContent=p.name||'';const headerDiv=document.createElement('div');headerDiv.className='sp-quest-header';let _qbadge='';if(_qs==='new')_qbadge='<span class="sp-quest-status sp-quest-status-new">'+t('new')+'</span>';else if(_qs==='updated')_qbadge='<span class="sp-quest-status sp-quest-status-updated">'+t('updated')+'</span>';if(_isResolved)headerDiv.innerHTML=`<span class="sp-quest-chevron">\u25B6</span><span class="sp-quest-status sp-quest-status-done">${t('resolved')}</span>`;else headerDiv.innerHTML=`<span class="sp-quest-chevron">\u25B6</span><span class="sp-plot-status sp-urgency-${p.urgency||'moderate'}">${esc(p.urgency||'moderate')}</span>${_qbadge}`;headerDiv.appendChild(nameEl);
+            } else {for(let qi=0;qi<tier.i.length;qi++){const p=tier.i[qi];const _qs=_classifyQuest(p,tier.key);const _isResolved=p.urgency==='resolved';const e=document.createElement('div');e.className='sp-plot-entry';if(_qs==='new'||_qs==='updated')e.classList.add('sp-card-open');if(_isResolved)e.classList.add('sp-quest-resolved');const nameEl=document.createElement('span');nameEl.className='sp-plot-name';nameEl.textContent=p.name||'';const headerDiv=document.createElement('div');headerDiv.className='sp-quest-header';
+            // Status badge (NEW/UPDATED/RESOLVED) — placed in right group, far-right
+            let _qbadgeHtml='';
+            if(_isResolved)_qbadgeHtml=`<span class="sp-quest-status sp-quest-status-done">${t('resolved')}</span>`;
+            else if(_qs==='new')_qbadgeHtml=`<span class="sp-quest-status sp-quest-status-new">${t('new')}</span>`;
+            else if(_qs==='updated')_qbadgeHtml=`<span class="sp-quest-status sp-quest-status-updated">${t('updated')}</span>`;
+            // Left side: chevron + urgency (urgency suppressed when resolved — RESOLVED badge sits on the right instead)
+            if(_isResolved)headerDiv.innerHTML=`<span class="sp-quest-chevron">\u25B6</span>`;
+            else headerDiv.innerHTML=`<span class="sp-quest-chevron">\u25B6</span><span class="sp-plot-status sp-urgency-${p.urgency||'moderate'}">${esc(p.urgency||'moderate')}</span>`;
+            headerDiv.appendChild(nameEl);
+            // Right group: status badge + action buttons, pushed to far right via margin-left:auto
+            const rightGroup=document.createElement('span');rightGroup.className='sp-quest-right';
+            if(_qbadgeHtml)rightGroup.insertAdjacentHTML('beforeend',_qbadgeHtml);
             // Quest action buttons
             {const actWrap=document.createElement('span');actWrap.className='sp-quest-actions';
             if(_isResolved){
@@ -435,7 +449,7 @@ export function updatePanel(d,_force=false){
                 removeBtn.addEventListener('click',async(ev)=>{ev.stopPropagation();const qName=p.name;const ok=await spConfirm(t('Remove Quest'),t('Remove')+' "'+qName+'" '+t('from')+' '+tier.t+'?');if(!ok)return;if(!d[tier.key])return;d[tier.key].splice(qi,1);const snap=getLatestSnapshot();if(snap&&snap[tier.key]){snap[tier.key].splice(qi,1);try{SillyTavern.getContext().saveMetadata()}catch(ex){}}const norm=normalizeTracker(snap||d);updatePanel(norm);toastr.info(t('Removed')+': '+qName,tier.t)});
                 actWrap.appendChild(completeBtn);actWrap.appendChild(removeBtn);
             }
-            headerDiv.appendChild(actWrap)}
+            rightGroup.appendChild(actWrap);headerDiv.appendChild(rightGroup)}
             headerDiv.addEventListener('click',(ev)=>{if(ev.target.closest('.sp-quest-actions'))return;e.classList.toggle('sp-card-open')});e.appendChild(headerDiv);const detailEl=document.createElement('div');detailEl.className='sp-quest-detail';detailEl.textContent=p.detail||'\u2014';if(!p.detail){detailEl.classList.add('sp-empty-field');detailEl.dataset.placeholder='Quest details'}mkEditable(detailEl,()=>p.detail||'',v=>{p.detail=v;const snap=getLatestSnapshot();if(snap&&snap[tier.key]?.[qi])snap[tier.key][qi].detail=v});e.appendChild(detailEl);mkEditable(nameEl,()=>p.name||'',v=>{p.name=v;const snap=getLatestSnapshot();if(snap&&snap[tier.key]?.[qi])snap[tier.key][qi].name=v});tierBody.appendChild(e)}}
             // Add quest button
             const addBtn=document.createElement('div');addBtn.className='sp-quest-add';addBtn.innerHTML='<svg viewBox="0 0 14 14" width="11" height="11" fill="none"><line x1="7" y1="2" x2="7" y2="12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><line x1="2" y1="7" x2="12" y2="7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg> '+t('Add quest');
@@ -445,7 +459,7 @@ export function updatePanel(d,_force=false){
         return f;
     },s);
     // Inject quest status summary into section header
-    if(_totalQNew>0||_totalQUpdated>0||_totalQDone>0){const _sh=_sec.querySelector('.sp-section-header');if(_sh){const _sw=document.createElement('span');_sw.className='sp-section-status-summary';let _sp=[];if(_totalQNew>0)_sp.push(`<span class="sp-section-status-new">${_totalQNew} new</span>`);if(_totalQUpdated>0)_sp.push(`<span class="sp-section-status-updated">${_totalQUpdated} upd</span>`);if(_totalQDone>0)_sp.push(`<span class="sp-section-status-done">${_totalQDone} resolved</span>`);_sw.innerHTML=_sp.join('<span class="sp-section-status-sep">\u00B7</span>');const _spacer=_sh.querySelector('.sp-section-spacer');if(_spacer)_sh.insertBefore(_sw,_spacer);else _sh.appendChild(_sw)}}
+    if(_totalQNew>0||_totalQUpdated>0||_totalQDone>0){const _sh=_sec.querySelector('.sp-section-header');if(_sh){const _sw=document.createElement('span');_sw.className='sp-section-status-summary';let _sp=[];if(_totalQNew>0)_sp.push(`<span class="sp-section-status-new">${_totalQNew} ${t('new')}</span>`);if(_totalQUpdated>0)_sp.push(`<span class="sp-section-status-updated">${_totalQUpdated} ${t('updated')}</span>`);if(_totalQDone>0)_sp.push(`<span class="sp-section-status-done">${_totalQDone} ${t('resolved')}</span>`);_sw.innerHTML=_sp.join('<span class="sp-section-status-sep">\u00B7</span>');const _spacer=_sh.querySelector('.sp-section-spacer');const _refresh=_sh.querySelector('.sp-section-refresh');if(_refresh)_sh.insertBefore(_sw,_refresh);else if(_spacer)_sh.insertBefore(_sw,_spacer.nextSibling);else _sh.appendChild(_sw)}}
     if(s.panels?.quests===false)_sec.classList.add('sp-panel-hidden');body.appendChild(_sec)}
 
     // Relationships section (simplified -- preserves core meter logic, full SVG meter icons)

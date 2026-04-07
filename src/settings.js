@@ -168,20 +168,25 @@ export function updateLorebookRec(){
     }
 }
 
-// Save chat to disk -- prevents message loss when profile switches trigger CHAT_CHANGED reload
+// Save chat to disk -- prevents message loss when profile switches trigger CHAT_CHANGED reload.
+// Coalescing: if called rapidly (e.g. by extraction + GENERATION_ENDED + other extensions like
+// MemoryBooks all saving metadata concurrently), concurrent callers share a single save promise.
+let _savePending=null;
 export async function ensureChatSaved(){
-    try{
-        const ctx=SillyTavern.getContext();
-        // Strategy 1: Direct save via context API (preferred -- synchronous write)
-        if(typeof ctx.saveChat==='function'){await ctx.saveChat();return}
-        if(typeof ctx.saveChatConditional==='function'){await ctx.saveChatConditional();return}
-        // Strategy 2: Import and call the non-debounced save directly
+    if(_savePending)return _savePending;
+    _savePending=(async()=>{
         try{
-            const chatModule=await import('/scripts/chat.js');
-            if(chatModule.saveChat){await chatModule.saveChat();return}
-            if(chatModule.saveChatConditional){await chatModule.saveChatConditional();return}
-            // Last resort: debounced (may not flush immediately)
-            if(chatModule.saveChatDebounced){chatModule.saveChatDebounced()}
-        }catch{}
-    }catch(e){warn('ensureChatSaved:',e?.message)}
+            const ctx=SillyTavern.getContext();
+            if(typeof ctx.saveChat==='function'){await ctx.saveChat();return}
+            if(typeof ctx.saveChatConditional==='function'){await ctx.saveChatConditional();return}
+            try{
+                const chatModule=await import('/scripts/chat.js');
+                if(chatModule.saveChat){await chatModule.saveChat();return}
+                if(chatModule.saveChatConditional){await chatModule.saveChatConditional();return}
+                if(chatModule.saveChatDebounced){chatModule.saveChatDebounced()}
+            }catch{}
+        }catch(e){warn('ensureChatSaved:',e?.message)}
+        finally{_savePending=null}
+    })();
+    return _savePending;
 }
