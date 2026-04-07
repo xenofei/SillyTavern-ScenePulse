@@ -12,8 +12,108 @@ const ENTITY_ARRAYS = {
     activeTasks: 'name'
 };
 
+// Quest arrays get fuzzy dedup on top of exact name match. Quest names are
+// generated fresh each turn by the model and drift across paraphrasings like
+// "pay and dismiss uber driver" vs "pay and direct uber driver" — exact match
+// fails on those, the delta entry becomes a new quest, and the tier grows
+// unboundedly. Fuzzy match catches semantic near-duplicates at merge time.
+const QUEST_ARRAYS = new Set(['mainQuests', 'sideQuests', 'activeTasks']);
+
 // Array fields always replaced entirely from delta (not merged)
 const REPLACE_ARRAYS = ['plotBranches', 'charactersPresent', 'witnesses'];
+
+// ── Fuzzy quest name matching ─────────────────────────────────────────────
+// Normalize a quest name to a stable token set for comparison:
+//   1. lowercase, strip punctuation (keep alphanumerics and spaces)
+//   2. collapse whitespace
+//   3. drop English stopwords that don't carry quest identity
+//   4. return a Set of the remaining tokens
+const _QUEST_STOPWORDS = new Set([
+    'the', 'a', 'an', 'and', 'or', 'to', 'for', 'with', 'of', 'in', 'on',
+    'at', 'by', 'from', 'about', 'into', 'out', 'up', 'down', 'over', 'under',
+    'is', 'are', 'was', 'were', 'be', 'been', 'being',
+    'do', 'does', 'did', 'doing',
+    'have', 'has', 'had', 'having',
+    'this', 'that', 'these', 'those',
+    'my', 'your', 'his', 'her', 'their', 'our',
+    'it', 'its', 's'
+]);
+// Crude suffix-strip stemmer. Not linguistically correct — the goal is simply
+// to make paraphrase tokens collide consistently. "cook" / "cooking" / "cooked"
+// / "cooks" all need to map to the same stem; the stem itself doesn't need to
+// be a real word. Rules are conservative (length guards) to avoid chopping
+// short words into nonsense.
+function _stem(t) {
+    if (t.length > 5 && t.endsWith('ing')) return t.slice(0, -3);
+    if (t.length > 4 && t.endsWith('ed'))  return t.slice(0, -2);
+    if (t.length > 3 && t.endsWith('s') && !t.endsWith('ss')) return t.slice(0, -1);
+    return t;
+}
+function _tokenizeQuestName(name) {
+    if (!name || typeof name !== 'string') return new Set();
+    const cleaned = name.toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')   // strip punctuation
+        .replace(/\s+/g, ' ')            // collapse whitespace
+        .trim();
+    if (!cleaned) return new Set();
+    const tokens = cleaned.split(' ')
+        .filter(t => t && !_QUEST_STOPWORDS.has(t))
+        .map(_stem);
+    return new Set(tokens);
+}
+// Jaccard similarity between two token sets: |A ∩ B| / |A ∪ B|.
+// Returns 0 when either set is empty (prevents spurious matches on empty names).
+function _jaccardSimilarity(setA, setB) {
+    if (setA.size === 0 || setB.size === 0) return 0;
+    let intersection = 0;
+    for (const t of setA) if (setB.has(t)) intersection++;
+    const union = setA.size + setB.size - intersection;
+    return union === 0 ? 0 : intersection / union;
+}
+// Threshold for "these two quest names refer to the same quest". 0.6 means
+// at least 60% of the non-stopword, stemmed tokens must overlap (inclusive
+// of the boundary — exactly 0.60 qualifies). Tuned against real log data:
+//
+//   "pay and dismiss uber driver" vs "pay and direct uber driver"
+//     tokens A={pay,dismiss,uber,driver} B={pay,direct,uber,driver}
+//     intersection=3 union=5 → 0.60 ✓ match
+//
+//   "learn to cook pasta" vs "learn cooking pasta"
+//     stopword "to" dropped; stemmer maps "cooking" → "cook"
+//     tokens A={learn,cook,pasta} B={learn,cook,pasta} → 1.00 ✓ match
+//
+//   "get jenna medical help" vs "get jenna to hospital"
+//     A={get,jenna,medical,help} B={get,jenna,hospital}
+//     intersection=2 union=5 → 0.40 ✗ no match (related but distinct
+//     intents — leave separate and let the model's prompt-level
+//     consolidation handle it if appropriate)
+//
+//   "comfort jenna" vs "comfort jenna after confession"
+//     A={comfort,jenna} B={comfort,jenna,after,confession} (`after` carries
+//     temporal meaning — not a stopword)
+//     intersection=2 union=4 → 0.50 ✗ no match (qualified child is treated
+//     as a distinct more-specific task, preserving both entries)
+//
+// Tunable — raise for fewer false positives, lower for more aggressive dedup.
+const _QUEST_FUZZY_THRESHOLD = 0.6;
+function _findFuzzyQuestMatch(deltaName, prevArr, alreadyMatchedIdxs) {
+    const deltaTokens = _tokenizeQuestName(deltaName);
+    if (deltaTokens.size === 0) return -1;
+    // Track best >= threshold. Using `>=` means the threshold itself qualifies,
+    // so 0.60 is inclusive — the canonical "pay and dismiss/direct uber driver"
+    // case scores exactly 0.60 post-stopword-strip.
+    let bestIdx = -1, bestScore = -1;
+    for (let i = 0; i < prevArr.length; i++) {
+        if (alreadyMatchedIdxs.has(i)) continue;
+        const prevTokens = _tokenizeQuestName(prevArr[i]?.name);
+        const score = _jaccardSimilarity(deltaTokens, prevTokens);
+        if (score >= _QUEST_FUZZY_THRESHOLD && score > bestScore) {
+            bestScore = score;
+            bestIdx = i;
+        }
+    }
+    return bestIdx;
+}
 
 /**
  * Merge a delta JSON response with a previous full snapshot.
@@ -48,11 +148,26 @@ export function mergeDelta(prev, delta) {
         deltaKeys.push(k);
 
         if (k in ENTITY_ARRAYS && Array.isArray(v) && Array.isArray(merged[k])) {
-            merged[k] = mergeEntityArray(merged[k], v, ENTITY_ARRAYS[k]);
+            merged[k] = mergeEntityArray(merged[k], v, ENTITY_ARRAYS[k], QUEST_ARRAYS.has(k));
         } else if (REPLACE_ARRAYS.includes(k)) {
             merged[k] = v;
         } else {
             merged[k] = v;
+        }
+    }
+
+    // Post-merge: run a single fuzzy-dedup pass over each quest array to
+    // consolidate accumulated near-duplicates from prior turns that the
+    // per-entry merge path couldn't catch (e.g. the previous snapshot already
+    // contained two paraphrases of the same quest before the fix landed).
+    // This heals existing chats with bloated quest piles.
+    for (const qk of QUEST_ARRAYS) {
+        if (Array.isArray(merged[qk]) && merged[qk].length > 1) {
+            const before = merged[qk].length;
+            merged[qk] = _dedupQuestArray(merged[qk]);
+            if (merged[qk].length < before) {
+                log('Quest dedup:', qk, before, '→', merged[qk].length, '(-' + (before - merged[qk].length) + ')');
+            }
         }
     }
 
@@ -77,38 +192,122 @@ export function mergeDelta(prev, delta) {
  * preserving previous fields the LLM omitted.
  * Previous entities not in delta are preserved unchanged.
  * New entities in delta (not in previous) are added.
+ *
+ * When `useFuzzy` is true (set for quest arrays), a fuzzy match step runs
+ * after exact name match fails: tokenize both names, drop stopwords, compute
+ * Jaccard similarity, and treat entries scoring >= _QUEST_FUZZY_THRESHOLD
+ * as the same quest. Prevents paraphrased duplicates from accumulating.
  */
-function mergeEntityArray(prevArr, deltaArr, keyField) {
+function mergeEntityArray(prevArr, deltaArr, keyField, useFuzzy) {
     const result = prevArr.map(item => ({ ...item }));
     const prevMap = new Map();
     for (let i = 0; i < result.length; i++) {
         const key = (result[i][keyField] || '').toLowerCase();
         if (key) prevMap.set(key, i);
     }
+    // Track which prev indices have already absorbed a delta entry so one
+    // prev quest can't be matched twice in the same merge pass.
+    const matchedIdxs = new Set();
 
     for (const deltaItem of deltaArr) {
         const key = (deltaItem[keyField] || '').toLowerCase();
         if (!key) continue;
 
-        const existingIdx = prevMap.get(key);
+        let existingIdx = prevMap.get(key);
+        let matchKind = 'exact';
+
+        // Fuzzy fallback for quest arrays only
+        if (existingIdx === undefined && useFuzzy) {
+            const fuzzyIdx = _findFuzzyQuestMatch(deltaItem[keyField], result, matchedIdxs);
+            if (fuzzyIdx !== -1) {
+                existingIdx = fuzzyIdx;
+                matchKind = 'fuzzy';
+                log('Entity merge [fuzzy]:', JSON.stringify(result[fuzzyIdx].name),
+                    '<-', JSON.stringify(deltaItem[keyField]));
+            }
+        }
+
         if (existingIdx !== undefined) {
+            matchedIdxs.add(existingIdx);
             // Field-level merge: delta fields overwrite, previous fields preserved
             const prev = result[existingIdx];
             const merged = { ...prev };
             for (const [fk, fv] of Object.entries(deltaItem)) {
+                // On FUZZY match (not exact), keep the existing canonical name so
+                // quest identity stays stable across turns. The user tracks quests
+                // by name in the journal UI; reshuffling "pay and dismiss uber driver"
+                // → "pay and direct uber driver" → "pay and send uber driver off" each
+                // turn would make the journal unreadable. On EXACT match the two
+                // names are identical by definition so skipping is a no-op.
+                if (fk === 'name' && matchKind === 'fuzzy') continue;
                 // Only overwrite if delta has a non-empty value
                 if (fv !== undefined && fv !== null && fv !== '') {
                     merged[fk] = fv;
                 }
             }
             result[existingIdx] = merged;
-            log('Entity merge:', key, '— delta fields:', Object.keys(deltaItem).length,
+            log('Entity merge:', key, '(' + matchKind + ') — delta fields:', Object.keys(deltaItem).length,
                 'prev fields:', Object.keys(prev).length, 'merged:', Object.keys(merged).length);
         } else {
             result.push(deltaItem);
+            // Newly-added delta entries are immediately eligible for fuzzy matching
+            // by *subsequent* delta items in the same batch — otherwise the model
+            // could emit two paraphrases of the same new quest in a single turn and
+            // both would survive. Insert them into prevMap so exact-match catches
+            // duplicate phrasings, and rely on the post-merge dedup pass in mergeDelta
+            // to catch fuzzy cases within the same batch.
+            prevMap.set(key, result.length - 1);
             log('Entity merge: new entity added:', key);
         }
     }
 
+    return result;
+}
+
+/**
+ * Post-merge dedup pass for quest arrays. Consolidates near-duplicates that
+ * snuck through the per-entry merge path — either because they already
+ * existed in the carried-forward prev snapshot from before this fix landed,
+ * or because the model emitted two paraphrases of the same quest in a
+ * single delta batch.
+ *
+ * Uses the same fuzzy matcher as mergeEntityArray. For each quest, searches
+ * backward for an earlier quest that matches fuzzily; if found, merges the
+ * later entry's fields into the earlier one (earlier wins on name to keep
+ * the quest ID stable across turns).
+ */
+function _dedupQuestArray(arr) {
+    if (!Array.isArray(arr) || arr.length < 2) return arr;
+    const result = [];
+    const resultTokens = []; // cached per output entry
+    for (const item of arr) {
+        if (!item || !item.name) { result.push(item); resultTokens.push(new Set()); continue; }
+        const tokens = _tokenizeQuestName(item.name);
+        // Scan existing output for a fuzzy match (threshold inclusive — see
+        // _findFuzzyQuestMatch for rationale on the 0.60 boundary case)
+        let matchedIdx = -1, bestScore = -1;
+        for (let i = 0; i < result.length; i++) {
+            const score = _jaccardSimilarity(tokens, resultTokens[i]);
+            if (score >= _QUEST_FUZZY_THRESHOLD && score > bestScore) {
+                bestScore = score;
+                matchedIdx = i;
+            }
+        }
+        if (matchedIdx === -1) {
+            result.push(item);
+            resultTokens.push(tokens);
+        } else {
+            // Merge fields: keep earlier entry's name, fill in missing fields
+            // from the later entry, and prefer the more recent urgency/detail
+            // since later entries are typically more current.
+            const earlier = result[matchedIdx];
+            const merged = { ...earlier };
+            for (const [fk, fv] of Object.entries(item)) {
+                if (fk === 'name') continue; // keep earlier name as canonical
+                if (fv !== undefined && fv !== null && fv !== '') merged[fk] = fv;
+            }
+            result[matchedIdx] = merged;
+        }
+    }
     return result;
 }
