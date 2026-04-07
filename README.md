@@ -435,6 +435,26 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.8.8] — 2026-04-07
+
+#### Fixed
+- **Quest journal no longer accumulates near-duplicates turn after turn.** Quest names are generated fresh each turn by the model and drift across paraphrasings (for example, "pay and dismiss uber driver" → "pay and direct uber driver"). The previous merge logic only matched exact lowercased names, so every paraphrase became a new quest and the tier grew unboundedly. A single long chat in testing hit 39 active tasks before the fix.
+
+#### Added — fuzzy quest consolidation
+- **Fuzzy dedup in `delta-merge.js`** — applied only to the three quest arrays (`mainQuests`, `sideQuests`, `activeTasks`). Characters and relationships still match by exact name (their names are identity). When exact match fails, the merge logic tokenizes both quest names, strips punctuation and stopwords, stems suffixes (`cook`/`cooking`/`cooked`/`cooks` → `cook`), and computes Jaccard similarity over the remaining token sets. A score of 0.60 or higher treats the two as the same quest and merges them field-level.
+- **Post-merge dedup pass** — runs once after the per-entry merge on each quest tier to catch two cases the per-entry path can't: (a) near-duplicates already present in the carried-forward previous snapshot (heals existing chats with bloated quest piles) and (b) two paraphrases of the same quest in a single delta batch (where the per-entry path treats each as new because they're both being added in the same step).
+- **Stability rule**: on a fuzzy match, the existing quest's canonical name is preserved — the delta's rephrasing is discarded so the user doesn't see quest names reshuffle every turn. On an exact match the names are identical by definition so this is a no-op.
+- **Threshold tuned against real log data.** Paraphrase cases consolidate ("pay and dismiss uber driver" ↔ "pay and direct uber driver" → 0.60 match). Distinct but related tasks stay separate ("get jenna medical help" vs "get jenna to hospital" → 0.40 no match). Parent vs qualified child stays separate ("comfort jenna" vs "comfort jenna after confession" → 0.50 no match).
+
+#### Added — per-tier view caps
+- **Quest tier display caps in `filterForView`** — `mainQuests` max 5, `sideQuests` max 6, `activeTasks` max 8. When a tier exceeds its cap, quests are scored by urgency × recency and the top N are shown. **Storage is never touched** — the full quest array persists in the snapshot and is still visible in the Character Wiki, Payload Inspector, and any export. Only the main panel view is capped. This is the safety net: even if fuzzy dedup misses something, the user never sees a quest journal longer than 19 items total.
+
+#### Changed
+- **Interceptor prompt wording** — replaced the `"NEVER drop quests"` directive with permission for the model to consolidate duplicates and near-duplicates into a single clearer entry. The old wording was too absolute and directly encouraged the accumulation pathology. Now: "You MAY consolidate duplicates or near-duplicates into a single clearer entry — prefer consolidation over duplication." Applied to both the injected prompt in `src/constants.js` and the runtime reminder in `src/generation/interceptor.js`.
+
+#### Notes
+Four layers of defense stack: (1) prompt lets the model consolidate on its side, (2) fuzzy merge catches paraphrases the model still emits, (3) post-merge dedup heals existing quest piles in carried-forward state, (4) view cap guarantees a readable journal even if all three upper layers miss. New test harness at `tests/delta-merge-fuzzy.test.mjs` with 15 cases covering exact-match regression, real paraphrase cases, below-threshold cases, no-fuzzy on characters/relationships, post-merge healing of existing piles, same-batch paraphrase collapse, and false-positive guards against unrelated quests.
+
 ### [6.8.7] — 2026-04-07
 
 #### Fixed
