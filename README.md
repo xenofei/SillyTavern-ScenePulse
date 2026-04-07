@@ -435,6 +435,26 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.8.9] — 2026-04-07
+
+#### Removed
+- **`activeTasks` quest tier removed entirely.** The tier had no clear domain — its definition ("immediate concrete to-do items") invited the model to treat the quest journal as a reactive scene-by-scene to-do list rather than a forward-looking life roadmap, generating one entry per narrative beat. Real-world chats accumulated dozens of entries over a single session because every scene-level action became a new task. The previous fuzzy dedup work in v6.8.8 catches paraphrase duplicates but cannot fix this — the model was correctly interpreting an impossible instruction. Removing the tier eliminates the category mistake at the source.
+
+#### Migration
+- **Lazy snapshot migration.** Old chats with `activeTasks` data persisted in `chatMetadata.scenepulse.snapshots[*]` are migrated transparently on the first read of the chat. The migration strips the `activeTasks` field from every snapshot in the chat, sets a per-chat flag so the scan only runs once, and persists the cleaned metadata back to disk via `saveMetadata()`. Idempotent and silent.
+- Defensive strip points at every choke point in the data flow: `delta-merge` drops the field from both prev-snapshot input and incoming delta payloads, `interceptor`'s `_cleanSnap` removes it before sending the previous state to the LLM, `engine`'s `_cleanSnapForPrompt` and continuation `_cleanSnap` do the same on the separate-generation path, and `filterForView` deletes it before render. Any path that bypasses one strip is caught by another.
+- The model is no longer told the field exists — system prompt, dynamic schema builder, and interceptor's mandatory hints all omit it.
+
+#### Changed — quest journal redesign
+- **Hard caps in the prompt**: `mainQuests` MAX 3, `sideQuests` MAX 4. The previous prompt had no upper bound and relied on the model's judgement, which produced 6+ main quests and 4+ side quests in long chats.
+- **Velocity limit**: "Introduce AT MOST 1 new quest per turn. If the scene has many possible actions, those belong in `sceneSummary` or each character's `immediateNeed` / `shortTermGoal` — NOT as new quests. Prefer updating an existing quest's detail over creating a new one."
+- **Duration test in the prompt**: "Before adding a quest, ask: 'will this still matter 5 scenes from now?' If no, it is NOT a quest. Write it into `sceneSummary` instead. The quest journal is a save-game log, not a to-do list for the current scene."
+- **Tightened tier definitions**: `mainQuests` are now defined as "primary life arcs that persist across dozens of scenes and take hours, days, or weeks of in-story time to progress" with explicit examples of what does and does not qualify. `sideQuests` similarly tightened to "optional life paths pursued in parallel".
+- View cap reduced from `mainQuests: 5 / sideQuests: 6 / activeTasks: 8` (19 total) to `mainQuests: 5 / sideQuests: 6` (11 total). The prompt-level caps are the primary throttle; the view caps remain as a small-buffer safety net.
+
+#### Files touched (16)
+`src/constants.js` (schema, BUILTIN_PANELS, BUILTIN_PROMPT, TOUR_EXAMPLE_DATA, REMINDER, hard caps + velocity + duration test), `src/schema.js` (dynamic builder), `src/normalize.js` (drop field, view cap, audit, defensive strip in `filterForView`), `src/generation/delta-merge.js` (ENTITY_ARRAYS, QUEST_ARRAYS, prev/delta strips), `src/generation/interceptor.js` (`_cleanSnap`, mandatoryHints), `src/generation/engine.js` (`_cleanSnap`, `_cleanSnapForPrompt`, `prevQuests` set, partKey field map, `KNOWN` keys, log summary), `src/generation/extraction.js` (KNOWN_KEYS), `src/generation/pipeline.js` (log summary), `src/ui/update-panel.js` (quest tier loop, badge counts, prev map, QUEST_ICONS), `src/ui/timeline.js` (questCount), `src/slash-commands.js` (status summary), `src/macros.js` (`sp_quests` handler), `src/i18n.js` (58 entries removed across 29 languages), `src/settings-ui/guided-tour.js` (Quest Journal step), `src/settings.js` (lazy snapshot migration in `getTrackerData()`), `css/quests.css` (`.sp-tier-tasks` rule), plus `tests/delta-merge-fuzzy.test.mjs` updated.
+
 ### [6.8.8] — 2026-04-07
 
 #### Fixed
