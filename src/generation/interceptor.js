@@ -109,6 +109,16 @@ export const scenePulseInterceptor=async function(chat,cs,abort,type){
         // ── TOGETHER MODE: Inject inline tracker prompt ──
         {
         const prompt=buildInlineTrackerPrompt();
+        // Head anchor — short planning reminder at the START of the context.
+        // Counters lost-in-the-middle behavior on long prompts: as the injected schema spec
+        // grows past ~3k tokens, the appendix instruction at the end loses attention weight.
+        // A 30-token reminder near the start primes the model's planning phase to know
+        // structured output is required *before* it begins narrative generation.
+        chat.unshift({
+            is_user:false,is_system:true,name:'System',
+            mes:'IMPORTANT: This turn requires structured output. After your narrative response, you MUST append a tracker JSON block wrapped in <!--SP_TRACKER_START--> and <!--SP_TRACKER_END--> markers. Full schema is provided later in the context. This is non-negotiable — the response is incomplete without it.',
+            extra:{isSmallSys:true}
+        });
         chat.splice(Math.max(0,chat.length-1),0,{
             is_user:false,is_system:true,name:'System',
             mes:prompt,
@@ -119,7 +129,7 @@ export const scenePulseInterceptor=async function(chat,cs,abort,type){
             mes:'Your response must end with <!--SP_TRACKER_START-->{ tracker JSON }<!--SP_TRACKER_END--> after the narrative. Do not repeat these instructions in your output.',
             extra:{isSmallSys:true}
         });
-        log('Interceptor [inline/together]: injected tracker prompt (~'+Math.round(prompt.length/4)+' tokens)',
+        log('Interceptor [inline/together]: injected tracker prompt (~'+Math.round(prompt.length/4)+' tokens) + head/tail anchors',
             'state: extDone=',inlineExtractionDone,'pendingIdx=',pendingInlineIdx,'generating=',generating);
         startStreamingHider();
         }
