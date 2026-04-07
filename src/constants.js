@@ -2,7 +2,7 @@
 // Extracted from index.js lines 1-365, plus TOUR_EXAMPLE_DATA (~4720-4747)
 
 export const MODULE_NAME='scenepulse';
-export const VERSION = '6.8.7';
+export const VERSION = '6.8.8';
 export const LOG='[ScenePulse]';
 export const EXTENSION_NAME='SillyTavern-ScenePulse';
 export const SP_LS_KEY='scenepulse_config';
@@ -183,7 +183,7 @@ School: WRONG: "{{char}} is being bullied" \u2192 RIGHT: "Stand up for {{char}} 
 - Each entry needs: name (brief title), urgency (critical/high/moderate/low/resolved), detail (1-3 sentences FROM {{user}}'s perspective \u2014 what {{user}} knows and needs to do, NEVER {{char}}'s internal thoughts/feelings)
 - Detail WRONG: "She's angry and conflicted about what happened" \u2192 Detail RIGHT: "The truth changes everything \u2014 need to decide how to respond before word spreads"
 - Detail WRONG: "{{char}} feels guilty and wants to make amends" \u2192 Detail RIGHT: "{{char}} seems remorseful \u2014 could be an opportunity to rebuild trust or leverage the situation"
-- CARRY FORWARD: NEVER drop quests. When a quest is completed in the story, keep it with urgency "resolved" for one update, then it can be removed in the next.
+- CARRY FORWARD: Carry forward active quests from the previous state. You MAY consolidate duplicates or near-duplicates into a single quest (prefer the clearer name). You MAY mark a quest as "resolved" when the story ends it, or when a later quest has clearly superseded it. You MAY NOT silently drop a quest that is still active in the story — if you decide to remove it, set urgency to "resolved" first. When in doubt, consolidate rather than duplicate.
 
 ### Story Ideas (plotBranches)
 - Generate EXACTLY 5 entries, one per category: dramatic, intense, comedic, twist, exploratory.
@@ -200,7 +200,7 @@ Maintain all unchanged details from previous snapshots. Only update what has act
 ## REMINDER
 1. The Quest Journal tracks {{user}}'s LIFE, not the current scene. Quest entries should read like a save-game journal \u2014 storylines that persist across multiple scenes. NEVER write entries about what's happening RIGHT NOW.
 2. ALL quest names AND details from {{user}}'s perspective. The test: does each sentence describe what {{user}} knows, sees, or must do? WRONG detail: "She's angry and conflicted." RIGHT detail: "The betrayal changes everything \u2014 need to act before word spreads." NEVER write {{char}}'s emotions, thoughts, or internal state in quest details.
-3. NEVER drop quests. If a quest existed in the previous state and hasn't been resolved in the story, it MUST appear in the new output. Quests can only be removed when the story explicitly resolves them.
+3. Carry forward active quests from the previous state. You may consolidate duplicates or near-duplicates into a single clearer entry. Do not silently drop a quest that is still active — if you decide to remove it, mark it "resolved" first. Prefer consolidation over duplication.
 4. Use urgency tags: critical / high / moderate / low / resolved. When a quest is completed, set urgency to "resolved" instead of removing it. Never use "status", "deadline", "pending", or other fields.
 
 Output valid JSON now.`;
