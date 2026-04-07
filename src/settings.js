@@ -28,7 +28,33 @@ export function invalidateSettingsCache(){_settingsCache=null;}
 
 export function anyPanelsActive(){const s=getSettings();const p=s.panels||DEFAULTS.panels;return Object.values(p).some(v=>v!==false)||(s.customPanels||[]).some(cp=>cp.fields?.length>0)}
 
-export function getTrackerData(){const m=SillyTavern.getContext().chatMetadata;if(!m)return{snapshots:{}};if(!m.scenepulse)m.scenepulse={snapshots:{}};return m.scenepulse}
+export function getTrackerData(){
+    const m=SillyTavern.getContext().chatMetadata;if(!m)return{snapshots:{}};
+    if(!m.scenepulse)m.scenepulse={snapshots:{}};
+    // ── v6.8.9 migration: strip legacy activeTasks tier from all snapshots ──
+    // The activeTasks quest tier was removed in v6.8.9. Old chats may still
+    // have the field persisted in their saved metadata. This migration runs
+    // lazily on first read of a chat's tracker data: if any snapshot still
+    // contains activeTasks, strip it from every snapshot in the chat and
+    // persist the cleaned metadata back to disk. Idempotent — guarded by
+    // a per-chat flag so the scan only runs once.
+    if(!m.scenepulse._spActiveTasksMigrated){
+        let stripped=0;
+        const snaps=m.scenepulse.snapshots||{};
+        for(const k of Object.keys(snaps)){
+            if(snaps[k]&&'activeTasks' in snaps[k]){
+                delete snaps[k].activeTasks;
+                stripped++;
+            }
+        }
+        m.scenepulse._spActiveTasksMigrated=true;
+        if(stripped>0){
+            log('Migration v6.8.9: stripped activeTasks from',stripped,'snapshot(s) in this chat');
+            try{SillyTavern.getContext().saveMetadata()}catch(e){warn('Migration save failed:',e?.message)}
+        }
+    }
+    return m.scenepulse;
+}
 
 export function getLatestSnapshot(){const d=getTrackerData();const k=Object.keys(d.snapshots).sort((a,b)=>Number(b)-Number(a));return k.length?d.snapshots[k[0]]:null}
 

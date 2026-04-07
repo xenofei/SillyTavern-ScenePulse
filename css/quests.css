@@ -4,7 +4,6 @@
 .sp-tier-star { border-left-color: rgba(212,165,94,0.7); background: rgba(212,165,94,0.04); }
 .sp-tier-main { border-left-color: rgba(196,91,91,0.5); background: rgba(196,91,91,0.04); }
 .sp-tier-side { border-left-color: rgba(155,122,196,0.5); background: rgba(155,122,196,0.04); }
-.sp-tier-tasks { border-left-color: rgba(77,184,164,0.5); background: rgba(77,184,164,0.04); }
 .sp-plot-tier-title { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--sp-text-dim); padding: 4px 6px; border-bottom: 1px solid var(--sp-border); display: flex; align-items: center; gap: 5px; cursor: pointer; user-select: none; }
 .sp-plot-tier-title:hover { background: rgba(255,255,255,0.02); }
 .sp-tier-chevron { font-size: 7px; color: var(--sp-text-dim); transition: transform 0.2s ease; flex-shrink: 0; }

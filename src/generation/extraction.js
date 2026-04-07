@@ -165,7 +165,7 @@ export function extractInlineTracker(mesIdx){
             return null;
         }
         // Validate it looks like tracker data — must have at least one known tracker key
-        const KNOWN_KEYS=['time','location','weather','sceneTopic','sceneMood','sceneTension','characters','relationships','plotBranches','mainQuests','sideQuests','activeTasks'];
+        const KNOWN_KEYS=['time','location','weather','sceneTopic','sceneMood','sceneTension','characters','relationships','plotBranches','mainQuests','sideQuests'];
         const hasKnown=KNOWN_KEYS.some(k=>k in parsed);
         if(!hasKnown){warn('extractInlineTracker: no known tracker keys found in',keys.slice(0,8).join(','));return null}
         // Strip the tracker block from the message

@@ -8,16 +8,15 @@ const ENTITY_ARRAYS = {
     characters: 'name',
     relationships: 'name',
     mainQuests: 'name',
-    sideQuests: 'name',
-    activeTasks: 'name'
+    sideQuests: 'name'
 };
 
 // Quest arrays get fuzzy dedup on top of exact name match. Quest names are
 // generated fresh each turn by the model and drift across paraphrasings like
-// "pay and dismiss uber driver" vs "pay and direct uber driver" — exact match
-// fails on those, the delta entry becomes a new quest, and the tier grows
-// unboundedly. Fuzzy match catches semantic near-duplicates at merge time.
-const QUEST_ARRAYS = new Set(['mainQuests', 'sideQuests', 'activeTasks']);
+// "rebuild trust with Jenna" vs "rebuild Jenna trust" — exact match fails on
+// those, the delta entry becomes a new quest, and the tier grows unboundedly.
+// Fuzzy match catches semantic near-duplicates at merge time.
+const QUEST_ARRAYS = new Set(['mainQuests', 'sideQuests']);
 
 // Array fields always replaced entirely from delta (not merged)
 const REPLACE_ARRAYS = ['plotBranches', 'charactersPresent', 'witnesses'];
@@ -137,14 +136,22 @@ export function mergeDelta(prev, delta) {
     }
 
     // 1b. Strip resolved quests from carried-forward data — they had their grace period
-    for (const qk of ['mainQuests', 'sideQuests', 'activeTasks']) {
+    for (const qk of ['mainQuests', 'sideQuests']) {
         if (Array.isArray(merged[qk])) merged[qk] = merged[qk].filter(q => q.urgency !== 'resolved');
     }
+    // 1c. Drop any activeTasks field that survives in legacy snapshots. The tier
+    // is removed as of v6.8.9 — silently strip on merge so it stops leaking into
+    // delta prompts as context.
+    delete merged.activeTasks;
 
     // 2. Apply delta overrides
     const deltaKeys = [];
     for (const [k, v] of Object.entries(delta)) {
         if (k === '_spMeta') continue;
+        // Silently drop legacy activeTasks field from delta output. The tier was
+        // removed in v6.8.9; models may still emit it if an old snapshot bled
+        // into their context. Ignoring it here keeps merged state clean.
+        if (k === 'activeTasks') continue;
         deltaKeys.push(k);
 
         if (k in ENTITY_ARRAYS && Array.isArray(v) && Array.isArray(merged[k])) {

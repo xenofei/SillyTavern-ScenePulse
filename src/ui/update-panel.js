@@ -97,7 +97,7 @@ export function updatePanel(d,_force=false){
         if(m.source)setLastGenSource(m.source);
     }
     if(!_isTimelineScrub)log('updatePanel: chars=',d?.characters?.length||0,'rels=',d?.relationships?.length||0,
-        'quests=',((d?.mainQuests?.length||0)+(d?.sideQuests?.length||0)+(d?.activeTasks?.length||0)),
+        'quests=',((d?.mainQuests?.length||0)+(d?.sideQuests?.length||0)),
         'scene=',d?.sceneTopic?'\u2713':'\u2717','time=',d?.time||'?');
     if(!_isTimelineScrub)updateThoughts(d);
     const body=document.getElementById('sp-panel-body');
@@ -379,14 +379,14 @@ export function updatePanel(d,_force=false){
     // ── Quest diff: classify quests as new/updated/stale ──
     const _prevQSnap=getPrevSnapshot(currentSnapshotMesIdx);
     const _prevQMaps={};
-    for(const _qk of['mainQuests','sideQuests','activeTasks']){const _m={};if(_prevQSnap&&Array.isArray(_prevQSnap[_qk]))for(const _q of _prevQSnap[_qk])_m[(_q.name||'').toLowerCase().trim()]=_q;_prevQMaps[_qk]=_m}
+    for(const _qk of['mainQuests','sideQuests']){const _m={};if(_prevQSnap&&Array.isArray(_prevQSnap[_qk]))for(const _q of _prevQSnap[_qk])_m[(_q.name||'').toLowerCase().trim()]=_q;_prevQMaps[_qk]=_m}
     function _classifyQuest(q,tierKey){if((q.urgency||'')==='resolved')return'resolved';if(!_prevQSnap)return'new';const pm=_prevQMaps[tierKey];if(!pm||!Object.keys(pm).length)return'new';const prev=pm[(q.name||'').toLowerCase().trim()];if(!prev)return'new';if((q.name||'').trim()!==(prev.name||'').trim()||(q.detail||'').trim()!==(prev.detail||'').trim()||(q.urgency||'')!==(prev.urgency||''))return'updated';return'stale'}
     // Pre-compute status counts per tier
     const _tierStatusCounts={};let _totalQNew=0,_totalQUpdated=0,_totalQDone=0;
-    for(const _tk of['mainQuests','sideQuests','activeTasks']){let _nc=0,_uc=0,_dc=0;if(Array.isArray(d[_tk]))for(const _q of d[_tk]){const _s=_classifyQuest(_q,_tk);if(_s==='new')_nc++;else if(_s==='updated')_uc++;else if(_s==='resolved')_dc++}_tierStatusCounts[_tk]={n:_nc,u:_uc,d:_dc};_totalQNew+=_nc;_totalQUpdated+=_uc;_totalQDone+=_dc}
+    for(const _tk of['mainQuests','sideQuests']){let _nc=0,_uc=0,_dc=0;if(Array.isArray(d[_tk]))for(const _q of d[_tk]){const _s=_classifyQuest(_q,_tk);if(_s==='new')_nc++;else if(_s==='updated')_uc++;else if(_s==='resolved')_dc++}_tierStatusCounts[_tk]={n:_nc,u:_uc,d:_dc};_totalQNew+=_nc;_totalQUpdated+=_uc;_totalQDone+=_dc}
 
     // Quest Journal section
-    const pc=[d.mainQuests,d.sideQuests,d.activeTasks].reduce((n,a)=>n+(Array.isArray(a)?a.length:0),0)+(d.northStar?1:0);
+    const pc=[d.mainQuests,d.sideQuests].reduce((n,a)=>n+(Array.isArray(a)?a.length:0),0)+(d.northStar?1:0);
     {const _sec=mkSection('quests',t('Quest Journal'),pc,()=>{
         const f=document.createDocumentFragment();
         // North Star
@@ -399,8 +399,8 @@ export function updatePanel(d,_force=false){
         mkEditable(nsText,()=>d.northStar||'',v=>{d.northStar=v;const snap=getLatestSnapshot();if(snap)snap.northStar=v});
         nsBody.appendChild(nsText);nsDiv.appendChild(nsTitle);nsDiv.appendChild(nsBody);f.appendChild(nsDiv)}
         // Quest tiers
-        const QUEST_ICONS={main:'<svg class="sp-tier-icon" viewBox="0 0 16 16" fill="none"><path d="M3 14V3a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v11l-5-2.5L3 14z" fill="currentColor" opacity="0.2" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><line x1="6" y1="5" x2="10" y2="5" stroke="currentColor" stroke-width="0.9" opacity="0.5" stroke-linecap="round"/><line x1="6" y1="7.5" x2="10" y2="7.5" stroke="currentColor" stroke-width="0.9" opacity="0.5" stroke-linecap="round"/></svg>',side:'<svg class="sp-tier-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.1" fill="currentColor" opacity="0.1"/><path d="M8 4v4.5l3 1.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/><circle cx="8" cy="8" r="1" fill="currentColor" opacity="0.4"/></svg>',tasks:'<svg class="sp-tier-icon" viewBox="0 0 16 16" fill="none"><path d="M3.5 8.5l2.5 2.5 6.5-6.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="1.5" y="1.5" width="13" height="13" rx="2" stroke="currentColor" stroke-width="1" opacity="0.3"/></svg>'};
-        for(const tier of[{t:'Main Quests',icon:QUEST_ICONS.main,i:d.mainQuests,key:'mainQuests',cls:'sp-tier-main',empty:'No active storyline quests'},{t:'Side Quests',icon:QUEST_ICONS.side,i:d.sideQuests,key:'sideQuests',cls:'sp-tier-side',empty:'No side quests discovered'},{t:'Active Tasks',icon:QUEST_ICONS.tasks,i:d.activeTasks,key:'activeTasks',cls:'sp-tier-tasks',empty:'No immediate tasks'}]){
+        const QUEST_ICONS={main:'<svg class="sp-tier-icon" viewBox="0 0 16 16" fill="none"><path d="M3 14V3a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v11l-5-2.5L3 14z" fill="currentColor" opacity="0.2" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><line x1="6" y1="5" x2="10" y2="5" stroke="currentColor" stroke-width="0.9" opacity="0.5" stroke-linecap="round"/><line x1="6" y1="7.5" x2="10" y2="7.5" stroke="currentColor" stroke-width="0.9" opacity="0.5" stroke-linecap="round"/></svg>',side:'<svg class="sp-tier-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.1" fill="currentColor" opacity="0.1"/><path d="M8 4v4.5l3 1.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/><circle cx="8" cy="8" r="1" fill="currentColor" opacity="0.4"/></svg>'};
+        for(const tier of[{t:'Main Quests',icon:QUEST_ICONS.main,i:d.mainQuests,key:'mainQuests',cls:'sp-tier-main',empty:'No active storyline quests'},{t:'Side Quests',icon:QUEST_ICONS.side,i:d.sideQuests,key:'sideQuests',cls:'sp-tier-side',empty:'No side quests discovered'}]){
             const b=document.createElement('div');b.className=`sp-plot-tier ${tier.cls||''}`;b.dataset.ft=tier.key;
             if(tier.i?.length)b.classList.add('sp-tier-open');
             const tierTitle=document.createElement('div');tierTitle.className='sp-plot-tier-title';

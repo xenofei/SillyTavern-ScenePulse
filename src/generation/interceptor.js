@@ -18,8 +18,11 @@ export function buildInlineTrackerPrompt(){
     const s=getSettings();
     const sysPr=getActivePrompt();
     const snap=getLatestSnapshot();
-    // Filter resolved quests from embedded snapshot — don't send completed quests to LLM
-    function _cleanSnap(s){if(!s)return null;const c={...s};for(const k of['mainQuests','sideQuests','activeTasks']){if(Array.isArray(c[k]))c[k]=c[k].filter(q=>q.urgency!=='resolved')}delete c._spMeta;return c}
+    // Filter resolved quests + legacy activeTasks from embedded snapshot before
+    // sending the previous state back to the LLM. Completed quests don't need
+    // to re-enter the model's context, and activeTasks is a removed tier —
+    // leaking old values of it would re-teach the model to produce them.
+    function _cleanSnap(s){if(!s)return null;const c={...s};for(const k of['mainQuests','sideQuests']){if(Array.isArray(c[k]))c[k]=c[k].filter(q=>q.urgency!=='resolved')}delete c.activeTasks;delete c._spMeta;return c}
     const cleanedSnap=_cleanSnap(snap);
     const prevState=cleanedSnap?`\nPREVIOUS STATE (carry forward unchanged details, update only what changed):\n${JSON.stringify(cleanedSnap,null,2)}\n\nIMPORTANT: Carry forward active quests. You MAY consolidate duplicates or near-duplicates into a single clearer entry — prefer consolidation over duplication. You MAY mark a quest as "resolved" when the story ends it or when a later quest has superseded it. Do not silently drop an active quest. All quests MUST be from {{user}}'s perspective \u2014 if hostile, oppose their goal; if ally, support them as {{user}}'s action.`:'';
     // Strip the "JSON OUTPUT ONLY" header from the prompt
@@ -35,7 +38,7 @@ export function buildInlineTrackerPrompt(){
     const panels=s.panels||DEFAULTS.panels;
     let mandatoryHints='';
     if(panels.storyIdeas!==false)mandatoryHints+='\n- plotBranches: EXACTLY 5 story suggestions (dramatic, intense, comedic, twist, exploratory). Each needs type, name, hook.';
-    if(panels.quests!==false)mandatoryHints+='\n- mainQuests/sideQuests/activeTasks: From story context. Each needs name, urgency, detail.';
+    if(panels.quests!==false)mandatoryHints+='\n- mainQuests (MAX 3) / sideQuests (MAX 4): Persistent life arcs spanning multiple scenes, NOT scene-level actions. Introduce AT MOST 1 new quest per turn. Each needs name, urgency, detail.';
     if(panels.characters!==false)mandatoryHints+='\n- characters: Full details for EVERY non-user character present including appearance.';
     if(panels.relationships!==false)mandatoryHints+='\n- relationships: All characters\' views of {{user}} with numeric meters (0-100) and labels. desire=0 for strangers/family.';
     // Custom panel hints

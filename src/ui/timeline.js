@@ -194,7 +194,7 @@ function _showSnapshotBrowser(all,sorted){
             const mood=snap.sceneMood||'';const tension=snap.sceneTension||'';
             const charNames=(snap.characters||[]).map(c=>c.name||'?').join(', ');
             const relCount=(snap.relationships||[]).length;
-            const questCount=((snap.mainQuests||[]).length+(snap.sideQuests||[]).length+(snap.activeTasks||[]).length);
+            const questCount=((snap.mainQuests||[]).length+(snap.sideQuests||[]).length);
             const meta=snap._spMeta||{};
             const tokens=(meta.promptTokens||0)+(meta.completionTokens||0);
             const elapsed=meta.elapsed||0;

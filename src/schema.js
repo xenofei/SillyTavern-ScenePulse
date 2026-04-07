@@ -175,12 +175,11 @@ You are a precise scene analysis engine. Read the story context and output a sin
         const ft=s.fieldToggles||{};
         let qFields=[];
         if(ft.northStar!==false)qFields.push("- northStar: {{user}}'s ONE driving dream or life purpose. \"Not yet revealed\" if unknown.");
-        if(ft.mainQuests!==false)qFields.push('- mainQuests: PRIMARY storyline objectives. What {{user}} is trying to accomplish.');
-        if(ft.sideQuests!==false)qFields.push('- sideQuests: Optional enriching paths {{user}} could pursue.');
-        if(ft.activeTasks!==false)qFields.push('- activeTasks: Immediate concrete things {{user}} needs to do right now.');
+        if(ft.mainQuests!==false)qFields.push('- mainQuests: MAX 3. Primary life arcs that persist across many scenes and take hours/days/weeks of in-story time. NOT scene-level events.');
+        if(ft.sideQuests!==false)qFields.push('- sideQuests: MAX 4. Optional life paths {{user}} is pursuing in parallel. Also persist across multiple scenes. NOT "things to do this scene".');
         if(qFields.length){
             prompt+='\n### Quest Journal (from {{user}}\'s perspective)\n'+qFields.join('\n');
-            if(ft.mainQuests!==false||ft.sideQuests!==false||ft.activeTasks!==false)prompt+='\n- All quests: name + urgency (critical/high/moderate/low/resolved) + detail.\n- ALWAYS from {{user}}\'s perspective. If hostile: oppose their goal. If ally: support them as {{user}}\'s action.\n- NEVER drop unresolved quests. Carry them forward. When a quest is completed in the story, set its urgency to "resolved" instead of removing it.\n';
+            if(ft.mainQuests!==false||ft.sideQuests!==false)prompt+='\n- All quests: name + urgency (critical/high/moderate/low/resolved) + detail.\n- ALWAYS from {{user}}\'s perspective. If hostile: oppose their goal. If ally: support them as {{user}}\'s action.\n- VELOCITY LIMIT: Introduce AT MOST 1 new quest per turn. Scene-level actions belong in sceneSummary, NOT as new quests. Prefer updating existing quests over creating new ones.\n- DURATION TEST: If the task would not still matter 5 scenes from now, it is NOT a quest.\n- Carry forward unresolved quests. You may consolidate duplicates. When a quest is completed in the story, set its urgency to "resolved" instead of removing it.\n';
         }
     }
     // Relationships

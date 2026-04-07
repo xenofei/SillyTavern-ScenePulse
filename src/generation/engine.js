@@ -177,8 +177,8 @@ function _selectSignificantSnapshots(allSnaps,sortedDesc,count){
             const newChars=(snap.characters||[]).filter(c=>!prevChars.has((c.name||'').toLowerCase()));
             if(newChars.length)score+=2*newChars.length;
             // Quest completions
-            const prevQuests=new Set([...(prevSnap.mainQuests||[]),...(prevSnap.sideQuests||[]),...(prevSnap.activeTasks||[])].filter(q=>q.urgency!=='resolved').map(q=>(q.name||'').toLowerCase()));
-            const resolved=[...(snap.mainQuests||[]),...(snap.sideQuests||[]),...(snap.activeTasks||[])].filter(q=>q.urgency==='resolved'&&prevQuests.has((q.name||'').toLowerCase()));
+            const prevQuests=new Set([...(prevSnap.mainQuests||[]),...(prevSnap.sideQuests||[])].filter(q=>q.urgency!=='resolved').map(q=>(q.name||'').toLowerCase()));
+            const resolved=[...(snap.mainQuests||[]),...(snap.sideQuests||[])].filter(q=>q.urgency==='resolved'&&prevQuests.has((q.name||'').toLowerCase()));
             if(resolved.length)score+=3*resolved.length;
         } else {
             score=1; // First snapshot gets baseline
@@ -229,7 +229,7 @@ export async function generateTracker(mesIdx,partKey,opts){
         const ctxText=recent.map(m=>`${m.is_user?'{{user}}':(m.name||'{{char}}')}: ${m.mes}`).join('\n\n');
         const lastSnap=getLatestSnapshot();
         // Filter resolved quests from snapshot before embedding in prompt
-        function _cleanSnapForPrompt(s){const c={...s};for(const k of['mainQuests','sideQuests','activeTasks']){if(Array.isArray(c[k]))c[k]=c[k].filter(q=>q.urgency!=='resolved')}delete c._spMeta;return c}
+        function _cleanSnapForPrompt(s){const c={...s};for(const k of['mainQuests','sideQuests']){if(Array.isArray(c[k]))c[k]=c[k].filter(q=>q.urgency!=='resolved')}delete c.activeTasks;delete c._spMeta;return c}
         let snapCtx='';
         if(lastSnap){
             const allSnaps=getTrackerData().snapshots;
@@ -383,7 +383,7 @@ export async function generateTracker(mesIdx,partKey,opts){
             const SECTION_FIELDS={
                 dashboard:['time','date','location','weather','temperature'],
                 scene:['sceneTopic','sceneMood','sceneInteraction','sceneTension','sceneSummary','soundEnvironment','charactersPresent'],
-                quests:['northStar','mainQuests','sideQuests','activeTasks'],
+                quests:['northStar','mainQuests','sideQuests'],
                 relationships:['relationships'],
                 characters:['characters'],
                 branches:['plotBranches']
@@ -412,7 +412,7 @@ export async function generateTracker(mesIdx,partKey,opts){
         }
         log('=== POST-NORMALIZE SUMMARY === source=',lastGenSource);
         log('  chars:',result.characters?.length||0,'rels:',result.relationships?.length||0);
-        log('  quests: main=',result.mainQuests?.length||0,'side=',result.sideQuests?.length||0,'tasks=',result.activeTasks?.length||0);
+        log('  quests: main=',result.mainQuests?.length||0,'side=',result.sideQuests?.length||0);
         log('  northStar:',result.northStar?'"'+result.northStar.substring(0,60)+'"':'(empty)');
         log('  scene:',result.sceneTopic?'topic=\u2713':'topic=\u2717',result.sceneMood?'mood=\u2713':'mood=\u2717',result.sceneTension?'tension=\u2713':'tension=\u2717');
         if(result.characters?.length){for(const ch of result.characters)log('  char:',ch.name,'role=',ch.role?'\u2713':'\u2717','thought=',ch.innerThought?'\u2713':'\u2717','hair=',ch.hair?'\u2713':'\u2717')}
@@ -472,7 +472,7 @@ export async function continuationReprompt(narrativeText, opts){
     const lastSnap=getLatestSnapshot();
     let prevState='';
     if(lastSnap){
-        function _cleanSnap(s){const c={...s};for(const k of['mainQuests','sideQuests','activeTasks']){if(Array.isArray(c[k]))c[k]=c[k].filter(q=>q.urgency!=='resolved')}delete c._spMeta;return c}
+        function _cleanSnap(s){const c={...s};for(const k of['mainQuests','sideQuests']){if(Array.isArray(c[k]))c[k]=c[k].filter(q=>q.urgency!=='resolved')}delete c.activeTasks;delete c._spMeta;return c}
         prevState=`\n\nPREVIOUS STATE (carry forward unchanged details, update only what changed):\n${JSON.stringify(_cleanSnap(lastSnap),null,2)}`;
     }
     const isDelta=settings.deltaMode&&lastSnap;
@@ -512,7 +512,7 @@ Output the JSON object now:`;
             const parsed=cleanJson(rawStr);
             if(!parsed||typeof parsed!=='object'){warn('Continuation: parse returned non-object');return null}
             // Sanity check: must have at least one known tracker key
-            const KNOWN=['time','sceneTopic','sceneMood','sceneTension','characters','relationships','mainQuests','sideQuests','activeTasks','plotBranches'];
+            const KNOWN=['time','sceneTopic','sceneMood','sceneTension','characters','relationships','mainQuests','sideQuests','plotBranches'];
             if(!KNOWN.some(k=>k in parsed)){warn('Continuation: parsed object lacks known tracker keys:',Object.keys(parsed).slice(0,8).join(','));return null}
             // NOTE: we deliberately do NOT delta-merge here. processExtraction() in the
             // caller's pipeline handles the merge under the same deltaMode check, and

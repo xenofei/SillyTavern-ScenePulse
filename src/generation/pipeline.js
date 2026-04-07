@@ -106,7 +106,7 @@ export async function processExtraction(mesIdx, extracted, source, opts = {}) {
 function _logSummary(norm, source) {
     log('=== PIPELINE SUMMARY === source=', source);
     log('  chars:', norm.characters?.length || 0, 'rels:', norm.relationships?.length || 0);
-    log('  quests: main=', norm.mainQuests?.length || 0, 'side=', norm.sideQuests?.length || 0, 'tasks=', norm.activeTasks?.length || 0);
+    log('  quests: main=', norm.mainQuests?.length || 0, 'side=', norm.sideQuests?.length || 0);
     log('  ideas:', norm.plotBranches?.length || 0, 'northStar:', JSON.stringify(norm.northStar || '').substring(0, 50));
     log('  scene: topic=' + (norm.sceneTopic ? '✓' : '✗'), 'mood=' + (norm.sceneMood ? '✓' : '✗'), 'tension=' + (norm.sceneTension ? '✓' : '✗'));
     if (norm.characters?.length) {

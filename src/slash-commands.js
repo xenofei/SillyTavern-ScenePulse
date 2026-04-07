@@ -162,7 +162,6 @@ function _spStatus() {
     const rels = norm.relationships?.map(r => `${r.name} (aff:${r.affection})`).join(', ') || 'none';
     const mainQ = norm.mainQuests?.filter(q => q.urgency !== 'resolved').length || 0;
     const sideQ = norm.sideQuests?.filter(q => q.urgency !== 'resolved').length || 0;
-    const tasks = norm.activeTasks?.filter(q => q.urgency !== 'resolved').length || 0;
     const meta = snap._spMeta || {};
 
     return [
@@ -178,7 +177,7 @@ function _spStatus() {
         '',
         `Characters (${norm.characters?.length || 0}): ${chars}`,
         `Relationships (${norm.relationships?.length || 0}): ${rels}`,
-        `Quests: ${mainQ} main, ${sideQ} side, ${tasks} tasks`,
+        `Quests: ${mainQ} main, ${sideQ} side`,
         `North Star: ${norm.northStar || 'Not revealed'}`,
         '',
         meta.elapsed ? `Last gen: ${meta.elapsed.toFixed(1)}s | ~${(meta.promptTokens || 0) + (meta.completionTokens || 0)} tokens | Source: ${meta.source || '?'}` : '',

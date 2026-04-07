@@ -108,7 +108,6 @@ export function normalizeTracker(d){
         return{name:p.name||p.title||'',urgency:urg,detail:p.detail||p.notes||p.description||''}})}
     o.mainQuests=normPlot(d.mainQuests||flat['mainquests']||d.criticalPriorities||d.primaryObjectives||[]);
     o.sideQuests=normPlot(d.sideQuests||flat['sidequests']||d.sideVentures||[]);
-    o.activeTasks=normPlot(d.activeTasks||flat['activetasks']||d.nearTermGrowth||d.immediateGoals||[]);
     const rb=d.plotBranches||flat['plotbranches']||[];
     const validTypes=['dramatic','intense','comedic','twist','exploratory'];
     o.plotBranches=Array.isArray(rb)?rb.map(b=>{
@@ -136,7 +135,7 @@ export function normalizeTracker(d){
     }
     // Carry forward: smart quest completion detection
     {try{const prev=getLatestSnapshot();if(prev){
-        for(const _qk of['mainQuests','sideQuests','activeTasks']){
+        for(const _qk of['mainQuests','sideQuests']){
             const currQuests=o[_qk]||[];
             const prevQuests=prev[_qk]||[];
             if(!currQuests.length&&prevQuests.length){
@@ -431,7 +430,7 @@ export function normalizeTracker(d){
             if(o[_pk]===''&&_prev[_pk]!==''){o[_pk]=_prev[_pk];if(_verbose)log('Custom carry-forward:',_pk)}
         }
     }}catch(e){/* carry-forward is best-effort */}
-    if(_verbose)auditFields('normalizeTracker',o,['time','date','elapsed','location','weather','temperature','soundEnvironment','sceneTopic','sceneMood','sceneInteraction','sceneTension','sceneSummary','witnesses','charactersPresent','mainQuests','sideQuests','activeTasks','plotBranches','northStar','relationships','characters']);
+    if(_verbose)auditFields('normalizeTracker',o,['time','date','elapsed','location','weather','temperature','soundEnvironment','sceneTopic','sceneMood','sceneInteraction','sceneTension','sceneSummary','witnesses','charactersPresent','mainQuests','sideQuests','plotBranches','northStar','relationships','characters']);
     if(d._spMeta)o._spMeta=d._spMeta;
     _normCache.set(d, o);
     return o;
@@ -477,14 +476,11 @@ export function normalizeChar(ch){
 // Character Wiki, Payload Inspector). Only the view passed to the main
 // quest journal panel is capped.
 //
-// Caps chosen for usability:
-//   - activeTasks: 8 — an immediate to-do list longer than this stops being
-//     actionable; the user cannot meaningfully track more than ~8 concrete
-//     things "to handle soon"
-//   - sideQuests:  6 — optional enriching paths; too many dilutes focus
-//   - mainQuests:  5 — primary storyline objectives; more than 5 means the
-//     model is conflating long-arc goals with short-arc tasks
-const _QUEST_VIEW_CAPS = { mainQuests: 5, sideQuests: 6, activeTasks: 8 };
+// Caps aligned with the hard caps in the interceptor prompt (main 3, side 4)
+// plus a small buffer so one extra from model drift doesn't get dropped from
+// the panel without warning. The prompt does the primary throttling; these
+// caps are the display safety net.
+const _QUEST_VIEW_CAPS = { mainQuests: 5, sideQuests: 6 };
 
 // Urgency ordering — higher = more urgent = higher score when tier is over cap
 const _URGENCY_SCORE = { critical: 5, high: 4, moderate: 3, low: 2, resolved: 1 };
@@ -515,6 +511,12 @@ function _capQuestTier(arr, limit) {
 export function filterForView(snap){
     if(!snap||typeof snap!=='object')return snap;
     const out={...snap};
+
+    // ── Drop legacy activeTasks from view (v6.8.9: tier removed) ──
+    // Defensive belt-and-braces strip — the normalize/merge paths already
+    // discard the field, but any direct-from-storage render path would
+    // still leak it without this line.
+    delete out.activeTasks;
 
     // ── Quest tier caps (always applied, regardless of charactersPresent) ──
     // Using a single fresh shallow copy of the snap ensures we never mutate

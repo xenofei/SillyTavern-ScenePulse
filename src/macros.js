@@ -77,7 +77,6 @@ export function registerMacros() {
                 const all = [
                     ...(norm.mainQuests || []),
                     ...(norm.sideQuests || []),
-                    ...(norm.activeTasks || []),
                 ].filter(q => q.urgency !== 'resolved');
                 return all.map(q => q.name).join(', ');
             },

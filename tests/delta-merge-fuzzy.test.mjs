@@ -53,21 +53,21 @@ function questNames(arr) {
 console.log('\n── Exact match regression ──');
 {
     const prev = {
-        activeTasks: [
+        mainQuests: [
             { name: 'Fix the broken door', urgency: 'moderate', detail: 'before winter' },
             { name: 'Call the landlord', urgency: 'low', detail: '' }
         ]
     };
     const delta = {
-        activeTasks: [
+        mainQuests: [
             { name: 'Fix the broken door', urgency: 'high', detail: 'urgent — storm incoming' }
         ]
     };
     const merged = mergeDelta(prev, delta);
-    assertLen('exact match does not add duplicate', merged.activeTasks, 2);
-    assertEq('exact match updates urgency', merged.activeTasks[0].urgency, 'high');
-    assertEq('exact match updates detail', merged.activeTasks[0].detail, 'urgent — storm incoming');
-    assertEq('unchanged quest preserved', merged.activeTasks[1].name, 'Call the landlord');
+    assertLen('exact match does not add duplicate', merged.mainQuests, 2);
+    assertEq('exact match updates urgency', merged.mainQuests[0].urgency, 'high');
+    assertEq('exact match updates detail', merged.mainQuests[0].detail, 'urgent — storm incoming');
+    assertEq('unchanged quest preserved', merged.mainQuests[1].name, 'Call the landlord');
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -76,18 +76,18 @@ console.log('\n── Exact match regression ──');
 console.log('\n── Fuzzy match: real paraphrase cases ──');
 {
     const prev = {
-        activeTasks: [
+        mainQuests: [
             { name: 'pay and dismiss uber driver', urgency: 'high', detail: '' }
         ]
     };
     const delta = {
-        activeTasks: [
+        mainQuests: [
             { name: 'pay and direct uber driver', urgency: 'high', detail: 'give the new destination' }
         ]
     };
     const merged = mergeDelta(prev, delta);
-    assertLen('fuzzy match: dismiss/direct uber driver collapses to 1', merged.activeTasks, 1);
-    assertEq('fuzzy match prefers later detail', merged.activeTasks[0].detail, 'give the new destination');
+    assertLen('fuzzy match: dismiss/direct uber driver collapses to 1', merged.mainQuests, 1);
+    assertEq('fuzzy match prefers later detail', merged.mainQuests[0].detail, 'give the new destination');
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -96,18 +96,18 @@ console.log('\n── Fuzzy match: real paraphrase cases ──');
 console.log('\n── Fuzzy match threshold: related but distinct ──');
 {
     const prev = {
-        activeTasks: [
+        mainQuests: [
             { name: 'get jenna medical help', urgency: 'critical', detail: 'a' }
         ]
     };
     const delta = {
-        activeTasks: [
+        mainQuests: [
             { name: 'get jenna to hospital', urgency: 'critical', detail: 'b' }
         ]
     };
     const merged = mergeDelta(prev, delta);
     // Jaccard: {get,jenna,medical,help} vs {get,jenna,hospital} = 2/5 = 0.40 < 0.6
-    assertLen('related but distinct quests stay separate', merged.activeTasks, 2);
+    assertLen('related but distinct quests stay separate', merged.mainQuests, 2);
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -116,12 +116,12 @@ console.log('\n── Fuzzy match threshold: related but distinct ──');
 console.log('\n── Fuzzy match: parent vs qualified child ──');
 {
     const prev = {
-        activeTasks: [
+        mainQuests: [
             { name: 'comfort jenna', urgency: 'high', detail: 'general' }
         ]
     };
     const delta = {
-        activeTasks: [
+        mainQuests: [
             { name: 'comfort jenna after confession', urgency: 'critical', detail: 'specific' }
         ]
     };
@@ -131,7 +131,7 @@ console.log('\n── Fuzzy match: parent vs qualified child ──');
     // Jaccard: 2/4 = 0.50 < 0.6 → NOT merged. The qualified child is a distinct
     // more-specific task; keeping it separate lets the user see both the ongoing
     // general intent and the in-the-moment qualified version.
-    assertLen('parent and qualified child stay separate', merged.activeTasks, 2);
+    assertLen('parent and qualified child stay separate', merged.mainQuests, 2);
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -178,7 +178,7 @@ console.log('\n── Relationships: exact match only, no fuzzy ──');
 console.log('\n── Post-merge dedup heals existing pile ──');
 {
     const prev = {
-        activeTasks: [
+        mainQuests: [
             { name: 'pay and dismiss uber driver', urgency: 'high', detail: 'original' },
             { name: 'pay and direct uber driver', urgency: 'high', detail: 'second paraphrase' },
             { name: 'get jenna medical help', urgency: 'critical', detail: '' },
@@ -191,7 +191,7 @@ console.log('\n── Post-merge dedup heals existing pile ──');
     // 3&4: tokens {get,jenna,medical,help} vs {convince,jenna,accept,medical,help}
     // intersection = {jenna,medical,help} = 3, union = 6, 3/6 = 0.50 → NOT merged
     // Only the uber driver pair merges → 3 remaining
-    assertLen('uber driver pair consolidates via post-merge dedup', merged.activeTasks, 3);
+    assertLen('uber driver pair consolidates via post-merge dedup', merged.mainQuests, 3);
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -199,9 +199,9 @@ console.log('\n── Post-merge dedup heals existing pile ──');
 // ═══════════════════════════════════════════════════════════════════════
 console.log('\n── Same-batch paraphrases consolidate ──');
 {
-    const prev = { activeTasks: [] };
+    const prev = { mainQuests: [] };
     const delta = {
-        activeTasks: [
+        mainQuests: [
             { name: 'book the flight to Tokyo', urgency: 'high', detail: 'a' },
             { name: 'book flight to Tokyo', urgency: 'high', detail: 'b' }
         ]
@@ -210,7 +210,7 @@ console.log('\n── Same-batch paraphrases consolidate ──');
     // Both added in mergeEntityArray as distinct (fuzzy only runs against prev).
     // Post-merge dedup pass catches them:
     // tokens {book,flight,tokyo} vs {book,flight,tokyo} after stopword removal = identical = 1.0
-    assertLen('same-batch paraphrases collapse to 1', merged.activeTasks, 1);
+    assertLen('same-batch paraphrases collapse to 1', merged.mainQuests, 1);
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -219,7 +219,7 @@ console.log('\n── Same-batch paraphrases consolidate ──');
 console.log('\n── Unrelated quests stay separate (no false positives) ──');
 {
     const prev = {
-        activeTasks: [
+        mainQuests: [
             { name: 'call the plumber', urgency: 'moderate', detail: '' },
             { name: 'buy groceries', urgency: 'low', detail: '' },
             { name: 'finish the report', urgency: 'high', detail: '' },
@@ -229,7 +229,7 @@ console.log('\n── Unrelated quests stay separate (no false positives) ──
     };
     const delta = { time: '15:30' };
     const merged = mergeDelta(prev, delta);
-    assertLen('5 unrelated quests all preserved', merged.activeTasks, 5);
+    assertLen('5 unrelated quests all preserved', merged.mainQuests, 5);
 }
 
 // ═══════════════════════════════════════════════════════════════════════
