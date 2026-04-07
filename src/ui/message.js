@@ -16,7 +16,7 @@ import {
     pendingInlineIdx, setPendingInlineIdx,
     _inlineWaitTimerId, set_inlineWaitTimerId
 } from '../state.js';
-import { generateTracker } from '../generation/engine.js';
+import { generateTracker, continuationReprompt } from '../generation/engine.js';
 import { extractInlineTracker } from '../generation/extraction.js';
 import { stopStreamingHider } from '../generation/streaming.js';
 import { processExtraction } from '../generation/pipeline.js';
@@ -156,7 +156,7 @@ export async function onCharMsg(idx){
             const _markersPresent=(msgText+msgReasoning).indexOf(SP_MARKER_START)!==-1;
             const _failureKind=_markersPresent?'markers found, JSON unparseable':'no SP markers';
             log('onCharMsg [inline]: no tracker found in message',idx,'('+msgLen+' chars,',_failureKind+')');
-            // If the AI wrote content but omitted the tracker, fall back to separate generation
+            // If the AI wrote content but omitted the tracker, recover.
             if(msgLen>100&&s.autoGenerate&&!generating&&s.fallbackEnabled!==false){
                 const fbProfile=s.fallbackProfile||s.connectionProfile||'';
                 const fbPreset=s.fallbackPreset||s.chatPreset||'';
@@ -166,25 +166,67 @@ export async function onCharMsg(idx){
                     warn('Together mode: tracker extraction failed ('+msgLen+' chars, '+_failureKind+'). No fallback profile configured.');
                     _showRecoveryCard(idx);
                 } else {
-                    warn('Together mode: tracker extraction failed ('+msgLen+' chars, '+_failureKind+'). Falling back to separate generation.');
-                    stopStreamingHider(); // Stop the hider since we're switching to separate mode
-                    setLastGenSource('auto:together:fallback');
+                    stopStreamingHider(); // Stop the hider since we're switching to recovery
                     const panel=document.getElementById('sp-panel');
                     if(panel){spAutoShow();showLoadingOverlay(document.getElementById('sp-panel-body'),t('Generating Scene'),t('Analyzing context'));showStopButton();startElapsedTimer()}
                     showChatBanner('Generating tracker');
-                    const result=await generateTracker(idx,null,{profile:fbProfile,preset:fbPreset});
+
+                    // ── Tier 1: cheap continuation re-prompt ──
+                    // Only attempt for the "no SP markers" failure mode where the model wrote
+                    // a normal narrative but forgot the appendix. This is much cheaper than a
+                    // full separate generation: ~600-2500 prompt tokens vs ~6000, ~10-15s vs
+                    // ~40s, and the tracker is generated from the *exact* narrative the user
+                    // is reading rather than re-derived from message context.
+                    //
+                    // We skip this tier if markers were present (JSON parse failure) — re-asking
+                    // the model wouldn't change the underlying sampling/formatting glitch, so
+                    // jump straight to the full separate generation in that case.
+                    let result=null;
+                    if(!_markersPresent && msgLen>=500 && msgLen<=2500){
+                        warn('Together mode: tracker extraction failed ('+msgLen+' chars, '+_failureKind+'). Attempting continuation re-prompt...');
+                        setLastGenSource('auto:together:continuation');
+                        try{
+                            const cont=await continuationReprompt(msgText,{profile:fbProfile,preset:fbPreset});
+                            if(cont){
+                                // Forward through the normal pipeline so save/normalize/update
+                                // are identical to every other extraction path.
+                                const meta=cont._spContinuationMeta||{};
+                                delete cont._spContinuationMeta;
+                                await processExtraction(idx, cont, 'auto:together:continuation', {
+                                    promptTokens:meta.promptTokens||0,
+                                    completionTokens:meta.completionTokens||0,
+                                    elapsed:meta.elapsed||0,
+                                    stopHider:false, unlockGen:false  // unlockGen handled by continuationReprompt
+                                });
+                                result=cont; // signal success to skip the full fallback
+                                log('Together continuation: succeeded in',(meta.elapsed||0).toFixed(1)+'s — skipped full separate generation');
+                            } else {
+                                log('Together continuation: failed, escalating to full separate generation');
+                            }
+                        }catch(e){
+                            warn('Together continuation: exception, escalating to full separate generation:',e?.message||String(e));
+                        }
+                    }
+
+                    // ── Tier 2: full separate generation (if continuation skipped or failed) ──
+                    if(!result){
+                        warn('Together mode: falling back to full separate generation ('+msgLen+' chars, '+_failureKind+')');
+                        setLastGenSource('auto:together:fallback');
+                        result=await generateTracker(idx,null,{profile:fbProfile,preset:fbPreset});
+                        if(result){
+                            const norm=normalizeTracker(result);
+                            updatePanel(norm);spPostGenShow();
+                            log('Together fallback: separate generation succeeded via profile=',fbProfile||'(current)');
+                        } else {
+                            warn('Together fallback: separate generation also failed');
+                            _showRecoveryCard(idx);
+                            const prev=getLatestSnapshot();
+                            if(prev){const norm=normalizeTracker(prev);updatePanel(norm);spPostGenShow()}
+                        }
+                    }
+
                     hideStopButton();stopElapsedTimer();
                     clearLoadingOverlay(document.getElementById('sp-panel-body'));clearThoughtLoading();
-                    if(result){
-                        const norm=normalizeTracker(result);
-                        updatePanel(norm);spPostGenShow();
-                        log('Together fallback: separate generation succeeded via profile=',fbProfile||'(current)');
-                    } else {
-                        warn('Together fallback: separate generation also failed');
-                        _showRecoveryCard(idx);
-                        const prev=getLatestSnapshot();
-                        if(prev){const norm=normalizeTracker(prev);updatePanel(norm);spPostGenShow()}
-                    }
                 }
             } else if(msgLen>100&&!s.fallbackEnabled){
                 log('Together mode: AI omitted tracker, fallback disabled by user');

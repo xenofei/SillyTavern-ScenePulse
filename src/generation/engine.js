@@ -425,3 +425,112 @@ export async function generateTracker(mesIdx,partKey,opts){
     }
     return result;
 }
+
+// ── Continuation re-prompt — cheap recovery for tracker omission ──
+//
+// When the model emits a normal narrative response but forgets to append the tracker block
+// (the "no SP markers" failure mode), the previous behavior was to fire a full separate
+// generateTracker() call: ~6000 prompt tokens, ~1500 output tokens, ~40s latency, and the
+// generated tracker is re-derived from message context (which can drift from what the user
+// just read).
+//
+// This continuation path is much cheaper:
+//   - Prompt: just the narrative the model produced + a "write the tracker JSON for this"
+//     instruction. ~600-2500 input tokens depending on narrative length.
+//   - Output: tracker JSON only. ~1000 tokens.
+//   - Latency: ~10-15s.
+//   - The tracker is generated from the *exact narrative the user is looking at*, so it
+//     stays in sync.
+//
+// Returns parsed tracker object (with delta merge applied if delta mode is on), or null
+// if the continuation also fails. Caller should fall back to generateTracker() on null.
+//
+// IMPORTANT: this function deliberately does NOT call saveSnapshot/updatePanel/normalize.
+// It returns raw parsed JSON; the caller is responsible for running it through the normal
+// processExtraction pipeline so the result is saved/normalized/displayed identically to
+// every other extraction.
+export async function continuationReprompt(narrativeText, opts){
+    if(!getSettings().enabled){log('continuationReprompt: extension disabled, skipping');return null}
+    if(generating){warn('continuationReprompt: busy, nonce=',genNonce);return null}
+    setGenerating(true);setCancelRequested(false);spSetGenerating(true);
+    const myNonce=genNonce+1;setGenNonce(myNonce);
+    const startMs=Date.now();
+    const settings=getSettings();
+    const profileOverride=opts?.profile||settings.connectionProfile;
+    const presetOverride=opts?.preset||settings.chatPreset;
+    log('=== CONTINUATION START === narrativeLen=',narrativeText.length,'nonce=',myNonce,'source=',lastGenSource||'auto:together:continuation','profile=',profileOverride||'(current)');
+    // Build the continuation prompt — just the narrative + a focused JSON-only instruction.
+    // We deliberately do NOT inject the full schema again; the model already saw it on
+    // the original turn. Asking only for the missing piece is what makes this cheap.
+    const sysPr=getActivePrompt({hasPrevState:!!getLatestSnapshot()});
+    const lastSnap=getLatestSnapshot();
+    let prevState='';
+    if(lastSnap){
+        function _cleanSnap(s){const c={...s};for(const k of['mainQuests','sideQuests','activeTasks']){if(Array.isArray(c[k]))c[k]=c[k].filter(q=>q.urgency!=='resolved')}delete c._spMeta;return c}
+        prevState=`\n\nPREVIOUS STATE (carry forward unchanged details, update only what changed):\n${JSON.stringify(_cleanSnap(lastSnap),null,2)}`;
+    }
+    const isDelta=settings.deltaMode&&lastSnap;
+    const deltaInstruction=isDelta
+        ?'\n\nDELTA MODE: Include ONLY fields that changed since the previous state. Always include time, date, elapsed, and plotBranches. Omit unchanged fields.'
+        :'';
+    const prompt=`${sysPr}
+
+The previous turn produced this narrative:
+
+${narrativeText}
+
+You forgot to append the required tracker JSON block. Output ONLY the tracker JSON for this narrative — no markers, no markdown fences, no explanation. Just a single valid JSON object describing the scene state after this narrative.${deltaInstruction}${prevState}
+
+Output the JSON object now:`;
+    log('Continuation prompt length:',prompt.length,'chars (~',Math.round(prompt.length/4),'tokens)');
+    const doGen=async()=>{
+        const{generateQuietPrompt,generateRaw}=SillyTavern.getContext();
+        if(myNonce!==genNonce){log('CONTINUATION: stale nonce',myNonce,'(current',genNonce+') — bailing');return null}
+        try{
+            log('Continuation: calling generateQuietPrompt... nonce=',myNonce);
+            let raw;
+            try{
+                raw=await generateQuietPrompt({quietPrompt:prompt,jsonSchema:settings.promptMode==='native'?getActiveSchema():undefined});
+            }catch(e){
+                if(myNonce!==genNonce){log('CONTINUATION: stale after API error');return null}
+                warn('Continuation generateQuietPrompt error:',e?.message||String(e));
+                // Try generateRaw as a single fallback (no retry loop — keep this path cheap)
+                try{raw=await generateRaw({systemPrompt:sysPr,prompt:`Narrative:\n${narrativeText}${prevState}\n\nOutput ONLY the tracker JSON object.`})}
+                catch(e2){err('Continuation generateRaw also failed:',e2?.message||String(e2));return null}
+            }
+            if(myNonce!==genNonce){log('CONTINUATION: stale after API return — discarding');return null}
+            if(!raw||raw==='{}'){warn('Continuation: empty response');return null}
+            const rawStr=String(raw);
+            setLastRawResponse(rawStr);
+            log('Continuation: got response,',rawStr.length,'chars');
+            const parsed=cleanJson(rawStr);
+            if(!parsed||typeof parsed!=='object'){warn('Continuation: parse returned non-object');return null}
+            // Sanity check: must have at least one known tracker key
+            const KNOWN=['time','sceneTopic','sceneMood','sceneTension','characters','relationships','mainQuests','sideQuests','activeTasks','plotBranches'];
+            if(!KNOWN.some(k=>k in parsed)){warn('Continuation: parsed object lacks known tracker keys:',Object.keys(parsed).slice(0,8).join(','));return null}
+            // NOTE: we deliberately do NOT delta-merge here. processExtraction() in the
+            // caller's pipeline handles the merge under the same deltaMode check, and
+            // double-merging would corrupt entity arrays (each entity merged on top of
+            // itself). Return the raw parsed payload — the caller forwards it to
+            // processExtraction which performs the (single) merge correctly.
+            return parsed;
+        }catch(e){err('Continuation parse fail:',e?.message||String(e));return null}
+    };
+    let result;
+    try{result=await withProfileAndPreset(profileOverride,presetOverride,doGen)}
+    catch(e){err('Continuation:',e)}
+    if(myNonce!==genNonce){
+        log('CONTINUATION POST: stale nonce',myNonce,'(current',genNonce+') — discarded');
+        return null;
+    }
+    setGenerating(false);spSetGenerating(false);setCancelRequested(false);cleanupGenUI();
+    const elapsed=((Date.now()-startMs)/1000);
+    if(result){
+        log('=== CONTINUATION SUCCESS === elapsed=',elapsed.toFixed(1)+'s','keys=',Object.keys(result).length);
+        // Stash meta for the caller to forward into processExtraction
+        result._spContinuationMeta={promptTokens:Math.round(prompt.length/4),completionTokens:Math.round(JSON.stringify(result).length/4),elapsed};
+    }else{
+        log('=== CONTINUATION FAILED === elapsed=',elapsed.toFixed(1)+'s — caller should fall back to full separate generation');
+    }
+    return result;
+}
