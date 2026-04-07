@@ -435,6 +435,14 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.8.10] — 2026-04-07
+
+#### Fixed
+- **Quest mutation buttons (delete / complete / undo / edit detail / edit name) now look up the storage entry by name instead of by view index.** When a quest tier exceeds its display cap, `filterForView` reorders the view to show high-urgency quests first. The mutation handlers were using the view index to splice/mutate the storage array, which silently mutated the wrong quest in storage and caused the panel to re-render with the visible quest still present. Most visible symptom: clicking the delete button on a `mainQuests` entry appeared to do nothing because the wrong storage entry was being removed and the visible high-urgency quest just bubbled back to the top of the view on re-render. Tiers under their cap (where view order matched storage order) were unaffected.
+- New `_findQuestStorageIdx(snap, tierKey, name)` helper resolves storage indices by name lookup (the canonical merge key used by `mergeEntityArray`). All five mutation handlers now refuse to mutate when the lookup returns -1 rather than guessing at a position. The name-edit handler captures the old name *before* mutating `p.name` so the lookup uses the pre-edit identifier.
+
+This is a v6.8.8 regression introduced when per-tier view caps were added — the existing handlers were written assuming view-index = storage-index, which became false the moment the cap started reordering.
+
 ### [6.8.9] — 2026-04-07
 
 #### Removed
