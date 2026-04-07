@@ -102,6 +102,12 @@ export async function onCharMsg(idx){
             log('onCharMsg [inline]: extraction already complete (via GENERATION_ENDED), skipping');
             return;
         }
+        // Guard: only extract when ScenePulse actually injected a prompt.
+        // Other extensions (e.g. MemoryBooks) may render messages from their own generations.
+        if(inlineGenStartMs<=0){
+            log('onCharMsg [inline]: skipping — ScenePulse did not inject into this generation cycle (inlineGenStartMs=0)');
+            return;
+        }
         // FALLBACK: GENERATION_ENDED didn't extract (empty msg, timing issue)
         // Remove waiting indicators
         try{if(_inlineWaitTimerId){clearInterval(_inlineWaitTimerId);set_inlineWaitTimerId(null)}const w=document.getElementById('sp-inline-wait');if(w)w.remove()}catch{}
@@ -142,8 +148,14 @@ export async function onCharMsg(idx){
             });
             log('onCharMsg [inline]: pipeline complete');
         } else {
-            const msgLen=(chat[idx]?.mes||'').length;
-            log('onCharMsg [inline]: no tracker found in message',idx,'('+msgLen+' chars)');
+            const msgText=chat[idx]?.mes||'';
+            const msgReasoning=chat[idx]?.extra?.reasoning||'';
+            const msgLen=msgText.length;
+            // Distinguish failure modes: markers absent (prompt-following failure) vs markers present
+            // but JSON parse failed (sampling/formatting failure). Different root causes, different fixes.
+            const _markersPresent=(msgText+msgReasoning).indexOf(SP_MARKER_START)!==-1;
+            const _failureKind=_markersPresent?'markers found, JSON unparseable':'no SP markers';
+            log('onCharMsg [inline]: no tracker found in message',idx,'('+msgLen+' chars,',_failureKind+')');
             // If the AI wrote content but omitted the tracker, fall back to separate generation
             if(msgLen>100&&s.autoGenerate&&!generating&&s.fallbackEnabled!==false){
                 const fbProfile=s.fallbackProfile||s.connectionProfile||'';
@@ -151,10 +163,10 @@ export async function onCharMsg(idx){
                 if(!fbProfile&&!fbPreset){
                     // No fallback profile configured -- show recovery card in panel
                     stopStreamingHider();
-                    warn('Together mode: AI omitted tracker ('+msgLen+' chars). No fallback profile configured.');
+                    warn('Together mode: tracker extraction failed ('+msgLen+' chars, '+_failureKind+'). No fallback profile configured.');
                     _showRecoveryCard(idx);
                 } else {
-                    warn('Together mode: AI omitted tracker payload ('+msgLen+' chars narrative, no SP markers). Falling back to separate generation.');
+                    warn('Together mode: tracker extraction failed ('+msgLen+' chars, '+_failureKind+'). Falling back to separate generation.');
                     stopStreamingHider(); // Stop the hider since we're switching to separate mode
                     setLastGenSource('auto:together:fallback');
                     const panel=document.getElementById('sp-panel');

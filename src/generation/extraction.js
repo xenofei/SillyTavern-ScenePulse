@@ -2,9 +2,24 @@
 
 import { log, warn, err } from '../logger.js';
 import { ensureChatSaved, getSettings } from '../settings.js';
+import { jsonrepair } from '../vendor/jsonrepair.mjs';
 
 export const SP_MARKER_START='<!--SP_TRACKER_START-->';
 export const SP_MARKER_END='<!--SP_TRACKER_END-->';
+
+// Extract V8/Chromium "position N" AND Firefox "line N column N" from a JSON parse error.
+// Both report 1-based positions; we normalize to a 0-based offset into the original string.
+function _parseErrorOffset(msg,src){
+    const pmPos=msg.match(/position (\d+)/);
+    if(pmPos)return Number(pmPos[1]);
+    const pmCol=msg.match(/line\s+(\d+)\s+column\s+(\d+)/i);
+    if(!pmCol)return 0;
+    const line=Number(pmCol[1]),col=Number(pmCol[2]);
+    if(line===1)return col-1;
+    const lines=src.split('\n');let acc=0;
+    for(let i=0;i<line-1&&i<lines.length;i++)acc+=lines[i].length+1;
+    return acc+col-1;
+}
 
 export function cleanJson(raw){
     let c=raw.trim().replace(/^```(?:json)?\s*\n?/i,'').replace(/\n?```\s*$/i,'');
@@ -12,23 +27,20 @@ export function cleanJson(raw){
     if(fb===-1||lb===-1){err('cleanJson: no JSON object found. First 200:',c.substring(0,200));throw new Error('No JSON object in response')}
     c=c.substring(fb,lb+1);
     try{return JSON.parse(c)}catch(e1){
-        // Attempt JSON repair for common LLM errors
-        log('cleanJson: first parse failed, attempting repair...');
-        let repaired=c
-            .replace(/,\s*([}\]])/g,'$1')           // trailing commas
-            .replace(/([{,]\s*)(\w+)\s*:/g,'$1"$2":') // unquoted keys
-            .replace(/:\s*'([^']*)'/g,':"$1"')       // single-quoted values
-            .replace(/\t/g,' ')                       // tabs
-            .replace(/[\x00-\x1f]/g,m=>m==='\n'||m==='\r'?m:'') // control chars
-            .replace(/,\s*,/g,',')                   // double commas
-            .replace(/"\s*\n\s*"/g,'","')             // broken string across lines
-            .replace(/\\'/g,"'");                     // escaped single quotes
-        // Fix unescaped quotes inside string values (most common LLM JSON error)
-        repaired=repaired.replace(/"([^"]*?)(?<!\\)"(?=[^:,}\]\s])/g,(m,p1)=>'"'+p1.replace(/"/g,'\\"')+'"');
-        try{const result=JSON.parse(repaired);log('cleanJson: repair succeeded');return result}catch(e2){
-            const pm=e1.message.match(/position (\d+)/);const pos=pm?Number(pm[1]):0;
+        // Strict parse failed — delegate to jsonrepair (tokenizer-based, handles unescaped quotes,
+        // missing commas, single quotes, comments, trailing commas, Python-style True/False/None, etc.)
+        log('cleanJson: strict parse failed, attempting jsonrepair...');
+        let repaired;
+        try{repaired=jsonrepair(c)}catch(eRepair){
+            const pos=_parseErrorOffset(e1.message,c);
             err('cleanJson: parse error at pos',pos,'context: \u2026'+c.substring(Math.max(0,pos-40),pos+40)+'\u2026');
-            err('cleanJson: repair also failed:',e2.message);
+            err('cleanJson: jsonrepair failed:',eRepair?.message||String(eRepair));
+            throw e1;
+        }
+        try{const result=JSON.parse(repaired);log('cleanJson: jsonrepair succeeded ('+c.length+'\u2192'+repaired.length+' chars)');return result}catch(e2){
+            const pos=_parseErrorOffset(e1.message,c);
+            err('cleanJson: parse error at pos',pos,'context: \u2026'+c.substring(Math.max(0,pos-40),pos+40)+'\u2026');
+            err('cleanJson: jsonrepair output still unparseable:',e2.message);
             throw e1;
         }
     }
@@ -113,7 +125,7 @@ export function extractInlineTracker(mesIdx){
         if(strippedCount)log('extractInlineTracker: stripped',strippedCount,'schema metadata keys');
         const keys=Object.keys(parsed);
         const _isDelta=getSettings().deltaMode;
-        const _minKeys=_isDelta?2:5; // Delta mode: 2+ keys is valid (e.g. sceneMood + characters)
+        const _minKeys=_isDelta?3:5; // Delta mode: 3+ keys (time + date + at least one changed field)
         if(keys.length<_minKeys){
             warn('extractInlineTracker: parsed object too small after stripping ('+keys.length+' keys:',keys.join(',')+') min='+_minKeys);
             return null;
@@ -145,6 +157,10 @@ export function extractInlineTracker(mesIdx){
         } else if(jsonStr){
             cleanedMsg=raw.substring(0,raw.indexOf(jsonStr));
         }
+        // Strip echoed instruction headers that LLMs sometimes parrot back
+        cleanedMsg=cleanedMsg.replace(/\[SCENE TRACKER[^\]]*\]\s*/g,'');
+        cleanedMsg=cleanedMsg.replace(/MANDATORY APPENDIX[^\n]*\n?/g,'');
+        cleanedMsg=cleanedMsg.replace(/<!--SP_TRACKER_(?:START|END)-->/g,'');
         // Also strip any orphaned think tags that might remain
         cleanedMsg=cleanedMsg.replace(/<think>\s*<\/think>/g,'');
         cleanedMsg=cleanedMsg.replace(/\n{3,}$/,'\n\n').trimEnd();
