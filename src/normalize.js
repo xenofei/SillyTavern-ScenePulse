@@ -471,16 +471,68 @@ export function normalizeChar(ch){
     return o;
 }
 
+// ── Quest view caps ──────────────────────────────────────────────────────
+// Display-layer limits on quest tier sizes. Storage is never touched — the
+// full quest arrays persist in the snapshot for historical browsing (e.g.
+// Character Wiki, Payload Inspector). Only the view passed to the main
+// quest journal panel is capped.
+//
+// Caps chosen for usability:
+//   - activeTasks: 8 — an immediate to-do list longer than this stops being
+//     actionable; the user cannot meaningfully track more than ~8 concrete
+//     things "to handle soon"
+//   - sideQuests:  6 — optional enriching paths; too many dilutes focus
+//   - mainQuests:  5 — primary storyline objectives; more than 5 means the
+//     model is conflating long-arc goals with short-arc tasks
+const _QUEST_VIEW_CAPS = { mainQuests: 5, sideQuests: 6, activeTasks: 8 };
+
+// Urgency ordering — higher = more urgent = higher score when tier is over cap
+const _URGENCY_SCORE = { critical: 5, high: 4, moderate: 3, low: 2, resolved: 1 };
+
+// Cap a quest tier to `limit` entries. When the array exceeds the limit,
+// sort by a compound score (urgency weight + position bonus for recency)
+// and keep the top N. The dropped entries stay in the underlying snapshot —
+// they're only hidden from this particular view.
+function _capQuestTier(arr, limit) {
+    if (!Array.isArray(arr) || arr.length <= limit) return arr;
+    // Score each quest: urgency contributes most, index-in-array (recency)
+    // breaks ties. Later entries are typically the model's most recent
+    // additions so they get a slight boost.
+    const scored = arr.map((q, i) => ({
+        q,
+        score: (_URGENCY_SCORE[q?.urgency] || 3) * 100 + i
+    }));
+    scored.sort((a, b) => b.score - a.score);
+    return scored.slice(0, limit).map(s => s.q);
+}
+
 /**
  * Filter a normalized snapshot to only characters/relationships in charactersPresent.
  * Creates stub entries for any name in one array but not the other (sync guarantee).
+ * Also caps each quest tier to a display-friendly size (storage is untouched).
  * Returns a shallow copy — the original snapshot is NOT mutated.
  */
 export function filterForView(snap){
     if(!snap||typeof snap!=='object')return snap;
-    const cp=snap.charactersPresent;
-    if(!Array.isArray(cp)||!cp.length)return snap; // No filter data — show everything
     const out={...snap};
+
+    // ── Quest tier caps (always applied, regardless of charactersPresent) ──
+    // Using a single fresh shallow copy of the snap ensures we never mutate
+    // the original arrays even when we clip them.
+    for (const [tierKey, limit] of Object.entries(_QUEST_VIEW_CAPS)) {
+        if (Array.isArray(snap[tierKey])) {
+            out[tierKey] = _capQuestTier(snap[tierKey], limit);
+        }
+    }
+
+    // ── Character/relationship sync filter ──
+    const cp=snap.charactersPresent;
+    if(!Array.isArray(cp)||!cp.length){
+        // No filter data — skip the char/rel sync but still return the
+        // shallow copy with capped quest arrays.
+        out._spViewFiltered=true;
+        return out;
+    }
     const presentSet=new Set(cp.map(n=>(n||'').toLowerCase().trim()).filter(Boolean));
     // Filter both arrays to only present names
     out.characters=(snap.characters||[]).filter(c=>presentSet.has((c.name||'').toLowerCase().trim()));
