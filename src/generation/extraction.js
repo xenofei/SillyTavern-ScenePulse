@@ -21,11 +21,45 @@ function _parseErrorOffset(msg,src){
     return acc+col-1;
 }
 
+// String-aware forward walk that returns the byte offset of the closing brace
+// matching the opening brace at `from`. Tracks quote state so braces inside
+// string literals don't count toward depth. Returns -1 if the object is
+// unbalanced (missing close brace) — caller treats that as a parse error.
+function _findBalancedEnd(s,from){
+    let depth=0,inString=false,escape=false;
+    for(let i=from;i<s.length;i++){
+        const ch=s[i];
+        if(escape){escape=false;continue}
+        if(inString){
+            if(ch==='\\')escape=true;
+            else if(ch==='"')inString=false;
+            continue;
+        }
+        if(ch==='"'){inString=true;continue}
+        if(ch==='{')depth++;
+        else if(ch==='}'){depth--;if(depth===0)return i}
+    }
+    return -1;
+}
+
 export function cleanJson(raw){
     let c=raw.trim().replace(/^```(?:json)?\s*\n?/i,'').replace(/\n?```\s*$/i,'');
-    const fb=c.indexOf('{'),lb=c.lastIndexOf('}');
-    if(fb===-1||lb===-1){err('cleanJson: no JSON object found. First 200:',c.substring(0,200));throw new Error('No JSON object in response')}
-    c=c.substring(fb,lb+1);
+    const fb=c.indexOf('{');
+    if(fb===-1){err('cleanJson: no JSON object found. First 200:',c.substring(0,200));throw new Error('No JSON object in response')}
+    // Walk forward from the first `{` tracking brace depth (string-aware), stop at
+    // the first balanced close. Discards any trailing junk after the first complete
+    // JSON object — e.g. MemoryBooks' {"@schema":"1.1"} version tag echoed by the
+    // model inside the SP markers. Fall back to lastIndexOf('}') only if the walk
+    // can't find a balanced close, so we still get a best-effort shot at jsonrepair.
+    const balancedEnd=_findBalancedEnd(c,fb);
+    if(balancedEnd!==-1){
+        c=c.substring(fb,balancedEnd+1);
+    }else{
+        const lb=c.lastIndexOf('}');
+        if(lb===-1){err('cleanJson: no closing brace found. First 200:',c.substring(0,200));throw new Error('No JSON object in response')}
+        log('cleanJson: unbalanced braces from first `{`, falling back to lastIndexOf(`}`) for repair attempt');
+        c=c.substring(fb,lb+1);
+    }
     try{return JSON.parse(c)}catch(e1){
         // Strict parse failed — delegate to jsonrepair (tokenizer-based, handles unescaped quotes,
         // missing commas, single quotes, comments, trailing commas, Python-style True/False/None, etc.)
