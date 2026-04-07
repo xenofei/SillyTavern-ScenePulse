@@ -18,6 +18,8 @@
     scrollbar-color: rgba(100,110,130,0.3) transparent;
     transition: width 0.3s ease-out;
     box-sizing: border-box;
+    container-type: inline-size;
+    container-name: sp-panel;
 }
 #sp-panel.sp-visible { display: block; }
 #sp-panel::-webkit-scrollbar { width: 4px; }

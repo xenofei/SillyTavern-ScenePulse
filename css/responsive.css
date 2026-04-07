@@ -1,7 +1,72 @@
 /* ═══ RESPONSIVE — common resolutions ═══ */
-/* Use clamp() for fluid scaling, media queries for breakpoint overrides */
+/* Use container queries for panel-internal layout (responds to panel width, not viewport) */
+/* Use media queries only for viewport-level concerns (height, external layout) */
 
-/* 1366x768 laptops — tighter everything */
+/* ── Panel narrow: < 550px panel width (e.g. split-screen, ST sheld narrow) ── */
+@container sp-panel (max-width: 550px) {
+    .sp-dashboard { gap: 3px; }
+    .sp-dashboard .sp-dash-card { flex: 1 1 calc(50% - 3px); min-width: 70px; min-height: 55px; padding: 5px 3px; }
+    .sp-dash-day { font-size: 18px; }
+    .sp-dash-card-date .sp-dash-sub { font-size: 10px !important; }
+    .sp-dash-value { font-size: 9px; }
+    .sp-dash-sub { font-size: 8px; }
+    .sp-wx-svg { width: 30px; height: 30px; }
+    .sp-temp-bar-label { font-size: 9px; }
+    .sp-dash-location { font-size: 9px; }
+    .sp-dash-loc-text { font-size: 9px; }
+
+    .sp-section-header { padding: 5px 8px; }
+    .sp-section-title { font-size: 10px; }
+    .sp-section-badge { font-size: 9px; padding: 1px 5px; }
+    .sp-row-label { font-size: 10px; }
+    .sp-row-value { font-size: 10px; }
+
+    .sp-meter-row { grid-template-columns: 40px 1fr 80px; gap: 2px; }
+    .sp-meter-label { font-size: 8px; }
+    .sp-meter-bar-wrap { height: 7px; }
+    .sp-meter-value { font-size: 8px; }
+    .sp-meter-tag { font-size: 7.5px; }
+    .sp-sparkline { width: 36px !important; height: 14px !important; }
+
+    .sp-rel-name { font-size: 11px; }
+    .sp-rel-type-badge { font-size: 8px; padding: 1px 4px; }
+    .sp-rel-phase-badge { font-size: 7.5px; padding: 1px 3px; }
+    .sp-rel-meta { font-size: 9px; }
+
+    .sp-char-name { font-size: 12px; }
+    .sp-char-role-badge { font-size: 8px; }
+    .sp-char-grid { font-size: 10px; }
+    .sp-char-field { font-size: 9px; }
+    .sp-char-val { font-size: 10px; }
+
+    .sp-idea-name { font-size: 10px; }
+    .sp-idea-hook { font-size: 9px; }
+    .sp-idea-card { padding: 5px 7px; }
+
+    .sp-quest-name { font-size: 10px; }
+    .sp-quest-detail { font-size: 9px; }
+
+    .sp-gen-footer { font-size: 9px; flex-wrap: wrap; gap: 3px 6px; }
+
+    .sp-toolbar-btn { padding: 3px; }
+    .sp-toolbar-btn svg { width: 13px; height: 13px; }
+    .sp-toolbar-sep { margin: 0 1px; }
+    .sp-brand-title { font-size: 12px; }
+}
+
+/* ── Panel very narrow: < 380px (mobile overlay or compact mode) ── */
+@container sp-panel (max-width: 380px) {
+    .sp-dashboard .sp-dash-card { flex: 1 1 100%; min-height: 45px; }
+    .sp-dash-day { font-size: 16px; }
+    .sp-wx-svg { width: 26px; height: 26px; }
+    .sp-meter-row { grid-template-columns: 35px 1fr 55px; }
+    .sp-sparkline { display: none !important; }
+    .sp-brand-title { display: none; }
+    .sp-rel-phase-badge { display: none; }
+    .sp-char-role-badge { max-width: 100px; }
+}
+
+/* 1366x768 laptops — tighter everything (viewport height concern) */
 @media (max-height: 800px) {
     #sp-panel { font-size: 12px; }
     .sp-dashboard { gap: 3px; }

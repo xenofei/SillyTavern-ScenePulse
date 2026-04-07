@@ -1,13 +1,39 @@
 /* ═══ TABLET MODE (class-driven, 601–1024px viewport) ═══ */
+/* Matches ST's behavior: at ≤1000px, panels go fullscreen overlay */
+
 #sp-panel.sp-mode-tablet {
-    border-left: 2px solid rgba(77,184,164,0.25); border-radius: 0;
-    font-size: 13.5px;
+    width: 100vw !important; right: 0 !important; left: 0 !important;
+    border-left: none; border-radius: 0; font-size: 14px;
+    /* top: 45px inherited from base #sp-panel — mobile top bar sits above at top:0 */
 }
-#sp-panel.sp-mode-tablet .sp-toolbar { padding: 8px 10px; gap: 5px; }
+
+/* Toolbar: match mobile exactly */
+#sp-panel.sp-mode-tablet .sp-toolbar {
+    padding: 8px 12px; gap: 0; flex-wrap: nowrap;
+    justify-content: space-evenly;
+}
 #sp-panel.sp-mode-tablet .sp-toolbar-btn {
-    width: 38px; height: 38px; min-width: 38px; border-radius: 8px;
+    width: 42px; height: 42px; min-width: 42px;
+    border-radius: 10px; flex-shrink: 0; margin: 0;
 }
-#sp-panel.sp-mode-tablet .sp-toolbar-btn svg { width: 17px; height: 17px; }
+#sp-panel.sp-mode-tablet .sp-toolbar-btn svg { width: 18px; height: 18px; }
+#sp-panel.sp-mode-tablet .sp-toolbar-spacer { display: none; }
+#sp-panel.sp-mode-tablet #sp-tb-minimize { display: none !important; }
+
+/* Hide brand entirely (replaced by mobile top bar) */
+#sp-panel.sp-mode-tablet .sp-brand-icon-wrap,
+#sp-panel.sp-mode-tablet .sp-brand-icon,
+#sp-panel.sp-mode-tablet .sp-brand-title { display: none !important; }
+
+/* Hide non-essential toolbar buttons to save space */
+#sp-panel.sp-mode-tablet #sp-tb-weather,
+#sp-panel.sp-mode-tablet #sp-tb-timeTint,
+#sp-panel.sp-mode-tablet #sp-tb-compact,
+#sp-panel.sp-mode-tablet #sp-tb-sceneTrans { display: none !important; }
+#sp-panel.sp-mode-tablet .sp-toolbar-sep:nth-of-type(2),
+#sp-panel.sp-mode-tablet .sp-toolbar-sep:nth-of-type(3) { display: none; }
+
+/* Touch-friendly targets */
 #sp-panel.sp-mode-tablet .sp-section-header { padding: 10px 12px; min-height: 44px; }
 #sp-panel.sp-mode-tablet .sp-section-title { font-size: 12px; }
 #sp-panel.sp-mode-tablet .sp-meter-bar-wrap { height: 12px; }
@@ -20,7 +46,20 @@
 #sp-panel.sp-mode-tablet .sp-fs select, #sp-panel.sp-mode-tablet .sp-fi input { min-height: 40px; }
 #sp-panel.sp-mode-tablet .sp-cp-field-rm { width: 32px; height: 32px; }
 #sp-panel.sp-mode-tablet .sp-cp-add-field { min-height: 40px; }
-/* Thought Panel on tablet */
+
+/* Hide ST top bar when tablet panel is fullscreen */
+#sp-panel.sp-mode-tablet.sp-visible ~ #top-bar,
+body:has(#sp-panel.sp-mode-tablet.sp-visible) #top-bar,
+body:has(#sp-panel.sp-mode-tablet.sp-visible) #top-settings-holder { display: none !important; }
+
+/* Show mobile top bar for tablet mode too */
+body:has(#sp-panel.sp-mode-tablet.sp-visible) .sp-mobile-topbar { display: flex !important; }
+
+/* Thought bubbles: hide in tablet mode (overlap fullscreen panel) */
+#sp-panel.sp-mode-tablet.sp-visible ~ .sp-thought-bubble,
+body:has(#sp-panel.sp-mode-tablet.sp-visible) .sp-thought-bubble { display: none !important; }
+
+/* Thought Panel on tablet — hide entirely (no room alongside fullscreen panel) */
 .sp-mode-tablet ~ #sp-thought-panel, #sp-panel.sp-mode-tablet ~ #sp-thought-panel {
-    max-width: 50vw; min-width: 300px;
+    display: none !important;
 }

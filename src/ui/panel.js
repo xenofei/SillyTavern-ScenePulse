@@ -55,21 +55,30 @@ export function showPanel(){
         const spTopH=44; // SP mobile top bar height
         p.style.top=spTopH+'px';p.style.height=`calc(100vh - ${spTopH}px)`;p.style.width='100vw';p.style.right='0';
     }else if(mode==='tablet'){
-        const tbW=Math.min(Math.round(window.innerWidth*0.7),600);
-        p.style.top=tbH+'px';p.style.height=`calc(100vh - ${tbH}px)`;p.style.width=tbW+'px';p.style.right='0';
+        // Tablet goes fullscreen like mobile — SP top bar at 44px, panel below it
+        const spTopH=44;
+        p.style.top=spTopH+'px';p.style.height=`calc(100vh - ${spTopH}px)`;p.style.width='100vw';p.style.right='0';
     }else{
         p.style.top=tbH+'px';
         p.style.height=`calc(100vh - ${tbH}px)`;
-        if(!p.classList.contains('sp-compact')){
-            const sheld=document.getElementById('sheld');
-            if(sheld){
-                const rect=sheld.getBoundingClientRect();
-                const panelW=Math.max(300,window.innerWidth-rect.right);
-                p.style.width=panelW+'px';
-            }
-        }else{
+        const sheld=document.getElementById('sheld');
+        const sheldRight=sheld?sheld.getBoundingClientRect().right:window.innerWidth*0.5;
+        const availW=window.innerWidth-sheldRight;
+        // Auto-condense: if available space is too narrow for full panel, switch to compact
+        const _userCompact=p.dataset.spUserCompact==='true'; // user manually toggled
+        if(availW<360&&!_userCompact){
+            p.classList.add('sp-compact');p.dataset.spAutoCompact='true';
             const compactW=Math.max(240,Math.min(Math.round(window.innerWidth*0.22),280));
             p.style.width=compactW+'px';
+        }else if(p.dataset.spAutoCompact==='true'&&availW>=360){
+            // Auto-restore when space opens up
+            p.classList.remove('sp-compact');delete p.dataset.spAutoCompact;
+            p.style.width=Math.max(300,availW)+'px';
+        }else if(p.classList.contains('sp-compact')){
+            const compactW=Math.max(240,Math.min(Math.round(window.innerWidth*0.22),280));
+            p.style.width=compactW+'px';
+        }else{
+            p.style.width=Math.max(300,availW)+'px';
         }
     }
     p.classList.add('sp-visible');
@@ -119,6 +128,7 @@ export function createPanel(){
         <button class="sp-toolbar-btn" id="sp-tb-regen" title="${t('Regenerate all')}"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M13.5 8a5.5 5.5 0 1 1-1.3-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M13.5 3v2.5h-2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         <span class="sp-toolbar-sep"></span>
         <button class="sp-toolbar-btn" id="sp-tb-panels" title="${t('Panel Manager')}"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><rect x="1" y="2" width="6" height="4" rx="1" stroke="currentColor" stroke-width="1.1" opacity="0.6"/><rect x="9" y="2" width="6" height="4" rx="1" stroke="currentColor" stroke-width="1.1" opacity="0.6"/><rect x="1" y="8" width="6" height="4" rx="1" stroke="currentColor" stroke-width="1.1" fill="currentColor" opacity="0.15"/><rect x="9" y="8" width="6" height="4" rx="1" stroke="currentColor" stroke-width="1.1"/><line x1="3" y1="14" x2="13" y2="14" stroke="currentColor" stroke-width="1" opacity="0.25" stroke-linecap="round"/></svg></button>
+        <button class="sp-toolbar-btn" id="sp-tb-wiki" title="${t('Character Wiki')}"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M2 2.5A1.5 1.5 0 0 1 3.5 1h3A1.5 1.5 0 0 1 8 2.5v11A1.5 1.5 0 0 0 6.5 12h-3A1.5 1.5 0 0 1 2 10.5v-8z" stroke="currentColor" stroke-width="1.1"/><path d="M14 2.5A1.5 1.5 0 0 0 12.5 1h-3A1.5 1.5 0 0 0 8 2.5v11A1.5 1.5 0 0 1 9.5 12h3a1.5 1.5 0 0 0 1.5-1.5v-8z" stroke="currentColor" stroke-width="1.1"/><line x1="4.5" y1="4" x2="6" y2="4" stroke="currentColor" stroke-width="0.8" opacity="0.4"/><line x1="4.5" y1="6" x2="6" y2="6" stroke="currentColor" stroke-width="0.8" opacity="0.4"/><line x1="10" y1="4" x2="11.5" y2="4" stroke="currentColor" stroke-width="0.8" opacity="0.4"/><line x1="10" y1="6" x2="11.5" y2="6" stroke="currentColor" stroke-width="0.8" opacity="0.4"/></svg></button>
         <button class="sp-toolbar-btn" id="sp-tb-toggle" title="${t('Expand/Collapse sections')}"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><rect x="2" y="2" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="2" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="2" y="9" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="9" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/></svg></button>
         <button class="sp-toolbar-btn" id="sp-tb-compact" title="${t('Condense view')}"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><rect x="2" y="2" width="12" height="2.5" rx="1" fill="currentColor" opacity="0.3"/><rect x="2" y="6" width="9" height="2" rx="0.8" fill="currentColor" opacity="0.2"/><rect x="2" y="9.5" width="11" height="2" rx="0.8" fill="currentColor" opacity="0.15"/><rect x="2" y="13" width="7" height="1.5" rx="0.7" fill="currentColor" opacity="0.1"/><path d="M14 5.5L14 12" stroke="currentColor" stroke-width="1" stroke-linecap="round" opacity="0.3"/><path d="M12.5 7l1.5-1.5L15.5 7" stroke="currentColor" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round" opacity="0.4"/><path d="M12.5 10.5l1.5 1.5 1.5-1.5" stroke="currentColor" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round" opacity="0.4"/></svg></button>
         <span class="sp-toolbar-sep"></span>
@@ -238,6 +248,9 @@ export function createPanel(){
         const isCompact=p.classList.toggle('sp-compact');
         const btn=document.getElementById('sp-tb-compact');
         btn.classList.toggle('sp-tb-active',isCompact);
+        // Track user-initiated compact so auto-condense doesn't override
+        p.dataset.spUserCompact=isCompact?'true':'false';
+        delete p.dataset.spAutoCompact;
         // Recalculate width -- compact uses less space
         if(isCompact){
             const compactW=Math.max(240,Math.min(Math.round(window.innerWidth*0.22),280));
@@ -248,6 +261,10 @@ export function createPanel(){
             if(sheld){const rect=sheld.getBoundingClientRect();p.style.width=Math.max(300,window.innerWidth-rect.right)+'px'}
         }
         log('Compact:',isCompact);
+    });
+    // Character Wiki
+    document.getElementById('sp-tb-wiki').addEventListener('click',()=>{
+        import('./character-wiki.js').then(m=>m.openCharacterWiki()).catch(e=>{warn('Wiki:',e)});
     });
     // Panel Manager toggle
     document.getElementById('sp-tb-panels').addEventListener('click',()=>{

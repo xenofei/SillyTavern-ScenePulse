@@ -71,7 +71,8 @@
     from { transform: translateY(-100%); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
 }
-#sp-panel.sp-mode-mobile.sp-visible {
+#sp-panel.sp-mode-mobile.sp-visible,
+#sp-panel.sp-mode-tablet.sp-visible {
     animation: sp-mobile-slide-up 0.3s ease-out;
 }
 .sp-mobile-topbar.sp-mt-visible {
@@ -87,9 +88,10 @@
 /* Mobile: hide separators adjacent to hidden buttons */
 #sp-panel.sp-mode-mobile .sp-toolbar-sep:nth-of-type(2),
 #sp-panel.sp-mode-mobile .sp-toolbar-sep:nth-of-type(3) { display: none; }
-/* Mobile: hide original brand (replaced by mobile top bar) */
+/* Mobile: hide original brand entirely (replaced by mobile top bar) */
+#sp-panel.sp-mode-mobile .sp-brand-icon-wrap,
 #sp-panel.sp-mode-mobile .sp-brand-icon,
-#sp-panel.sp-mode-mobile .sp-brand-title { display: none; }
+#sp-panel.sp-mode-mobile .sp-brand-title { display: none !important; }
 
 /* ═══ SP MOBILE TOP BAR (replaces ST's extension bar) ═══ */
 /* Force-hide ST's top bar when SP panel is fullscreen on mobile */
