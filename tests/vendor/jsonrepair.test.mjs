@@ -126,7 +126,7 @@ const cases = [
   // ─── 15) Realistic ScenePulse-style payloads (10) ───
   ['realistic', 'tracker valid', '{"time":"19:28","date":"06/14/2025","sceneTopic":"meeting","relationships":[{"name":"Victoria","affection":58}]}', {time:'19:28',date:'06/14/2025',sceneTopic:'meeting',relationships:[{name:'Victoria',affection:58}]}],
   ['realistic', 'tracker stray quote in milestone', '{"relationships":[{"name":"Victoria","milestone":"Their "first" date","affection":42}]}', 'PARSES'],
-  ['realistic', 'tracker apostrophe', '{"sceneSummary":"Devon\'s plan worked perfectly"}', {sceneSummary:"Devon's plan worked perfectly"}],
+  ['realistic', 'tracker apostrophe', '{"sceneSummary":"Alex\'s plan worked perfectly"}', {sceneSummary:"Alex's plan worked perfectly"}],
   ['realistic', 'tracker trailing comma in chars', '{"characters":[{"name":"A"},{"name":"B"},]}', {characters:[{name:'A'},{name:'B'}]}],
   ['realistic', 'tracker python true', '{"sceneTension":"high","witnesses":True}', {sceneTension:'high',witnesses:true}],
   ['realistic', 'tracker missing comma', '{"a":1 "b":2 "c":3}', {a:1,b:2,c:3}],

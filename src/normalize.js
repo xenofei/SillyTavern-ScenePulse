@@ -36,7 +36,7 @@ export function isUserName(name) {
         const n1 = (ctx?.name1 || '').toLowerCase().trim();
         if (n1 && norm === n1) return true;
         // Guard against the model prefixing the user's name with {{user}}:
-        // "Devon ({{user}})" or "{{user}} (Devon)" both match.
+        // "Alex ({{user}})" or "{{user}} (Alex)" both match.
         if (n1 && (norm.startsWith(n1 + ' ') || norm.endsWith(' ' + n1))) {
             if (norm.includes('{{user}}') || norm.includes('(you)') || norm.includes('(user)')) return true;
         }

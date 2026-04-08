@@ -12,7 +12,7 @@
 // We stub a minimal SillyTavern global before importing so the test runs
 // in node without the full DOM context.
 
-const USER_NAME = 'Devon';
+const USER_NAME = 'Alex';
 
 // Minimal SillyTavern stub — must be in place BEFORE normalize.js is imported
 globalThis.SillyTavern = {
@@ -68,10 +68,10 @@ console.log('━━━━━━━━━━━━━━━━━━━━━━�
 // ═══════════════════════════════════════════════════════════════════════
 console.log('\n── isUserName() direct matches ──');
 
-assertTrue('persona name exact', isUserName('Devon'));
-assertTrue('persona name lowercase', isUserName('devon'));
-assertTrue('persona name trimmed', isUserName('  Devon  '));
-assertTrue('persona name mixed case', isUserName('DEVON'));
+assertTrue('persona name exact', isUserName('Alex'));
+assertTrue('persona name lowercase', isUserName('alex'));
+assertTrue('persona name trimmed', isUserName('  Alex  '));
+assertTrue('persona name mixed case', isUserName('ALEX'));
 
 assertTrue('literal {{user}} template token', isUserName('{{user}}'));
 assertTrue('"User" alias', isUserName('User'));
@@ -100,9 +100,9 @@ console.log('\n── normalizeTracker: characters array ──');
 {
     const d = {
         time: '12:00', date: '01/01/2026', location: 'park',
-        charactersPresent: ['Devon', 'Jenna', 'Mike'],
+        charactersPresent: ['Alex', 'Jenna', 'Mike'],
         characters: [
-            { name: 'Devon', role: 'The user', innerThought: 'I should not be here' },
+            { name: 'Alex', role: 'The user', innerThought: 'I should not be here' },
             { name: 'Jenna', role: 'spouse', innerThought: 'Where is he' },
             { name: 'Mike', role: 'friend', innerThought: 'Nice day' },
         ],
@@ -113,7 +113,7 @@ console.log('\n── normalizeTracker: characters array ──');
     };
     const norm = normalizeTracker(d);
     assertEq('characters count after strip', norm.characters.length, 2);
-    assertFalse('Devon not in characters', norm.characters.some(c => c.name === 'Devon'));
+    assertFalse('Alex not in characters', norm.characters.some(c => c.name === 'Alex'));
     assertTrue('Jenna kept', norm.characters.some(c => c.name === 'Jenna'));
     assertTrue('Mike kept', norm.characters.some(c => c.name === 'Mike'));
 }
@@ -175,13 +175,13 @@ console.log('\n── normalizeTracker: self-relationship ──');
         time: '12:00', date: '01/01/2026',
         characters: [{ name: 'Jenna', role: 'spouse' }],
         relationships: [
-            { name: 'Devon', affection: 100, trust: 100 }, // self-relationship
+            { name: 'Alex', affection: 100, trust: 100 }, // self-relationship
             { name: 'Jenna', affection: 80, trust: 70 },
         ],
     };
     const norm = normalizeTracker(d);
     assertEq('relationships count after strip', norm.relationships.length, 1);
-    assertFalse('Devon self-rel stripped', norm.relationships.some(r => r.name === 'Devon'));
+    assertFalse('Alex self-rel stripped', norm.relationships.some(r => r.name === 'Alex'));
     assertTrue('Jenna relationship kept', norm.relationships.some(r => r.name === 'Jenna'));
 }
 
@@ -192,7 +192,7 @@ console.log('\n── normalizeTracker: charactersPresent ──');
 {
     const d = {
         time: '12:00', date: '01/01/2026',
-        charactersPresent: ['Devon', 'Jenna', 'Mike', '{{user}}', 'You'],
+        charactersPresent: ['Alex', 'Jenna', 'Mike', '{{user}}', 'You'],
         characters: [
             { name: 'Jenna', role: 'spouse' },
             { name: 'Mike', role: 'friend' },
@@ -201,7 +201,7 @@ console.log('\n── normalizeTracker: charactersPresent ──');
     };
     const norm = normalizeTracker(d);
     assertEq('charactersPresent stripped to 2', norm.charactersPresent.length, 2);
-    assertFalse('Devon not in charactersPresent', norm.charactersPresent.includes('Devon'));
+    assertFalse('Alex not in charactersPresent', norm.charactersPresent.includes('Alex'));
     assertFalse('{{user}} not in charactersPresent', norm.charactersPresent.includes('{{user}}'));
     assertFalse('You not in charactersPresent', norm.charactersPresent.includes('You'));
     assertTrue('Jenna in charactersPresent', norm.charactersPresent.includes('Jenna'));
@@ -217,13 +217,13 @@ console.log('\n── filterForView: defensive strip from legacy snapshots ─�
     // v6.8.14). filterForView must still strip the user from the view.
     const legacySnap = {
         time: '12:00', date: '01/01/2026',
-        charactersPresent: ['Devon', 'Jenna'],
+        charactersPresent: ['Alex', 'Jenna'],
         characters: [
-            { name: 'Devon', role: 'player' },
+            { name: 'Alex', role: 'player' },
             { name: 'Jenna', role: 'spouse' },
         ],
         relationships: [
-            { name: 'Devon', affection: 100 },
+            { name: 'Alex', affection: 100 },
             { name: 'Jenna', affection: 80 },
         ],
     };
