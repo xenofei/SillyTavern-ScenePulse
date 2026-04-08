@@ -435,6 +435,29 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.8.20] — 2026-04-08
+
+#### Added \u2014 character portrait thumbnails (Feature B)
+- **Every character card header now has a 26-px circular portrait** to the left of the chevron. Resolves through a four-layer priority:
+  1. **User override**: if `settings.charPortraits[lowercased-name]` holds a URL or data: URL, use it. Highest priority \u2014 lets users pin any image to any character regardless of what SillyTavern thinks.
+  2. **SillyTavern character match**: any character in `SillyTavern.getContext().characters` whose `.name` matches the lookup name (case-insensitive) contributes its `/characters/{avatar}` URL. Uses the same `/characters/` endpoint ST itself serves.
+  3. **Alias-aware ST match**: if the character's `aliases` array contains an ST character name, the matching avatar is used. This makes portraits survive the v6.8.18 reveal flow \u2014 a "Stranger" entry with `aliases: ["Jenna"]` will pick up Jenna's ST avatar automatically once the real name is revealed.
+  4. **Monogram fallback**: a circular tile with the first letter of the name on the character's accent-color background. Always renders, even for characters with no matching image anywhere.
+- **New shared module `src/ui/portraits.js`** exports `resolvePortraitUrl`, `getPortraitHtml`, `buildPortraitIndex`, `setPortraitOverride`, and `clearPortraitOverride`. Both `update-panel.js` and `character-wiki.js` delegate to it so portrait resolution logic lives in exactly one place.
+
+#### Added \u2014 click-to-upload portrait override
+- **Clicking a portrait opens a file picker** (png/jpeg/webp/gif). The selected file is read as a data: URL via `FileReader`, stored in `settings.charPortraits` keyed by lowercased character name, and the panel re-renders immediately so the new image appears without a page reload. A 1 MB soft warning fires via toast if the file is unusually large (since settings.json stores the full data URL).
+- **Right-clicking a portrait clears the override** (with confirmation dialog), falling back to ST avatar lookup or monogram on the next render.
+
+#### Changed \u2014 Character Wiki portrait resolution
+- **The wiki overlay now uses the same shared resolver** so its avatars pick up user overrides and alias matches. Previously the wiki had its own `_getAvatarUrl()` that only read from ST characters with exact name match \u2014 it couldn't see portrait overrides and couldn't resolve aliases. Now delegated to `portraits.js`.
+
+#### Settings
+- **New `charPortraits: {}` entry in `DEFAULTS`** (`src/constants.js`) \u2014 the storage slot for user-uploaded portrait overrides. Empty by default.
+
+#### Not changed
+- No schema changes, no migration needed. 183/183 tests still pass.
+
 ### [6.8.19] — 2026-04-08
 
 #### Added \u2014 character archetype tagging (Feature L)

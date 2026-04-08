@@ -1,8 +1,20 @@
 /* ═══ CHARACTERS ═══ */
 .sp-char-card { background: var(--char-bg, var(--sp-surface)); border-radius: var(--sp-radius); padding: 0; margin-bottom: 5px; border-left: 3px solid var(--char-border, var(--sp-border)); }
 .sp-char-card:last-child { margin-bottom: 0; }
-.sp-char-header { display: flex; align-items: center; gap: 5px; padding: 6px 8px; cursor: pointer; user-select: none; overflow: hidden; flex-wrap: wrap; }
+.sp-char-header { display: flex; align-items: center; gap: 6px; padding: 6px 8px; cursor: pointer; user-select: none; overflow: hidden; flex-wrap: wrap; }
 .sp-char-header:hover { background: rgba(255,255,255,0.02); }
+/* v6.8.20: character portrait in the card header. 26px circular thumbnail
+   sits to the left of the chevron. Resolves to (1) user override from
+   settings.charPortraits, (2) SillyTavern character avatar, (3) alias-
+   matched ST avatar, or (4) monogram fallback on the character's accent
+   color. Click the portrait to upload a replacement (wired in JS). */
+.sp-char-portrait { width: 26px; height: 26px; border-radius: 50%; overflow: hidden; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--sp-border); background: var(--sp-surface); position: relative; }
+.sp-char-portrait img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.sp-char-portrait-monogram { color: #fff; font-weight: 700; font-size: 13px; letter-spacing: 0; text-shadow: 0 1px 2px rgba(0,0,0,0.45); }
+.sp-char-portrait-monogram .sp-char-portrait-letter { display: inline-block; line-height: 1; }
+.sp-char-portrait-errored { background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)); }
+.sp-char-portrait { cursor: pointer; transition: transform 120ms ease, border-color 120ms ease; }
+.sp-char-portrait:hover { transform: scale(1.06); border-color: var(--char-accent, var(--sp-accent)); }
 /* v6.8.19: archetype pill in the character card header. Each archetype
    has a distinct color + subtle background tint so readers can tell
    allies from rivals from antagonists at a glance. Uses text-only, no

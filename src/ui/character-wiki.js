@@ -7,6 +7,7 @@ import { normalizeTracker } from '../normalize.js';
 import { charColor } from '../color.js';
 import { createSparklineCanvas, _scrollToMessage } from './sparklines.js';
 import { currentSnapshotMesIdx } from '../state.js';
+import { resolvePortraitUrl, buildPortraitIndex } from './portraits.js';
 
 // ── v6.8.17: section icons shared with update-panel.js ──
 // Tinted by CSS (currentColor inherits from the parent .sp-wiki-section-icon
@@ -48,19 +49,11 @@ function _saveNote(name, text) {
 }
 function _getNote(name) { return _getNotes()[name.toLowerCase().trim()] || ''; }
 
-// ── Character avatar URL ──
-function _getAvatarUrl() {
-    try {
-        const ctx = SillyTavern.getContext();
-        const chars = ctx.characters;
-        if (!chars?.length) return {};
-        const map = {};
-        for (const c of chars) {
-            if (c.avatar) map[(c.name || '').toLowerCase().trim()] = `/characters/${encodeURIComponent(c.avatar)}`;
-        }
-        return map;
-    } catch { return {}; }
-}
+// v6.8.20: avatar lookup delegated to shared portraits module.
+// Kept as a thin wrapper so the rest of the file doesn't need to change
+// its call sites. buildPortraitIndex returns the same name → URL map the
+// old function did; resolvePortraitUrl adds user override + alias match.
+function _getAvatarUrl() { return buildPortraitIndex(); }
 
 // ── Build wiki entries from snapshot data ──
 function _buildEntries() {
@@ -101,7 +94,11 @@ function _buildEntries() {
             prevRelMap[(pr.name || '').toLowerCase()] = pr;
     }
 
-    const avatarMap = _getAvatarUrl();
+    // v6.8.20: alias-aware + override-aware portrait resolution.
+    // resolvePortraitUrl walks user overrides → ST avatar → alias matches
+    // → monogram fallback. Build the ST index once for the whole loop.
+    const stIdx = buildPortraitIndex();
+    const _resolve = (ch) => resolvePortraitUrl(ch, stIdx) || '';
     const entries = [];
     const seen = new Set();
     for (const ch of chars) {
@@ -116,7 +113,7 @@ function _buildEntries() {
             name: ch.name, character: ch, relationship: rel, prevRelationship: prevRel, inScene,
             firstSeen: m.firstSeen || 0, lastSeen: m.lastSeen || 0,
             appearances: m.appearances || 0, lastLocation: m.lastLocation || '',
-            color: charColor(ch.name), avatarUrl: avatarMap[cn] || '',
+            color: charColor(ch.name), avatarUrl: _resolve(ch),
         });
     }
     for (const rel of rels) {
@@ -127,12 +124,13 @@ function _buildEntries() {
         const inScene = presentSet.has(rn) || cp.some(p => _nameMatch(p, rn));
         const m = meta.get(rn) || {};
         const prevRel = prevRelMap[rn] || null;
+        const stub = { name: rel.name, role: rel.relType || '', aliases: [] };
         entries.push({
-            name: rel.name, character: { name: rel.name, role: rel.relType || '' },
+            name: rel.name, character: stub,
             relationship: rel, prevRelationship: prevRel, inScene,
             firstSeen: m.firstSeen || 0, lastSeen: m.lastSeen || 0,
             appearances: m.appearances || 0, lastLocation: m.lastLocation || '',
-            color: charColor(rel.name), avatarUrl: avatarMap[rn] || '',
+            color: charColor(rel.name), avatarUrl: _resolve(stub),
         });
     }
     return entries;

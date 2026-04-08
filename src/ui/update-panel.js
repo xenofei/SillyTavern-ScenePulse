@@ -32,6 +32,7 @@ import { classifyQuest } from './classify-quest.js';
 import { openDiffViewer } from './diff-viewer.js';
 import { createSparklineCanvas } from './sparklines.js';
 import { detectStagnation } from '../stagnation.js';
+import { getPortraitHtml, buildPortraitIndex, setPortraitOverride, clearPortraitOverride } from './portraits.js';
 
 let _wdmFrameId = null;
 let _wdmObserver = null;
@@ -149,6 +150,46 @@ async function _openMergePicker(sourceName, otherNames) {
             }
         });
     }
+}
+
+// v6.8.20: Open a file picker to upload a custom portrait for a character.
+// Reads the selected file as a data: URL and stores it in
+// settings.charPortraits via portraits.setPortraitOverride. The panel
+// re-renders immediately so the new image appears without a reload.
+//
+// Image size is intentionally NOT server-side validated (no server) and
+// not resized — we trust the user to upload something reasonable. A
+// 500-KB soft warning fires for anything bigger than 1 MB since the file
+// is about to live in settings.json forever.
+function _openPortraitPicker(characterName) {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/png,image/jpeg,image/webp,image/gif';
+    input.style.display = 'none';
+    input.addEventListener('change', () => {
+        const file = input.files?.[0];
+        input.remove();
+        if (!file) return;
+        if (file.size > 1024 * 1024) {
+            toastr.warning(t('Image larger than 1 MB — settings file will grow'), characterName);
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+            const dataUrl = reader.result;
+            if (typeof dataUrl !== 'string') {
+                toastr.error(t('Failed to read image'), characterName);
+                return;
+            }
+            setPortraitOverride(characterName, dataUrl);
+            toastr.success(t('Portrait saved'), characterName);
+            const snap = getLatestSnapshot();
+            if (snap) updatePanel(normalizeTracker(snap), true);
+        };
+        reader.onerror = () => toastr.error(t('Failed to read image'), characterName);
+        reader.readAsDataURL(file);
+    });
+    document.body.appendChild(input);
+    input.click();
 }
 
 export function updatePanel(d,_force=false){
@@ -612,6 +653,9 @@ export function updatePanel(d,_force=false){
             if(bP&&!aP)return 1;
             return 0;
         });
+        // v6.8.20: build the ST avatar index once for this render loop
+        // instead of walking ST characters for every card.
+        const _portraitIdx=buildPortraitIndex();
         for(let _ci2=0;_ci2<sortedChars.length;_ci2++){
             const{ch,ci}=sortedChars[_ci2];
             const cc=charColor(ch.name);
@@ -640,15 +684,47 @@ export function updatePanel(d,_force=false){
             // Merge icon: two arrows converging, aria-hidden since the button
             // has a title attribute for accessibility.
             const _MERGE_ICON='<svg viewBox="0 0 12 12" width="11" height="11" fill="none" aria-hidden="true"><path d="M2 2 L6 6 L2 10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 2 L6 6 L10 10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-            cd.innerHTML=`<div class="sp-char-header"><span class="sp-char-chevron">\u25B6</span><span class="sp-char-name">${esc(ch.name)}</span>${_archetypeBadge}${_aliasBadge}<span class="sp-char-header-spacer"></span><button type="button" class="sp-char-merge-btn" title="${esc(t('Merge into another character'))}">${_MERGE_ICON}</button></div>`;
+            // v6.8.20: portrait thumbnail. Resolves to (1) user override
+            // in settings.charPortraits, (2) matching SillyTavern character
+            // avatar, (3) alias-matched ST avatar, or (4) monogram fallback
+            // on the character's accent color. Always returns a render-ready
+            // HTML string so the header structure is stable.
+            const _portraitHtml=getPortraitHtml(ch,cc.accent,_portraitIdx);
+            cd.innerHTML=`<div class="sp-char-header">${_portraitHtml}<span class="sp-char-chevron">\u25B6</span><span class="sp-char-name">${esc(ch.name)}</span>${_archetypeBadge}${_aliasBadge}<span class="sp-char-header-spacer"></span><button type="button" class="sp-char-merge-btn" title="${esc(t('Merge into another character'))}">${_MERGE_ICON}</button></div>`;
             cd.querySelector('.sp-char-header').addEventListener('click',(e)=>{
                 if(e.target.closest('.sp-char-merge-btn'))return;
+                if(e.target.closest('.sp-char-portrait'))return;
                 cd.classList.toggle('sp-card-open');
             });
             cd.querySelector('.sp-char-merge-btn').addEventListener('click',async(e)=>{
                 e.stopPropagation();
                 await _openMergePicker(ch.name, (d.characters||[]).map(c=>c.name).filter(n=>n&&n!==ch.name));
             });
+            // v6.8.20: click portrait → file picker to upload a replacement
+            // image. Stores as a data: URL in settings.charPortraits so it
+            // persists across reloads without needing file-system access.
+            // Right-click (or long-press) clears the override and falls
+            // back to ST avatar / monogram.
+            const _portraitEl=cd.querySelector('.sp-char-portrait');
+            if(_portraitEl){
+                _portraitEl.addEventListener('click',(e)=>{
+                    e.stopPropagation();
+                    _openPortraitPicker(ch.name);
+                });
+                _portraitEl.addEventListener('contextmenu',async(e)=>{
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const ok=await spConfirm(
+                        t('Clear portrait'),
+                        t('Remove the custom portrait for') + ' "' + ch.name + '"? ' +
+                        t('The tracker will fall back to the SillyTavern avatar or a monogram.')
+                    );
+                    if(!ok)return;
+                    clearPortraitOverride(ch.name);
+                    const snap=getLatestSnapshot();
+                    if(snap)updatePanel(normalizeTracker(snap),true);
+                });
+            }
             const _cbody=document.createElement('div');_cbody.className='sp-char-body';
 
             // v6.8.17: Per-section icon constants. Each subsection gets a
