@@ -2,7 +2,7 @@
 // Extracted from index.js lines 1-365, plus TOUR_EXAMPLE_DATA (~4720-4747)
 
 export const MODULE_NAME='scenepulse';
-export const VERSION = '6.8.10';
+export const VERSION = '6.8.11';
 export const LOG='[ScenePulse]';
 export const EXTENSION_NAME='SillyTavern-ScenePulse';
 export const SP_LS_KEY='scenepulse_config';
@@ -182,7 +182,15 @@ School: WRONG: "{{char}} is being bullied" \u2192 RIGHT: "Stand up for {{char}} 
 - Each entry needs: name (brief title), urgency (critical/high/moderate/low/resolved), detail (1-3 sentences FROM {{user}}'s perspective \u2014 what {{user}} knows and needs to do, NEVER {{char}}'s internal thoughts/feelings)
 - Detail WRONG: "She's angry and conflicted about what happened" \u2192 Detail RIGHT: "The truth changes everything \u2014 need to decide how to respond before word spreads"
 - Detail WRONG: "{{char}} feels guilty and wants to make amends" \u2192 Detail RIGHT: "{{char}} seems remorseful \u2014 could be an opportunity to rebuild trust or leverage the situation"
-- CARRY FORWARD: Carry forward active quests from the previous state. You MAY consolidate duplicates or near-duplicates into a single quest (prefer the clearer name). You MAY mark a quest as "resolved" when the story ends it, or when a later quest has clearly superseded it. You MAY NOT silently drop a quest that is still active in the story \u2014 if you decide to remove it, set urgency to "resolved" first. When in doubt, consolidate rather than duplicate.
+- CARRY FORWARD: Carry forward active quests from the previous state. Never silently drop a quest \u2014 the ONLY way to remove a quest is to first transition it through urgency="resolved".
+- RESOLUTION (REQUIRED, not optional): You MUST set a quest's urgency to "resolved" when ANY of these happen in the story. This is not a judgment call \u2014 any of these triggers means the quest MUST flip to "resolved" on this turn:
+  (1) {{user}} accomplishes the quest's stated goal (e.g., quest was "Get {{char}} to the hospital" and they arrived; quest was "Confront {{char}} about the lie" and the confrontation happened; quest was "Find the missing item" and it was found)
+  (2) The situation the quest was about ends or becomes moot (e.g., the character the quest is about dies, leaves, or the deadline passes)
+  (3) {{user}} explicitly abandons or walks away from the goal in the story
+  (4) A later quest has clearly absorbed or superseded this one (the superseding quest stays; the older one resolves)
+  A "resolved" quest stays in the output for ONE more turn so the user sees the completion, then it gets dropped automatically on the next turn. Do NOT silently delete. Do NOT leave stale. Mark resolved first.
+- CONSOLIDATION: You MAY merge duplicates or near-duplicates into a single clearer entry (prefer the clearer name). When in doubt, consolidate rather than duplicate.
+- CROSS-TIER: A quest belongs in ONE tier only. If you decide a sideQuest has become a primary arc, move it to mainQuests and drop it from sideQuests. Never list the same quest in both tiers.
 
 ### Story Ideas (plotBranches)
 - Generate EXACTLY 5 entries, one per category: dramatic, intense, comedic, twist, exploratory.
@@ -201,7 +209,7 @@ Maintain all unchanged details from previous snapshots. Only update what has act
 2. Hard caps: mainQuests MAX 3, sideQuests MAX 4. Introduce AT MOST 1 new quest per turn. If you find yourself wanting to add 2+ new quests, you are treating the journal as a to-do list \u2014 STOP, and write those action beats into sceneSummary instead.
 3. ALL quest names AND details from {{user}}'s perspective. The test: does each sentence describe what {{user}} knows, sees, or must do? WRONG detail: "She's angry and conflicted." RIGHT detail: "The betrayal changes everything \u2014 need to act before word spreads." NEVER write {{char}}'s emotions, thoughts, or internal state in quest details.
 4. Carry forward active quests from the previous state. You may consolidate duplicates or near-duplicates into a single clearer entry. Do not silently drop a quest that is still active \u2014 if you decide to remove it, mark it "resolved" first. Prefer consolidation over duplication.
-5. Use urgency tags: critical / high / moderate / low / resolved. When a quest is completed, set urgency to "resolved" instead of removing it. Never use "status", "deadline", "pending", or other fields.
+5. Use urgency tags: critical / high / moderate / low / resolved. When a quest is completed IN THE STORY (goal achieved, situation moot, explicitly abandoned, or superseded by a later quest), you MUST set its urgency to "resolved" \u2014 this is required, not optional. A resolved quest stays visible for one more turn then gets dropped automatically. Never use "status", "deadline", "pending", or other fields. Never list the same quest in both mainQuests and sideQuests.
 
 Output valid JSON now.`;
 
