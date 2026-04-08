@@ -28,6 +28,7 @@ import { showPanel } from './panel.js';
 import { showLoadingOverlay, clearLoadingOverlay, showStopButton, hideStopButton } from './loading.js';
 import { generating, genNonce, setLastGenSource } from '../state.js';
 import { generateTracker } from '../generation/engine.js';
+import { classifyQuest } from './classify-quest.js';
 import { openDiffViewer } from './diff-viewer.js';
 import { createSparklineCanvas } from './sparklines.js';
 import { detectStagnation } from '../stagnation.js';
@@ -397,11 +398,19 @@ export function updatePanel(d,_force=false){
         return f;
     },s);if(s.panels?.scene===false)_sec.classList.add('sp-panel-hidden');body.appendChild(_sec)}
 
-    // ── Quest diff: classify quests as new/updated/stale ──
+    // ── Quest diff: classify quests as new/updated/stale/resolved ──
+    // Uses the shared classifyQuest() from ./classify-quest.js so the
+    // meaningfulness threshold (Jaccard similarity >= 0.75 = cosmetic)
+    // and the urgency/name/detail rules all live in one tested module.
+    // This wrapper just builds the prev-snapshot lookup map once per
+    // updatePanel call and passes individual entries through.
     const _prevQSnap=getPrevSnapshot(currentSnapshotMesIdx);
     const _prevQMaps={};
     for(const _qk of['mainQuests','sideQuests']){const _m={};if(_prevQSnap&&Array.isArray(_prevQSnap[_qk]))for(const _q of _prevQSnap[_qk])_m[(_q.name||'').toLowerCase().trim()]=_q;_prevQMaps[_qk]=_m}
-    function _classifyQuest(q,tierKey){if((q.urgency||'')==='resolved')return'resolved';if(!_prevQSnap)return'new';const pm=_prevQMaps[tierKey];if(!pm||!Object.keys(pm).length)return'new';const prev=pm[(q.name||'').toLowerCase().trim()];if(!prev)return'new';if((q.name||'').trim()!==(prev.name||'').trim()||(q.detail||'').trim()!==(prev.detail||'').trim()||(q.urgency||'')!==(prev.urgency||''))return'updated';return'stale'}
+    function _classifyQuest(q,tierKey){
+        const prev=_prevQMaps[tierKey]?.[(q.name||'').toLowerCase().trim()]||null;
+        return classifyQuest(q, prev, !!_prevQSnap);
+    }
     // Pre-compute status counts per tier
     const _tierStatusCounts={};let _totalQNew=0,_totalQUpdated=0,_totalQDone=0;
     for(const _tk of['mainQuests','sideQuests']){let _nc=0,_uc=0,_dc=0;if(Array.isArray(d[_tk]))for(const _q of d[_tk]){const _s=_classifyQuest(_q,_tk);if(_s==='new')_nc++;else if(_s==='updated')_uc++;else if(_s==='resolved')_dc++}_tierStatusCounts[_tk]={n:_nc,u:_uc,d:_dc};_totalQNew+=_nc;_totalQUpdated+=_uc;_totalQDone+=_dc}

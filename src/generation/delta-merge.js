@@ -69,6 +69,17 @@ function _jaccardSimilarity(setA, setB) {
     const union = setA.size + setB.size - intersection;
     return union === 0 ? 0 : intersection / union;
 }
+
+// ── Public tokenizer/similarity helpers ─────────────────────────────────
+// The quest-name tokenizer and Jaccard helper are not name-specific —
+// they work on any short quest-journal text (name, detail, etc). The
+// internal names stay scoped private; these exports provide stable
+// public entry points for other modules that want to reuse the same
+// normalization rules (stopword set, stemmer, punctuation strip) without
+// reimplementing them. update-panel.js uses these in _classifyQuest to
+// detect cosmetic-only detail changes and suppress noisy "updated" badges.
+export const tokenizeQuestText = _tokenizeQuestName;
+export const jaccardSimilarity = _jaccardSimilarity;
 // Threshold for "these two quest names refer to the same quest". 0.6 means
 // at least 60% of the non-stopword, stemmed tokens must overlap (inclusive
 // of the boundary — exactly 0.60 qualifies). Tuned against real log data:
