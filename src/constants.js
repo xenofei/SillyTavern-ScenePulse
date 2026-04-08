@@ -2,7 +2,7 @@
 // Extracted from index.js lines 1-365, plus TOUR_EXAMPLE_DATA (~4720-4747)
 
 export const MODULE_NAME='scenepulse';
-export const VERSION = '6.8.12';
+export const VERSION = '6.8.13';
 export const LOG='[ScenePulse]';
 export const EXTENSION_NAME='SillyTavern-ScenePulse';
 export const SP_LS_KEY='scenepulse_config';
@@ -191,6 +191,11 @@ School: WRONG: "{{char}} is being bullied" \u2192 RIGHT: "Stand up for {{char}} 
   A "resolved" quest stays in the output for ONE more turn so the user sees the completion, then it gets dropped automatically on the next turn. Do NOT silently delete. Do NOT leave stale. Mark resolved first.
 - CONSOLIDATION: You MAY merge duplicates or near-duplicates into a single clearer entry (prefer the clearer name). When in doubt, consolidate rather than duplicate.
 - CROSS-TIER: A quest belongs in ONE tier only. If you decide a sideQuest has become a primary arc, move it to mainQuests and drop it from sideQuests. Never list the same quest in both tiers.
+- UPDATE RULES (REQUIRED \u2014 do not touch an existing quest without a reason): When carrying a quest forward, you MUST NOT modify its name, detail, or urgency UNLESS one of these specifically happened in the turn you are writing:
+  (a) URGENCY CHANGED \u2014 the story actually shifted the stakes. Examples: a deadline passed so low \u2192 critical, a threat was neutralized so critical \u2192 moderate, the user completed preparation so high \u2192 low. Only change urgency when the story moved it.
+  (b) CONCRETE NEW INFORMATION \u2014 the detail needs to reflect a fact that did not exist on the previous turn. Examples: learning the target's name, discovering a deadline, finding a key tool, an ally revealing a method. The new detail MUST cite the specific scene beat that made the change necessary. Not "rephrasing the same situation in different words."
+  (c) RESOLUTION \u2014 you are setting urgency="resolved" because a resolution trigger above fired.
+  If none of (a)(b)(c) apply THIS TURN, emit the quest UNCHANGED \u2014 same name, same detail, same urgency \u2014 or omit it entirely from the delta (both are valid). Do NOT tweak wording. Do NOT rephrase. Do NOT "refresh" the detail for its own sake. A quest that did not meaningfully advance this turn must look byte-identical to how it looked last turn. Cosmetic edits to quests are forbidden \u2014 they create noise that misrepresents story progress.
 
 ### Story Ideas (plotBranches)
 - Generate EXACTLY 5 entries, one per category: dramatic, intense, comedic, twist, exploratory.
@@ -210,6 +215,7 @@ Maintain all unchanged details from previous snapshots. Only update what has act
 3. ALL quest names AND details from {{user}}'s perspective. The test: does each sentence describe what {{user}} knows, sees, or must do? WRONG detail: "She's angry and conflicted." RIGHT detail: "The betrayal changes everything \u2014 need to act before word spreads." NEVER write {{char}}'s emotions, thoughts, or internal state in quest details.
 4. Carry forward active quests from the previous state. You may consolidate duplicates or near-duplicates into a single clearer entry. Do not silently drop a quest that is still active \u2014 if you decide to remove it, mark it "resolved" first. Prefer consolidation over duplication.
 5. Use urgency tags: critical / high / moderate / low / resolved. When a quest is completed IN THE STORY (goal achieved, situation moot, explicitly abandoned, or superseded by a later quest), you MUST set its urgency to "resolved" \u2014 this is required, not optional. A resolved quest stays visible for one more turn then gets dropped automatically. Never use "status", "deadline", "pending", or other fields. Never list the same quest in both mainQuests and sideQuests.
+6. NO COSMETIC QUEST EDITS. If a quest did not meaningfully advance this turn \u2014 no urgency shift from the story, no concrete new information, no resolution \u2014 emit it byte-identical to last turn. Rephrasing the same situation, swapping synonyms, adding filler clauses, or "refreshing" a detail just to have something to output is FORBIDDEN. Cosmetic edits misrepresent story progress and pollute the quest journal. When nothing happened to a quest this turn, do nothing to it.
 
 Output valid JSON now.`;
 
