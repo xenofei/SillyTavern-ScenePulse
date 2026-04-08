@@ -4,6 +4,10 @@ import { DEFAULTS, BUILTIN_PANELS, BUILTIN_SCHEMA } from './constants.js';
 import { getLanguage } from './settings.js';
 
 // ── Sub-field toggle → schema property mappings ──
+// v6.8.15: schema trim dropped 6 fertility sub-fields (reason/phase/day/window/
+// pregnancy/pregWeek), stateOfDress (merged into outfit), and physicalState
+// (merged into posture). Added notableDetails as a single optional free-text
+// field for distinguishing features that don't fit the structured slots.
 const CHAR_SUBFIELD_MAP={
     char_innerThought:['innerThought'],
     char_immediateNeed:['immediateNeed'],
@@ -11,12 +15,12 @@ const CHAR_SUBFIELD_MAP={
     char_longTermGoal:['longTermGoal'],
     char_hair:['hair'],
     char_face:['face'],
-    char_outfit:['outfit','stateOfDress'],
+    char_outfit:['outfit'],
     char_posture:['posture'],
     char_proximity:['proximity'],
-    char_physical:['physicalState'],
+    char_notableDetails:['notableDetails'],
     char_inventory:['inventory'],
-    char_fertility:['fertStatus','fertReason','fertCyclePhase','fertCycleDay','fertWindow','fertPregnancy','fertPregWeek','fertNotes']
+    char_fertility:['fertStatus','fertNotes']
 };
 const REL_SUBFIELD_MAP={
     rel_type:['relType'],
@@ -156,19 +160,19 @@ You are a precise scene analysis engine. Read the story context and output a sin
     if(panels.characters){
         const ft=s.fieldToggles||{};
         let charFields=['- name: Character name','- role: WHO this person IS \u2014 their identity/title/relationship. NOT feelings.'];
-        if(ft.char_innerThought!==false)charFields.push("- innerThought: The character's LITERAL inner voice \u2014 exact words. 1-3 sentences. NEVER emotion labels or narration.");
-        if(ft.char_immediateNeed!==false)charFields.push('- immediateNeed: What they urgently need RIGHT NOW');
-        if(ft.char_shortTermGoal!==false)charFields.push('- shortTermGoal: What they want in the coming hours/days');
-        if(ft.char_longTermGoal!==false)charFields.push('- longTermGoal: Their overarching life motivation');
+        if(ft.char_innerThought!==false)charFields.push("- innerThought: The exact sentence in their head, first-person, in their voice. 1-3 sentences. BE them for a sentence. Not a list of emotion labels.");
+        if(ft.char_immediateNeed!==false)charFields.push('- immediateNeed: What they urgently need RIGHT NOW in this scene.');
+        if(ft.char_shortTermGoal!==false)charFields.push('- shortTermGoal: What THEY want in the coming hours/days, from their perspective.');
+        if(ft.char_longTermGoal!==false)charFields.push("- longTermGoal: Their overarching life motivation. NOT the same as {{user}}'s quest journal \u2014 a character's goal does not automatically become a quest.");
         if(ft.char_hair!==false)charFields.push('- hair: Hair style, color, length.');
         if(ft.char_face!==false)charFields.push('- face: Facial features, expression, makeup.');
-        if(ft.char_outfit!==false){charFields.push('- outfit: Include all layers.');charFields.push('- stateOfDress: One of: pristine, neat, casual, slightly disheveled, disheveled, partially undressed, undressed')}
-        if(ft.char_posture!==false)charFields.push('- posture: Body language and stance.');
-        if(ft.char_proximity!==false)charFields.push('- proximity: Distance and position relative to others.');
-        if(ft.char_physical!==false)charFields.push('- physicalState: Current physical condition.');
+        if(ft.char_outfit!==false)charFields.push('- outfit: Full outfit description including all layers AND current state (neat/rumpled/disheveled/partially undressed). ONE field.');
+        if(ft.char_posture!==false)charFields.push('- posture: Body language, stance, AND physical state (alert/tense/exhausted/intoxicated/injured). ONE field.');
+        if(ft.char_proximity!==false)charFields.push("- proximity: Physical distance relative to {{user}} specifically. Examples: 'arm's reach', 'across the table', 'in the next room'.");
+        if(ft.char_notableDetails!==false)charFields.push("- notableDetails: Distinguishing features that don't fit other fields \u2014 scars, tattoos, accents, mannerisms, glasses, disabilities, tells. Optional; empty string if nothing distinctive.");
         if(ft.char_inventory!==false)charFields.push('- inventory: ONLY objects (phone, keys, weapons, bags) \u2014 NOT clothing');
-        if(ft.char_fertility!==false){charFields.push('- fertStatus: "active" if biologically relevant, "N/A" otherwise');charFields.push('- fertReason: Why fertility is active or N/A');charFields.push('- fertCyclePhase: menstrual, follicular, ovulation, or luteal');charFields.push('- fertCycleDay: Day number in cycle (integer, 0 if N/A)');charFields.push('- fertWindow: infertile, low, moderate, high, peak, or N/A');charFields.push('- fertPregnancy: not pregnant, possibly conceived, confirmed pregnant, unknown, or N/A');charFields.push('- fertPregWeek: Pregnancy week (integer, 0 if N/A)');charFields.push('- fertNotes: Additional fertility notes')}
-        prompt+='\n### Characters (all EXCEPT {{user}})\n'+charFields.join('\n')+'\n';
+        if(ft.char_fertility!==false){charFields.push('- fertStatus: "active" ONLY when pregnancy/cycle is narratively relevant. "N/A" for children, men, non-humans, and any scenario where fertility isn\'t part of the story.');charFields.push('- fertNotes: Free-text details (cycle day, pregnancy week, etc) when fertStatus is "active". Empty or "N/A" otherwise.');}
+        prompt+='\n### Characters (all EXCEPT {{user}}) \u2014 MAX 5 entries, named NPCs only\n'+charFields.join('\n')+'\n';
     }
     // Quests
     if(panels.quests){

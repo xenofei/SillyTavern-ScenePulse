@@ -132,6 +132,70 @@ export function getTrackerData(){
             try{SillyTavern.getContext().saveMetadata()}catch(e){warn('Migration save failed:',e?.message)}
         }
     }
+    // ── v6.8.15 migration: fold deleted character fields into surviving ones ──
+    // Schema trim dropped stateOfDress, physicalState, and 6 fertility sub-
+    // fields. Walk every stored character entry once: fold stateOfDress into
+    // outfit (with separator), fold physicalState into posture, fold the
+    // structured fertility fields into fertNotes as free-text. Delete the old
+    // keys after folding so storage stops carrying the stale shape forward.
+    // Guarded by a per-chat flag.
+    if(!m.scenepulse._spCharTrimMigrated){
+        let touched=0;
+        const snaps=m.scenepulse.snapshots||{};
+        for(const k of Object.keys(snaps)){
+            const snap=snaps[k];
+            if(!snap||!Array.isArray(snap.characters))continue;
+            let changed=false;
+            for(const ch of snap.characters){
+                if(!ch||typeof ch!=='object')continue;
+                // stateOfDress → outfit
+                if(ch.stateOfDress){
+                    const dress=String(ch.stateOfDress);
+                    const outfit=String(ch.outfit||'');
+                    if(!outfit.toLowerCase().includes(dress.toLowerCase())){
+                        ch.outfit=outfit?`${outfit} (${dress})`:dress;
+                    }
+                    delete ch.stateOfDress;
+                    changed=true;
+                }
+                // physicalState → posture
+                if(ch.physicalState){
+                    const phys=String(ch.physicalState);
+                    const posture=String(ch.posture||'');
+                    if(!posture.toLowerCase().includes(phys.toLowerCase())){
+                        ch.posture=posture?`${posture}; ${phys}`:phys;
+                    }
+                    delete ch.physicalState;
+                    changed=true;
+                }
+                // Fold structured fertility into fertNotes as free text
+                const legacyBits=[];
+                if(ch.fertReason){legacyBits.push(String(ch.fertReason));delete ch.fertReason;changed=true}
+                if(ch.fertCyclePhase){legacyBits.push('phase: '+ch.fertCyclePhase);delete ch.fertCyclePhase;changed=true}
+                if(Number(ch.fertCycleDay)>0){legacyBits.push('day '+ch.fertCycleDay);delete ch.fertCycleDay;changed=true}
+                else if('fertCycleDay' in ch){delete ch.fertCycleDay;changed=true}
+                if(ch.fertWindow&&ch.fertWindow!=='N/A'){legacyBits.push('window: '+ch.fertWindow);delete ch.fertWindow;changed=true}
+                else if('fertWindow' in ch){delete ch.fertWindow;changed=true}
+                if(ch.fertPregnancy&&ch.fertPregnancy!=='N/A'&&ch.fertPregnancy!=='not pregnant'){legacyBits.push(String(ch.fertPregnancy));delete ch.fertPregnancy;changed=true}
+                else if('fertPregnancy' in ch){delete ch.fertPregnancy;changed=true}
+                if(Number(ch.fertPregWeek)>0){legacyBits.push('week '+ch.fertPregWeek);delete ch.fertPregWeek;changed=true}
+                else if('fertPregWeek' in ch){delete ch.fertPregWeek;changed=true}
+                if(legacyBits.length){
+                    const existing=String(ch.fertNotes||'');
+                    const fold=legacyBits.join(', ');
+                    ch.fertNotes=existing?`${existing}; ${fold}`:fold;
+                }
+                // Ensure the new notableDetails field exists (empty by default)
+                if(!('notableDetails' in ch)){ch.notableDetails='';changed=true}
+            }
+            if(changed)touched++;
+        }
+        m.scenepulse._spCharTrimMigrated=true;
+        if(touched>0){
+            log('Migration v6.8.15: trimmed character schema in',touched,'snapshot(s) in this chat');
+            try{SillyTavern.getContext().saveMetadata()}catch(e){warn('Migration save failed:',e?.message)}
+        }
+    }
     return m.scenepulse;
 }
 

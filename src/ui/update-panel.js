@@ -544,16 +544,133 @@ export function updatePanel(d,_force=false){
     // Characters section
     {const _sec=mkSection('characters',t('Characters'),d.characters?.length||0,()=>{
         const f=document.createDocumentFragment();
-        function shortRole(r){if(!r)return '';let s=r.replace(/[,;.]\s+(?:who|that|and|but|also|wrongly|cursed|first|known|currently|recently|once|now|the|a|an)\b.*/i,'');if(s.length>80)s=s.substring(0,77)+'\u2026';return s.trim()}
+        // v6.8.15: sort uses _isPrimary computed in normalize (group-aware).
+        // Every group-member character is marked primary in a group chat,
+        // so they all bubble to the top as a cohort instead of just one.
+        // Falls back to name2 match for legacy snapshots without the flag.
         const _charName2=(SillyTavern.getContext().name2||'').toLowerCase();
-        const sortedChars=(d.characters||[]).map((ch,i)=>({ch,ci:i})).sort((a,b)=>{const aMatch=(a.ch.name||'').toLowerCase().startsWith(_charName2)||_charName2.startsWith((a.ch.name||'').toLowerCase());const bMatch=(b.ch.name||'').toLowerCase().startsWith(_charName2)||_charName2.startsWith((b.ch.name||'').toLowerCase());if(aMatch&&!bMatch)return -1;if(bMatch&&!aMatch)return 1;return 0});
-        for(let _ci2=0;_ci2<sortedChars.length;_ci2++){const{ch,ci}=sortedChars[_ci2];const cc=charColor(ch.name);const cd=document.createElement('div');cd.className='sp-char-card';if(sortedChars.length<=1||_ci2===0)cd.classList.add('sp-card-open');cd.style.setProperty('--char-bg',cc.bg);cd.style.setProperty('--char-border',cc.border);cd.style.setProperty('--char-accent',cc.accent);const roleShort=shortRole(ch.role);cd.innerHTML=`<div class="sp-char-header"><span class="sp-char-chevron">\u25B6</span><span class="sp-char-name">${esc(ch.name)}</span>${roleShort?`<span class="sp-char-role-badge">${esc(roleShort)}</span>`:''}</div>`;cd.querySelector('.sp-char-header').addEventListener('click',()=>cd.classList.toggle('sp-card-open'));
-        const _cbody=document.createElement('div');_cbody.className='sp-char-body';
-        {const gr=document.createElement('div');gr.className='sp-char-grid';const appearMap={hair:'char_hair',face:'char_face',outfit:'char_outfit',stateOfDress:'char_outfit',posture:'char_posture',proximity:'char_proximity',physicalState:'char_physical'};const appearFields=[[t('Hair'),'hair'],[t('Face'),'face'],[t('Outfit'),'outfit'],[t('Dress'),'stateOfDress'],[t('Posture'),'posture'],[t('Proximity'),'proximity'],[t('Physical'),'physicalState']];for(const[l,key]of appearFields){const v=ch[key]||'';const fd=document.createElement('div');fd.className='sp-char-field';fd.textContent=l;fd.dataset.ft=appearMap[key];const vd=document.createElement('div');vd.className='sp-char-val';vd.textContent=(key==='stateOfDress'&&v)?t(v):(v||'\u2014');vd.dataset.ft=appearMap[key];if(!v){fd.classList.add('sp-empty-field');vd.classList.add('sp-empty-field');vd.dataset.placeholder=l}mkEditable(vd,()=>ch[key]||'',nv=>{ch[key]=nv;const snap=getLatestSnapshot();if(snap?.characters?.[ci])snap.characters[ci][key]=nv});gr.appendChild(fd);gr.appendChild(vd)}if(Array.isArray(ch.inventory)&&ch.inventory.length){const fd=document.createElement('div');fd.className='sp-char-field';fd.textContent=t('Inventory');fd.dataset.ft='char_inventory';const vd=document.createElement('div');vd.className='sp-char-val';vd.textContent=ch.inventory.join(', ');vd.dataset.ft='char_inventory';gr.appendChild(fd);gr.appendChild(vd)}if(gr.children.length)_cbody.appendChild(gr)}
-        {const gs=document.createElement('div');gs.className='sp-char-goals';const gg=document.createElement('div');gg.className='sp-char-grid';const goalMap={immediateNeed:'char_immediateNeed',shortTermGoal:'char_shortTermGoal',longTermGoal:'char_longTermGoal'};for(const[l,key]of[[t('Need'),'immediateNeed'],[t('Short-Term'),'shortTermGoal'],[t('Long-Term'),'longTermGoal']]){const v=ch[key]||'';const fd=document.createElement('div');fd.className='sp-char-field';fd.textContent=l;fd.dataset.ft=goalMap[key];const vd=document.createElement('div');vd.className='sp-char-val';vd.textContent=v||'\u2014';vd.dataset.ft=goalMap[key];if(!v){fd.classList.add('sp-empty-field');vd.classList.add('sp-empty-field');vd.dataset.placeholder=l}mkEditable(vd,()=>ch[key]||'',nv=>{ch[key]=nv;const snap=getLatestSnapshot();if(snap?.characters?.[ci])snap.characters[ci][key]=nv});gg.appendChild(fd);gg.appendChild(vd)}gs.appendChild(gg);_cbody.appendChild(gs)}
-        // Fertility section
-        {const _isEdit=document.getElementById('sp-panel')?.classList.contains('sp-edit-mode');const _showEmpty=document.getElementById('sp-panel')?.classList.contains('sp-show-empty');const _showFert=ch.fertStatus&&(ch.fertStatus!=='N/A'||_isEdit);if(_showFert||_isEdit||_showEmpty){const fertDiv=document.createElement('div');fertDiv.className='sp-fert-section';fertDiv.dataset.ft='char_fertility';if(ch.fertStatus==='N/A'&&!_isEdit&&!_showEmpty)fertDiv.innerHTML=`<div class="sp-fert-na">${t('Fertility: N/A')} \u2014 ${esc(ch.fertReason||'n/a')}</div>`;else{const fg=document.createElement('div');fg.className='sp-char-grid';const _fertEnumKeys=['fertStatus','fertCyclePhase','fertWindow','fertPregnancy'];for(const[l,key]of[[t('Status'),'fertStatus'],[t('Reason'),'fertReason'],[t('Cycle Phase'),'fertCyclePhase'],[t('Cycle Day'),'fertCycleDay'],[t('Window'),'fertWindow'],[t('Pregnancy'),'fertPregnancy'],[t('Preg. Week'),'fertPregWeek'],[t('Notes'),'fertNotes']]){const v=String(ch[key]||'');if(!v&&!_isEdit&&!_showEmpty)continue;const fd=document.createElement('div');fd.className='sp-char-field';fd.textContent=l;const vd=document.createElement('div');vd.className='sp-char-val';vd.textContent=(_fertEnumKeys.includes(key)&&v)?t(v):(v||'\u2014');if(!v){fd.classList.add('sp-empty-field');vd.classList.add('sp-empty-field');vd.dataset.placeholder=l}mkEditable(vd,()=>String(ch[key]||''),nv=>{ch[key]=nv;const snap=getLatestSnapshot();if(snap?.characters?.[ci])snap.characters[ci][key]=nv});fg.appendChild(fd);fg.appendChild(vd)}fertDiv.appendChild(fg)}_cbody.appendChild(fertDiv)}}
-        cd.appendChild(_cbody);f.appendChild(cd)}return f;
+        const _primOf=(c)=>{
+            if(c?._isPrimary!=null)return !!c._isPrimary;
+            const n=(c?.name||'').toLowerCase();
+            return !!_charName2&&(n.startsWith(_charName2)||_charName2.startsWith(n));
+        };
+        const sortedChars=(d.characters||[]).map((ch,i)=>({ch,ci:i})).sort((a,b)=>{
+            const aP=_primOf(a.ch),bP=_primOf(b.ch);
+            if(aP&&!bP)return -1;
+            if(bP&&!aP)return 1;
+            return 0;
+        });
+        for(let _ci2=0;_ci2<sortedChars.length;_ci2++){
+            const{ch,ci}=sortedChars[_ci2];
+            const cc=charColor(ch.name);
+            const cd=document.createElement('div');
+            cd.className='sp-char-card';
+            if(_primOf(ch))cd.classList.add('sp-char-primary');
+            if(sortedChars.length<=1||_ci2===0)cd.classList.add('sp-card-open');
+            cd.style.setProperty('--char-bg',cc.bg);
+            cd.style.setProperty('--char-border',cc.border);
+            cd.style.setProperty('--char-accent',cc.accent);
+            // Header: name only. Role is now rendered full in the body, not
+            // truncated into a badge. This recovers the information the old
+            // shortRole() regex was destroying.
+            cd.innerHTML=`<div class="sp-char-header"><span class="sp-char-chevron">\u25B6</span><span class="sp-char-name">${esc(ch.name)}</span></div>`;
+            cd.querySelector('.sp-char-header').addEventListener('click',()=>cd.classList.toggle('sp-card-open'));
+            const _cbody=document.createElement('div');_cbody.className='sp-char-body';
+
+            // Role — full text, editable, always visible (no more truncation)
+            {
+                const fd=document.createElement('div');fd.className='sp-char-field';fd.textContent=t('Role');fd.dataset.ft='char_role';
+                const vd=document.createElement('div');vd.className='sp-char-val sp-char-role-val';vd.textContent=ch.role||'\u2014';vd.dataset.ft='char_role';
+                if(!ch.role){fd.classList.add('sp-empty-field');vd.classList.add('sp-empty-field');vd.dataset.placeholder=t('Role')}
+                mkEditable(vd,()=>ch.role||'',nv=>{ch.role=nv;const snap=getLatestSnapshot();if(snap?.characters?.[ci])snap.characters[ci].role=nv});
+                const rr=document.createElement('div');rr.className='sp-char-role-row';
+                rr.appendChild(fd);rr.appendChild(vd);
+                _cbody.appendChild(rr);
+            }
+
+            // Inner thought — rendered in card body (v6.8.15). Previously
+            // only shown in the thought panel and Character Wiki; now it's
+            // first-class in the main character card.
+            {
+                const fd=document.createElement('div');fd.className='sp-char-field';fd.textContent=t('Inner Thought');fd.dataset.ft='char_innerThought';
+                const vd=document.createElement('div');vd.className='sp-char-val sp-char-thought-val';vd.textContent=ch.innerThought||'\u2014';vd.dataset.ft='char_innerThought';
+                if(!ch.innerThought){fd.classList.add('sp-empty-field');vd.classList.add('sp-empty-field');vd.dataset.placeholder=t('Inner Thought')}
+                mkEditable(vd,()=>ch.innerThought||'',nv=>{ch.innerThought=nv;const snap=getLatestSnapshot();if(snap?.characters?.[ci])snap.characters[ci].innerThought=nv});
+                const tr=document.createElement('div');tr.className='sp-char-thought-row';
+                tr.appendChild(fd);tr.appendChild(vd);
+                _cbody.appendChild(tr);
+            }
+
+            // Appearance grid — trimmed schema: hair, face, outfit, posture,
+            // proximity, notableDetails. No more stateOfDress (merged into
+            // outfit) or physicalState (merged into posture).
+            {
+                const gr=document.createElement('div');gr.className='sp-char-grid';
+                const appearMap={hair:'char_hair',face:'char_face',outfit:'char_outfit',posture:'char_posture',proximity:'char_proximity',notableDetails:'char_notableDetails'};
+                const appearFields=[[t('Hair'),'hair'],[t('Face'),'face'],[t('Outfit'),'outfit'],[t('Posture'),'posture'],[t('Proximity'),'proximity'],[t('Notable Details'),'notableDetails']];
+                for(const[l,key]of appearFields){
+                    const v=ch[key]||'';
+                    const fd=document.createElement('div');fd.className='sp-char-field';fd.textContent=l;fd.dataset.ft=appearMap[key];
+                    const vd=document.createElement('div');vd.className='sp-char-val';vd.textContent=v||'\u2014';vd.dataset.ft=appearMap[key];
+                    if(!v){fd.classList.add('sp-empty-field');vd.classList.add('sp-empty-field');vd.dataset.placeholder=l}
+                    mkEditable(vd,()=>ch[key]||'',nv=>{ch[key]=nv;const snap=getLatestSnapshot();if(snap?.characters?.[ci])snap.characters[ci][key]=nv});
+                    gr.appendChild(fd);gr.appendChild(vd);
+                }
+                if(Array.isArray(ch.inventory)&&ch.inventory.length){
+                    const fd=document.createElement('div');fd.className='sp-char-field';fd.textContent=t('Inventory');fd.dataset.ft='char_inventory';
+                    const vd=document.createElement('div');vd.className='sp-char-val';vd.textContent=ch.inventory.join(', ');vd.dataset.ft='char_inventory';
+                    gr.appendChild(fd);gr.appendChild(vd);
+                }
+                if(gr.children.length)_cbody.appendChild(gr);
+            }
+
+            // Goals grid — unchanged
+            {
+                const gs=document.createElement('div');gs.className='sp-char-goals';
+                const gg=document.createElement('div');gg.className='sp-char-grid';
+                const goalMap={immediateNeed:'char_immediateNeed',shortTermGoal:'char_shortTermGoal',longTermGoal:'char_longTermGoal'};
+                for(const[l,key]of[[t('Need'),'immediateNeed'],[t('Short-Term'),'shortTermGoal'],[t('Long-Term'),'longTermGoal']]){
+                    const v=ch[key]||'';
+                    const fd=document.createElement('div');fd.className='sp-char-field';fd.textContent=l;fd.dataset.ft=goalMap[key];
+                    const vd=document.createElement('div');vd.className='sp-char-val';vd.textContent=v||'\u2014';vd.dataset.ft=goalMap[key];
+                    if(!v){fd.classList.add('sp-empty-field');vd.classList.add('sp-empty-field');vd.dataset.placeholder=l}
+                    mkEditable(vd,()=>ch[key]||'',nv=>{ch[key]=nv;const snap=getLatestSnapshot();if(snap?.characters?.[ci])snap.characters[ci][key]=nv});
+                    gg.appendChild(fd);gg.appendChild(vd);
+                }
+                gs.appendChild(gg);_cbody.appendChild(gs);
+            }
+
+            // Fertility section — trimmed schema: just fertStatus + fertNotes.
+            // Only rendered when fertStatus is set AND not "N/A" (or when the
+            // user is in edit mode / show-empty mode for deliberate access).
+            {
+                const _isEdit=document.getElementById('sp-panel')?.classList.contains('sp-edit-mode');
+                const _showEmpty=document.getElementById('sp-panel')?.classList.contains('sp-show-empty');
+                const _showFert=ch.fertStatus&&(ch.fertStatus!=='N/A'||_isEdit);
+                if(_showFert||_isEdit||_showEmpty){
+                    const fertDiv=document.createElement('div');fertDiv.className='sp-fert-section';fertDiv.dataset.ft='char_fertility';
+                    if(ch.fertStatus==='N/A'&&!_isEdit&&!_showEmpty){
+                        fertDiv.innerHTML=`<div class="sp-fert-na">${t('Fertility: N/A')}</div>`;
+                    }else{
+                        const fg=document.createElement('div');fg.className='sp-char-grid';
+                        for(const[l,key]of[[t('Status'),'fertStatus'],[t('Notes'),'fertNotes']]){
+                            const v=String(ch[key]||'');
+                            if(!v&&!_isEdit&&!_showEmpty)continue;
+                            const fd=document.createElement('div');fd.className='sp-char-field';fd.textContent=l;
+                            const vd=document.createElement('div');vd.className='sp-char-val';vd.textContent=(key==='fertStatus'&&v)?t(v):(v||'\u2014');
+                            if(!v){fd.classList.add('sp-empty-field');vd.classList.add('sp-empty-field');vd.dataset.placeholder=l}
+                            mkEditable(vd,()=>String(ch[key]||''),nv=>{ch[key]=nv;const snap=getLatestSnapshot();if(snap?.characters?.[ci])snap.characters[ci][key]=nv});
+                            fg.appendChild(fd);fg.appendChild(vd);
+                        }
+                        fertDiv.appendChild(fg);
+                    }
+                    _cbody.appendChild(fertDiv);
+                }
+            }
+
+            cd.appendChild(_cbody);f.appendChild(cd);
+        }
+        return f;
     },s);if(s.panels?.characters===false)_sec.classList.add('sp-panel-hidden');body.appendChild(_sec)}
 
     // Story Ideas section

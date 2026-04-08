@@ -301,8 +301,22 @@ function _renderEntry(e, viewMode) {
 
     if (ch.innerThought) bodyHtml += `<div class="sp-wiki-thought">${esc(ch.innerThought)}</div>`;
 
-    // Appearance
-    const appearFields = [['Hair', ch.hair], ['Face', ch.face], ['Outfit', ch.outfit], ['Dress', ch.stateOfDress], ['Posture', ch.posture], ['Proximity', ch.proximity], ['Physical', ch.physicalState]];
+    // Role — always first in the body if present
+    if (ch.role) {
+        bodyHtml += '<div class="sp-wiki-section-label">' + t('Role') + '</div>';
+        bodyHtml += `<div class="sp-wiki-val" style="margin-bottom:6px">${esc(ch.role)}</div>`;
+    }
+
+    // Appearance — v6.8.15 trimmed schema: outfit absorbs stateOfDress,
+    // posture absorbs physicalState, notableDetails replaces the rest.
+    const appearFields = [
+        ['Hair', ch.hair],
+        ['Face', ch.face],
+        ['Outfit', ch.outfit],
+        ['Posture', ch.posture],
+        ['Proximity', ch.proximity],
+        ['Notable Details', ch.notableDetails],
+    ];
     if (appearFields.some(([, v]) => v)) {
         bodyHtml += '<div class="sp-wiki-section-label">' + t('Appearance') + '</div><div class="sp-wiki-grid">';
         for (const [label, val] of appearFields) { if (val) bodyHtml += `<div class="sp-wiki-field">${esc(t(label))}</div><div class="sp-wiki-val">${esc(val)}</div>`; }
@@ -343,12 +357,12 @@ function _renderEntry(e, viewMode) {
         bodyHtml += '</div>';
     }
 
-    // Fertility
+    // Fertility — v6.8.15 trimmed schema: fertStatus + fertNotes only
     if (ch.fertStatus && ch.fertStatus !== 'N/A') {
-        const fertFields = [['Status', ch.fertStatus], ['Reason', ch.fertReason], ['Cycle', ch.fertCyclePhase], ['Day', ch.fertCycleDay], ['Window', ch.fertWindow], ['Pregnancy', ch.fertPregnancy], ['Week', ch.fertPregWeek], ['Notes', ch.fertNotes]];
-        if (fertFields.some(([, v]) => v && String(v) !== '0')) {
+        const fertFields = [['Status', ch.fertStatus], ['Notes', ch.fertNotes]];
+        if (fertFields.some(([, v]) => v)) {
             bodyHtml += '<div class="sp-wiki-section-label">' + t('Fertility') + '</div><div class="sp-wiki-grid">';
-            for (const [label, val] of fertFields) { const sv = String(val || ''); if (sv && sv !== '0') bodyHtml += `<div class="sp-wiki-field">${esc(t(label))}</div><div class="sp-wiki-val">${esc(sv)}</div>`; }
+            for (const [label, val] of fertFields) { const sv = String(val || ''); if (sv) bodyHtml += `<div class="sp-wiki-field">${esc(t(label))}</div><div class="sp-wiki-val">${esc(sv)}</div>`; }
             bodyHtml += '</div>';
         }
     }

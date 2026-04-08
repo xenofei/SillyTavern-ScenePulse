@@ -11,6 +11,56 @@ import { charColor } from './color.js';
 const _normCache = new WeakMap();
 export function clearNormCache() { /* WeakMap auto-clears when objects are GC'd */ }
 
+// ── Group chat detection ────────────────────────────────────────────────
+// SillyTavern supports group chats where multiple characters participate
+// in the same conversation. In a group chat, context.name2 holds the
+// currently-speaking character's name, not the full group roster — so
+// code that relies on name2 alone will only ever know about one character.
+//
+// getGroupMemberNames() returns the full list of character names that
+// belong to the active group chat, or an empty array for single-character
+// chats. Used by the interceptor (to inject the member list into the
+// prompt so the model knows who to track) and by filterForView (to
+// preserve group members the model may have omitted from a delta).
+//
+// SillyTavern's context exposes:
+//   - selected_group: ID of the active group, or null for 1-on-1 chats
+//   - groups: array of group definitions, each with a `members` array of
+//     character file names (e.g. "Alice.png", "Bob.png")
+//   - characters: array of all available characters, each with an `avatar`
+//     field matching the group member reference
+//
+// The match path is: group.members[i] → characters[j].avatar → characters[j].name.
+// We tolerate the common case where ST's group uses the character's `.name`
+// directly (some older versions) by accepting both forms.
+export function getGroupMemberNames() {
+    try {
+        const ctx = SillyTavern.getContext();
+        const groupId = ctx?.groupId ?? ctx?.selected_group;
+        if (!groupId) return [];
+        const groups = ctx?.groups || [];
+        const group = groups.find(g => g?.id === groupId);
+        if (!group || !Array.isArray(group.members) || !group.members.length) return [];
+        const charList = ctx?.characters || [];
+        const names = [];
+        for (const memberRef of group.members) {
+            if (!memberRef) continue;
+            // Match by avatar field (file name) or by name directly
+            const ch = charList.find(c => c?.avatar === memberRef || c?.name === memberRef);
+            if (ch?.name) {
+                names.push(ch.name);
+            } else if (typeof memberRef === 'string') {
+                // Fall back to the raw reference, stripping file extension
+                // if present so "Alice.png" becomes "Alice"
+                names.push(memberRef.replace(/\.(png|jpe?g|webp)$/i, ''));
+            }
+        }
+        return names.filter(Boolean);
+    } catch {
+        return [];
+    }
+}
+
 // ── User-name detection ──────────────────────────────────────────────────
 // {{user}} is the player. They must never appear as a character entry,
 // relationship entry, or be listed in charactersPresent — they ARE the
@@ -314,16 +364,41 @@ export function normalizeTracker(d){
         const _normLostName=o.characters[0]?.name==='?'&&chars[0]?.name&&chars[0].name!=='?';
         if(!o.characters.length||_normLostName){
             warn('normalizeChar returned empty, using raw characters');
-            o.characters=chars.map(ch=>({
-                name:ch.name||'?',role:ch.role||'',innerThought:ch.innerThought||ch.inner_thought||'',
-                immediateNeed:ch.immediateNeed||'',shortTermGoal:ch.shortTermGoal||'',longTermGoal:ch.longTermGoal||'',
-                hair:ch.hair||'',face:ch.face||'',outfit:ch.outfit||'',stateOfDress:ch.stateOfDress||'',
-                posture:ch.posture||'',proximity:ch.proximity||'',physicalState:ch.physicalState||'',
-                inventory:Array.isArray(ch.inventory)?ch.inventory:[],
-                fertStatus:ch.fertStatus||'',fertReason:ch.fertReason||'',fertCyclePhase:ch.fertCyclePhase||'',
-                fertCycleDay:ch.fertCycleDay||0,fertWindow:ch.fertWindow||'',fertPregnancy:ch.fertPregnancy||'',
-                fertPregWeek:ch.fertPregWeek||0,fertNotes:ch.fertNotes||''
-            }));
+            o.characters=chars.map(ch=>{
+                // v6.8.15 trimmed schema: outfit absorbs stateOfDress, posture
+                // absorbs physicalState, fertility collapsed to status+notes.
+                // Fold legacy fields into the surviving ones so this failsafe
+                // path preserves data from old snapshots identically to the
+                // main normalizeChar path.
+                let outfit=ch.outfit||'';
+                if(ch.stateOfDress&&!outfit.toLowerCase().includes(String(ch.stateOfDress).toLowerCase())){
+                    outfit=outfit?`${outfit} (${ch.stateOfDress})`:ch.stateOfDress;
+                }
+                let posture=ch.posture||'';
+                if(ch.physicalState&&!posture.toLowerCase().includes(String(ch.physicalState).toLowerCase())){
+                    posture=posture?`${posture}; ${ch.physicalState}`:ch.physicalState;
+                }
+                let fertNotes=ch.fertNotes||'';
+                const legacyBits=[];
+                if(ch.fertReason)legacyBits.push(String(ch.fertReason));
+                if(ch.fertCyclePhase)legacyBits.push('phase: '+ch.fertCyclePhase);
+                if(Number(ch.fertCycleDay)>0)legacyBits.push('day '+ch.fertCycleDay);
+                if(ch.fertWindow&&ch.fertWindow!=='N/A')legacyBits.push('window: '+ch.fertWindow);
+                if(ch.fertPregnancy&&ch.fertPregnancy!=='N/A'&&ch.fertPregnancy!=='not pregnant')legacyBits.push(ch.fertPregnancy);
+                if(Number(ch.fertPregWeek)>0)legacyBits.push('week '+ch.fertPregWeek);
+                if(legacyBits.length){
+                    const fold=legacyBits.join(', ');
+                    fertNotes=fertNotes?`${fertNotes}; ${fold}`:fold;
+                }
+                return{
+                    name:ch.name||'?',role:ch.role||'',innerThought:ch.innerThought||ch.inner_thought||'',
+                    immediateNeed:ch.immediateNeed||'',shortTermGoal:ch.shortTermGoal||'',longTermGoal:ch.longTermGoal||'',
+                    hair:ch.hair||'',face:ch.face||'',outfit,posture,
+                    proximity:ch.proximity||'',notableDetails:ch.notableDetails||'',
+                    inventory:Array.isArray(ch.inventory)?ch.inventory:[],
+                    fertStatus:ch.fertStatus||'',fertNotes
+                };
+            });
         }
     }else{
         o.characters=[];
@@ -346,6 +421,66 @@ export function normalizeTracker(d){
         const before=o.characters.length;
         o.characters=o.characters.filter(c=>!isUserName(c?.name));
         if(o.characters.length<before)log('normalize: stripped',before-o.characters.length,'user-as-character entry from characters');
+    }
+    // ── Group chat support (v6.8.15) ──────────────────────────────────────
+    // In group chats, the model often only emits character data for the
+    // currently-speaking participant, silently dropping the other members.
+    // Previous versions of ScenePulse then lost those characters because
+    // filterForView's intersection with charactersPresent would strip them.
+    //
+    // Here we carry forward any missing group-member characters from the
+    // previous snapshot so the model's omission doesn't destroy state.
+    // The group roster comes from SillyTavern's group context, not from
+    // the model's output, so it's authoritative.
+    //
+    // We also derive _isPrimary per character:
+    //   - single-chat: the character matching ctx.name2 (the bot) is primary
+    //   - group chat: every group-member character is primary (they all get
+    //     the "main" styling in the UI, which uses _isPrimary for sorting
+    //     and color emphasis)
+    // This replaces the brittle name2-only sort used by update-panel,
+    // thoughts, and character-wiki.
+    {
+        const _groupMembers=getGroupMemberNames();
+        const _isGroup=_groupMembers.length>1;
+        const _memberSet=new Set(_groupMembers.map(n=>(n||'').toLowerCase().trim()));
+        // Carry forward group members missing from the model's output
+        if(_isGroup&&Array.isArray(o.characters)){
+            try{
+                const prev=getLatestSnapshot();
+                if(prev?.characters?.length){
+                    const currNames=new Set(o.characters.map(c=>(c.name||'').toLowerCase().trim()));
+                    for(const memberName of _groupMembers){
+                        const memberLow=(memberName||'').toLowerCase().trim();
+                        if(!memberLow)continue;
+                        if(currNames.has(memberLow))continue;
+                        // Look for this member in the previous snapshot
+                        const prevCh=prev.characters.find(pc=>(pc.name||'').toLowerCase().trim()===memberLow);
+                        if(prevCh){
+                            // Deep-clone the prev entry so carry-forward doesn't mutate history
+                            o.characters.push(JSON.parse(JSON.stringify(prevCh)));
+                            currNames.add(memberLow);
+                            if(_verbose)log('Group carry-forward: restored missing group member',memberName);
+                        }
+                    }
+                }
+            }catch(e){if(_verbose)log('Group carry-forward failed:',e?.message)}
+        }
+        // Derive _isPrimary for every character
+        const _botName=((typeof SillyTavern!=='undefined'&&SillyTavern.getContext?.().name2)||'').toLowerCase().trim();
+        if(Array.isArray(o.characters)){
+            for(const ch of o.characters){
+                const cn=(ch?.name||'').toLowerCase().trim();
+                if(!cn)continue;
+                if(_isGroup){
+                    // Every group member is "primary" in a group chat
+                    ch._isPrimary=_memberSet.has(cn);
+                }else{
+                    // Single-chat: the bot character is primary
+                    ch._isPrimary=!!_botName&&(cn===_botName||cn.startsWith(_botName+' ')||_botName.startsWith(cn+' '));
+                }
+            }
+        }
     }
     // Post-normalization: resolve '?' character names from other sources
     // CONFIDENCE RULES -- only resolve when we can be certain:
@@ -461,12 +596,14 @@ export function normalizeTracker(d){
             for(const _ch of o.characters){
                 const _pch=_prev.characters.find(pc=>pc.name&&_ch.name&&pc.name.toLowerCase()===_ch.name.toLowerCase());
                 if(!_pch)continue;
-                for(const _fk of['role','innerThought','immediateNeed','shortTermGoal','longTermGoal','hair','face','outfit','stateOfDress','posture','proximity','physicalState','fertStatus','fertReason','fertCyclePhase','fertWindow','fertPregnancy','fertNotes']){
+                for(const _fk of['role','innerThought','immediateNeed','shortTermGoal','longTermGoal','hair','face','outfit','posture','proximity','notableDetails','fertStatus','fertNotes']){
                     if(!_ch[_fk]&&_pch[_fk]){_ch[_fk]=_pch[_fk];if(_verbose)log('Char carry-forward:',_ch.name,_fk)}
                 }
                 if((!_ch.inventory||!_ch.inventory.length)&&_pch.inventory?.length){_ch.inventory=_pch.inventory;if(_verbose)log('Char carry-forward:',_ch.name,'inventory')}
-                if(!_ch.fertCycleDay&&_pch.fertCycleDay)_ch.fertCycleDay=_pch.fertCycleDay;
-                if(!_ch.fertPregWeek&&_pch.fertPregWeek)_ch.fertPregWeek=_pch.fertPregWeek;
+                // v6.8.15: carry forward _isPrimary so a character that was
+                // marked primary in a previous turn doesn't lose the flag if
+                // the group roster couldn't be detected this turn.
+                if(_ch._isPrimary==null&&_pch._isPrimary!=null)_ch._isPrimary=_pch._isPrimary;
             }
         }
         // Relationship milestone: extend existing carry-forward
@@ -510,15 +647,45 @@ export function normalizeChar(ch){
     o.immediateNeed=g(['immediateneed','immediate_need','need','doing','trying','urgentaction']);
     o.shortTermGoal=g(['shorttermgoal','short_term_goal','shortterm','neargoal']);
     o.longTermGoal=g(['longtermgoal','long_term_goal','longterm','lifemotivation','overarchinggoal']);
-    o.hair=g(['hair']);o.face=g(['face','makeup','expression']);o.outfit=g(['outfit','clothing']);
-    o.stateOfDress=g(['stateofdress','dress']);o.posture=g(['posture','stance']);
-    o.proximity=g(['proximity','position']);o.physicalState=g(['physicalstate','physical','condition']);
+    o.hair=g(['hair']);o.face=g(['face','makeup','expression']);
+    // v6.8.15: outfit absorbs stateOfDress. If the model still emits stateOfDress
+    // (e.g. from a pre-trim system prompt cached somewhere), fold it into outfit
+    // with a separator so the data is preserved on the way through.
+    o.outfit=g(['outfit','clothing']);
+    const _legacyDress=g(['stateofdress','dress']);
+    if(_legacyDress&&!o.outfit.toLowerCase().includes(_legacyDress.toLowerCase())){
+        o.outfit=o.outfit?`${o.outfit} (${_legacyDress})`:_legacyDress;
+    }
+    // v6.8.15: posture absorbs physicalState. Same fold-in logic as outfit.
+    o.posture=g(['posture','stance']);
+    const _legacyPhysical=g(['physicalstate','physical','condition']);
+    if(_legacyPhysical&&!o.posture.toLowerCase().includes(_legacyPhysical.toLowerCase())){
+        o.posture=o.posture?`${o.posture}; ${_legacyPhysical}`:_legacyPhysical;
+    }
+    o.proximity=g(['proximity','position']);
+    o.notableDetails=g(['notabledetails','notable_details','details','distinguishing','markings']);
     const inv=flat['inventory']||flat['items'];o.inventory=Array.isArray(inv)?inv:(typeof inv==='string'&&inv?[inv]:[]);
-    o.fertStatus=g(['fertstatus','status'])||'';o.fertReason=g(['fertreason','statusreason'])||'';
-    o.fertCyclePhase=g(['fertcyclephase','cyclephase'])||'';o.fertCycleDay=Number(flat['fertcycleday']||flat['cycleday'])||0;
-    o.fertWindow=g(['fertwindow','fertilitywindow'])||'';o.fertPregnancy=g(['fertpregnancy','pregnancystatus'])||'';
-    o.fertPregWeek=Number(flat['fertpregweek']||flat['pregnancyweek'])||0;o.fertNotes=g(['fertnotes','notes'])||'';
-    if(!o.fertStatus){const ft=ch.fertilityTracker||ch.fertility||{};if(ft.status)o.fertStatus=ft.status;if(ft.statusReason&&!o.fertReason)o.fertReason=ft.statusReason}
+    // v6.8.15: fertility collapsed to 2 fields. If the model still emits the
+    // legacy structured fields (phase/day/window/pregnancy/week/reason), fold
+    // them into fertNotes as a free-text summary so nothing is lost on the
+    // way through. The lookup for each legacy field tolerates case/underscore
+    // variants because delta snapshots from old chats may use any form.
+    o.fertStatus=g(['fertstatus','status'])||'';
+    o.fertNotes=g(['fertnotes','notes'])||'';
+    if(!o.fertStatus){const ft=ch.fertilityTracker||ch.fertility||{};if(ft.status)o.fertStatus=ft.status}
+    {
+        const legacyBits=[];
+        const _r=g(['fertreason','statusreason']);if(_r)legacyBits.push(_r);
+        const _ph=g(['fertcyclephase','cyclephase']);if(_ph)legacyBits.push('phase: '+_ph);
+        const _cd=Number(flat['fertcycleday']||flat['cycleday']);if(_cd>0)legacyBits.push('day '+_cd);
+        const _wn=g(['fertwindow','fertilitywindow']);if(_wn&&_wn!=='N/A')legacyBits.push('window: '+_wn);
+        const _pg=g(['fertpregnancy','pregnancystatus']);if(_pg&&_pg!=='N/A'&&_pg!=='not pregnant')legacyBits.push(_pg);
+        const _pw=Number(flat['fertpregweek']||flat['pregnancyweek']);if(_pw>0)legacyBits.push('week '+_pw);
+        if(legacyBits.length){
+            const fold=legacyBits.join(', ');
+            o.fertNotes=o.fertNotes?`${o.fertNotes}; ${fold}`:fold;
+        }
+    }
     return o;
 }
 
@@ -600,6 +767,12 @@ export function filterForView(snap){
     // into this pass. If a legacy snapshot had {{user}} in charactersPresent,
     // this ensures the user is excluded from presentSet here too.
     const cp=out.charactersPresent;
+    // v6.8.15: group chat awareness — in a group chat, every group-member
+    // character should survive even if the model forgot to list them in
+    // charactersPresent this turn. Union the member roster into the
+    // present-set so filtering never drops them silently.
+    const _gmNames=getGroupMemberNames();
+    const _isGroupChat=_gmNames.length>1;
     if(!Array.isArray(cp)||!cp.length){
         // No filter data — skip the char/rel sync but still return the
         // shallow copy with capped quest arrays.
@@ -607,6 +780,12 @@ export function filterForView(snap){
         return out;
     }
     const presentSet=new Set(cp.map(n=>(n||'').toLowerCase().trim()).filter(Boolean));
+    if(_isGroupChat){
+        for(const gm of _gmNames){
+            const gmLow=(gm||'').toLowerCase().trim();
+            if(gmLow)presentSet.add(gmLow);
+        }
+    }
     // Filter both arrays to only present names. Use the already-stripped
     // out.characters/out.relationships (not the raw snap arrays) so any
     // user entry that slipped in from legacy storage is filtered twice —

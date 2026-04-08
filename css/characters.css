@@ -8,7 +8,16 @@
 .sp-char-body { display: none; padding: 0 8px 6px 8px; border-top: 1px solid var(--sp-border); }
 .sp-char-card.sp-card-open .sp-char-body { display: block; }
 .sp-char-name { font-size: 13px; font-weight: 700; color: var(--char-accent, var(--sp-text-bright)); flex-shrink: 0; }
-.sp-char-role-badge { font-size: 8px; font-weight: 600; padding: 1px 5px; border-radius: 6px; background: rgba(155,122,196,0.15); color: #b09ad4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
+/* v6.8.15: primary character (bot in single-chat, all group members in group chat)
+   gets a subtle left-border accent to distinguish them from incidental NPCs. */
+.sp-char-card.sp-char-primary { border-left-width: 4px; border-left-color: var(--char-accent, var(--sp-accent)); }
+/* v6.8.15: role and inner thought are first-class card-body rows now — full
+   editable text instead of a truncated header badge / hidden-from-main-panel field. */
+.sp-char-role-row,
+.sp-char-thought-row { display: grid; grid-template-columns: auto 1fr; gap: 2px 6px; padding: 4px 0 2px 2px; align-items: baseline; }
+.sp-char-thought-row { border-top: 1px dashed var(--sp-border); margin-top: 4px; padding-top: 5px; }
+.sp-char-role-val { font-size: 11px; color: var(--sp-text); line-height: 1.35; }
+.sp-char-thought-val { font-size: 11px; color: var(--sp-text-dim); font-style: italic; line-height: 1.4; }
 .sp-char-grid { display: grid; grid-template-columns: auto 1fr; gap: 1px 6px; padding-left: 2px; }
 .sp-char-field { font-size: 9px; font-weight: 600; color: var(--sp-text-dim); text-transform: uppercase; letter-spacing: 0.03em; text-align: right; padding: 1px 0; }
 .sp-char-val { font-size: 11px; color: var(--sp-text); padding: 1px 0; }
