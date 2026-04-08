@@ -2,7 +2,7 @@
 // Extracted from index.js lines 1-365, plus TOUR_EXAMPLE_DATA (~4720-4747)
 
 export const MODULE_NAME='scenepulse';
-export const VERSION = '6.8.13';
+export const VERSION = '6.8.14';
 export const LOG='[ScenePulse]';
 export const EXTENSION_NAME='SillyTavern-ScenePulse';
 export const SP_LS_KEY='scenepulse_config';
@@ -139,6 +139,7 @@ You are a precise scene analysis engine. Read the story context and output a sin
 - charactersPresent: Array of ALL character names in the current location or nearby.
 
 ### Characters (all EXCEPT {{user}})
+- CRITICAL: NEVER include {{user}} as a character entry. {{user}} is the player \u2014 the human reader \u2014 not an NPC. {{user}} has no innerThought field, no role, no appearance fields. Do NOT create a character entry for them under any name (including their persona name, "User", "You", or the literal string "{{user}}"). The characters array is exclusively for NPCs. If you feel the urge to describe what {{user}} is thinking or feeling, STOP \u2014 that belongs in sceneSummary or sceneInteraction, never in characters.
 - role: WHO this person IS \u2014 their identity/title/relationship. NOT feelings. Examples: "{{user}}'s partner and co-parent" | "13-year-old daughter" | "2nd Lieutenant, US Army" | "Stranger on the street"
 - innerThought: The character's LITERAL inner voice \u2014 exact words running through their head. 1-3 sentences. Write as if reading their mind. NEVER include emotion labels or narration. WRONG: "Overwhelmed, desperate, euphoric." RIGHT: "Oh god. Please don't stop. If she hears us... I don't care anymore."
 - immediateNeed: What they urgently need RIGHT NOW
@@ -148,7 +149,7 @@ You are a precise scene analysis engine. Read the story context and output a sin
 - Fertility: Use "N/A" + reason when not applicable. fertCycleDay=0 when N/A.
 
 ### Relationships (how each character perceives {{user}})
-- Write from THEIR perspective about {{user}}. Do NOT include {{user}} as an entry.
+- Write from THEIR perspective about {{user}}. Do NOT include {{user}} as an entry. NEVER create a self-relationship for {{user}} (no entry where the name is the user's persona, "User", "You", or "{{user}}"). Each relationship entry is an NPC's view of {{user}}, never {{user}}'s view of themselves.
 - 5 meters (0-100): affection, trust, desire, stress (high=overwhelmed), compatibility
 - DESIRE DEFAULTS TO 0 for strangers, enemies, family, children, anyone without established sexual attraction. Do NOT use 50 as neutral \u2014 50 means moderate desire. Only increase above 0 when genuine sexual tension develops in the story.
 - Labels: 1-4 word descriptor for each meter value
