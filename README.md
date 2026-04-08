@@ -435,6 +435,27 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.8.14] — 2026-04-08
+
+#### Fixed
+- **`{{user}}` is never tracked as a character anymore.** The model was occasionally creating character entries for the player — by persona name, by the literal `{{user}}` template token, or by aliases like "You" / "User" / "Player". Those entries then got their own inner-thought cards in the thought panel, their own appearance grid, and their own relationship meters pointing at themselves. The prompt already said "EXCEPT `{{user}}`" but the model was ignoring it under long-context pressure.
+
+#### Added — five-layer defense
+- **`isUserName(name)` exported from `src/normalize.js`** — canonical user-name detection. Matches SillyTavern's `name1` (case-insensitive, trimmed), the literal `{{user}}` template token, and the common aliases "user" / "you" / "player" / "me". Single source of truth shared across normalize + filterForView.
+- **`normalizeTracker()` filters the user from three arrays**:
+  1. `o.characters` — stripped after all primary, failsafe, and alternate-key population paths run, so one filter guarantees the user never reaches the view layer regardless of which path built the array
+  2. `o.relationships` — self-relationship entries dropped (a user can't have a relationship with themselves; the array expresses how NPCs perceive the user, not vice versa)
+  3. `o.charactersPresent` — filtered at read time before the fallback derivation logic runs
+- **`filterForView()` belt-and-braces strip** — defensive filter at the view layer catches any legacy snapshot or alternate code path that skipped normalize. Also fixes a pre-existing subtle bug where the char/rel sync block was re-reading `snap.charactersPresent` instead of the already-stripped `out.charactersPresent`, which could have reintroduced the user from legacy data.
+- **v6.8.14 snapshot migration in `settings.getTrackerData()`** — heals existing chats by walking every stored snapshot once on first load, stripping `{{user}}` entries from `characters`, `relationships`, and `charactersPresent`. Guarded by a per-chat `_spUserStripMigrated` flag so the scan only runs once. Persists via `saveMetadata()` when any snapshot was touched. Uses an inline minimal helper (not the normalize export) to avoid a circular import.
+- **Prompt strengthened at two places**:
+  - `src/constants.js` BUILTIN_PROMPT — new CRITICAL bullet in the Characters section: "NEVER include {{user}} as a character entry. {{user}} is the player — the human reader — not an NPC. {{user}} has no innerThought field, no role, no appearance fields." Relationships section expanded to explicitly forbid self-relationships.
+  - `src/generation/interceptor.js` runtime reminder — new CRITICAL section at the top of the prev-state injection, seen at maximum attention weight with every delta-mode generation. Explicitly forbids user entries in `characters`, `relationships`, AND `charactersPresent`.
+
+#### Added — tests
+- **`tests/no-user-as-character.test.mjs`** — 46 new test cases covering `isUserName` direct matches (persona name + aliases + case/whitespace variations), `isUserName` non-matches (NPC names, empty/null/undefined, partial matches, `{{char}}` template token), `normalizeTracker` stripping from characters/relationships/charactersPresent under every alias, `filterForView` defensive strip on legacy snapshots, and a regression guard ensuring NPC-only data passes through unchanged. 46/46 passing.
+- **Full regression sweep**: 114/114 total across all four suites (46 no-user + 24 classify-quest + 26 delta-merge-fuzzy + 18 extraction-cleanjson). No regressions.
+
 ### [6.8.13] — 2026-04-07
 
 #### Fixed
