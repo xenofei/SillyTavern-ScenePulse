@@ -435,6 +435,12 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.8.12] — 2026-04-07
+
+#### Fixed
+- **Thought panel showed all historical characters after a page refresh.** Character storage accumulates every character ever encountered in a chat (since v6.6.5, to support the Character Wiki overlay). The view-layer filter via `filterForView` trims storage down to only `charactersPresent` names and is correctly applied inside `updatePanel` before the quest journal and character list render. But the thought panel's `updateThoughts` function was called from five other code paths that passed raw unfiltered storage: `renderExisting` on page refresh, the toolbar thoughts toggle, panel re-show, settings toggle, and settings reset. Each of those paths rendered thought cards for every accumulated character — including ones who had left the scene many turns ago. Most visibly after a page refresh, which is when `renderExisting` runs.
+- Filtering now happens inside `updateThoughts` itself at the render choke point. Applied once via `filterForView` (which honors the `_spViewFiltered` idempotence flag), so the existing `updatePanel → updateThoughts` path is still a single filter pass. All five previously-broken call sites are fixed without touching their call sites.
+
 ### [6.8.11] — 2026-04-07
 
 #### Fixed
