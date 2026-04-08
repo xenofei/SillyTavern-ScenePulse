@@ -7,7 +7,7 @@ import { charColor } from '../color.js';
 import { generating, genNonce, lastGenSource, setLastGenSource } from '../state.js';
 import { showThoughtLoading, showStopButton, hideStopButton, clearThoughtLoading } from './loading.js';
 import { generateTracker } from '../generation/engine.js';
-import { normalizeTracker } from '../normalize.js';
+import { normalizeTracker, filterForView } from '../normalize.js';
 import { updatePanel } from './update-panel.js';
 import { syncThoughts } from './panel.js';
 
@@ -181,6 +181,20 @@ export function updateThoughts(d){
     const panel=document.getElementById('sp-thought-panel');if(!panel){warn('Thought panel not found');return}
     const body=document.getElementById('sp-tp-body');if(!body){warn('Thought body not found');return}body.innerHTML='';
     const s=getSettings();
+    // Apply view-layer filter at the render choke point.
+    //
+    // Character storage accumulates every character ever encountered in the chat
+    // (see v6.6.5 — required for the Character Wiki). Filtering down to the
+    // currently-present set happens at the view layer via filterForView, which
+    // uses d.charactersPresent as the ground truth.
+    //
+    // updatePanel already runs this filter before calling updateThoughts, but
+    // five other callers (renderExisting on page refresh, toolbar thoughts
+    // toggle, panel re-show, settings toggle, settings reset) pass raw
+    // normalized data directly. Filtering here catches all of them without
+    // touching the call sites. filterForView is idempotent and sets a
+    // _spViewFiltered flag, so re-filtering already-filtered data is a no-op.
+    if(d&&!d._spViewFiltered)d=filterForView(d);
     log('updateThoughts: chars=',d?.characters?.length||0,'showThoughts=',s.showThoughts,'loadingActive=',panel.classList.contains('sp-tp-loading-active'));
     if(!d?.characters?.length||s.showThoughts===false){
         if(s.showThoughts===false)log('updateThoughts: hidden (showThoughts=false)');
