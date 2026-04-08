@@ -604,6 +604,28 @@ export function normalizeTracker(d){
                 // marked primary in a previous turn doesn't lose the flag if
                 // the group roster couldn't be detected this turn.
                 if(_ch._isPrimary==null&&_pch._isPrimary!=null)_ch._isPrimary=_pch._isPrimary;
+                // v6.8.18: carry forward aliases. If the model omits the
+                // aliases list on a turn where nothing changed about the
+                // character's identity, we still want the historical alias
+                // record to survive so future alias-based matching still
+                // works. Union with any aliases the current entry already
+                // has and dedupe case-insensitively. Canonical name is
+                // excluded so we never self-alias.
+                if(Array.isArray(_pch.aliases)&&_pch.aliases.length){
+                    const merged=Array.isArray(_ch.aliases)?[..._ch.aliases]:[];
+                    const seen=new Set(merged.map(a=>(a||'').toLowerCase().trim()));
+                    const canonLow=(_ch.name||'').toLowerCase().trim();
+                    for(const a of _pch.aliases){
+                        const s=String(a||'').trim();
+                        if(!s)continue;
+                        const sl=s.toLowerCase();
+                        if(sl===canonLow)continue;
+                        if(seen.has(sl))continue;
+                        seen.add(sl);
+                        merged.push(s);
+                    }
+                    _ch.aliases=merged;
+                }
             }
         }
         // Relationship milestone: extend existing carry-forward
@@ -642,6 +664,29 @@ export function normalizeChar(ch){
     if(!name)name='?';
     if(!_isTimelineScrub)log('normalizeChar flat keys for',name,':',Object.keys(flat).join(', '));
     const o={name};
+    // v6.8.18: aliases array. Former names (usually descriptive placeholders
+    // like "Stranger", "Hooded Figure") the character was previously known by
+    // before their real name was revealed. Parsed defensively: tolerates a
+    // string (single alias), an array, or missing. Canonical name is stripped
+    // from the list so we never list a character as an alias of themselves.
+    {
+        const rawAliases=flat['aliases']||ch.aliases;
+        let arr=[];
+        if(Array.isArray(rawAliases))arr=rawAliases;
+        else if(typeof rawAliases==='string'&&rawAliases.trim())arr=[rawAliases];
+        const seen=new Set();
+        const canonLow=(name||'').toLowerCase().trim();
+        o.aliases=[];
+        for(const a of arr){
+            const s=String(a||'').trim();
+            if(!s)continue;
+            const sl=s.toLowerCase();
+            if(sl===canonLow)continue; // never alias yourself
+            if(seen.has(sl))continue;
+            seen.add(sl);
+            o.aliases.push(s);
+        }
+    }
     o.role=g(['role','identity','who','emotion','title']);
     o.innerThought=g(['innerthought','inner_thought','thought','thinking','monologue']);
     o.immediateNeed=g(['immediateneed','immediate_need','need','doing','trying','urgentaction']);

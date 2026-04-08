@@ -196,7 +196,175 @@ export function getTrackerData(){
             try{SillyTavern.getContext().saveMetadata()}catch(e){warn('Migration save failed:',e?.message)}
         }
     }
+    // ── v6.8.18 migration: initialize aliases=[] on every stored character ──
+    // The aliases field is new in v6.8.18. Existing chats need an empty array
+    // written in so the merge path can rely on its presence and the UI can
+    // render it without defensive null checks at every access. Also strips
+    // the canonical name from any aliases list that accidentally contains
+    // it (defense for future edge cases). Guarded by a per-chat flag.
+    if(!m.scenepulse._spAliasesInitMigrated){
+        let touched=0;
+        const snaps=m.scenepulse.snapshots||{};
+        for(const k of Object.keys(snaps)){
+            const snap=snaps[k];
+            if(!snap||!Array.isArray(snap.characters))continue;
+            let changed=false;
+            for(const ch of snap.characters){
+                if(!ch||typeof ch!=='object')continue;
+                if(!Array.isArray(ch.aliases)){ch.aliases=[];changed=true;continue}
+                const canonLow=(ch.name||'').toLowerCase().trim();
+                const seen=new Set();
+                const cleaned=[];
+                for(const a of ch.aliases){
+                    const s=String(a||'').trim();
+                    if(!s)continue;
+                    const sl=s.toLowerCase();
+                    if(sl===canonLow){changed=true;continue}
+                    if(seen.has(sl)){changed=true;continue}
+                    seen.add(sl);
+                    cleaned.push(s);
+                }
+                if(cleaned.length!==ch.aliases.length){ch.aliases=cleaned;changed=true}
+            }
+            if(changed)touched++;
+        }
+        m.scenepulse._spAliasesInitMigrated=true;
+        if(touched>0){
+            log('Migration v6.8.18: initialized character aliases in',touched,'snapshot(s) in this chat');
+            try{SillyTavern.getContext().saveMetadata()}catch(e){warn('Migration save failed:',e?.message)}
+        }
+    }
     return m.scenepulse;
+}
+
+// ── v6.8.18: manual character merge across all snapshots ───────────────────
+// Walks every stored snapshot in the current chat and merges `srcName` into
+// `tgtName`: renames the source character entry, unions aliases, preserves
+// target fields (target wins on defined values), same for relationships, and
+// rewrites charactersPresent. Saves metadata once at the end.
+//
+// The walk is in-place on the stored data — this is a destructive operation
+// intended to be triggered by a confirmed user action in the UI. Returns a
+// summary object with counts of what was touched.
+export function mergeCharactersAcrossSnapshots(srcName, tgtName) {
+    if (!srcName || !tgtName) return { ok: false, reason: 'missing names' };
+    const srcLow = srcName.toLowerCase().trim();
+    const tgtLow = tgtName.toLowerCase().trim();
+    if (!srcLow || !tgtLow) return { ok: false, reason: 'empty names' };
+    if (srcLow === tgtLow) return { ok: false, reason: 'same name' };
+
+    const data = getTrackerData();
+    const snaps = data.snapshots || {};
+    let snapsTouched = 0, charsMerged = 0, relsMerged = 0, presentFixed = 0;
+
+    for (const k of Object.keys(snaps)) {
+        const snap = snaps[k];
+        if (!snap) continue;
+        let changed = false;
+
+        // ── Characters ──
+        if (Array.isArray(snap.characters)) {
+            const srcIdx = snap.characters.findIndex(c => (c?.name || '').toLowerCase().trim() === srcLow);
+            const tgtIdx = snap.characters.findIndex(c => (c?.name || '').toLowerCase().trim() === tgtLow);
+            if (srcIdx !== -1 && tgtIdx !== -1) {
+                // Merge src into tgt: target fields win on defined, src fields fill
+                // in gaps. Aliases union + push the source name into the target
+                // alias list.
+                const src = snap.characters[srcIdx];
+                const tgt = snap.characters[tgtIdx];
+                const merged = { ...src, ...tgt };
+                const aliasSet = new Set();
+                const aliasOut = [];
+                const add = (v) => {
+                    const s = String(v || '').trim();
+                    if (!s) return;
+                    const sl = s.toLowerCase();
+                    if (sl === tgtLow) return;
+                    if (aliasSet.has(sl)) return;
+                    aliasSet.add(sl);
+                    aliasOut.push(s);
+                };
+                if (Array.isArray(tgt.aliases)) tgt.aliases.forEach(add);
+                if (Array.isArray(src.aliases)) src.aliases.forEach(add);
+                add(src.name);
+                merged.aliases = aliasOut;
+                snap.characters[tgtIdx] = merged;
+                snap.characters.splice(srcIdx, 1);
+                charsMerged++;
+                changed = true;
+            } else if (srcIdx !== -1) {
+                // Target doesn't exist in this snapshot — rename the source entry
+                const src = snap.characters[srcIdx];
+                src.name = tgtName;
+                if (!Array.isArray(src.aliases)) src.aliases = [];
+                const aliasSet = new Set(src.aliases.map(a => (a || '').toLowerCase().trim()));
+                const srcLow2 = srcName.toLowerCase().trim();
+                if (srcLow2 && !aliasSet.has(srcLow2)) {
+                    src.aliases.push(srcName);
+                }
+                changed = true;
+            }
+        }
+
+        // ── Relationships ──
+        if (Array.isArray(snap.relationships)) {
+            const srcIdx = snap.relationships.findIndex(r => (r?.name || '').toLowerCase().trim() === srcLow);
+            const tgtIdx = snap.relationships.findIndex(r => (r?.name || '').toLowerCase().trim() === tgtLow);
+            if (srcIdx !== -1 && tgtIdx !== -1) {
+                // Merge src into tgt: prefer non-zero numeric, non-empty string
+                const src = snap.relationships[srcIdx];
+                const tgt = snap.relationships[tgtIdx];
+                const merged = { ...tgt };
+                for (const [fk, fv] of Object.entries(src)) {
+                    if (fk === 'name') continue;
+                    if (typeof fv === 'number') {
+                        if (fv !== 0 && (merged[fk] == null || merged[fk] === 0)) merged[fk] = fv;
+                    } else if (fv !== undefined && fv !== null && fv !== '') {
+                        if (!merged[fk]) merged[fk] = fv;
+                    }
+                }
+                snap.relationships[tgtIdx] = merged;
+                snap.relationships.splice(srcIdx, 1);
+                relsMerged++;
+                changed = true;
+            } else if (srcIdx !== -1) {
+                snap.relationships[srcIdx].name = tgtName;
+                changed = true;
+            }
+        }
+
+        // ── charactersPresent ──
+        if (Array.isArray(snap.charactersPresent)) {
+            const before = snap.charactersPresent.length;
+            const seen = new Set();
+            const out = [];
+            for (const n of snap.charactersPresent) {
+                const low = (n || '').toLowerCase().trim();
+                const final = low === srcLow ? tgtName : n;
+                const finalLow = (final || '').toLowerCase().trim();
+                if (!finalLow || seen.has(finalLow)) continue;
+                seen.add(finalLow);
+                out.push(final);
+            }
+            if (out.length !== before || !out.every((v, i) => v === snap.charactersPresent[i])) {
+                snap.charactersPresent = out;
+                presentFixed++;
+                changed = true;
+            }
+        }
+
+        if (changed) snapsTouched++;
+    }
+
+    if (snapsTouched > 0) {
+        try { SillyTavern.getContext().saveMetadata(); } catch (e) { warn('Manual merge save failed:', e?.message); }
+    }
+    log('Manual merge:', srcName, '→', tgtName,
+        '| snaps touched=', snapsTouched,
+        'chars merged=', charsMerged,
+        'rels merged=', relsMerged,
+        'present fixed=', presentFixed);
+    return { ok: true, snapsTouched, charsMerged, relsMerged, presentFixed };
 }
 
 export function getLatestSnapshot(){const d=getTrackerData();const k=Object.keys(d.snapshots).sort((a,b)=>Number(b)-Number(a));return k.length?d.snapshots[k[0]]:null}

@@ -159,7 +159,11 @@ You are a precise scene analysis engine. Read the story context and output a sin
     // Characters
     if(panels.characters){
         const ft=s.fieldToggles||{};
-        let charFields=['- name: Character name','- role: WHO this person IS \u2014 their identity/title/relationship. NOT feelings.'];
+        let charFields=[
+            '- name: Character CURRENT canonical name. If their real name is not yet known, use a consistent descriptive placeholder like "Stranger", "Hooded Figure", "Woman in Red" \u2014 and REUSE the same placeholder each turn until the real name is revealed. Do NOT invent a new placeholder each turn.',
+            '- aliases: Array of FORMER names this character was previously known by. When a previously-unnamed character\'s real name is revealed THIS turn, set `name` to the new real name AND add the old placeholder to `aliases`. Emit a SINGLE entry with the new name + the old placeholder in aliases; do NOT also emit a separate entry under the old placeholder. If the character has always been known by the current name, use [].',
+            '- role: WHO this person IS \u2014 their identity/title/relationship. NOT feelings.'
+        ];
         if(ft.char_innerThought!==false)charFields.push("- innerThought: The exact sentence in their head, first-person, in their voice. 1-3 sentences. BE them for a sentence. Not a list of emotion labels.");
         if(ft.char_immediateNeed!==false)charFields.push('- immediateNeed: What they urgently need RIGHT NOW in this scene.');
         if(ft.char_shortTermGoal!==false)charFields.push('- shortTermGoal: What THEY want in the coming hours/days, from their perspective.');

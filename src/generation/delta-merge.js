@@ -18,6 +18,17 @@ const ENTITY_ARRAYS = {
 // Fuzzy match catches semantic near-duplicates at merge time.
 const QUEST_ARRAYS = new Set(['mainQuests', 'sideQuests']);
 
+// v6.8.18: alias-aware arrays. Characters carry an `aliases` array listing
+// former names (descriptive placeholders like "Stranger") so the merge step
+// can reconcile an unknown→known identity reveal into a single entry. When
+// `useAliases` is enabled on mergeEntityArray, the matching path adds two
+// fallbacks after exact name match: (1) alias lookup — delta name matches a
+// prev entry's aliases → merge into that prev entry, keep prev canonical
+// name; (2) reveal lookup — delta aliases contain a prev canonical name →
+// merge into that prev entry, RENAME prev to the delta's new canonical
+// name, and push the old prev name into aliases.
+const ALIAS_ARRAYS = new Set(['characters']);
+
 // Array fields always replaced entirely from delta (not merged)
 const REPLACE_ARRAYS = ['plotBranches', 'charactersPresent', 'witnesses'];
 
@@ -166,13 +177,22 @@ export function mergeDelta(prev, delta) {
         deltaKeys.push(k);
 
         if (k in ENTITY_ARRAYS && Array.isArray(v) && Array.isArray(merged[k])) {
-            merged[k] = mergeEntityArray(merged[k], v, ENTITY_ARRAYS[k], QUEST_ARRAYS.has(k));
+            merged[k] = mergeEntityArray(merged[k], v, ENTITY_ARRAYS[k], QUEST_ARRAYS.has(k), ALIAS_ARRAYS.has(k));
         } else if (REPLACE_ARRAYS.includes(k)) {
             merged[k] = v;
         } else {
             merged[k] = v;
         }
     }
+
+    // v6.8.18: reconcile relationships and charactersPresent against the
+    // merged character roster's alias map. If a character was renamed this
+    // turn via the reveal path (e.g. "Stranger" → "Jenna" with aliases=
+    // ["Stranger"]), any stale relationship or charactersPresent entry that
+    // still references the old name gets remapped to the canonical name.
+    // Also merges duplicate relationship entries when both names collapse
+    // to the same canonical character.
+    reconcileIdentityAliases(merged);
 
     // Post-merge: run a single fuzzy-dedup + cross-tier pass. This consolidates
     // accumulated near-duplicates from prior turns that the per-entry merge
@@ -206,24 +226,97 @@ export function mergeDelta(prev, delta) {
  * after exact name match fails: tokenize both names, drop stopwords, compute
  * Jaccard similarity, and treat entries scoring >= _QUEST_FUZZY_THRESHOLD
  * as the same quest. Prevents paraphrased duplicates from accumulating.
+ *
+ * When `useAliases` is true (set for characters), two additional match paths
+ * run after exact match but before giving up:
+ *   - ALIAS: delta name matches a previous entry's `aliases` list → merge
+ *     into that prev entry, keep the prev canonical name. Handles the case
+ *     where the model references a character by their old placeholder
+ *     ("Stranger") after the real name has already been learned.
+ *   - REVEAL: delta `aliases` list contains a previous entry's canonical
+ *     name → merge into that prev entry, RENAME prev to the delta's new
+ *     canonical name, push the old name into aliases. Handles the
+ *     unknown→known identity reveal.
  */
-function mergeEntityArray(prevArr, deltaArr, keyField, useFuzzy) {
+function mergeEntityArray(prevArr, deltaArr, keyField, useFuzzy, useAliases) {
     const result = prevArr.map(item => ({ ...item }));
+
+    // Build two indexes: canonical-name → index, and (optionally) alias → index.
+    // Both are maintained in sync as we process delta entries so subsequent
+    // deltas can match on entries added earlier in the same batch.
     const prevMap = new Map();
+    const aliasMap = new Map();
+    const _lowKey = (v) => (v || '').toString().toLowerCase().trim();
+    const _rebuildAliasIndex = (i) => {
+        if (!useAliases) return;
+        const aliases = Array.isArray(result[i]?.aliases) ? result[i].aliases : [];
+        for (const a of aliases) {
+            const al = _lowKey(a);
+            if (!al) continue;
+            // First writer wins — if two entries share an alias, we'd rather
+            // merge the earlier one consistently. This is edge-case behavior.
+            if (!aliasMap.has(al)) aliasMap.set(al, i);
+        }
+    };
     for (let i = 0; i < result.length; i++) {
-        const key = (result[i][keyField] || '').toLowerCase();
+        const key = _lowKey(result[i][keyField]);
         if (key) prevMap.set(key, i);
+        _rebuildAliasIndex(i);
     }
+
     // Track which prev indices have already absorbed a delta entry so one
     // prev quest can't be matched twice in the same merge pass.
     const matchedIdxs = new Set();
 
-    for (const deltaItem of deltaArr) {
-        const key = (deltaItem[keyField] || '').toLowerCase();
+    for (let deltaItem of deltaArr) {
+        const key = _lowKey(deltaItem[keyField]);
         if (!key) continue;
 
         let existingIdx = prevMap.get(key);
         let matchKind = 'exact';
+
+        // Alias fallback for alias-enabled arrays (characters only): the
+        // delta's current name matches a prev entry's aliases list. This
+        // means the model is referring to a character by an old name
+        // that's already been superseded. We merge INTO the prev entry
+        // and do NOT rename — the canonical name stays the newer one.
+        //
+        // Note: we intentionally do NOT check matchedIdxs here. Alias and
+        // reveal are supposed to *collapse* multiple delta entries into a
+        // single prev entry — if the model emits both a reveal and a stale
+        // old-name continuation in the same batch, both should merge into
+        // the same character. matchedIdxs is only a fuzzy-quest guard.
+        if (existingIdx === undefined && useAliases) {
+            const aliasHit = aliasMap.get(key);
+            if (aliasHit !== undefined) {
+                existingIdx = aliasHit;
+                matchKind = 'alias';
+                log('Entity merge [alias]:', JSON.stringify(result[aliasHit].name),
+                    '← referenced via alias', JSON.stringify(deltaItem[keyField]));
+            }
+        }
+
+        // Reveal fallback for alias-enabled arrays: the delta's aliases
+        // list contains a prev entry's canonical name. This is an
+        // unknown→known identity reveal (prev entry was "Stranger", delta
+        // is "Jenna" with aliases=["Stranger"]). We merge INTO the prev
+        // entry, RENAME it to the delta's new name, and push the old
+        // name into aliases.
+        if (existingIdx === undefined && useAliases && Array.isArray(deltaItem.aliases)) {
+            for (const a of deltaItem.aliases) {
+                const al = _lowKey(a);
+                if (!al) continue;
+                const revealIdx = prevMap.get(al);
+                if (revealIdx !== undefined) {
+                    existingIdx = revealIdx;
+                    matchKind = 'reveal';
+                    log('Entity merge [reveal]:', JSON.stringify(result[revealIdx].name),
+                        '→', JSON.stringify(deltaItem[keyField]),
+                        '(via alias', JSON.stringify(a) + ')');
+                    break;
+                }
+            }
+        }
 
         // Fuzzy fallback for quest arrays only
         if (existingIdx === undefined && useFuzzy) {
@@ -241,6 +334,7 @@ function mergeEntityArray(prevArr, deltaArr, keyField, useFuzzy) {
             // Field-level merge: delta fields overwrite, previous fields preserved
             const prev = result[existingIdx];
             const merged = { ...prev };
+            const oldName = prev[keyField];
             for (const [fk, fv] of Object.entries(deltaItem)) {
                 // On FUZZY match (not exact), keep the existing canonical name so
                 // quest identity stays stable across turns. The user tracks quests
@@ -249,15 +343,64 @@ function mergeEntityArray(prevArr, deltaArr, keyField, useFuzzy) {
                 // turn would make the journal unreadable. On EXACT match the two
                 // names are identical by definition so skipping is a no-op.
                 if (fk === 'name' && matchKind === 'fuzzy') continue;
+                // On ALIAS match, keep the existing canonical name. The delta
+                // referenced the character by an old placeholder ("Stranger")
+                // but we already know their real name ("Jenna") — do NOT
+                // rename Jenna back to Stranger.
+                if (fk === 'name' && matchKind === 'alias') continue;
+                // Aliases handled separately below so we can union the lists.
+                if (fk === 'aliases') continue;
                 // Only overwrite if delta has a non-empty value
                 if (fv !== undefined && fv !== null && fv !== '') {
                     merged[fk] = fv;
                 }
             }
+            // Alias list reconciliation: union of prev and delta aliases,
+            // deduplicated case-insensitively, with the current canonical
+            // name excluded. On REVEAL match, the old prev canonical name
+            // is pushed into the alias list so the identity history is
+            // preserved.
+            if (useAliases) {
+                const aliasSet = new Set();
+                const aliasOut = [];
+                const add = (val) => {
+                    const s = String(val || '').trim();
+                    if (!s) return;
+                    const sl = s.toLowerCase();
+                    if (aliasSet.has(sl)) return;
+                    aliasSet.add(sl);
+                    aliasOut.push(s);
+                };
+                const prevAliases = Array.isArray(prev.aliases) ? prev.aliases : [];
+                const deltaAliases = Array.isArray(deltaItem.aliases) ? deltaItem.aliases : [];
+                for (const a of prevAliases) add(a);
+                for (const a of deltaAliases) add(a);
+                // On REVEAL, the prev canonical name becomes an alias
+                if (matchKind === 'reveal' && oldName) add(oldName);
+                // Strip the current canonical name from the alias list
+                const canonLow = _lowKey(merged[keyField]);
+                merged.aliases = aliasOut.filter(a => a.toLowerCase() !== canonLow);
+            }
             result[existingIdx] = merged;
             log('Entity merge:', key, '(' + matchKind + ') — delta fields:', Object.keys(deltaItem).length,
                 'prev fields:', Object.keys(prev).length, 'merged:', Object.keys(merged).length);
+            // REVEAL renamed the prev entry, so the prevMap and aliasMap
+            // need updating: drop the old key, add the new one, and
+            // register any newly-added aliases so subsequent delta items
+            // in the same batch can still match the updated entry.
+            if (matchKind === 'reveal') {
+                const oldLow = _lowKey(oldName);
+                const newLow = _lowKey(merged[keyField]);
+                if (oldLow && prevMap.get(oldLow) === existingIdx) prevMap.delete(oldLow);
+                if (newLow) prevMap.set(newLow, existingIdx);
+            }
+            _rebuildAliasIndex(existingIdx);
         } else {
+            // Normalize aliases on new entries so downstream code can trust
+            // the field exists and is an array.
+            if (useAliases && !Array.isArray(deltaItem.aliases)) {
+                deltaItem = { ...deltaItem, aliases: [] };
+            }
             result.push(deltaItem);
             // Newly-added delta entries are immediately eligible for fuzzy matching
             // by *subsequent* delta items in the same batch — otherwise the model
@@ -266,11 +409,103 @@ function mergeEntityArray(prevArr, deltaArr, keyField, useFuzzy) {
             // duplicate phrasings, and rely on the post-merge dedup pass in mergeDelta
             // to catch fuzzy cases within the same batch.
             prevMap.set(key, result.length - 1);
+            _rebuildAliasIndex(result.length - 1);
             log('Entity merge: new entity added:', key);
         }
     }
 
     return result;
+}
+
+/**
+ * v6.8.18: Reconcile identity aliases after a character merge pass.
+ * Builds an alias → canonical map from the merged characters array and
+ * rewrites any relationships or charactersPresent entries that still
+ * reference an old alias to the canonical name. When two relationship
+ * entries collapse to the same canonical character, their fields are
+ * merged (the entry with non-zero meters wins; otherwise earlier wins).
+ *
+ * Safe to call on any snapshot-shaped object. Does nothing if no
+ * characters have aliases.
+ */
+export function reconcileIdentityAliases(snap) {
+    if (!snap || typeof snap !== 'object') return snap;
+    if (!Array.isArray(snap.characters)) return snap;
+
+    // Build alias → canonical name map from characters
+    const aliasToCanon = new Map();
+    for (const ch of snap.characters) {
+        if (!ch || !ch.name || !Array.isArray(ch.aliases)) continue;
+        const canon = ch.name;
+        for (const a of ch.aliases) {
+            const al = (a || '').toString().toLowerCase().trim();
+            if (al) aliasToCanon.set(al, canon);
+        }
+    }
+    if (aliasToCanon.size === 0) return snap;
+
+    let renamedRels = 0, mergedRels = 0, renamedPresent = 0;
+
+    // 1. Relationships — rename aliased entries and merge duplicates
+    if (Array.isArray(snap.relationships)) {
+        const byCanon = new Map(); // canonical-low → index in result
+        const result = [];
+        for (const rel of snap.relationships) {
+            if (!rel || !rel.name) { result.push(rel); continue; }
+            const nameLow = rel.name.toLowerCase().trim();
+            const canon = aliasToCanon.get(nameLow);
+            let finalRel = rel;
+            if (canon && canon !== rel.name) {
+                finalRel = { ...rel, name: canon };
+                renamedRels++;
+            }
+            const keyLow = finalRel.name.toLowerCase().trim();
+            if (byCanon.has(keyLow)) {
+                // Merge into the existing entry — prefer non-empty / non-zero fields
+                const existingIdx = byCanon.get(keyLow);
+                const existing = result[existingIdx];
+                const merged = { ...existing };
+                for (const [fk, fv] of Object.entries(finalRel)) {
+                    if (fk === 'name') continue;
+                    // Scalar meters: prefer non-zero
+                    if (typeof fv === 'number') {
+                        if (fv !== 0 && (existing[fk] == null || existing[fk] === 0)) merged[fk] = fv;
+                    } else if (fv !== undefined && fv !== null && fv !== '') {
+                        if (!existing[fk]) merged[fk] = fv;
+                    }
+                }
+                result[existingIdx] = merged;
+                mergedRels++;
+            } else {
+                byCanon.set(keyLow, result.length);
+                result.push(finalRel);
+            }
+        }
+        snap.relationships = result;
+    }
+
+    // 2. charactersPresent — rename aliased entries, dedupe
+    if (Array.isArray(snap.charactersPresent)) {
+        const seen = new Set();
+        const result = [];
+        for (const n of snap.charactersPresent) {
+            if (!n) continue;
+            const low = n.toLowerCase().trim();
+            const canon = aliasToCanon.get(low) || n;
+            const canonLow = canon.toLowerCase().trim();
+            if (seen.has(canonLow)) continue;
+            seen.add(canonLow);
+            result.push(canon);
+            if (canon !== n) renamedPresent++;
+        }
+        snap.charactersPresent = result;
+    }
+
+    if (renamedRels + mergedRels + renamedPresent > 0) {
+        log('reconcileIdentityAliases: rels renamed=', renamedRels, 'rels merged=', mergedRels,
+            'present renamed=', renamedPresent);
+    }
+    return snap;
 }
 
 /**

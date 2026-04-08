@@ -99,6 +99,58 @@ function _showAddQuestDialog(tierName,tierKey,d){
     overlay.querySelector('#sp-qd-name').focus();
 }
 
+// v6.8.18: Manual character merge picker. Called from the merge button in
+// the character card header. Opens a modal listing the OTHER characters in
+// the current snapshot, lets the user pick one to merge this character INTO,
+// then calls mergeCharactersAcrossSnapshots() on confirmation.
+//
+// The source character is folded into the target character across EVERY
+// stored snapshot in the chat (not just the current one) so the identity
+// history stays consistent in the wiki and sparklines. Destructive but
+// gated by a confirmation dialog that names both parties explicitly.
+async function _openMergePicker(sourceName, otherNames) {
+    // Lazy-import to avoid a circular import at module load
+    const { mergeCharactersAcrossSnapshots } = await import('../settings.js');
+    if (!Array.isArray(otherNames) || otherNames.length === 0) {
+        toastr.info(t('No other characters to merge into'), sourceName);
+        return;
+    }
+    const overlay = document.createElement('div');
+    overlay.className = 'sp-confirm-overlay sp-merge-picker-overlay';
+    const optionsHtml = otherNames.map(n => `<button type="button" class="sp-merge-picker-option" data-name="${esc(n)}">${esc(n)}</button>`).join('');
+    overlay.innerHTML = `<div class="sp-confirm-dialog sp-merge-picker-dialog"><div class="sp-confirm-title">${esc(t('Merge'))}: ${esc(sourceName)}</div><div class="sp-confirm-msg">${esc(t('Pick the character this one should be merged INTO. The source character\u2019s fields will fold into the target across every stored snapshot. The source name becomes an alias.'))}</div><div class="sp-merge-picker-list">${optionsHtml}</div><div class="sp-confirm-actions"><button type="button" class="sp-confirm-btn sp-confirm-cancel">${esc(t('Cancel'))}</button></div></div>`;
+    const close = () => { overlay.classList.add('sp-confirm-closing'); setTimeout(() => overlay.remove(), 200); };
+    overlay.querySelector('.sp-confirm-cancel').addEventListener('click', close);
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => overlay.classList.add('sp-confirm-visible'));
+
+    for (const btn of overlay.querySelectorAll('.sp-merge-picker-option')) {
+        btn.addEventListener('click', async () => {
+            const tgtName = btn.dataset.name;
+            close();
+            const ok = await spConfirm(
+                t('Confirm merge'),
+                t('Merge') + ' "' + sourceName + '" \u2192 "' + tgtName + '"? ' +
+                t('This rewrites every stored snapshot in this chat. The source name will be kept as an alias on the target.')
+            );
+            if (!ok) return;
+            const result = mergeCharactersAcrossSnapshots(sourceName, tgtName);
+            if (result && result.ok) {
+                toastr.success(
+                    t('Touched') + ' ' + result.snapsTouched + ' ' + t('snapshot(s)'),
+                    t('Merged') + ': ' + sourceName + ' \u2192 ' + tgtName
+                );
+                // Re-render with the updated latest snapshot
+                const snap = getLatestSnapshot();
+                if (snap) updatePanel(normalizeTracker(snap), true);
+            } else {
+                toastr.error(result?.reason || t('Merge failed'), t('Merge'));
+            }
+        });
+    }
+}
+
 export function updatePanel(d,_force=false){
     // Debounce: skip if called within 150ms of last update (unless forced)
     const _now=performance.now();
@@ -570,11 +622,28 @@ export function updatePanel(d,_force=false){
             cd.style.setProperty('--char-bg',cc.bg);
             cd.style.setProperty('--char-border',cc.border);
             cd.style.setProperty('--char-accent',cc.accent);
-            // Header: name only. Role is now rendered full in the body, not
-            // truncated into a badge. This recovers the information the old
-            // shortRole() regex was destroying.
-            cd.innerHTML=`<div class="sp-char-header"><span class="sp-char-chevron">\u25B6</span><span class="sp-char-name">${esc(ch.name)}</span></div>`;
-            cd.querySelector('.sp-char-header').addEventListener('click',()=>cd.classList.toggle('sp-card-open'));
+            // Header: name + optional aliases badge + merge button. Role is
+            // now rendered full in the body, not truncated into a badge.
+            // v6.8.18: aliases (former names) shown as a small "(also: X, Y)"
+            // badge after the name so users can see the character's identity
+            // history at a glance. Merge button opens a picker to manually
+            // collapse this character into another one across all snapshots.
+            const _aliasesList=Array.isArray(ch.aliases)?ch.aliases.filter(Boolean):[];
+            const _aliasBadge=_aliasesList.length
+                ? `<span class="sp-char-alias-badge" title="${esc(t('Former names'))}: ${esc(_aliasesList.join(', '))}">${t('also')}: ${esc(_aliasesList.slice(0,2).join(', '))}${_aliasesList.length>2?'\u2026':''}</span>`
+                : '';
+            // Merge icon: two arrows converging, aria-hidden since the button
+            // has a title attribute for accessibility.
+            const _MERGE_ICON='<svg viewBox="0 0 12 12" width="11" height="11" fill="none" aria-hidden="true"><path d="M2 2 L6 6 L2 10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 2 L6 6 L10 10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+            cd.innerHTML=`<div class="sp-char-header"><span class="sp-char-chevron">\u25B6</span><span class="sp-char-name">${esc(ch.name)}</span>${_aliasBadge}<span class="sp-char-header-spacer"></span><button type="button" class="sp-char-merge-btn" title="${esc(t('Merge into another character'))}">${_MERGE_ICON}</button></div>`;
+            cd.querySelector('.sp-char-header').addEventListener('click',(e)=>{
+                if(e.target.closest('.sp-char-merge-btn'))return;
+                cd.classList.toggle('sp-card-open');
+            });
+            cd.querySelector('.sp-char-merge-btn').addEventListener('click',async(e)=>{
+                e.stopPropagation();
+                await _openMergePicker(ch.name, (d.characters||[]).map(c=>c.name).filter(n=>n&&n!==ch.name));
+            });
             const _cbody=document.createElement('div');_cbody.className='sp-char-body';
 
             // v6.8.17: Per-section icon constants. Each subsection gets a

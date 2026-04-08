@@ -317,6 +317,20 @@ function _renderEntry(e, viewMode) {
     const body = card.querySelector('.sp-wiki-entry-body');
     let bodyHtml = '';
 
+    // v6.8.18: aliases — former names this character was previously known by.
+    // Rendered as a dedicated "Formerly" row at the top of the body so
+    // users can see the identity history (e.g. Jenna was once "Stranger"
+    // then "The Nurse") at a glance.
+    const aliases = Array.isArray(ch.aliases) ? ch.aliases.filter(Boolean) : [];
+    if (aliases.length) {
+        bodyHtml += _secHdr(_ICO_PERSON, t('Formerly'));
+        bodyHtml += '<div class="sp-wiki-aliases">';
+        for (const a of aliases) {
+            bodyHtml += `<span class="sp-wiki-alias-item">${esc(a)}</span>`;
+        }
+        bodyHtml += '</div>';
+    }
+
     // Role — always first in the body if present (mirrors update-panel.js v6.8.16 layout)
     if (ch.role) {
         bodyHtml += _secHdr(_ICO_PERSON, t('Role'));

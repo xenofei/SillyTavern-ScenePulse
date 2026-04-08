@@ -3,6 +3,17 @@
 .sp-char-card:last-child { margin-bottom: 0; }
 .sp-char-header { display: flex; align-items: center; gap: 5px; padding: 6px 8px; cursor: pointer; user-select: none; overflow: hidden; flex-wrap: wrap; }
 .sp-char-header:hover { background: rgba(255,255,255,0.02); }
+/* v6.8.18: alias badge and merge button in the character card header. */
+.sp-char-alias-badge { font-size: 9px; color: var(--sp-text-dim); font-style: italic; padding: 1px 5px; background: rgba(255,255,255,0.04); border: 1px solid var(--sp-border); border-radius: 3px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0; }
+.sp-char-header-spacer { flex: 1 1 auto; min-width: 0; }
+.sp-char-merge-btn { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; padding: 0; border: 1px solid transparent; background: transparent; color: var(--sp-text-dim); border-radius: 3px; cursor: pointer; flex-shrink: 0; }
+.sp-char-merge-btn:hover { color: var(--char-accent, var(--sp-accent)); border-color: var(--sp-border); background: rgba(255,255,255,0.04); }
+.sp-char-merge-btn svg { display: block; }
+/* Merge picker modal — reuses sp-confirm-overlay styling, adds a scrollable list. */
+.sp-merge-picker-dialog { max-width: 320px; }
+.sp-merge-picker-list { display: flex; flex-direction: column; gap: 4px; max-height: 240px; overflow-y: auto; margin: 8px 0 4px; padding: 2px; }
+.sp-merge-picker-option { font-size: 12px; padding: 6px 10px; text-align: left; background: var(--sp-surface); color: var(--sp-text); border: 1px solid var(--sp-border); border-radius: 4px; cursor: pointer; }
+.sp-merge-picker-option:hover { background: rgba(255,255,255,0.06); border-color: var(--sp-accent); }
 .sp-char-chevron { font-size: 8px; color: var(--sp-text-dim); transition: transform 0.2s ease; flex-shrink: 0; }
 .sp-char-card.sp-card-open .sp-char-chevron { transform: rotate(90deg); }
 .sp-char-body { display: none; padding: 0 8px 6px 8px; border-top: 1px solid var(--sp-border); }

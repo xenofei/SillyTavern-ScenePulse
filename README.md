@@ -435,6 +435,29 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.8.18] — 2026-04-08
+
+#### Added — unknown\u2192known character identity resolution (Feature A)
+- **Characters that start as descriptive placeholders (e.g. "Stranger") can now be reconciled with their real name when the story reveals it.** Before this release, the tracker matched characters by exact lowercased name only. If the model emitted "Stranger" for three turns and then "Jenna" on the fourth, the snapshot would carry two separate character entries indefinitely \u2014 with independent appearance counts, independent relationship meter histories, and no way to tell they were the same person. Five-layer fix:
+  1. **New `aliases` schema field** on every character \u2014 an optional array of former names the character was previously known by. Empty by default. Parsed defensively in `normalizeChar` (accepts array, single string, or missing; strips the canonical name from the list so a character never aliases themselves; deduplicates case-insensitively).
+  2. **Alias-aware merge in `mergeEntityArray`** (`src/generation/delta-merge.js`). New `useAliases` parameter enables two additional match paths after exact name match but before giving up. **ALIAS match**: if the delta's name matches a previous entry's `aliases` list, the delta merges into that prev entry WITHOUT renaming. This handles the case where the model stubbornly continues calling a character by their old placeholder after the real name has already been learned. **REVEAL match**: if the delta's `aliases` list contains a previous entry's canonical name, the delta merges into that prev entry, RENAMES it to the delta's new canonical name, and pushes the old name into aliases. This is the unknown\u2192known identity reveal. Both paths bypass the `matchedIdxs` guard (which only blocks fuzzy quest collisions) so multiple delta entries referencing the same character collapse correctly in a single batch.
+  3. **Post-merge `reconcileIdentityAliases`** walks the merged characters array, builds an alias\u2192canonical map, and rewrites any stale relationship or `charactersPresent` entries that still reference an old placeholder. When two relationship entries collapse to the same canonical character after rewriting, their fields are merged (non-zero meters + non-empty strings win). Called from `mergeDelta` before `consolidateQuests`.
+  4. **Prompt guidance** added in three places: `BUILTIN_PROMPT` Characters section, `buildDynamicPrompt` character field list (`src/schema.js`), and the interceptor's mandatory-hints injection (`src/generation/interceptor.js`). The model is told (a) use a consistent descriptive placeholder for unnamed characters and reuse it across turns, (b) when the real name is revealed, emit a SINGLE entry with the new `name` and the old placeholder in `aliases`, (c) do NOT create two separate entries under the old and new names.
+  5. **Manual merge UI** \u2014 a small merge-icon button in every character card header. Clicking it opens a picker listing the OTHER characters in the current snapshot; selecting one triggers a confirmation dialog and then calls `mergeCharactersAcrossSnapshots(src, tgt)` which walks every stored snapshot in the chat and folds the source into the target (rename + alias union + relationship merge + `charactersPresent` fix-up). The source name is automatically added to the target's aliases so the historical identity link is preserved. Destructive but confirmed.
+
+#### Added \u2014 Character Wiki "Formerly" section
+- **Wiki entry cards now show a dedicated "FORMERLY" section** listing every alias the character was previously known by, rendered as italic dashed-border pill chips. Sits at the top of the expanded body (above Role) so users can see the identity history at a glance. Uses the same `.sp-wiki-section-label` + `.sp-wiki-inventory`-style chip pattern introduced in v6.8.17 for visual consistency.
+
+#### Added \u2014 alias badge on main character card
+- **Character card headers now show a small "(also: Stranger, The Nurse)" badge** next to the character name when the `aliases` array is non-empty. Truncates to the first 2 aliases with an ellipsis if there are more; the full list is visible in a `title` tooltip.
+
+#### Migration
+- **Lazy v6.8.18 migration** in `settings.getTrackerData()` walks every stored snapshot in a chat on first load and initializes `aliases: []` on every character entry. Also strips the canonical name from any aliases list that somehow contains it (defense against model drift or future edge cases) and deduplicates case-insensitively. Guarded by a per-chat `_spAliasesInitMigrated` flag so the scan runs exactly once.
+
+#### Tests
+- **New `tests/character-aliases.test.mjs` with 49 cases** covering `normalizeChar` alias parsing (array / string / missing / canonical-name stripping / dedup / nullish filtering), exact-match regression, ALIAS match semantics, REVEAL match semantics, alias list union, canonical-in-aliases stripping, multi-entry same-batch collapse (both directions), `reconcileIdentityAliases` relationship renaming, relationship merge on collision, `charactersPresent` remap, no-aliases regression, and a quest-merge regression guard to prove aliases logic doesn't leak into quest merging.
+- **Full sweep: 183/183** (49 character-aliases + 134 pre-existing).
+
 ### [6.8.17] — 2026-04-08
 
 #### Changed — character card section headers get icons and stronger visual weight

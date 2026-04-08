@@ -42,6 +42,7 @@ export function buildInlineTrackerPrompt(){
     if(panels.quests!==false)mandatoryHints+='\n- mainQuests (MAX 3) / sideQuests (MAX 4): Persistent life arcs spanning multiple scenes, NOT scene-level actions. Introduce AT MOST 1 new quest per turn. Each needs name, urgency, detail.';
     if(panels.characters!==false){
         mandatoryHints+='\n- characters: Full details for every named, plot-relevant NPC present (MAX 5 entries, background crowd members go in sceneSummary instead). Each entry needs name, role, innerThought, immediateNeed, and appearance fields.';
+        mandatoryHints+='\n- UNKNOWN\u2192KNOWN NAMES: If a character\'s name is not yet known, use a consistent descriptive placeholder like "Stranger", "Hooded Figure", "Woman in Red". REUSE the same placeholder each turn until the name is revealed. When the real name IS revealed, emit ONE character entry with the new `name` AND the old placeholder listed in `aliases`. Do NOT create two entries (one under the old placeholder, one under the new name) \u2014 the tracker\'s alias merger will link them automatically, but ONLY if you use the `aliases` field correctly.';
         // Group chat awareness: if ST has a group chat active, inject the
         // explicit member roster so the model knows who must appear in the
         // characters array and in charactersPresent. Without this the model
