@@ -435,6 +435,29 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.8.13] — 2026-04-07
+
+#### Fixed
+- **"Updated" badges only fire on meaningful quest changes now.** The quest journal badge fired on any string difference between turns — including cosmetic rephrasings, punctuation tweaks, and filler-word swaps that the model produces under structured-output pressure just to feel like it's emitting work. Real story progress and trivial wording noise got the same visual weight. The classifier has been rewritten to require one of three substantive signals before flagging an "Updated" badge: (a) urgency changed, (b) name changed, or (c) detail content meaningfully changed measured by Jaccard similarity over stopword-filtered, stemmed tokens. Detail diffs with ≥75% token overlap are now classified as `stale` (no badge) and logged at diagnostic level for observability.
+
+#### Prompt — stop the edits at the source
+- **New MUST-level "quest update rules" section in BUILTIN_PROMPT** ([src/constants.js](src/constants.js)). The model is now explicitly told it MUST NOT modify an existing quest's name, detail, or urgency unless one of these specifically happened in the turn being written:
+  1. **Urgency changed** — the story actually shifted the stakes (deadline passed, threat neutralized, preparation completed)
+  2. **Concrete new information** — the detail needs to reflect a fact that didn't exist last turn, with the specific scene beat cited
+  3. **Resolution** — urgency is being set to `"resolved"` because a resolution trigger fired
+- If none of those apply, emit the quest **byte-identical** to last turn, or omit it from the delta entirely. Rephrasing, synonym swaps, filler additions, and "refreshing" a detail for its own sake are explicitly forbidden. New REMINDER rule #6 reinforces the no-cosmetic-edit rule in plain language.
+- **Runtime reminder updated in `src/generation/interceptor.js`** — the same rules injected with every delta-mode tracker generation so the model sees them at maximum attention weight.
+
+#### Added
+- **`src/ui/classify-quest.js`** — new standalone module housing the meaningfulness-aware classifier. Pure function, no DOM dependencies, directly testable in node. Exports `classifyQuest(q, prev, hasPrevSnap)` and `COSMETIC_SIMILARITY` constant (`0.75`).
+- **Jaccard-similarity threshold of `0.75`** — details with ≥75% non-stopword stemmed-token overlap are treated as cosmetic. Tuned against realistic cases: punctuation tweaks (similarity 1.00), stopword swaps (1.00), casing changes (1.00) all suppress; adding one or more concrete content words (0.60) or replacing the content entirely (0.00) all flag.
+- **Diagnostic logging** — when a below-threshold diff is suppressed, `classifyQuest` emits a `log()` line with the quest name, similarity score, and trimmed previews of both details. Gives us observability into how often the model is ignoring the prompt rule without polluting the UI.
+- **Exported `tokenizeQuestText` and `jaccardSimilarity` from `src/generation/delta-merge.js`** as stable public entry points so `classify-quest.js` reuses the exact same normalization rules (stopword set, stemmer, punctuation strip) as the fuzzy dedup. Single source of truth for quest-text tokenization.
+- **`tests/classify-quest.test.mjs`** — 24 new test cases covering: baseline states (resolved, new, no-prev-snap), identical entries, cosmetic edits (punctuation, casing, stopword swaps), urgency changes, substantive detail additions, name changes, empty-detail edge cases, and borderline cases near the threshold. 24/24 passing. All three test suites (classify + fuzzy + cleanJson) total 68/68 passing.
+
+#### Why the prompt AND the classifier both need the fix
+The prompt-level rule targets the root cause: the model makes trivial edits because the schema slot encourages "something must have changed this turn." The classifier-level rule is a safety net for when the model ignores the prompt anyway (which it will, under long-context pressure). Both layers are defensive — either alone would help, but together they eliminate the noise from two independent angles.
+
 ### [6.8.12] — 2026-04-07
 
 #### Fixed
