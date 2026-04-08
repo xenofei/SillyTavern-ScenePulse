@@ -577,14 +577,37 @@ export function updatePanel(d,_force=false){
             cd.querySelector('.sp-char-header').addEventListener('click',()=>cd.classList.toggle('sp-card-open'));
             const _cbody=document.createElement('div');_cbody.className='sp-char-body';
 
-            // Helper: build a labeled subsection header (small uppercase,
-            // dim, with a thin top rule). Used between Right Now / Appearance
-            // / Carrying / Goals / Fertility sections so the reader always
-            // knows what group a label belongs to.
-            const _mkSub=(label,ftKey)=>{
+            // v6.8.17: Per-section icon constants. Each subsection gets a
+            // distinctive SVG rendered in the character's accent color so
+            // the reader can identify the section at a glance. Icons kept
+            // simple (12-px viewBox, single color, mostly outlined) to sit
+            // well alongside uppercase label text.
+            const _ICON_NOW='<svg viewBox="0 0 12 12" width="11" height="11" fill="none" aria-hidden="true"><path d="M7 1 L3 7 h3 l-1 4 4-6 H6 l1-4 z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round" fill="currentColor" fill-opacity="0.25"/></svg>';
+            const _ICON_EYE='<svg viewBox="0 0 12 12" width="11" height="11" fill="none" aria-hidden="true"><path d="M1 6 Q6 1.8 11 6 Q6 10.2 1 6 Z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><circle cx="6" cy="6" r="1.6" fill="currentColor"/></svg>';
+            const _ICON_BAG='<svg viewBox="0 0 12 12" width="11" height="11" fill="none" aria-hidden="true"><path d="M2.5 4.5 h7 v6.5 h-7 z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><path d="M4 4.5 Q4 1.5 6 1.5 Q8 1.5 8 4.5" stroke="currentColor" stroke-width="1.1" fill="none"/><line x1="4" y1="7" x2="8" y2="7" stroke="currentColor" stroke-width="0.8" opacity="0.5"/></svg>';
+            const _ICON_TARGET='<svg viewBox="0 0 12 12" width="11" height="11" fill="none" aria-hidden="true"><circle cx="6" cy="6" r="5" stroke="currentColor" stroke-width="1.1"/><circle cx="6" cy="6" r="2.5" stroke="currentColor" stroke-width="0.9" opacity="0.7"/><circle cx="6" cy="6" r="0.9" fill="currentColor"/></svg>';
+            const _ICON_LEAF='<svg viewBox="0 0 12 12" width="11" height="11" fill="none" aria-hidden="true"><path d="M6 1.5 C3 3 2 6 3.5 9 C6 10 9 9 10 6 C9.5 3 8 1.5 6 1.5 Z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><path d="M4 8.5 Q6 5.5 9 4" stroke="currentColor" stroke-width="0.9" stroke-linecap="round" opacity="0.65"/></svg>';
+
+            // Helper: build a labeled subsection header (uppercase, bold,
+            // with an SVG icon tinted in the character's accent color and
+            // a solid top rule). Used between Right Now / Appearance /
+            // Carrying / Goals / Fertility sections so the reader always
+            // knows what group a label belongs to. The icon is trusted
+            // inline-SVG string built from the constants above (never user
+            // input), so innerHTML is safe here.
+            const _mkSub=(label,iconSvg,ftKey)=>{
                 const h=document.createElement('div');
                 h.className='sp-char-subsection-label';
-                h.textContent=label;
+                if(iconSvg){
+                    const i=document.createElement('span');
+                    i.className='sp-char-subsection-icon';
+                    i.innerHTML=iconSvg;
+                    h.appendChild(i);
+                }
+                const txt=document.createElement('span');
+                txt.className='sp-char-subsection-text';
+                txt.textContent=label;
+                h.appendChild(txt);
                 if(ftKey)h.dataset.ft=ftKey;
                 _cbody.appendChild(h);
             };
@@ -616,7 +639,7 @@ export function updatePanel(d,_force=false){
             // to live under "Goals" alongside short/long-term aspirations
             // that are NOT about the current moment.
             {
-                _mkSub(t('Right Now'),'char_innerThought');
+                _mkSub(t('Right Now'),_ICON_NOW,'char_innerThought');
                 // Inner thought — rendered as a block quote, italic, with
                 // the character's accent color as a left border. Distinct
                 // visual treatment to signal "this is the character's voice"
@@ -635,7 +658,7 @@ export function updatePanel(d,_force=false){
 
             // ── APPEARANCE: hair, face, outfit, posture, proximity, details
             {
-                _mkSub(t('Appearance'),'char_hair');
+                _mkSub(t('Appearance'),_ICON_EYE,'char_hair');
                 const gr=document.createElement('div');gr.className='sp-char-grid';
                 _mkGridRow(gr,t('Hair'),'hair','char_hair');
                 _mkGridRow(gr,t('Face'),'face','char_face');
@@ -648,21 +671,29 @@ export function updatePanel(d,_force=false){
 
             // ── CARRYING: inventory as its own section (only when non-empty)
             // Split out of the appearance grid because inventory is
-            // conceptually "what they have" not "how they look". Renders
-            // inline as a single comma-joined row under its own header.
+            // conceptually "what they have" not "how they look". Items
+            // render as individual pill chips in a flex-wrap container
+            // so each item is visually distinct instead of melting into
+            // a comma-separated run-on line. v6.8.17 change from the
+            // previous join(', ') rendering.
             if(Array.isArray(ch.inventory)&&ch.inventory.length){
-                _mkSub(t('Carrying'),'char_inventory');
+                _mkSub(t('Carrying'),_ICON_BAG,'char_inventory');
                 const inv=document.createElement('div');
                 inv.className='sp-char-inventory';
                 inv.dataset.ft='char_inventory';
-                inv.textContent=ch.inventory.join(', ');
+                for(const item of ch.inventory){
+                    const chip=document.createElement('span');
+                    chip.className='sp-char-inventory-item';
+                    chip.textContent=String(item||'').trim()||'\u2014';
+                    inv.appendChild(chip);
+                }
                 _cbody.appendChild(inv);
             }
 
             // ── GOALS: short-term + long-term only (immediateNeed moved to
             // Right Now where it belongs conceptually).
             {
-                _mkSub(t('Goals'),'char_shortTermGoal');
+                _mkSub(t('Goals'),_ICON_TARGET,'char_shortTermGoal');
                 const gr=document.createElement('div');gr.className='sp-char-grid';
                 _mkGridRow(gr,t('Short-Term'),'shortTermGoal','char_shortTermGoal');
                 _mkGridRow(gr,t('Long-Term'),'longTermGoal','char_longTermGoal');
@@ -678,7 +709,7 @@ export function updatePanel(d,_force=false){
                 const _showEmpty=document.getElementById('sp-panel')?.classList.contains('sp-show-empty');
                 const _showFert=ch.fertStatus&&(ch.fertStatus!=='N/A'||_isEdit);
                 if(_showFert||_isEdit||_showEmpty){
-                    _mkSub(t('Fertility'),'char_fertility');
+                    _mkSub(t('Fertility'),_ICON_LEAF,'char_fertility');
                     const fertDiv=document.createElement('div');fertDiv.className='sp-fert-section';fertDiv.dataset.ft='char_fertility';
                     if(ch.fertStatus==='N/A'&&!_isEdit&&!_showEmpty){
                         fertDiv.innerHTML=`<div class="sp-fert-na">${t('Fertility: N/A')}</div>`;

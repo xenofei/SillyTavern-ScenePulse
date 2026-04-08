@@ -8,6 +8,24 @@ import { charColor } from '../color.js';
 import { createSparklineCanvas, _scrollToMessage } from './sparklines.js';
 import { currentSnapshotMesIdx } from '../state.js';
 
+// ── v6.8.17: section icons shared with update-panel.js ──
+// Tinted by CSS (currentColor inherits from the parent .sp-wiki-section-icon
+// which is colored with --char-accent). Simple 12-px viewBox single-color
+// outlined glyphs kept visually consistent with the main panel card.
+const _ICO_PERSON = '<svg viewBox="0 0 12 12" width="11" height="11" fill="none" aria-hidden="true"><circle cx="6" cy="4" r="2" stroke="currentColor" stroke-width="1.2"/><path d="M2 10.5 Q2 7 6 7 Q10 7 10 10.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>';
+const _ICO_NOW = '<svg viewBox="0 0 12 12" width="11" height="11" fill="none" aria-hidden="true"><path d="M7 1 L3 7 h3 l-1 4 4-6 H6 l1-4 z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round" fill="currentColor" fill-opacity="0.25"/></svg>';
+const _ICO_EYE = '<svg viewBox="0 0 12 12" width="11" height="11" fill="none" aria-hidden="true"><path d="M1 6 Q6 1.8 11 6 Q6 10.2 1 6 Z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><circle cx="6" cy="6" r="1.6" fill="currentColor"/></svg>';
+const _ICO_BAG = '<svg viewBox="0 0 12 12" width="11" height="11" fill="none" aria-hidden="true"><path d="M2.5 4.5 h7 v6.5 h-7 z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><path d="M4 4.5 Q4 1.5 6 1.5 Q8 1.5 8 4.5" stroke="currentColor" stroke-width="1.1" fill="none"/><line x1="4" y1="7" x2="8" y2="7" stroke="currentColor" stroke-width="0.8" opacity="0.5"/></svg>';
+const _ICO_HEART = '<svg viewBox="0 0 12 12" width="11" height="11" fill="none" aria-hidden="true"><path d="M6 10.5 C2 8 1 5.5 2.5 3.5 C4 2 5.5 3 6 4 C6.5 3 8 2 9.5 3.5 C11 5.5 10 8 6 10.5 Z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/></svg>';
+const _ICO_TARGET = '<svg viewBox="0 0 12 12" width="11" height="11" fill="none" aria-hidden="true"><circle cx="6" cy="6" r="5" stroke="currentColor" stroke-width="1.1"/><circle cx="6" cy="6" r="2.5" stroke="currentColor" stroke-width="0.9" opacity="0.7"/><circle cx="6" cy="6" r="0.9" fill="currentColor"/></svg>';
+const _ICO_LEAF = '<svg viewBox="0 0 12 12" width="11" height="11" fill="none" aria-hidden="true"><path d="M6 1.5 C3 3 2 6 3.5 9 C6 10 9 9 10 6 C9.5 3 8 1.5 6 1.5 Z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><path d="M4 8.5 Q6 5.5 9 4" stroke="currentColor" stroke-width="0.9" stroke-linecap="round" opacity="0.65"/></svg>';
+const _ICO_NOTE = '<svg viewBox="0 0 12 12" width="11" height="11" fill="none" aria-hidden="true"><path d="M2.5 1.5 h5 l2 2 v7 h-7 z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><line x1="4" y1="5.5" x2="8" y2="5.5" stroke="currentColor" stroke-width="0.9" opacity="0.6" stroke-linecap="round"/><line x1="4" y1="7.5" x2="8" y2="7.5" stroke="currentColor" stroke-width="0.9" opacity="0.6" stroke-linecap="round"/></svg>';
+// Helper: render a section header with icon + label. Used instead of the
+// older plain-text sp-wiki-section-label div.
+function _secHdr(iconSvg, label) {
+    return `<div class="sp-wiki-section-label"><span class="sp-wiki-section-icon">${iconSvg}</span><span>${esc(label)}</span></div>`;
+}
+
 // ── Name matching (same fuzzy logic as sparklines.js getMeterHistory) ──
 function _nameMatch(a, b) {
     if (!a || !b) return false;
@@ -301,7 +319,7 @@ function _renderEntry(e, viewMode) {
 
     // Role — always first in the body if present (mirrors update-panel.js v6.8.16 layout)
     if (ch.role) {
-        bodyHtml += '<div class="sp-wiki-section-label">' + t('Role') + '</div>';
+        bodyHtml += _secHdr(_ICO_PERSON, t('Role'));
         bodyHtml += `<div class="sp-wiki-val" style="margin-bottom:6px">${esc(ch.role)}</div>`;
     }
 
@@ -309,7 +327,7 @@ function _renderEntry(e, viewMode) {
     // v6.8.16: groups "present-scene state" together so immediateNeed no
     // longer lives under Goals alongside aspirational short/long-term goals.
     if (ch.innerThought || ch.immediateNeed) {
-        bodyHtml += '<div class="sp-wiki-section-label">' + t('Right Now') + '</div>';
+        bodyHtml += _secHdr(_ICO_NOW, t('Right Now'));
         if (ch.innerThought) bodyHtml += `<div class="sp-wiki-thought">${esc(ch.innerThought)}</div>`;
         if (ch.immediateNeed) {
             bodyHtml += '<div class="sp-wiki-grid">';
@@ -329,22 +347,28 @@ function _renderEntry(e, viewMode) {
         ['Notable Details', ch.notableDetails],
     ];
     if (appearFields.some(([, v]) => v)) {
-        bodyHtml += '<div class="sp-wiki-section-label">' + t('Appearance') + '</div><div class="sp-wiki-grid">';
+        bodyHtml += _secHdr(_ICO_EYE, t('Appearance')) + '<div class="sp-wiki-grid">';
         for (const [label, val] of appearFields) { if (val) bodyHtml += `<div class="sp-wiki-field">${esc(t(label))}</div><div class="sp-wiki-val">${esc(val)}</div>`; }
         bodyHtml += '</div>';
     }
 
     // Carrying — v6.8.16: inventory is its own section now, split from
     // Appearance because "what they have" is conceptually distinct from
-    // "how they look".
+    // "how they look". v6.8.17: rendered as pill chips (one per item)
+    // instead of a comma-joined run-on line.
     if (Array.isArray(ch.inventory) && ch.inventory.length) {
-        bodyHtml += '<div class="sp-wiki-section-label">' + t('Carrying') + '</div>';
-        bodyHtml += `<div class="sp-wiki-val" style="padding-left:4px">${esc(ch.inventory.join(', '))}</div>`;
+        bodyHtml += _secHdr(_ICO_BAG, t('Carrying'));
+        bodyHtml += '<div class="sp-wiki-inventory">';
+        for (const item of ch.inventory) {
+            const s = String(item || '').trim();
+            if (s) bodyHtml += `<span class="sp-wiki-inventory-item">${esc(s)}</span>`;
+        }
+        bodyHtml += '</div>';
     }
 
     // Meters
     if (rel) {
-        bodyHtml += '<div class="sp-wiki-section-label">' + t('Relationship') + '</div>';
+        bodyHtml += _secHdr(_ICO_HEART, t('Relationship'));
         if (rel.relType || rel.relPhase) {
             bodyHtml += '<div style="margin-bottom:4px">';
             if (rel.relType) bodyHtml += `<span class="sp-wiki-role" style="margin-right:4px">${esc(rel.relType)}</span>`;
@@ -367,10 +391,10 @@ function _renderEntry(e, viewMode) {
         }
     }
 
-    // Goals
-    const goalFields = [['Need', ch.immediateNeed], ['Short-Term', ch.shortTermGoal], ['Long-Term', ch.longTermGoal]];
+    // Goals — v6.8.16: short/long-term only (immediateNeed moved to Right Now)
+    const goalFields = [['Short-Term', ch.shortTermGoal], ['Long-Term', ch.longTermGoal]];
     if (goalFields.some(([, v]) => v)) {
-        bodyHtml += '<div class="sp-wiki-section-label">' + t('Goals') + '</div><div class="sp-wiki-grid">';
+        bodyHtml += _secHdr(_ICO_TARGET, t('Goals')) + '<div class="sp-wiki-grid">';
         for (const [label, val] of goalFields) { if (val) bodyHtml += `<div class="sp-wiki-field">${esc(t(label))}</div><div class="sp-wiki-val">${esc(val)}</div>`; }
         bodyHtml += '</div>';
     }
@@ -379,7 +403,7 @@ function _renderEntry(e, viewMode) {
     if (ch.fertStatus && ch.fertStatus !== 'N/A') {
         const fertFields = [['Status', ch.fertStatus], ['Notes', ch.fertNotes]];
         if (fertFields.some(([, v]) => v)) {
-            bodyHtml += '<div class="sp-wiki-section-label">' + t('Fertility') + '</div><div class="sp-wiki-grid">';
+            bodyHtml += _secHdr(_ICO_LEAF, t('Fertility')) + '<div class="sp-wiki-grid">';
             for (const [label, val] of fertFields) { const sv = String(val || ''); if (sv) bodyHtml += `<div class="sp-wiki-field">${esc(t(label))}</div><div class="sp-wiki-val">${esc(sv)}</div>`; }
             bodyHtml += '</div>';
         }
@@ -387,7 +411,7 @@ function _renderEntry(e, viewMode) {
 
     // User notes
     const existingNote = _getNote(e.name);
-    bodyHtml += '<div class="sp-wiki-section-label">' + t('Notes') + '</div>';
+    bodyHtml += _secHdr(_ICO_NOTE, t('Notes'));
     bodyHtml += `<textarea class="sp-wiki-notes" placeholder="${t('Add your notes about this character...')}">${esc(existingNote)}</textarea>`;
 
     // History metadata

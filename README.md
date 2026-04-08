@@ -435,6 +435,35 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.8.17] — 2026-04-08
+
+#### Changed — character card section headers get icons and stronger visual weight
+- **Each major subsection header now has a custom SVG icon tinted in the character's accent color.** The v6.8.16 headers were plain uppercase dim text with a dashed top rule — technically labeled but visually weak. Readers had to actively scan for the text to locate a section. Each of the six headers (Role, Right Now, Appearance, Carrying, Goals, Fertility — plus Relationship and Notes in the wiki overlay) now carries a distinctive 12-px viewBox SVG glyph rendered in `var(--char-accent)` so it picks up the same per-character color used on the card's left border. At a glance the user can locate any section by its icon silhouette + color, without reading the label.
+  - **Right Now** — lightning bolt (present-moment energy)
+  - **Appearance** — eye (observation)
+  - **Carrying** — satchel/bag outline with handle and pocket line
+  - **Goals** — concentric-circle target (aim)
+  - **Fertility** — leaf with a subtle vein (biological/neutral — chosen over cycle/medical glyphs to stay neutral across contexts)
+  - **Role** (wiki only) — person-in-bust silhouette
+  - **Relationship** (wiki only) — outlined heart
+  - **Notes** (wiki only) — document with horizontal lines
+- **Header typography bumped**: font size 9 → 10 px, color `--sp-text-dim` → `--sp-text` (brighter), top rule dashed → solid 1-px. Still uppercase bold with letter-spacing 0.08em. The solid rule + icon + brighter text combine to make each section header actually feel like a header instead of a footnote.
+- **Helper refactor** — `_mkSub(label, icon, ftKey)` now accepts an SVG string as its second argument and renders an `.sp-char-subsection-icon` span alongside an `.sp-char-subsection-text` span via flex layout. SVG strings are trusted inline constants (never user input), so `innerHTML` is safe. Same pattern in the wiki via a new `_secHdr(icon, label)` helper.
+
+#### Changed — inventory renders as individual pill chips
+- **Carrying is no longer a comma-joined run-on line.** The v6.8.16 layout put inventory in its own section but rendered items as `inventory.join(', ')` — one long text string where individual items melted together, especially when an item was a phrase like "leather satchel with paperwork". Each item is now its own rounded-rectangle pill chip with a small colored dot, laid out in a flex-wrap container: short items pack horizontally, long items wrap to their own row. The pill background is a faint white tint, the border picks up `--sp-border`, and hovering a chip lifts the background and border to `--char-accent` for subtle interactivity. Applied to both the main character card (`.sp-char-inventory-item`) and the Character Wiki expanded card (`.sp-wiki-inventory-item`) so both views use the same visual language.
+
+#### Fixed — wiki immediateNeed was rendered twice
+- v6.8.16 moved `immediateNeed` into the Right Now section but also left it in the Goals field array in `src/ui/character-wiki.js`, so the wiki overlay showed the same line under both `RIGHT NOW > Needs` and `GOALS > Need`. Goals is now short/long-term only, matching the main panel exactly.
+
+#### CSS
+- New classes: `.sp-char-subsection-icon`, `.sp-char-subsection-text`, `.sp-char-inventory-item`, `.sp-wiki-section-icon`, `.sp-wiki-inventory`, `.sp-wiki-inventory-item`.
+- `.sp-char-subsection-label` and `.sp-wiki-section-label` rewritten as flex containers (icon + text) with the updated typography.
+- Pill chips use `::before` pseudo-elements for the colored dot so no extra DOM per item.
+
+#### Not changed
+- No data-layer changes, no prompt changes, no migration needed. Pure presentation refactor. 134/134 tests still pass.
+
 ### [6.8.16] — 2026-04-08
 
 #### Changed — character card body redesign

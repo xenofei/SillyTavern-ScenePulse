@@ -21,21 +21,31 @@
 .sp-char-grid { display: grid; grid-template-columns: auto 1fr; gap: 1px 6px; padding-left: 2px; }
 .sp-char-field { font-size: 9px; font-weight: 600; color: var(--sp-text-dim); text-transform: uppercase; letter-spacing: 0.03em; text-align: right; padding: 1px 0; }
 .sp-char-val { font-size: 11px; color: var(--sp-text); padding: 1px 0; }
-/* v6.8.16: labeled subsection headers inside the character card body.
-   Small uppercase dim text sitting above a dashed top rule — the visual
-   anchor that tells readers which group of fields follows (Right Now,
-   Appearance, Carrying, Goals, Fertility). Fixes pre-v6.8.16 confusion
-   where STATUS/NOTES rows appeared without any section context. */
-.sp-char-subsection-label { font-size: 9px; font-weight: 700; color: var(--sp-text-dim); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 6px; padding-top: 4px; padding-left: 2px; border-top: 1px dashed var(--sp-border); }
+/* v6.8.16+: labeled subsection headers inside the character card body.
+   Bold uppercase text with an SVG icon tinted in the character's accent
+   color, sitting above a solid top rule. The visual anchor that tells
+   readers which group of fields follows (Right Now, Appearance, Carrying,
+   Goals, Fertility). v6.8.17 bumps visual weight: icons + solid rule +
+   brighter text + slightly larger. */
+.sp-char-subsection-label { display: flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 700; color: var(--sp-text); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 8px; padding: 5px 4px 3px 4px; border-top: 1px solid var(--sp-border); }
 .sp-char-subsection-label:first-child { margin-top: 4px; }
+.sp-char-subsection-icon { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 14px; height: 14px; color: var(--char-accent, var(--sp-accent)); opacity: 0.95; }
+.sp-char-subsection-icon svg { display: block; }
+.sp-char-subsection-text { line-height: 1; }
 /* Inner thought as a block quote — italic, left-border accent in the
    character's color, visually distinct from plain grid rows so the
    voice of the character reads like speech not metadata. */
 .sp-char-thought-block { font-size: 11px; color: var(--sp-text); font-style: italic; line-height: 1.45; padding: 3px 6px 3px 8px; margin: 3px 2px 4px 2px; border-left: 2px solid var(--char-accent, var(--sp-accent)); background: rgba(255,255,255,0.02); border-radius: 2px; }
 .sp-char-thought-block.sp-empty-field { font-style: normal; }
-/* Carrying/inventory rendered as a single inline comma-joined line,
-   dim, under its own subsection header. */
-.sp-char-inventory { font-size: 11px; color: var(--sp-text); padding: 2px 2px 2px 4px; line-height: 1.4; }
+/* v6.8.17: Carrying/inventory rendered as flex-wrap pill chips.
+   Each item is its own rounded chip with a colored dot, so individual
+   items are visually distinct instead of melting into a comma-separated
+   run-on line. Long items wrap onto their own row; short items pack
+   horizontally. */
+.sp-char-inventory { display: flex; flex-wrap: wrap; gap: 4px 5px; padding: 4px 2px 3px 4px; }
+.sp-char-inventory-item { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; color: var(--sp-text); line-height: 1.3; padding: 2px 7px 2px 6px; background: rgba(255,255,255,0.035); border: 1px solid var(--sp-border); border-radius: 10px; max-width: 100%; }
+.sp-char-inventory-item::before { content: ''; width: 4px; height: 4px; background: var(--char-accent, var(--sp-accent)); border-radius: 50%; opacity: 0.8; flex-shrink: 0; }
+.sp-char-inventory-item:hover { background: rgba(255,255,255,0.06); border-color: var(--char-accent, var(--sp-border)); }
 .sp-char-goals { margin-top: 4px; padding-top: 4px; border-top: 1px dashed var(--sp-border); }
 .sp-char-goal-item { font-size: 10px; color: var(--sp-text-dim); padding: 1px 0 1px 4px; }
 .sp-char-goal-item strong { color: var(--sp-text); }
