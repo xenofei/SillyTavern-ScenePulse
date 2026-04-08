@@ -622,20 +622,25 @@ export function updatePanel(d,_force=false){
             cd.style.setProperty('--char-bg',cc.bg);
             cd.style.setProperty('--char-border',cc.border);
             cd.style.setProperty('--char-accent',cc.accent);
-            // Header: name + optional aliases badge + merge button. Role is
-            // now rendered full in the body, not truncated into a badge.
+            // Header: name + archetype pill + optional aliases badge + merge button.
             // v6.8.18: aliases (former names) shown as a small "(also: X, Y)"
             // badge after the name so users can see the character's identity
-            // history at a glance. Merge button opens a picker to manually
-            // collapse this character into another one across all snapshots.
+            // history at a glance.
+            // v6.8.19: archetype pill (ally / rival / mentor / antagonist /
+            // family / love / incidental / protagonist) sits between name
+            // and aliases. Each archetype maps to a CSS modifier class that
+            // controls the pill color and glyph.
             const _aliasesList=Array.isArray(ch.aliases)?ch.aliases.filter(Boolean):[];
             const _aliasBadge=_aliasesList.length
                 ? `<span class="sp-char-alias-badge" title="${esc(t('Former names'))}: ${esc(_aliasesList.join(', '))}">${t('also')}: ${esc(_aliasesList.slice(0,2).join(', '))}${_aliasesList.length>2?'\u2026':''}</span>`
                 : '';
+            const _archetypeBadge=ch.archetype
+                ? `<span class="sp-char-archetype sp-char-archetype-${esc(ch.archetype)}" title="${esc(t('Narrative role'))}: ${esc(t(ch.archetype))}">${esc(t(ch.archetype))}</span>`
+                : '';
             // Merge icon: two arrows converging, aria-hidden since the button
             // has a title attribute for accessibility.
             const _MERGE_ICON='<svg viewBox="0 0 12 12" width="11" height="11" fill="none" aria-hidden="true"><path d="M2 2 L6 6 L2 10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 2 L6 6 L10 10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-            cd.innerHTML=`<div class="sp-char-header"><span class="sp-char-chevron">\u25B6</span><span class="sp-char-name">${esc(ch.name)}</span>${_aliasBadge}<span class="sp-char-header-spacer"></span><button type="button" class="sp-char-merge-btn" title="${esc(t('Merge into another character'))}">${_MERGE_ICON}</button></div>`;
+            cd.innerHTML=`<div class="sp-char-header"><span class="sp-char-chevron">\u25B6</span><span class="sp-char-name">${esc(ch.name)}</span>${_archetypeBadge}${_aliasBadge}<span class="sp-char-header-spacer"></span><button type="button" class="sp-char-merge-btn" title="${esc(t('Merge into another character'))}">${_MERGE_ICON}</button></div>`;
             cd.querySelector('.sp-char-header').addEventListener('click',(e)=>{
                 if(e.target.closest('.sp-char-merge-btn'))return;
                 cd.classList.toggle('sp-card-open');

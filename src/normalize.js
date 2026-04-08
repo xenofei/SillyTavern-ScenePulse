@@ -596,7 +596,7 @@ export function normalizeTracker(d){
             for(const _ch of o.characters){
                 const _pch=_prev.characters.find(pc=>pc.name&&_ch.name&&pc.name.toLowerCase()===_ch.name.toLowerCase());
                 if(!_pch)continue;
-                for(const _fk of['role','innerThought','immediateNeed','shortTermGoal','longTermGoal','hair','face','outfit','posture','proximity','notableDetails','fertStatus','fertNotes']){
+                for(const _fk of['role','archetype','innerThought','immediateNeed','shortTermGoal','longTermGoal','hair','face','outfit','posture','proximity','notableDetails','fertStatus','fertNotes']){
                     if(!_ch[_fk]&&_pch[_fk]){_ch[_fk]=_pch[_fk];if(_verbose)log('Char carry-forward:',_ch.name,_fk)}
                 }
                 if((!_ch.inventory||!_ch.inventory.length)&&_pch.inventory?.length){_ch.inventory=_pch.inventory;if(_verbose)log('Char carry-forward:',_ch.name,'inventory')}
@@ -686,6 +686,26 @@ export function normalizeChar(ch){
             seen.add(sl);
             o.aliases.push(s);
         }
+    }
+    // v6.8.19: archetype — single-enum narrative role relative to {{user}}.
+    // Parsed case-insensitively and validated against the canonical list.
+    // Empty string if missing or not recognized (treated as "unclassified"
+    // by the UI — no badge rendered).
+    {
+        const rawArch=String(flat['archetype']||ch.archetype||'').toLowerCase().trim();
+        const VALID=new Set(['protagonist','ally','rival','mentor','antagonist','family','love','incidental']);
+        // Tolerate a few common near-synonyms
+        const ALIASES={
+            friend:'ally',friendly:'ally',companion:'ally',ally:'ally',
+            enemy:'antagonist',villain:'antagonist',foe:'antagonist',adversary:'antagonist',
+            romance:'love',romantic:'love','love interest':'love',partner:'love',
+            teacher:'mentor',guide:'mentor',
+            bg:'incidental',background:'incidental',minor:'incidental',extra:'incidental',
+            relative:'family','family member':'family',
+            competitor:'rival',opponent:'rival',
+        };
+        const canonized=ALIASES[rawArch]||rawArch;
+        o.archetype=VALID.has(canonized)?canonized:'';
     }
     o.role=g(['role','identity','who','emotion','title']);
     o.innerThought=g(['innerthought','inner_thought','thought','thinking','monologue']);

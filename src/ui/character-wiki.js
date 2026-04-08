@@ -160,10 +160,18 @@ function _sortEntries(entries, sortKey) {
 }
 
 // ── Filter ──
+// v6.8.19: filterMode is now "all" | "inScene" | "absent" | "arch:<name>"
+// where <name> is one of the archetype enum values. The arch: prefix lets
+// us reuse the same filter code path for both scene-presence filters and
+// archetype filters without a second filter parameter.
 function _filterEntries(entries, filterMode, searchText) {
     let filtered = entries;
     if (filterMode === 'inScene') filtered = filtered.filter(e => e.inScene);
     else if (filterMode === 'absent') filtered = filtered.filter(e => !e.inScene);
+    else if (filterMode && filterMode.startsWith('arch:')) {
+        const a = filterMode.slice(5);
+        filtered = filtered.filter(e => (e.character?.archetype || '') === a);
+    }
     if (searchText) {
         const q = searchText.toLowerCase();
         filtered = filtered.filter(e => {
@@ -298,6 +306,12 @@ function _renderEntry(e, viewMode) {
         return card;
     }
 
+    // v6.8.19: archetype pill for the wiki header — mirrors the main panel
+    // card header so both views use the same visual language.
+    const archHtml = ch.archetype
+        ? `<span class="sp-char-archetype sp-char-archetype-${esc(ch.archetype)}">${esc(t(ch.archetype))}</span>`
+        : '';
+
     // ── List (full) mode ──
     card.innerHTML = `<div class="sp-wiki-entry-header">
         ${avatarHtml}
@@ -305,6 +319,7 @@ function _renderEntry(e, viewMode) {
         <div class="sp-wiki-header-text">
             <div class="sp-wiki-header-top">
                 <span class="sp-wiki-name">${esc(e.name)}</span>
+                ${archHtml}
                 ${roleShort ? `<span class="sp-wiki-role">${esc(roleShort)}</span>` : ''}
             </div>
             ${preview ? `<div class="sp-wiki-preview">${esc(preview)}</div>` : ''}
@@ -514,6 +529,17 @@ export function openCharacterWiki() {
                 </button>
                 <button class="sp-wiki-expand-btn" id="sp-wiki-expand-all" title="${t('Expand All')}">\u25BC</button>
                 <button class="sp-wiki-expand-btn" id="sp-wiki-collapse-all" title="${t('Collapse All')}">\u25B2</button>
+                <select class="sp-wiki-archetype-filter" title="${t('Archetype')}">
+                    <option value="">${t('All roles')}</option>
+                    <option value="arch:protagonist">${t('protagonist')}</option>
+                    <option value="arch:ally">${t('ally')}</option>
+                    <option value="arch:rival">${t('rival')}</option>
+                    <option value="arch:mentor">${t('mentor')}</option>
+                    <option value="arch:antagonist">${t('antagonist')}</option>
+                    <option value="arch:family">${t('family')}</option>
+                    <option value="arch:love">${t('love')}</option>
+                    <option value="arch:incidental">${t('incidental')}</option>
+                </select>
                 <select class="sp-wiki-sort">
                     <option value="default">${t('Relevance')}</option>
                     <option value="name">${t('Name (A-Z)')}</option>
@@ -570,12 +596,39 @@ export function openCharacterWiki() {
             overlay.querySelectorAll('.sp-wiki-filter').forEach(b => b.classList.remove('sp-wiki-filter-active'));
             btn.classList.add('sp-wiki-filter-active');
             filterMode = btn.dataset.filter;
+            // v6.8.19: clicking a scene-presence pill clears the archetype
+            // dropdown. The two filter mechanisms are mutually exclusive so
+            // the UI state needs to reflect that.
+            const archSel = overlay.querySelector('.sp-wiki-archetype-filter');
+            if (archSel) archSel.value = '';
             _render();
         });
     });
 
     // Sort
     overlay.querySelector('.sp-wiki-sort').addEventListener('change', e => { sortKey = e.target.value; _render(); });
+
+    // v6.8.19: archetype filter dropdown. When non-empty, it overrides the
+    // scene-presence filter pills with an archetype-prefix filter ("arch:ally"
+    // etc). Resetting to "" restores whichever scene filter was active.
+    let _lastSceneFilter = 'all';
+    overlay.querySelector('.sp-wiki-archetype-filter').addEventListener('change', e => {
+        const v = e.target.value;
+        if (v) {
+            // Save current scene filter so we can restore it if the user
+            // clears the archetype dropdown
+            if (!filterMode.startsWith('arch:')) _lastSceneFilter = filterMode;
+            filterMode = v;
+            // Visually deactivate the scene-presence pills since they no
+            // longer reflect the active filter
+            overlay.querySelectorAll('.sp-wiki-filter').forEach(b => b.classList.remove('sp-wiki-filter-active'));
+        } else {
+            filterMode = _lastSceneFilter;
+            overlay.querySelectorAll('.sp-wiki-filter').forEach(b =>
+                b.classList.toggle('sp-wiki-filter-active', b.dataset.filter === filterMode));
+        }
+        _render();
+    });
 
     // Expand/Collapse
     overlay.querySelector('#sp-wiki-expand-all').addEventListener('click', () => { list.querySelectorAll('.sp-wiki-entry').forEach(e => e.classList.add('sp-card-open')); });

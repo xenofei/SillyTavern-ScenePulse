@@ -435,6 +435,27 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.8.19] — 2026-04-08
+
+#### Added \u2014 character archetype tagging (Feature L)
+- **Every character now has a single-enum `archetype` field** describing their dominant narrative role relative to {{user}} this turn. Nine values: `protagonist` (secondary co-lead), `ally` (on {{user}}'s side), `rival` (competitive but not hostile), `mentor` (teaches/guides), `antagonist` (actively opposes), `family`, `love` (romantic/sexual interest), `incidental` (minor NPC), or empty (unclassified). Archetype can change turn-to-turn as the story develops \u2014 a stranger becomes an ally, an ally becomes a rival, a love interest might become an antagonist.
+- **Added to the static JSON schema** (`src/constants.js`) as an enum property on character items, with the canonical list also exported as `CHARACTER_ARCHETYPES` for reuse across the UI, prompt builder, and filter logic.
+- **`normalizeChar` validates and normalizes** the incoming value: lowercases and trims, maps common near-synonyms (`friend`/`companion` \u2192 `ally`, `enemy`/`villain` \u2192 `antagonist`, `romance`/`partner` \u2192 `love`, `teacher`/`guide` \u2192 `mentor`, `competitor`/`opponent` \u2192 `rival`, `relative` \u2192 `family`, `extra`/`bg` \u2192 `incidental`), and falls back to empty string for anything not recognized. Empty string is the "unclassified" state \u2014 no badge renders.
+- **Carried forward in `normalizeTracker`** so a character that was classified in a previous turn doesn't lose their archetype if the model omits the field on a turn where nothing changed about their role.
+- **Prompt guidance** added to `BUILTIN_PROMPT` Characters section and to `buildDynamicPrompt` character field list, explaining the nine values and how to pick the dominant one when a character has multiple functions.
+
+#### Added \u2014 archetype badge on character card and wiki entry
+- **New `.sp-char-archetype` pill in the character card header** (main panel) and in the Character Wiki entry header. Small uppercase bold text with a distinct color per archetype \u2014 gold for protagonist, blue for ally, amber for rival, green for mentor, red for antagonist, purple for family, pink for love, dim gray for incidental. The pill sits between the character name and the v6.8.18 aliases badge, and is only rendered when `archetype` is non-empty. Uses the character's accent color scheme so the pill reads as "this character's type" at a glance, without needing to decode the text.
+
+#### Added \u2014 archetype filter dropdown in Character Wiki
+- **New archetype selector** in the Character Wiki toolbar, next to the sort dropdown. Lists all nine archetype values (plus "All roles" default). Selecting a value filters the wiki entries to only that archetype, and visually deactivates the scene-presence filter pills (the two filters are mutually exclusive since scene-presence + archetype would be a confusing AND/OR combination). Clicking a scene-presence pill clears the archetype dropdown. Uses a prefix convention `arch:<name>` in the filter mode string so the existing `_filterEntries` function handles both filter types via the same code path.
+
+#### Dynamic-schema support
+- **Added `char_archetype` to `CHAR_SUBFIELD_MAP`** (`src/schema.js`) and to `BUILTIN_PANELS.characters.subFields` (`src/constants.js`) so the archetype field can be toggled off via the existing field-toggle UI. Enabled by default.
+
+#### Not changed
+- No migration needed \u2014 missing archetype parses to empty string and characters without the field simply render without the pill. Older snapshots keep working unchanged. 183/183 tests still pass.
+
 ### [6.8.18] — 2026-04-08
 
 #### Added — unknown\u2192known character identity resolution (Feature A)

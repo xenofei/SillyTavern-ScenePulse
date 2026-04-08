@@ -45,10 +45,12 @@
     border-radius: 4px; padding: 3px 6px; font-size: 9px; transition: all 0.15s; line-height: 1;
 }
 .sp-wiki-expand-btn:hover { color: var(--sp-text); background: var(--sp-surface); }
-.sp-wiki-sort {
+.sp-wiki-sort,
+.sp-wiki-archetype-filter {
     background: var(--sp-surface); border: 1px solid var(--sp-border); color: var(--sp-text);
     border-radius: 4px; padding: 4px 6px; font-size: 10px; cursor: pointer;
 }
+.sp-wiki-archetype-filter:hover { border-color: var(--sp-accent); }
 
 /* ═══ LIST ═══ */
 .sp-wiki-list { overflow-y: auto; flex: 1; padding: 6px 10px; }
