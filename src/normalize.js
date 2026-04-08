@@ -11,6 +11,39 @@ import { charColor } from './color.js';
 const _normCache = new WeakMap();
 export function clearNormCache() { /* WeakMap auto-clears when objects are GC'd */ }
 
+// ── User-name detection ──────────────────────────────────────────────────
+// {{user}} is the player. They must never appear as a character entry,
+// relationship entry, or be listed in charactersPresent — they ARE the
+// viewpoint, not an NPC in the scene. The prompt tells the model this but
+// some models ignore it under long-context pressure, so we filter here as
+// a hard guarantee at the view/data boundary.
+//
+// Matches:
+//   - the literal template token "{{user}}" (sometimes echoed back)
+//   - SillyTavern's name1 (the user's persona name, case-insensitive)
+//   - common aliases: "user", "you", "player", "me"
+//   - case-insensitive comparison with trimmed whitespace
+//
+// Does NOT match {{char}} / name2 — those are the primary bot character
+// and absolutely should appear.
+export function isUserName(name) {
+    if (!name || typeof name !== 'string') return false;
+    const norm = name.toLowerCase().trim();
+    if (!norm) return false;
+    if (norm === '{{user}}' || norm === 'user' || norm === 'you' || norm === 'player' || norm === 'me') return true;
+    try {
+        const ctx = SillyTavern.getContext();
+        const n1 = (ctx?.name1 || '').toLowerCase().trim();
+        if (n1 && norm === n1) return true;
+        // Guard against the model prefixing the user's name with {{user}}:
+        // "Devon ({{user}})" or "{{user}} (Devon)" both match.
+        if (n1 && (norm.startsWith(n1 + ' ') || norm.endsWith(' ' + n1))) {
+            if (norm.includes('{{user}}') || norm.includes('(you)') || norm.includes('(user)')) return true;
+        }
+    } catch {}
+    return false;
+}
+
 // ── Normalization ──
 export function normalizeTracker(d){
     if(!d||typeof d!=='object')return d;
@@ -96,7 +129,8 @@ export function normalizeTracker(d){
     o.sceneTension=g(['scenetension','tension','tensionlevel','intensity','stakes']);
     o.sceneSummary=g(['scenesummary','summary','description','currentsummary','overview']);
     const wit=flat['witnesses'];o.witnesses=Array.isArray(wit)?wit:[];
-    const cp=flat['characterspresent']||flat['present'];o.charactersPresent=Array.isArray(cp)?cp:[];
+    const cp=flat['characterspresent']||flat['present'];
+    o.charactersPresent=Array.isArray(cp)?cp.filter(n=>!isUserName(n)):[];
 
     const vu=['critical','high','moderate','low','resolved'];
     function normPlot(arr){if(!Array.isArray(arr))return[];return arr.map(p=>{if(!p||typeof p!=='object')return{name:String(p||''),urgency:'moderate',detail:''};
@@ -185,6 +219,14 @@ export function normalizeTracker(d){
         }
         return nr;
     }).filter(Boolean):[];
+    // Drop any self-relationship entry ({{user}} as their own target). The
+    // relationships array is supposed to express how OTHERS perceive the user,
+    // so an entry where the name IS the user is a prompt-rule violation.
+    if(o.relationships.length){
+        const before=o.relationships.length;
+        o.relationships=o.relationships.filter(r=>!isUserName(r?.name));
+        if(o.relationships.length<before)log('normalize: stripped',before-o.relationships.length,'user-as-relationship entry');
+    }
     // Relationship name fallback: if any relationship is missing a name, try to fill from charactersPresent
     if(o.relationships.length&&o.charactersPresent.length){
         for(let i=0;i<o.relationships.length;i++){if(!o.relationships[i].name&&i<o.charactersPresent.length)o.relationships[i].name=o.charactersPresent[i]}
@@ -294,6 +336,16 @@ export function normalizeTracker(d){
                 o.characters=v.map(normalizeChar);break;
             }
         }
+    }
+    // {{user}} is the player, not an NPC. Strip any character entry for the
+    // user no matter which population path built o.characters. The prompt
+    // forbids this but some models emit it anyway under long-context pressure.
+    // Runs after all primary + failsafe + alternate-key paths so one filter
+    // call guarantees the user never reaches the view layer.
+    if(o.characters?.length){
+        const before=o.characters.length;
+        o.characters=o.characters.filter(c=>!isUserName(c?.name));
+        if(o.characters.length<before)log('normalize: stripped',before-o.characters.length,'user-as-character entry from characters');
     }
     // Post-normalization: resolve '?' character names from other sources
     // CONFIDENCE RULES -- only resolve when we can be certain:
@@ -518,6 +570,22 @@ export function filterForView(snap){
     // still leak it without this line.
     delete out.activeTasks;
 
+    // ── Strip any {{user}} entries at the view layer (v6.8.14) ──
+    // normalizeTracker already drops the user from characters/relationships/
+    // charactersPresent, but this defensive strip catches any render path
+    // that feeds filterForView a snapshot straight from storage without
+    // re-normalizing (e.g. legacy snapshots saved before v6.8.14, or any
+    // future call site that skips normalize).
+    if (Array.isArray(out.characters)) {
+        out.characters = out.characters.filter(c => !isUserName(c?.name));
+    }
+    if (Array.isArray(out.relationships)) {
+        out.relationships = out.relationships.filter(r => !isUserName(r?.name));
+    }
+    if (Array.isArray(out.charactersPresent)) {
+        out.charactersPresent = out.charactersPresent.filter(n => !isUserName(n));
+    }
+
     // ── Quest tier caps (always applied, regardless of charactersPresent) ──
     // Using a single fresh shallow copy of the snap ensures we never mutate
     // the original arrays even when we clip them.
@@ -528,7 +596,10 @@ export function filterForView(snap){
     }
 
     // ── Character/relationship sync filter ──
-    const cp=snap.charactersPresent;
+    // Read from `out` (not `snap`) so the upstream user-strip above feeds
+    // into this pass. If a legacy snapshot had {{user}} in charactersPresent,
+    // this ensures the user is excluded from presentSet here too.
+    const cp=out.charactersPresent;
     if(!Array.isArray(cp)||!cp.length){
         // No filter data — skip the char/rel sync but still return the
         // shallow copy with capped quest arrays.
@@ -536,9 +607,12 @@ export function filterForView(snap){
         return out;
     }
     const presentSet=new Set(cp.map(n=>(n||'').toLowerCase().trim()).filter(Boolean));
-    // Filter both arrays to only present names
-    out.characters=(snap.characters||[]).filter(c=>presentSet.has((c.name||'').toLowerCase().trim()));
-    out.relationships=(snap.relationships||[]).filter(r=>presentSet.has((r.name||'').toLowerCase().trim()));
+    // Filter both arrays to only present names. Use the already-stripped
+    // out.characters/out.relationships (not the raw snap arrays) so any
+    // user entry that slipped in from legacy storage is filtered twice —
+    // once by isUserName above, once by the presentSet intersection here.
+    out.characters=(out.characters||[]).filter(c=>presentSet.has((c.name||'').toLowerCase().trim()));
+    out.relationships=(out.relationships||[]).filter(r=>presentSet.has((r.name||'').toLowerCase().trim()));
     // Sync guarantee: stub any gaps between the two filtered arrays
     const charNames=new Set(out.characters.map(c=>(c.name||'').toLowerCase().trim()));
     const relNames=new Set(out.relationships.map(r=>(r.name||'').toLowerCase().trim()));

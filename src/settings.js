@@ -8,6 +8,23 @@ import { buildDynamicSchema, buildDynamicPrompt } from './schema.js';
 import { t } from './i18n.js';
 import { consolidateQuests } from './generation/delta-merge.js';
 
+// Minimal inline user-name check for the one-shot migration below.
+// Duplicates the logic in normalize.isUserName to avoid a circular import
+// (normalize.js already imports getLatestSnapshot from this file). The
+// migration runs once per chat at boot; duplication is acceptable for a
+// one-liner that happens at module-boundary rather than in a hot path.
+function _isUserName(name) {
+    if (!name || typeof name !== 'string') return false;
+    const norm = name.toLowerCase().trim();
+    if (!norm) return false;
+    if (norm === '{{user}}' || norm === 'user' || norm === 'you' || norm === 'player' || norm === 'me') return true;
+    try {
+        const n1 = (SillyTavern.getContext()?.name1 || '').toLowerCase().trim();
+        if (n1 && norm === n1) return true;
+    } catch {}
+    return false;
+}
+
 let _settingsCache = null;
 
 export function getSettings(){
@@ -76,6 +93,42 @@ export function getTrackerData(){
         m.scenepulse._spQuestDedupMigrated=true;
         if(touched>0){
             log('Migration v6.8.11: consolidated quest duplicates in',touched,'snapshot(s) in this chat');
+            try{SillyTavern.getContext().saveMetadata()}catch(e){warn('Migration save failed:',e?.message)}
+        }
+    }
+    // ── v6.8.14 migration: strip {{user}} from characters/relationships/charactersPresent ──
+    // Heals chats where the model emitted the user as a character entry
+    // before v6.8.14's normalize/filterForView guards landed. Walks every
+    // stored snapshot once, drops any matching entry from all three arrays,
+    // and persists the cleaned metadata. Guarded by a per-chat flag so the
+    // scan only runs once even though getTrackerData is hot.
+    if(!m.scenepulse._spUserStripMigrated){
+        let touched=0;
+        const snaps=m.scenepulse.snapshots||{};
+        for(const k of Object.keys(snaps)){
+            const snap=snaps[k];
+            if(!snap)continue;
+            let changed=false;
+            if(Array.isArray(snap.characters)){
+                const before=snap.characters.length;
+                snap.characters=snap.characters.filter(c=>!_isUserName(c?.name));
+                if(snap.characters.length!==before)changed=true;
+            }
+            if(Array.isArray(snap.relationships)){
+                const before=snap.relationships.length;
+                snap.relationships=snap.relationships.filter(r=>!_isUserName(r?.name));
+                if(snap.relationships.length!==before)changed=true;
+            }
+            if(Array.isArray(snap.charactersPresent)){
+                const before=snap.charactersPresent.length;
+                snap.charactersPresent=snap.charactersPresent.filter(n=>!_isUserName(n));
+                if(snap.charactersPresent.length!==before)changed=true;
+            }
+            if(changed)touched++;
+        }
+        m.scenepulse._spUserStripMigrated=true;
+        if(touched>0){
+            log('Migration v6.8.14: stripped {{user}} entries from',touched,'snapshot(s) in this chat');
             try{SillyTavern.getContext().saveMetadata()}catch(e){warn('Migration save failed:',e?.message)}
         }
     }
