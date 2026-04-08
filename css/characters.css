@@ -31,7 +31,27 @@
 
 /* v6.8.18: alias badge and merge button in the character card header. */
 .sp-char-alias-badge { font-size: 9px; color: var(--sp-text-dim); font-style: italic; padding: 1px 5px; background: rgba(255,255,255,0.04); border: 1px solid var(--sp-border); border-radius: 3px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0; }
-.sp-char-header-spacer { flex: 1 1 auto; min-width: 0; }
+/* v6.8.21: two-line header layout — name row on top, meta (shared-scene
+   counter) dim text below. .sp-char-name-col is the flex column that
+   holds both lines so they align vertically under the portrait. */
+.sp-char-name-col { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1 1 auto; }
+.sp-char-name-row { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.sp-char-meta { font-size: 9px; color: var(--sp-text-dim); opacity: 0.85; line-height: 1.2; }
+.sp-char-header-spacer { flex: 0 0 auto; min-width: 0; }
+
+/* v6.8.21 Feature D: off-scene stubs. A separate section appended after
+   the main character cards, showing characters who were present in a
+   recent snapshot but not in the current one. Renders as a compact row
+   with portrait + name + "last seen" meta line. No body, no expand. */
+.sp-char-offscene-header { font-size: 9px; font-weight: 700; color: var(--sp-text-dim); text-transform: uppercase; letter-spacing: 0.08em; margin: 10px 4px 4px; padding-top: 6px; border-top: 1px dashed var(--sp-border); }
+.sp-char-offscene-stub { opacity: 0.72; background: var(--char-bg, var(--sp-surface)); border-left-width: 2px; padding: 0; margin-bottom: 3px; }
+.sp-char-offscene-stub:hover { opacity: 1; }
+.sp-char-offscene-row { display: flex; align-items: center; gap: 8px; padding: 5px 8px; }
+.sp-char-offscene-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1 1 auto; }
+.sp-char-offscene-name { font-size: 12px; font-weight: 600; color: var(--sp-text); line-height: 1.2; }
+.sp-char-offscene-last { font-size: 9px; color: var(--sp-text-dim); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sp-char-offscene-stub .sp-char-portrait { width: 20px; height: 20px; }
+.sp-char-offscene-stub .sp-char-portrait-monogram { font-size: 10px; }
 .sp-char-merge-btn { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; padding: 0; border: 1px solid transparent; background: transparent; color: var(--sp-text-dim); border-radius: 3px; cursor: pointer; flex-shrink: 0; }
 .sp-char-merge-btn:hover { color: var(--char-accent, var(--sp-accent)); border-color: var(--sp-border); background: rgba(255,255,255,0.04); }
 .sp-char-merge-btn svg { display: block; }

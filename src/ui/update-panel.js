@@ -33,6 +33,7 @@ import { openDiffViewer } from './diff-viewer.js';
 import { createSparklineCanvas } from './sparklines.js';
 import { detectStagnation } from '../stagnation.js';
 import { getPortraitHtml, buildPortraitIndex, setPortraitOverride, clearPortraitOverride } from './portraits.js';
+import { getCharacterHistory, invalidateCharacterHistory } from './character-history.js';
 
 let _wdmFrameId = null;
 let _wdmObserver = null;
@@ -142,6 +143,10 @@ async function _openMergePicker(sourceName, otherNames) {
                     t('Touched') + ' ' + result.snapsTouched + ' ' + t('snapshot(s)'),
                     t('Merged') + ': ' + sourceName + ' \u2192 ' + tgtName
                 );
+                // v6.8.21: the merge mutated stored snapshots in place;
+                // bust the history cache so the new canonical name is
+                // picked up on the next render.
+                invalidateCharacterHistory();
                 // Re-render with the updated latest snapshot
                 const snap = getLatestSnapshot();
                 if (snap) updatePanel(normalizeTracker(snap), true);
@@ -656,6 +661,11 @@ export function updatePanel(d,_force=false){
         // v6.8.20: build the ST avatar index once for this render loop
         // instead of walking ST characters for every card.
         const _portraitIdx=buildPortraitIndex();
+        // v6.8.21: get the character history map for Feature E shared-scene
+        // counter and Feature D off-scene stub list. Cached per snapshot
+        // set so this is cheap on subsequent renders in the same turn.
+        const _charHistory=getCharacterHistory();
+        const _currentMsgIdx=currentSnapshotMesIdx||0;
         for(let _ci2=0;_ci2<sortedChars.length;_ci2++){
             const{ch,ci}=sortedChars[_ci2];
             const cc=charColor(ch.name);
@@ -690,7 +700,25 @@ export function updatePanel(d,_force=false){
             // on the character's accent color. Always returns a render-ready
             // HTML string so the header structure is stable.
             const _portraitHtml=getPortraitHtml(ch,cc.accent,_portraitIdx);
-            cd.innerHTML=`<div class="sp-char-header">${_portraitHtml}<span class="sp-char-chevron">\u25B6</span><span class="sp-char-name">${esc(ch.name)}</span>${_archetypeBadge}${_aliasBadge}<span class="sp-char-header-spacer"></span><button type="button" class="sp-char-merge-btn" title="${esc(t('Merge into another character'))}">${_MERGE_ICON}</button></div>`;
+            // v6.8.21: shared-scene counter — "Scene #23 together" shows how
+            // many snapshots this character has been present in alongside
+            // {{user}}, plus the message index of first meet. Renders as a
+            // dim line under the character name in the header. Hidden if
+            // appearances is 0 or 1 (not enough history to be meaningful).
+            let _metaHtml='';
+            {
+                const histKey=(ch.name||'').toLowerCase().trim();
+                const meta=_charHistory.get(histKey);
+                if(meta&&meta.appearances>1){
+                    const parts=[];
+                    parts.push(t('Scene')+' #'+meta.appearances);
+                    if(meta.firstSeen>=0&&meta.firstSeen<meta.lastSeen){
+                        parts.push(t('met')+' #'+meta.firstSeen);
+                    }
+                    _metaHtml=`<div class="sp-char-meta" title="${esc(t('Shared scenes')+' \u00B7 '+t('first met at message'))}">${parts.join(' \u00B7 ')}</div>`;
+                }
+            }
+            cd.innerHTML=`<div class="sp-char-header">${_portraitHtml}<span class="sp-char-chevron">\u25B6</span><div class="sp-char-name-col"><div class="sp-char-name-row"><span class="sp-char-name">${esc(ch.name)}</span>${_archetypeBadge}${_aliasBadge}</div>${_metaHtml}</div><span class="sp-char-header-spacer"></span><button type="button" class="sp-char-merge-btn" title="${esc(t('Merge into another character'))}">${_MERGE_ICON}</button></div>`;
             cd.querySelector('.sp-char-header').addEventListener('click',(e)=>{
                 if(e.target.closest('.sp-char-merge-btn'))return;
                 if(e.target.closest('.sp-char-portrait'))return;
@@ -881,6 +909,57 @@ export function updatePanel(d,_force=false){
             }
 
             cd.appendChild(_cbody);f.appendChild(cd);
+        }
+
+        // v6.8.21 Feature D: off-scene stub list. After the full-card loop,
+        // find characters who were present in a recent snapshot but NOT in
+        // the current one, and render a compact "last seen" stub for each.
+        // Bounded by a 5-turn recency window and capped at 5 stubs so the
+        // main panel never balloons.
+        //
+        // Why: this acknowledges characters who have "left the scene"
+        // without disappearing them entirely. A character who walked out
+        // of the room still deserves a small presence in the panel so the
+        // user can see "oh right, Alice is probably just in the next room"
+        // instead of having to check the wiki.
+        //
+        // We get the off-scene list by comparing _charHistory (all tracked
+        // characters) against the current d.characters list (the view).
+        {
+            const _OFFSCENE_RECENCY=5; // turns
+            const _OFFSCENE_MAX=5;     // stubs
+            const currentNames=new Set((d.characters||[]).map(c=>(c.name||'').toLowerCase().trim()).filter(Boolean));
+            const offScene=[];
+            for(const[key,meta]of _charHistory){
+                if(!key||currentNames.has(key))continue;
+                // Skip if not seen in the recency window
+                if(_currentMsgIdx>0&&(_currentMsgIdx-meta.lastSeen)>_OFFSCENE_RECENCY)continue;
+                // Skip if never been in a scene (appearances === 0)
+                if(meta.appearances<1)continue;
+                offScene.push(meta);
+            }
+            // Sort by lastSeen descending so most-recently-absent are first
+            offScene.sort((a,b)=>b.lastSeen-a.lastSeen);
+            const shown=offScene.slice(0,_OFFSCENE_MAX);
+            if(shown.length){
+                const hdr=document.createElement('div');
+                hdr.className='sp-char-offscene-header';
+                hdr.textContent=t('Recently absent');
+                f.appendChild(hdr);
+                for(const meta of shown){
+                    const stubCh={name:meta.canonical,aliases:[...(meta.aliasesLow||[])].filter(a=>a!==meta.canonical.toLowerCase())};
+                    const cc=charColor(meta.canonical);
+                    const stub=document.createElement('div');
+                    stub.className='sp-char-card sp-char-offscene-stub';
+                    stub.style.setProperty('--char-bg',cc.bg);
+                    stub.style.setProperty('--char-border',cc.border);
+                    stub.style.setProperty('--char-accent',cc.accent);
+                    const portHtml=getPortraitHtml(stubCh,cc.accent,_portraitIdx);
+                    const loc=meta.lastLocation?' \u00B7 '+esc(meta.lastLocation):'';
+                    stub.innerHTML=`<div class="sp-char-offscene-row">${portHtml}<div class="sp-char-offscene-text"><div class="sp-char-offscene-name">${esc(meta.canonical)}</div><div class="sp-char-offscene-last">${esc(t('Last seen'))}: #${meta.lastSeen}${loc}</div></div></div>`;
+                    f.appendChild(stub);
+                }
+            }
         }
         return f;
     },s);if(s.panels?.characters===false)_sec.classList.add('sp-panel-hidden');body.appendChild(_sec)}

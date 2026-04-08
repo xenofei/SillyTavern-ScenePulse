@@ -8,6 +8,7 @@ import { charColor } from '../color.js';
 import { createSparklineCanvas, _scrollToMessage } from './sparklines.js';
 import { currentSnapshotMesIdx } from '../state.js';
 import { resolvePortraitUrl, buildPortraitIndex } from './portraits.js';
+import { getCharacterHistory } from './character-history.js';
 
 // ── v6.8.17: section icons shared with update-panel.js ──
 // Tinted by CSS (currentColor inherits from the parent .sp-wiki-section-icon
@@ -65,27 +66,15 @@ function _buildEntries() {
     const cp = (norm.charactersPresent || []).map(n => (n || '').toLowerCase().trim());
     const presentSet = new Set(cp);
 
+    // v6.8.21: delegate to the shared character-history walker so the
+    // wiki's firstSeen / lastSeen / appearances columns are alias-aware
+    // (they'll collapse Stranger → Jenna under the Jenna entry instead
+    // of showing two separate rows). Returns a Map keyed by canonical
+    // lowercased name with the same shape the old inline walker used
+    // plus an `aliasesLow` set and `canonical` display name.
+    const meta = getCharacterHistory();
     const data = getTrackerData();
     const snapKeys = Object.keys(data.snapshots).map(Number).sort((a, b) => a - b);
-    const meta = new Map();
-
-    for (const key of snapKeys) {
-        const snap = data.snapshots[String(key)];
-        if (!snap) continue;
-        const snapChars = snap.characters || [];
-        const snapPresent = (snap.charactersPresent || []).map(n => (n || '').toLowerCase().trim());
-        for (const ch of snapChars) {
-            const cn = (ch.name || '').toLowerCase().trim();
-            if (!cn || cn === '?') continue;
-            if (!meta.has(cn)) meta.set(cn, { firstSeen: key, lastSeen: key, appearances: 0, lastLocation: '' });
-            const m = meta.get(cn);
-            if (snapPresent.includes(cn) || snapPresent.some(p => _nameMatch(p, cn))) {
-                m.lastSeen = key;
-                m.appearances++;
-                m.lastLocation = snap.location || m.lastLocation;
-            }
-        }
-    }
 
     const prevSnap = getPrevSnapshot(currentSnapshotMesIdx || snapKeys[snapKeys.length - 1] || 0);
     const prevRelMap = {};

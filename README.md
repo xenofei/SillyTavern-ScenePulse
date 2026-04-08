@@ -435,6 +435,25 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.8.21] — 2026-04-08
+
+#### Added \u2014 shared character history walker
+- **New `src/ui/character-history.js`** module walks all stored snapshots in the current chat once and returns a `Map<lowerCanonicalName, HistoryMeta>` keyed by canonical name with `firstSeen`, `lastSeen`, `appearances`, `lastLocation`, `canonical` (display name), and `aliasesLow` (set of every lowercase name the entity has been known by). Alias-aware \u2014 a character tracked as "Stranger" in early snapshots and "Jenna" in later ones with `aliases: ["Stranger"]` collapses to a single history entry under "jenna" instead of two orphan rows.
+- **Cached by snapshot-set identity** so rendering is cheap across multiple card updates in the same turn. `invalidateCharacterHistory()` exported for explicit cache busts after operations that mutate stored snapshots in place (e.g. the v6.8.18 manual merge flow).
+- **Character Wiki refactored** to delegate its firstSeen/lastSeen/appearances computation to the shared walker \u2014 dropping ~20 lines of inline duplicated logic and inheriting alias awareness. A character who was manually merged in v6.8.18 now shows up once in the wiki with the consolidated history instead of twice.
+
+#### Added \u2014 shared-scene counter on character card header (Feature E)
+- **New dim meta line under each character's name**: "Scene #23 \u00b7 met #5" showing the total number of snapshots the character has been present in (equal to shared scenes with {{user}} since {{user}} is present in every scene by definition) and the message index where they first appeared. Hidden when the character has been seen in 1 or fewer snapshots (not enough history to be meaningful). Gives each card a "how established is this character in fiction-time" read without opening the Character Wiki.
+- **Header layout restructured** to a two-line flex column: name row (name + archetype + aliases) on top, meta line below. The portrait, chevron, and merge button stay on their own axis so the two text lines align cleanly under the portrait.
+
+#### Added \u2014 "Recently absent" off-scene stub list (Feature D)
+- **Below the main character cards**, a new "RECENTLY ABSENT" section renders compact stubs for characters who were present in a recent snapshot but are NOT in the current scene. Each stub shows the portrait (20 px, smaller than the main card), canonical name, and "Last seen: #msgIdx \u00b7 [location]". Dim by default, brightens on hover. No expand, no body \u2014 just a presence acknowledgment.
+- **Bounded** by a 5-turn recency window (characters absent for more than 5 turns don't appear \u2014 they're considered "forgotten" and live only in the Character Wiki) and capped at 5 stubs so the main panel never balloons even in a chat with dozens of historical characters.
+- **Off-scene characters are NOT added to the main card loop** \u2014 they're computed separately from the shared history walker, then rendered as a distinct section. This keeps the v6.8.15 group-chat carry-forward logic intact and doesn't affect filterForView behavior at all.
+
+#### Not changed
+- No schema changes, no migration, no prompt changes. 183/183 tests still pass.
+
 ### [6.8.20] — 2026-04-08
 
 #### Added \u2014 character portrait thumbnails (Feature B)
