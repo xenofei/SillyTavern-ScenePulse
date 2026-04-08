@@ -103,6 +103,43 @@
 .sp-char-inventory-item { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; color: var(--sp-text); line-height: 1.3; padding: 2px 7px 2px 6px; background: rgba(255,255,255,0.035); border: 1px solid var(--sp-border); border-radius: 10px; max-width: 100%; }
 .sp-char-inventory-item::before { content: ''; width: 4px; height: 4px; background: var(--char-accent, var(--sp-accent)); border-radius: 50%; opacity: 0.8; flex-shrink: 0; }
 .sp-char-inventory-item:hover { background: rgba(255,255,255,0.06); border-color: var(--char-accent, var(--sp-border)); }
+/* v6.8.22 Feature I: delta indicators — a small colored dot appended to
+   any field value that differs from the previous snapshot. The dot is
+   tinted in the character's accent color and sits after the value text
+   as a ::after pseudo-element, so there's no extra DOM per field. */
+.sp-char-val-changed { position: relative; }
+.sp-char-val-changed::after {
+    content: '';
+    display: inline-block;
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--char-accent, var(--sp-accent));
+    margin-left: 5px;
+    vertical-align: middle;
+    box-shadow: 0 0 4px var(--char-accent, var(--sp-accent));
+    flex-shrink: 0;
+}
+/* Inner thought block gets a slightly brighter background when changed
+   so the "new thought" signal is unmissable. */
+.sp-char-thought-block.sp-char-val-changed { background: rgba(255,255,255,0.045); }
+.sp-char-thought-block.sp-char-val-changed::after { display: none; }
+.sp-char-thought-block.sp-char-val-changed::before {
+    content: '';
+    position: absolute;
+    top: 3px; right: 3px;
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--char-accent, var(--sp-accent));
+    box-shadow: 0 0 4px var(--char-accent, var(--sp-accent));
+}
+/* Newly-added inventory items get the accent dot bullet replaced with
+   a pulsing highlight to flag them as "new this turn". */
+.sp-char-inventory-item-added {
+    border-color: var(--char-accent, var(--sp-accent));
+    background: rgba(255,255,255,0.06);
+}
+.sp-char-inventory-item-added::before {
+    box-shadow: 0 0 4px var(--char-accent, var(--sp-accent));
+    opacity: 1;
+}
 .sp-char-goals { margin-top: 4px; padding-top: 4px; border-top: 1px dashed var(--sp-border); }
 .sp-char-goal-item { font-size: 10px; color: var(--sp-text-dim); padding: 1px 0 1px 4px; }
 .sp-char-goal-item strong { color: var(--sp-text); }

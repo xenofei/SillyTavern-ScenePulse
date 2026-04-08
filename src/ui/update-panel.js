@@ -666,6 +666,49 @@ export function updatePanel(d,_force=false){
         // set so this is cheap on subsequent renders in the same turn.
         const _charHistory=getCharacterHistory();
         const _currentMsgIdx=currentSnapshotMesIdx||0;
+        // v6.8.22: fetch the previous snapshot once for Feature I (per-field
+        // "changed since last turn" indicators). Characters that don't have
+        // a matching prev entry (new this turn) get no indicators; existing
+        // characters get a dot next to any field that differs from prev.
+        const _prevSnapForDelta = _currentMsgIdx ? getPrevSnapshot(_currentMsgIdx) : null;
+        // Resolve a character entry in the previous snapshot by name or
+        // alias. Falls back to searching prev.characters by any alias on
+        // the current char, AND by any alias on the prev char matching
+        // the current canonical name. Alias-aware so an unknown→known
+        // reveal doesn't blow up the delta comparison.
+        const _findPrevCh = (ch) => {
+            if (!_prevSnapForDelta || !Array.isArray(_prevSnapForDelta.characters)) return null;
+            const canonLow = (ch.name || '').toLowerCase().trim();
+            const prev = _prevSnapForDelta.characters;
+            let match = prev.find(c => (c?.name || '').toLowerCase().trim() === canonLow);
+            if (match) return match;
+            if (Array.isArray(ch.aliases) && ch.aliases.length) {
+                const aliasSet = new Set(ch.aliases.map(a => (a || '').toLowerCase().trim()));
+                match = prev.find(c => aliasSet.has((c?.name || '').toLowerCase().trim()));
+                if (match) return match;
+            }
+            match = prev.find(c =>
+                Array.isArray(c?.aliases) &&
+                c.aliases.some(a => (a || '').toLowerCase().trim() === canonLow)
+            );
+            return match || null;
+        };
+        // Compute a Set of field names that differ between current and prev.
+        // Used to stamp a "changed" CSS class on grid-row values.
+        const _computeChangedFields = (cur, prv) => {
+            const changed = new Set();
+            if (!prv) return changed;
+            const STR_FIELDS = ['role','archetype','innerThought','immediateNeed','shortTermGoal','longTermGoal','hair','face','outfit','posture','proximity','notableDetails','fertStatus','fertNotes'];
+            for (const f of STR_FIELDS) {
+                const a = String(cur[f] || '').trim();
+                const b = String(prv[f] || '').trim();
+                if (a !== b) changed.add(f);
+            }
+            const invA = Array.isArray(cur.inventory) ? [...cur.inventory].map(String).sort().join('|') : '';
+            const invB = Array.isArray(prv.inventory) ? [...prv.inventory].map(String).sort().join('|') : '';
+            if (invA !== invB) changed.add('inventory');
+            return changed;
+        };
         for(let _ci2=0;_ci2<sortedChars.length;_ci2++){
             const{ch,ci}=sortedChars[_ci2];
             const cc=charColor(ch.name);
@@ -789,13 +832,29 @@ export function updatePanel(d,_force=false){
                 if(ftKey)h.dataset.ft=ftKey;
                 _cbody.appendChild(h);
             };
+            // v6.8.22: prev-snapshot lookup + changed-field set for this
+            // character, driving Feature I per-field delta indicators.
+            // Computed ONCE per card outside the inner helpers so grid
+            // rows can read the set without recomputing it per field.
+            const _prevCh=_findPrevCh(ch);
+            const _changedFields=_computeChangedFields(ch,_prevCh);
             // Helper: build a grid row [label, value] and append to a given
             // parent element. Handles editable wiring + empty-field styling.
+            // When the field differs from the previous snapshot, a small
+            // colored dot indicator is appended to the value cell via a
+            // CSS pseudo-element (sp-char-val-changed class), and a
+            // hover tooltip shows the previous value (truncated).
             const _mkGridRow=(parent,label,key,ftKey)=>{
                 const v=ch[key]||'';
                 const fd=document.createElement('div');fd.className='sp-char-field';fd.textContent=label;fd.dataset.ft=ftKey;
                 const vd=document.createElement('div');vd.className='sp-char-val';vd.textContent=v||'\u2014';vd.dataset.ft=ftKey;
                 if(!v){fd.classList.add('sp-empty-field');vd.classList.add('sp-empty-field');vd.dataset.placeholder=label}
+                if(_changedFields.has(key)){
+                    vd.classList.add('sp-char-val-changed');
+                    const oldVal=_prevCh?.[key]??'';
+                    const oldStr=String(oldVal||t('(empty)'));
+                    vd.title=t('Previous')+': '+(oldStr.length>160?oldStr.substring(0,157)+'\u2026':oldStr);
+                }
                 mkEditable(vd,()=>ch[key]||'',nv=>{ch[key]=nv;const snap=getLatestSnapshot();if(snap?.characters?.[ci])snap.characters[ci][key]=nv});
                 parent.appendChild(fd);parent.appendChild(vd);
             };
@@ -806,6 +865,11 @@ export function updatePanel(d,_force=false){
                 const fd=document.createElement('div');fd.className='sp-char-field';fd.textContent=t('Role');fd.dataset.ft='char_role';
                 const vd=document.createElement('div');vd.className='sp-char-val sp-char-role-val';vd.textContent=ch.role||'\u2014';vd.dataset.ft='char_role';
                 if(!ch.role){fd.classList.add('sp-empty-field');vd.classList.add('sp-empty-field');vd.dataset.placeholder=t('Role')}
+                if(_changedFields.has('role')){
+                    vd.classList.add('sp-char-val-changed');
+                    const oldVal=String(_prevCh?.role||t('(empty)'));
+                    vd.title=t('Previous')+': '+(oldVal.length>160?oldVal.substring(0,157)+'\u2026':oldVal);
+                }
                 mkEditable(vd,()=>ch.role||'',nv=>{ch.role=nv;const snap=getLatestSnapshot();if(snap?.characters?.[ci])snap.characters[ci].role=nv});
                 rr.appendChild(fd);rr.appendChild(vd);
                 _cbody.appendChild(rr);
@@ -826,6 +890,11 @@ export function updatePanel(d,_force=false){
                 tq.dataset.ft='char_innerThought';
                 tq.textContent=ch.innerThought||'\u2014';
                 if(!ch.innerThought){tq.classList.add('sp-empty-field');tq.dataset.placeholder=t('Inner Thought')}
+                if(_changedFields.has('innerThought')){
+                    tq.classList.add('sp-char-val-changed');
+                    const oldVal=String(_prevCh?.innerThought||t('(empty)'));
+                    tq.title=t('Previous')+': '+(oldVal.length>200?oldVal.substring(0,197)+'\u2026':oldVal);
+                }
                 mkEditable(tq,()=>ch.innerThought||'',nv=>{ch.innerThought=nv;const snap=getLatestSnapshot();if(snap?.characters?.[ci])snap.characters[ci].innerThought=nv});
                 _cbody.appendChild(tq);
                 // Immediate need — compact grid row under the thought
@@ -859,10 +928,23 @@ export function updatePanel(d,_force=false){
                 const inv=document.createElement('div');
                 inv.className='sp-char-inventory';
                 inv.dataset.ft='char_inventory';
+                // v6.8.22: compute which items are new/removed vs prev so
+                // we can highlight the changed chips. Items present in
+                // current but not prev get an "added" dot; items removed
+                // are not rendered since they're no longer part of ch.
+                let _prevInvSet = new Set();
+                if (_changedFields.has('inventory') && _prevCh && Array.isArray(_prevCh.inventory)) {
+                    _prevInvSet = new Set(_prevCh.inventory.map(x => String(x || '').toLowerCase().trim()));
+                }
                 for(const item of ch.inventory){
+                    const itemStr = String(item||'').trim();
                     const chip=document.createElement('span');
                     chip.className='sp-char-inventory-item';
-                    chip.textContent=String(item||'').trim()||'\u2014';
+                    chip.textContent=itemStr||'\u2014';
+                    if (_changedFields.has('inventory') && itemStr && !_prevInvSet.has(itemStr.toLowerCase())) {
+                        chip.classList.add('sp-char-inventory-item-added');
+                        chip.title = t('New this turn');
+                    }
                     inv.appendChild(chip);
                 }
                 _cbody.appendChild(inv);

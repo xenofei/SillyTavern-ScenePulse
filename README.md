@@ -435,6 +435,21 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.8.22] — 2026-04-08
+
+#### Added \u2014 per-field delta indicators (Feature I)
+- **Every character card field that changed since the previous snapshot now carries a small accent-colored dot** next to its value. The dot is a `::after` pseudo-element on `.sp-char-val-changed` so there's no extra DOM per field \u2014 just a CSS class toggle during render. Tinted in the character's accent color with a subtle glow so it reads at a glance against dim text.
+- **Hover a changed value** to see the previous value as a title tooltip (truncated at 160 chars for grid rows, 200 chars for the inner thought block).
+- **Inner thought block quotes** get a brighter background + a top-right accent dot instead of the inline dot, because the flex layout of the block doesn't leave room for an inline marker. The dot is positioned with absolute/top-right so it floats in the corner of the quote.
+- **Inventory chips** are compared item-by-item \u2014 items present in the current turn but not the previous get a `sp-char-inventory-item-added` class that brightens the chip border and pulses the bullet dot. Items that were removed aren't rendered (they're not part of `ch.inventory` anymore).
+
+#### Alias-aware previous-character lookup
+- **Previous-snapshot lookup walks alias chains** in three directions: exact canonical name, current character's aliases list matched against prev canonical names, and prev character's aliases matched against current canonical name. A character who was renamed via the v6.8.18 reveal path (e.g. "Stranger" \u2192 "Jenna") still finds their prior entry and computes the delta correctly \u2014 no false "all fields changed" flags from the rename.
+
+#### Not changed
+- No schema changes, no migration, no prompt changes. 183/183 tests still pass.
+- New characters (no prev entry) get no indicators \u2014 delta requires a baseline.
+
 ### [6.8.21] — 2026-04-08
 
 #### Added \u2014 shared character history walker
