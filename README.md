@@ -435,6 +435,23 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.8.16] — 2026-04-08
+
+#### Changed — character card body redesign
+- **Character card body now has clearly-labeled subsections.** Before this release, the card body was a flat stack of fields: role on top, then an inner-thought row, then an unlabeled grid of appearance fields, then goals, then fertility — with no visual anchors separating them. Users looking at the fertility row saw "STATUS: active" and "NOTES: …" with no context for what that data described. The body is now organized into five explicit sections, each headed by a small uppercase dim label with a dashed top rule: **Role** (the identifying field, rendered first without a section header), **Right Now** (inner thought as an italic block quote with the character's accent color as a left border, followed by `immediateNeed`), **Appearance** (hair, face, outfit, posture, proximity, notable details), **Carrying** (inventory as an inline comma-joined line, only rendered when non-empty), **Goals** (short-term + long-term only — `immediateNeed` moved out of Goals because it's about the present moment, not aspirational planning), and **Fertility** (the `STATUS`/`NOTES` pair under an explicit `FERTILITY` label, finally answering "what is this data about?").
+- **Inner thought rendered as a block quote.** The field used to be a plain grid row styled with a dashed top border — visually identical to the appearance fields below it. It's now a distinct block with italic text, a left-border accent in the character's color, and a subtle background tint. Signals "this is the character's voice" rather than metadata about them.
+- **Inventory split out of the appearance grid** into its own `CARRYING` section. Conceptually "what they have" is not "how they look"; mixing them under one grid was a layout accident. The section only renders when inventory is non-empty, so empty inventories don't add visual noise.
+- **`immediateNeed` moved from Goals to Right Now.** The old layout put all three of `immediateNeed`, `shortTermGoal`, and `longTermGoal` under one `GOALS` header. `immediateNeed` is the character's *current moment* ("thirsty", "needs to sit down", "wants to leave"), not an aspiration — grouping it with month-long or life-long goals was a category error. Now it sits with `innerThought` under `RIGHT NOW` where both fields describe the present scene state together.
+
+#### Changed — Character Wiki overlay matches main card layout
+- Applied the same five-section regrouping to `src/ui/character-wiki.js` so the expanded card in the wiki overlay mirrors the main panel. `innerThought` is no longer a loose element floating above the Role header — it's now inside a labeled `RIGHT NOW` section alongside `Needs`. Inventory moved from the Appearance grid into its own `CARRYING` section. Goals is short/long-term only.
+
+#### CSS
+- New classes in `css/characters.css`: `.sp-char-subsection-label` (uppercase dim section header with dashed top rule), `.sp-char-thought-block` (italic block quote with accent left border and subtle background tint), `.sp-char-inventory` (inline row styling for the Carrying section). Existing `.sp-fert-section` top border removed since the subsection label now supplies the visual divider.
+
+#### Not changed
+- No data layer changes — this is purely a presentation refactor. No schema changes, no migration needed, no prompt updates, all 134/134 tests still pass.
+
 ### [6.8.15] — 2026-04-08
 
 #### Fixed — group chat support

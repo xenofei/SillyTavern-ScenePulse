@@ -299,12 +299,23 @@ function _renderEntry(e, viewMode) {
     const body = card.querySelector('.sp-wiki-entry-body');
     let bodyHtml = '';
 
-    if (ch.innerThought) bodyHtml += `<div class="sp-wiki-thought">${esc(ch.innerThought)}</div>`;
-
-    // Role — always first in the body if present
+    // Role — always first in the body if present (mirrors update-panel.js v6.8.16 layout)
     if (ch.role) {
         bodyHtml += '<div class="sp-wiki-section-label">' + t('Role') + '</div>';
         bodyHtml += `<div class="sp-wiki-val" style="margin-bottom:6px">${esc(ch.role)}</div>`;
+    }
+
+    // Right Now — inner thought (block quote) + immediate need.
+    // v6.8.16: groups "present-scene state" together so immediateNeed no
+    // longer lives under Goals alongside aspirational short/long-term goals.
+    if (ch.innerThought || ch.immediateNeed) {
+        bodyHtml += '<div class="sp-wiki-section-label">' + t('Right Now') + '</div>';
+        if (ch.innerThought) bodyHtml += `<div class="sp-wiki-thought">${esc(ch.innerThought)}</div>`;
+        if (ch.immediateNeed) {
+            bodyHtml += '<div class="sp-wiki-grid">';
+            bodyHtml += `<div class="sp-wiki-field">${esc(t('Needs'))}</div><div class="sp-wiki-val">${esc(ch.immediateNeed)}</div>`;
+            bodyHtml += '</div>';
+        }
     }
 
     // Appearance — v6.8.15 trimmed schema: outfit absorbs stateOfDress,
@@ -320,8 +331,15 @@ function _renderEntry(e, viewMode) {
     if (appearFields.some(([, v]) => v)) {
         bodyHtml += '<div class="sp-wiki-section-label">' + t('Appearance') + '</div><div class="sp-wiki-grid">';
         for (const [label, val] of appearFields) { if (val) bodyHtml += `<div class="sp-wiki-field">${esc(t(label))}</div><div class="sp-wiki-val">${esc(val)}</div>`; }
-        if (Array.isArray(ch.inventory) && ch.inventory.length) bodyHtml += `<div class="sp-wiki-field">${esc(t('Inventory'))}</div><div class="sp-wiki-val">${esc(ch.inventory.join(', '))}</div>`;
         bodyHtml += '</div>';
+    }
+
+    // Carrying — v6.8.16: inventory is its own section now, split from
+    // Appearance because "what they have" is conceptually distinct from
+    // "how they look".
+    if (Array.isArray(ch.inventory) && ch.inventory.length) {
+        bodyHtml += '<div class="sp-wiki-section-label">' + t('Carrying') + '</div>';
+        bodyHtml += `<div class="sp-wiki-val" style="padding-left:4px">${esc(ch.inventory.join(', '))}</div>`;
     }
 
     // Meters

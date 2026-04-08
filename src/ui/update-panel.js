@@ -577,77 +577,108 @@ export function updatePanel(d,_force=false){
             cd.querySelector('.sp-char-header').addEventListener('click',()=>cd.classList.toggle('sp-card-open'));
             const _cbody=document.createElement('div');_cbody.className='sp-char-body';
 
-            // Role — full text, editable, always visible (no more truncation)
+            // Helper: build a labeled subsection header (small uppercase,
+            // dim, with a thin top rule). Used between Right Now / Appearance
+            // / Carrying / Goals / Fertility sections so the reader always
+            // knows what group a label belongs to.
+            const _mkSub=(label,ftKey)=>{
+                const h=document.createElement('div');
+                h.className='sp-char-subsection-label';
+                h.textContent=label;
+                if(ftKey)h.dataset.ft=ftKey;
+                _cbody.appendChild(h);
+            };
+            // Helper: build a grid row [label, value] and append to a given
+            // parent element. Handles editable wiring + empty-field styling.
+            const _mkGridRow=(parent,label,key,ftKey)=>{
+                const v=ch[key]||'';
+                const fd=document.createElement('div');fd.className='sp-char-field';fd.textContent=label;fd.dataset.ft=ftKey;
+                const vd=document.createElement('div');vd.className='sp-char-val';vd.textContent=v||'\u2014';vd.dataset.ft=ftKey;
+                if(!v){fd.classList.add('sp-empty-field');vd.classList.add('sp-empty-field');vd.dataset.placeholder=label}
+                mkEditable(vd,()=>ch[key]||'',nv=>{ch[key]=nv;const snap=getLatestSnapshot();if(snap?.characters?.[ci])snap.characters[ci][key]=nv});
+                parent.appendChild(fd);parent.appendChild(vd);
+            };
+
+            // ── ROLE (no section header — it's THE identifying field) ─────
             {
+                const rr=document.createElement('div');rr.className='sp-char-role-row';
                 const fd=document.createElement('div');fd.className='sp-char-field';fd.textContent=t('Role');fd.dataset.ft='char_role';
                 const vd=document.createElement('div');vd.className='sp-char-val sp-char-role-val';vd.textContent=ch.role||'\u2014';vd.dataset.ft='char_role';
                 if(!ch.role){fd.classList.add('sp-empty-field');vd.classList.add('sp-empty-field');vd.dataset.placeholder=t('Role')}
                 mkEditable(vd,()=>ch.role||'',nv=>{ch.role=nv;const snap=getLatestSnapshot();if(snap?.characters?.[ci])snap.characters[ci].role=nv});
-                const rr=document.createElement('div');rr.className='sp-char-role-row';
                 rr.appendChild(fd);rr.appendChild(vd);
                 _cbody.appendChild(rr);
             }
 
-            // Inner thought — rendered in card body (v6.8.15). Previously
-            // only shown in the thought panel and Character Wiki; now it's
-            // first-class in the main character card.
+            // ── RIGHT NOW: inner thought + immediate need ────────────────
+            // Groups the two "present scene state" fields together. The
+            // section header fixes the ambiguity where immediateNeed used
+            // to live under "Goals" alongside short/long-term aspirations
+            // that are NOT about the current moment.
             {
-                const fd=document.createElement('div');fd.className='sp-char-field';fd.textContent=t('Inner Thought');fd.dataset.ft='char_innerThought';
-                const vd=document.createElement('div');vd.className='sp-char-val sp-char-thought-val';vd.textContent=ch.innerThought||'\u2014';vd.dataset.ft='char_innerThought';
-                if(!ch.innerThought){fd.classList.add('sp-empty-field');vd.classList.add('sp-empty-field');vd.dataset.placeholder=t('Inner Thought')}
-                mkEditable(vd,()=>ch.innerThought||'',nv=>{ch.innerThought=nv;const snap=getLatestSnapshot();if(snap?.characters?.[ci])snap.characters[ci].innerThought=nv});
-                const tr=document.createElement('div');tr.className='sp-char-thought-row';
-                tr.appendChild(fd);tr.appendChild(vd);
-                _cbody.appendChild(tr);
-            }
-
-            // Appearance grid — trimmed schema: hair, face, outfit, posture,
-            // proximity, notableDetails. No more stateOfDress (merged into
-            // outfit) or physicalState (merged into posture).
-            {
+                _mkSub(t('Right Now'),'char_innerThought');
+                // Inner thought — rendered as a block quote, italic, with
+                // the character's accent color as a left border. Distinct
+                // visual treatment to signal "this is the character's voice"
+                const tq=document.createElement('div');
+                tq.className='sp-char-thought-block';
+                tq.dataset.ft='char_innerThought';
+                tq.textContent=ch.innerThought||'\u2014';
+                if(!ch.innerThought){tq.classList.add('sp-empty-field');tq.dataset.placeholder=t('Inner Thought')}
+                mkEditable(tq,()=>ch.innerThought||'',nv=>{ch.innerThought=nv;const snap=getLatestSnapshot();if(snap?.characters?.[ci])snap.characters[ci].innerThought=nv});
+                _cbody.appendChild(tq);
+                // Immediate need — compact grid row under the thought
                 const gr=document.createElement('div');gr.className='sp-char-grid';
-                const appearMap={hair:'char_hair',face:'char_face',outfit:'char_outfit',posture:'char_posture',proximity:'char_proximity',notableDetails:'char_notableDetails'};
-                const appearFields=[[t('Hair'),'hair'],[t('Face'),'face'],[t('Outfit'),'outfit'],[t('Posture'),'posture'],[t('Proximity'),'proximity'],[t('Notable Details'),'notableDetails']];
-                for(const[l,key]of appearFields){
-                    const v=ch[key]||'';
-                    const fd=document.createElement('div');fd.className='sp-char-field';fd.textContent=l;fd.dataset.ft=appearMap[key];
-                    const vd=document.createElement('div');vd.className='sp-char-val';vd.textContent=v||'\u2014';vd.dataset.ft=appearMap[key];
-                    if(!v){fd.classList.add('sp-empty-field');vd.classList.add('sp-empty-field');vd.dataset.placeholder=l}
-                    mkEditable(vd,()=>ch[key]||'',nv=>{ch[key]=nv;const snap=getLatestSnapshot();if(snap?.characters?.[ci])snap.characters[ci][key]=nv});
-                    gr.appendChild(fd);gr.appendChild(vd);
-                }
-                if(Array.isArray(ch.inventory)&&ch.inventory.length){
-                    const fd=document.createElement('div');fd.className='sp-char-field';fd.textContent=t('Inventory');fd.dataset.ft='char_inventory';
-                    const vd=document.createElement('div');vd.className='sp-char-val';vd.textContent=ch.inventory.join(', ');vd.dataset.ft='char_inventory';
-                    gr.appendChild(fd);gr.appendChild(vd);
-                }
-                if(gr.children.length)_cbody.appendChild(gr);
+                _mkGridRow(gr,t('Needs'),'immediateNeed','char_immediateNeed');
+                _cbody.appendChild(gr);
             }
 
-            // Goals grid — unchanged
+            // ── APPEARANCE: hair, face, outfit, posture, proximity, details
             {
-                const gs=document.createElement('div');gs.className='sp-char-goals';
-                const gg=document.createElement('div');gg.className='sp-char-grid';
-                const goalMap={immediateNeed:'char_immediateNeed',shortTermGoal:'char_shortTermGoal',longTermGoal:'char_longTermGoal'};
-                for(const[l,key]of[[t('Need'),'immediateNeed'],[t('Short-Term'),'shortTermGoal'],[t('Long-Term'),'longTermGoal']]){
-                    const v=ch[key]||'';
-                    const fd=document.createElement('div');fd.className='sp-char-field';fd.textContent=l;fd.dataset.ft=goalMap[key];
-                    const vd=document.createElement('div');vd.className='sp-char-val';vd.textContent=v||'\u2014';vd.dataset.ft=goalMap[key];
-                    if(!v){fd.classList.add('sp-empty-field');vd.classList.add('sp-empty-field');vd.dataset.placeholder=l}
-                    mkEditable(vd,()=>ch[key]||'',nv=>{ch[key]=nv;const snap=getLatestSnapshot();if(snap?.characters?.[ci])snap.characters[ci][key]=nv});
-                    gg.appendChild(fd);gg.appendChild(vd);
-                }
-                gs.appendChild(gg);_cbody.appendChild(gs);
+                _mkSub(t('Appearance'),'char_hair');
+                const gr=document.createElement('div');gr.className='sp-char-grid';
+                _mkGridRow(gr,t('Hair'),'hair','char_hair');
+                _mkGridRow(gr,t('Face'),'face','char_face');
+                _mkGridRow(gr,t('Outfit'),'outfit','char_outfit');
+                _mkGridRow(gr,t('Posture'),'posture','char_posture');
+                _mkGridRow(gr,t('Proximity'),'proximity','char_proximity');
+                _mkGridRow(gr,t('Notable Details'),'notableDetails','char_notableDetails');
+                _cbody.appendChild(gr);
             }
 
-            // Fertility section — trimmed schema: just fertStatus + fertNotes.
-            // Only rendered when fertStatus is set AND not "N/A" (or when the
-            // user is in edit mode / show-empty mode for deliberate access).
+            // ── CARRYING: inventory as its own section (only when non-empty)
+            // Split out of the appearance grid because inventory is
+            // conceptually "what they have" not "how they look". Renders
+            // inline as a single comma-joined row under its own header.
+            if(Array.isArray(ch.inventory)&&ch.inventory.length){
+                _mkSub(t('Carrying'),'char_inventory');
+                const inv=document.createElement('div');
+                inv.className='sp-char-inventory';
+                inv.dataset.ft='char_inventory';
+                inv.textContent=ch.inventory.join(', ');
+                _cbody.appendChild(inv);
+            }
+
+            // ── GOALS: short-term + long-term only (immediateNeed moved to
+            // Right Now where it belongs conceptually).
+            {
+                _mkSub(t('Goals'),'char_shortTermGoal');
+                const gr=document.createElement('div');gr.className='sp-char-grid';
+                _mkGridRow(gr,t('Short-Term'),'shortTermGoal','char_shortTermGoal');
+                _mkGridRow(gr,t('Long-Term'),'longTermGoal','char_longTermGoal');
+                _cbody.appendChild(gr);
+            }
+
+            // ── FERTILITY: explicit header fixes the pre-v6.8.16 confusion
+            // where STATUS/NOTES appeared as orphan fields with no context.
+            // Now any user glancing at the card sees "FERTILITY" as a clear
+            // section label so "STATUS: active" is unambiguous.
             {
                 const _isEdit=document.getElementById('sp-panel')?.classList.contains('sp-edit-mode');
                 const _showEmpty=document.getElementById('sp-panel')?.classList.contains('sp-show-empty');
                 const _showFert=ch.fertStatus&&(ch.fertStatus!=='N/A'||_isEdit);
                 if(_showFert||_isEdit||_showEmpty){
+                    _mkSub(t('Fertility'),'char_fertility');
                     const fertDiv=document.createElement('div');fertDiv.className='sp-fert-section';fertDiv.dataset.ft='char_fertility';
                     if(ch.fertStatus==='N/A'&&!_isEdit&&!_showEmpty){
                         fertDiv.innerHTML=`<div class="sp-fert-na">${t('Fertility: N/A')}</div>`;

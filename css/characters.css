@@ -21,10 +21,27 @@
 .sp-char-grid { display: grid; grid-template-columns: auto 1fr; gap: 1px 6px; padding-left: 2px; }
 .sp-char-field { font-size: 9px; font-weight: 600; color: var(--sp-text-dim); text-transform: uppercase; letter-spacing: 0.03em; text-align: right; padding: 1px 0; }
 .sp-char-val { font-size: 11px; color: var(--sp-text); padding: 1px 0; }
+/* v6.8.16: labeled subsection headers inside the character card body.
+   Small uppercase dim text sitting above a dashed top rule — the visual
+   anchor that tells readers which group of fields follows (Right Now,
+   Appearance, Carrying, Goals, Fertility). Fixes pre-v6.8.16 confusion
+   where STATUS/NOTES rows appeared without any section context. */
+.sp-char-subsection-label { font-size: 9px; font-weight: 700; color: var(--sp-text-dim); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 6px; padding-top: 4px; padding-left: 2px; border-top: 1px dashed var(--sp-border); }
+.sp-char-subsection-label:first-child { margin-top: 4px; }
+/* Inner thought as a block quote — italic, left-border accent in the
+   character's color, visually distinct from plain grid rows so the
+   voice of the character reads like speech not metadata. */
+.sp-char-thought-block { font-size: 11px; color: var(--sp-text); font-style: italic; line-height: 1.45; padding: 3px 6px 3px 8px; margin: 3px 2px 4px 2px; border-left: 2px solid var(--char-accent, var(--sp-accent)); background: rgba(255,255,255,0.02); border-radius: 2px; }
+.sp-char-thought-block.sp-empty-field { font-style: normal; }
+/* Carrying/inventory rendered as a single inline comma-joined line,
+   dim, under its own subsection header. */
+.sp-char-inventory { font-size: 11px; color: var(--sp-text); padding: 2px 2px 2px 4px; line-height: 1.4; }
 .sp-char-goals { margin-top: 4px; padding-top: 4px; border-top: 1px dashed var(--sp-border); }
 .sp-char-goal-item { font-size: 10px; color: var(--sp-text-dim); padding: 1px 0 1px 4px; }
 .sp-char-goal-item strong { color: var(--sp-text); }
-.sp-fert-section { margin-top: 4px; padding-top: 4px; border-top: 1px dashed var(--sp-border); }
+/* v6.8.16: fertility section no longer needs its own border — the
+   subsection label above it already supplies the visual divider. */
+.sp-fert-section { padding-top: 2px; }
 .sp-fert-na { font-size: 10px; color: var(--sp-text-dim); font-style: italic; }
 .sp-fert-inline { display: inline-flex; align-items: baseline; gap: 3px; }
 .sp-fert-inline-label { font-size: 8px; font-weight: 600; color: var(--sp-text-dim); text-transform: uppercase; letter-spacing: 0.03em; }
