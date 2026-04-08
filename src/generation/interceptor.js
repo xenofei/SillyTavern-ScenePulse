@@ -4,6 +4,7 @@ import { log } from '../logger.js';
 import { DEFAULTS } from '../constants.js';
 import { getSettings, getActiveSchema, getActivePrompt, getLatestSnapshot, getLanguage } from '../settings.js';
 import { anyPanelsActive } from '../settings.js';
+import { getGroupMemberNames } from '../normalize.js';
 import {
     generating, inlineGenStartMs, inlineExtractionDone, pendingInlineIdx,
     setGenerating, setInlineGenStartMs, setInlineExtractionDone, setPendingInlineIdx,
@@ -39,7 +40,19 @@ export function buildInlineTrackerPrompt(){
     let mandatoryHints='';
     if(panels.storyIdeas!==false)mandatoryHints+='\n- plotBranches: EXACTLY 5 story suggestions (dramatic, intense, comedic, twist, exploratory). Each needs type, name, hook.';
     if(panels.quests!==false)mandatoryHints+='\n- mainQuests (MAX 3) / sideQuests (MAX 4): Persistent life arcs spanning multiple scenes, NOT scene-level actions. Introduce AT MOST 1 new quest per turn. Each needs name, urgency, detail.';
-    if(panels.characters!==false)mandatoryHints+='\n- characters: Full details for EVERY non-user character present including appearance.';
+    if(panels.characters!==false){
+        mandatoryHints+='\n- characters: Full details for every named, plot-relevant NPC present (MAX 5 entries, background crowd members go in sceneSummary instead). Each entry needs name, role, innerThought, immediateNeed, and appearance fields.';
+        // Group chat awareness: if ST has a group chat active, inject the
+        // explicit member roster so the model knows who must appear in the
+        // characters array and in charactersPresent. Without this the model
+        // only "sees" the currently-speaking character and silently drops
+        // the others, because nothing in the chat-history context tells it
+        // "these N characters are also in this conversation."
+        const _groupMembers=getGroupMemberNames();
+        if(_groupMembers.length>1){
+            mandatoryHints+='\n- GROUP CHAT ACTIVE: This is a group chat with '+_groupMembers.length+' participating characters: '+_groupMembers.map(n=>'"'+n+'"').join(', ')+'. ALL of these characters MUST appear in both the `characters` array and `charactersPresent` (unless the narrative has explicitly removed them from the scene, e.g. they left the room). Do NOT focus only on whichever character is speaking this turn \u2014 every group member still present in the scene gets a full character entry every turn. If a character is in the group but absent from THIS specific scene (they stayed home, they\'re in another room), omit them from charactersPresent but keep their previous character data so it carries forward unchanged.';
+        }
+    }
     if(panels.relationships!==false)mandatoryHints+='\n- relationships: All characters\' views of {{user}} with numeric meters (0-100) and labels. desire=0 for strangers/family.';
     // Custom panel hints
     const customPanels=s.customPanels||[];
