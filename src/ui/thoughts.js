@@ -200,12 +200,21 @@ export function updateThoughts(d){
         if(s.showThoughts===false)log('updateThoughts: hidden (showThoughts=false)');
         panel.classList.remove('sp-tp-visible');return;
     }
-    // Sort: {{char}} first
+    // Sort: primary character(s) first. v6.8.15 uses _isPrimary computed in
+    // normalize (group-aware). Falls back to name2 string match for legacy
+    // snapshots where the flag isn't set. In a group chat, every group member
+    // is marked primary, so they all bubble to the top as a cohort.
     const _tpCharName=(SillyTavern.getContext().name2||'').toLowerCase();
+    const _tpPrim=(c)=>{
+        if(c?._isPrimary!=null)return !!c._isPrimary;
+        const n=(c?.name||'').toLowerCase();
+        return !!_tpCharName&&(n.startsWith(_tpCharName)||_tpCharName.startsWith(n));
+    };
     const sortedTpChars=[...d.characters].sort((a,b)=>{
-        const aMatch=(a.name||'').toLowerCase().startsWith(_tpCharName)||_tpCharName.startsWith((a.name||'').toLowerCase());
-        const bMatch=(b.name||'').toLowerCase().startsWith(_tpCharName)||_tpCharName.startsWith((b.name||'').toLowerCase());
-        if(aMatch&&!bMatch)return -1;if(bMatch&&!aMatch)return 1;return 0;
+        const aP=_tpPrim(a),bP=_tpPrim(b);
+        if(aP&&!bP)return -1;
+        if(bP&&!aP)return 1;
+        return 0;
     });
     for(const ch of sortedTpChars){
         const cc=charColor(ch.name);
