@@ -6,6 +6,7 @@ import { log, warn } from './logger.js';
 import { esc } from './utils.js';
 import { buildDynamicSchema, buildDynamicPrompt } from './schema.js';
 import { t } from './i18n.js';
+import { consolidateQuests } from './generation/delta-merge.js';
 
 let _settingsCache = null;
 
@@ -50,6 +51,31 @@ export function getTrackerData(){
         m.scenepulse._spActiveTasksMigrated=true;
         if(stripped>0){
             log('Migration v6.8.9: stripped activeTasks from',stripped,'snapshot(s) in this chat');
+            try{SillyTavern.getContext().saveMetadata()}catch(e){warn('Migration save failed:',e?.message)}
+        }
+    }
+    // ── v6.8.11 migration: run consolidateQuests over every snapshot ──────
+    // Heals existing chats that accumulated quest duplicates before v6.8.11's
+    // improved cross-tier dedup landed. Runs in-tier fuzzy dedup AND cross-tier
+    // (mainQuests wins over sideQuests) across every snapshot in the chat,
+    // then persists the cleaned metadata back to disk. Guarded by a per-chat
+    // flag so the scan only runs once even though getTrackerData is hot.
+    if(!m.scenepulse._spQuestDedupMigrated){
+        let touched=0;
+        const snaps=m.scenepulse.snapshots||{};
+        for(const k of Object.keys(snaps)){
+            const snap=snaps[k];
+            if(!snap)continue;
+            const beforeMain=Array.isArray(snap.mainQuests)?snap.mainQuests.length:0;
+            const beforeSide=Array.isArray(snap.sideQuests)?snap.sideQuests.length:0;
+            consolidateQuests(snap);
+            const afterMain=Array.isArray(snap.mainQuests)?snap.mainQuests.length:0;
+            const afterSide=Array.isArray(snap.sideQuests)?snap.sideQuests.length:0;
+            if(afterMain!==beforeMain||afterSide!==beforeSide)touched++;
+        }
+        m.scenepulse._spQuestDedupMigrated=true;
+        if(touched>0){
+            log('Migration v6.8.11: consolidated quest duplicates in',touched,'snapshot(s) in this chat');
             try{SillyTavern.getContext().saveMetadata()}catch(e){warn('Migration save failed:',e?.message)}
         }
     }

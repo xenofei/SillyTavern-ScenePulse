@@ -259,6 +259,91 @@ console.log('\n── Fuzzy dedup applies to mainQuests and sideQuests too ─�
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+// 11. Cross-tier: mainQuests absorbs matching sideQuest (main wins)
+// ═══════════════════════════════════════════════════════════════════════
+console.log('\n── Cross-tier: mainQuests wins over sideQuests on fuzzy match ──');
+{
+    const prev = {
+        mainQuests: [
+            { name: 'rebuild trust with Jenna', urgency: 'high', detail: 'original main detail' }
+        ],
+        sideQuests: [
+            // Model mistakenly lists a paraphrase of the same arc in sideQuests
+            { name: 'rebuild Jenna trust', urgency: 'moderate', detail: 'side detail that should survive' }
+        ]
+    };
+    const delta = { time: '15:30' };
+    const merged = mergeDelta(prev, delta);
+    assertLen('main absorbs side: mainQuests has 1', merged.mainQuests, 1);
+    assertLen('main absorbs side: sideQuests is empty', merged.sideQuests, 0);
+    assertEq('main keeps its canonical name', merged.mainQuests[0].name, 'rebuild trust with Jenna');
+    // Non-empty side detail should overwrite main detail (prefer newer non-empty)
+    assertEq('side detail merged into main', merged.mainQuests[0].detail, 'side detail that should survive');
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// 12. Cross-tier: unrelated side quests are preserved
+// ═══════════════════════════════════════════════════════════════════════
+console.log('\n── Cross-tier: unrelated sideQuests stay in their tier ──');
+{
+    const prev = {
+        mainQuests: [
+            { name: 'win the custody battle', urgency: 'critical', detail: '' }
+        ],
+        sideQuests: [
+            { name: 'learn to cook pasta', urgency: 'low', detail: '' },
+            { name: 'reconnect with estranged sibling', urgency: 'moderate', detail: '' }
+        ]
+    };
+    const delta = { time: '15:30' };
+    const merged = mergeDelta(prev, delta);
+    assertLen('unrelated mainQuest preserved', merged.mainQuests, 1);
+    assertLen('unrelated sideQuests preserved', merged.sideQuests, 2);
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// 13. Cross-tier: no mainQuests means nothing to absorb into
+// ═══════════════════════════════════════════════════════════════════════
+console.log('\n── Cross-tier: no-op when mainQuests is empty ──');
+{
+    const prev = {
+        mainQuests: [],
+        sideQuests: [
+            { name: 'learn to cook pasta', urgency: 'low', detail: '' },
+            { name: 'learn cooking pasta', urgency: 'low', detail: 'dupe' }
+        ]
+    };
+    const delta = { time: '15:30' };
+    const merged = mergeDelta(prev, delta);
+    assertLen('empty mainQuests stays empty', merged.mainQuests, 0);
+    // Phase 1 in-tier dedup should still catch the paraphrase in sideQuests
+    assertLen('in-tier dedup still runs on sideQuests', merged.sideQuests, 1);
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// 14. Cross-tier: multiple sideQuests absorbed into one mainQuest
+// ═══════════════════════════════════════════════════════════════════════
+console.log('\n── Cross-tier: multiple sideQuests can absorb into same mainQuest ──');
+{
+    const prev = {
+        mainQuests: [
+            { name: 'rebuild trust with Jenna', urgency: 'high', detail: '' }
+        ],
+        sideQuests: [
+            { name: 'rebuild Jenna trust', urgency: 'moderate', detail: 'first paraphrase' },
+            { name: 'trust rebuild Jenna', urgency: 'moderate', detail: 'second paraphrase' },
+            { name: 'learn to cook pasta', urgency: 'low', detail: '' }
+        ]
+    };
+    const delta = { time: '15:30' };
+    const merged = mergeDelta(prev, delta);
+    assertLen('main still has 1', merged.mainQuests, 1);
+    // Two paraphrases absorb into main, unrelated cook-pasta survives
+    assertLen('only unrelated sideQuest survives', merged.sideQuests, 1);
+    assertEq('unrelated side is cook pasta', merged.sideQuests[0].name, 'learn to cook pasta');
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 // Summary
 // ═══════════════════════════════════════════════════════════════════════
 console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');

@@ -163,20 +163,11 @@ export function mergeDelta(prev, delta) {
         }
     }
 
-    // Post-merge: run a single fuzzy-dedup pass over each quest array to
-    // consolidate accumulated near-duplicates from prior turns that the
-    // per-entry merge path couldn't catch (e.g. the previous snapshot already
-    // contained two paraphrases of the same quest before the fix landed).
-    // This heals existing chats with bloated quest piles.
-    for (const qk of QUEST_ARRAYS) {
-        if (Array.isArray(merged[qk]) && merged[qk].length > 1) {
-            const before = merged[qk].length;
-            merged[qk] = _dedupQuestArray(merged[qk]);
-            if (merged[qk].length < before) {
-                log('Quest dedup:', qk, before, '→', merged[qk].length, '(-' + (before - merged[qk].length) + ')');
-            }
-        }
-    }
+    // Post-merge: run a single fuzzy-dedup + cross-tier pass. This consolidates
+    // accumulated near-duplicates from prior turns that the per-entry merge
+    // path couldn't catch, and resolves quests that appear in BOTH mainQuests
+    // and sideQuests to the main tier. See consolidateQuests() below.
+    consolidateQuests(merged);
 
     // 3. Warn if delta was suspiciously small
     if (deltaKeys.length < 2) {
@@ -317,4 +308,85 @@ function _dedupQuestArray(arr) {
         }
     }
     return result;
+}
+
+/**
+ * Post-merge cleanup pass over every quest tier on a tracker snapshot.
+ * Mutates the snapshot in place and returns it for chaining.
+ *
+ * Two phases:
+ *
+ * PHASE 1 — In-tier fuzzy dedup. For each quest tier (mainQuests, sideQuests),
+ * consolidate paraphrased near-duplicates via _dedupQuestArray using the same
+ * Jaccard-over-stemmed-token-set matcher mergeEntityArray uses. Heals piles
+ * that already contained near-duplicates before the delta arrived (e.g. a
+ * snapshot restored from a pre-fuzzy-dedup version) and catches two
+ * paraphrases of the same quest submitted in a single delta batch.
+ *
+ * PHASE 2 — Cross-tier dedup. mainQuests wins over sideQuests: if a sideQuest
+ * fuzzy-matches (>= 0.60) a mainQuest, the sideQuest is dropped and its
+ * field values are merged into the mainQuest (non-empty wins, name stays
+ * canonical). This prevents the model from listing the same underlying
+ * quest in both tiers — a failure mode the prompt now explicitly forbids
+ * but which the model may still emit under long-context pressure.
+ *
+ * Safe to call on any snapshot-shaped object, including legacy ones with
+ * missing or non-array tier fields. Idempotent.
+ */
+export function consolidateQuests(snap) {
+    if (!snap || typeof snap !== 'object') return snap;
+
+    // Phase 1: in-tier dedup
+    for (const qk of QUEST_ARRAYS) {
+        if (Array.isArray(snap[qk]) && snap[qk].length > 1) {
+            const before = snap[qk].length;
+            snap[qk] = _dedupQuestArray(snap[qk]);
+            if (snap[qk].length < before) {
+                log('Quest dedup:', qk, before, '→', snap[qk].length, '(-' + (before - snap[qk].length) + ')');
+            }
+        }
+    }
+
+    // Phase 2: cross-tier dedup — mainQuests absorbs any fuzzy-matching sideQuest.
+    // Iterate sideQuests once; for each, scan mainQuests for a fuzzy hit. If
+    // found, merge the sideQuest's non-empty fields into the matching main
+    // entry (keeping the main name as canonical) and drop the sideQuest.
+    if (Array.isArray(snap.mainQuests) && Array.isArray(snap.sideQuests) &&
+        snap.mainQuests.length > 0 && snap.sideQuests.length > 0) {
+        const mainTokens = snap.mainQuests.map(q => _tokenizeQuestName(q?.name));
+        const keptSide = [];
+        let absorbed = 0;
+        for (const sq of snap.sideQuests) {
+            if (!sq || !sq.name) { keptSide.push(sq); continue; }
+            const sqTokens = _tokenizeQuestName(sq.name);
+            let bestIdx = -1, bestScore = -1;
+            for (let i = 0; i < mainTokens.length; i++) {
+                const score = _jaccardSimilarity(sqTokens, mainTokens[i]);
+                if (score >= _QUEST_FUZZY_THRESHOLD && score > bestScore) {
+                    bestScore = score;
+                    bestIdx = i;
+                }
+            }
+            if (bestIdx === -1) {
+                keptSide.push(sq);
+            } else {
+                // mainQuests wins — absorb non-empty fields from sq into the matching main
+                const main = snap.mainQuests[bestIdx];
+                const merged = { ...main };
+                for (const [fk, fv] of Object.entries(sq)) {
+                    if (fk === 'name') continue; // main name is canonical
+                    if (fv !== undefined && fv !== null && fv !== '') merged[fk] = fv;
+                }
+                snap.mainQuests[bestIdx] = merged;
+                absorbed++;
+                log('Quest cross-tier:', JSON.stringify(sq.name), '→ absorbed into mainQuests', JSON.stringify(main.name));
+            }
+        }
+        if (absorbed > 0) {
+            snap.sideQuests = keptSide;
+            log('Quest cross-tier: absorbed', absorbed, 'sideQuest(s) into mainQuests');
+        }
+    }
+
+    return snap;
 }
