@@ -435,6 +435,39 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.8.44] — 2026-04-09
+
+#### Fixed — Hover-enlarged portrait preview now universal across the extension
+**Reported**: "Attempted to hover over a real image in the wiki — doesn't work. Verify if that's intended." Followed by: "If there's an avatar used by the extension, ensure it gets enlarged over hover. It might be recommended to consult with professionals about creating a function/single bounce that would be universal across the app."
+
+**Root cause**: the v6.8.43 hover-to-enlarge preview was scoped to the relationship web only. Its `_showPortraitPreview` / `_hidePortraitPreview` helpers lived in `src/ui/relationship-web.js` and were wired exclusively to the `.sp-web-hit` SVG hit areas. The character wiki, thoughts panel, update panel character cards, relationship block headers, and off-scene stubs all rendered avatars through shared helpers but received no hover handler. Architecturally unsound: six avatar sites, one preview behavior, zero shared wiring.
+
+**Fix**: consolidated the preview into a single universal mechanism driven by document-level event delegation, living in `src/ui/portraits.js` alongside the existing `getPortraitDescriptor` / `getPortraitHtml` chokepoint. Key changes:
+
+1. **Universal contract via data attributes**: any element anywhere in the extension with a `data-sp-preview-url` attribute triggers the preview on hover. The delegated listener reads `data-sp-preview-url`, `data-sp-preview-name`, and `data-sp-preview-color` from the hovered element (via `e.target.closest('[data-sp-preview-url]')`) and shows a singleton preview pinned near the cursor. Adding preview support to a new avatar site is a matter of setting three attributes — no JS wiring, no re-registration after re-renders, no init ordering.
+
+2. **Chokepoint through `getPortraitHtml()`**: the existing HTML helper now bakes the three attributes into its URL branch automatically. This covers four sites with zero per-site churn: update-panel character cards, relationship block headers, off-scene stubs, and the thoughts panel. Monogram fallback branches set no attrs and therefore never trigger the preview (enlarging a single letter carries no information).
+
+3. **Explicit attr injection for hand-built sites**: the relationship web SVG (`<circle class="sp-web-hit">`) and the character wiki (`<span class="sp-wiki-avatar-slot">`) build their markup by hand and can't go through `getPortraitHtml()`. Both now call the new `getPortraitPreviewAttrs(descriptor, nameOverride, colorOverride)` helper and interpolate the returned string directly into their templates.
+
+4. **Singleton preview element with in-place mutation**: one preview DOM node is lazily created on first show and reused across all avatar sites. Hover swaps the `<img src>` and caption text in place rather than removing and re-appending the element, eliminating the flashing/reload that a per-site preview would cause when hovering adjacent avatars in a grid.
+
+5. **Orphan guard via `requestAnimationFrame`**: when the hovered element is removed mid-hover (common in the update panel's delta-merge re-render loop and the relationship web's drag re-render), no `mouseout` event fires. A small rAF loop checks `currentTarget.isConnected` on every frame and hides the preview when the target disappears.
+
+6. **`mouseover` / `mouseout` with `closest()` traversal**: uses bubbling events (not `mouseenter` which doesn't bubble), so a single listener on `document.body` covers every avatar without per-site binding. The mouseout handler checks `e.relatedTarget` and ignores traversal to children of the same hover target, preventing flicker when the cursor moves from the `<img>` to its wrapper.
+
+7. **`getPortraitDescriptor()` extended with a `name` field**: the shared descriptor now carries the full character name alongside the first-letter monogram, so the preview caption can be populated without every site having to pass the name separately.
+
+Code changes:
+
+- `src/ui/portraits.js` (+130 LOC): new `getPortraitPreviewAttrs()` export, new `hidePortraitPreview()` export, singleton preview element, delegated listener auto-installed on module import (guarded for DOM readiness), orphan guard, `name` field added to `getPortraitDescriptor()`, `getPortraitHtml()` now calls `getPortraitPreviewAttrs()` internally.
+- `src/ui/relationship-web.js` (−45 LOC): deleted the local `_showPortraitPreview` / `_hidePortraitPreview` helpers and their per-handler wiring. Added `getPortraitPreviewAttrs` call to the `.sp-web-hit` circle template. `_close()` calls the shared `hidePortraitPreview()`.
+- `src/ui/character-wiki.js` (+2 LOC): URL branch of the avatar render now interpolates `getPortraitPreviewAttrs()` into the `<span class="sp-wiki-avatar-slot">` opening tag. `_close()` calls `hidePortraitPreview()`.
+- `css/characters.css` (+37 LOC): new `.sp-portrait-preview` / `.sp-portrait-preview img` / `.sp-portrait-preview-caption` styles, co-located with `.sp-char-portrait`.
+- `css/relationship-web.css` (−28 LOC): removed the old `.sp-web-portrait-preview` styles. The CSS-less selector is now a no-op.
+
+No changes to update-panel.js or thoughts.js — they use `getPortraitHtml()` and inherit the preview automatically. No new files, no new CSS files, no new module. Touch-device behavior unchanged (hover-only, same as v6.8.43).
+
 ### [6.8.43] — 2026-04-09
 
 #### Changed — Relationship web labels and avatars are fully uniform

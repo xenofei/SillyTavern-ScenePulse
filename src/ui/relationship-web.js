@@ -19,7 +19,7 @@ import { log, warn } from '../logger.js';
 import { t } from '../i18n.js';
 import { esc, clamp } from '../utils.js';
 import { charColor } from '../color.js';
-import { resolvePortraitUrl, buildPortraitIndex, getPortraitDescriptor } from './portraits.js';
+import { resolvePortraitUrl, buildPortraitIndex, getPortraitDescriptor, getPortraitPreviewAttrs, hidePortraitPreview } from './portraits.js';
 import {
     isEnabled as isGraphEnabled,
     getCachedEdges,
@@ -667,11 +667,17 @@ function _buildSvg(graph, positions, userName, state) {
         svg += `</g>`;
     }
 
-    // Transparent hit areas for hover/click (larger than the visible nodes)
+    // Transparent hit areas for hover/click (larger than the visible nodes).
+    // v6.8.44: hit circles for nodes with a real image portrait also carry
+    // data-sp-preview-* attributes so the universal document-level
+    // delegated listener in portraits.js can show the enlarged preview
+    // on hover. Monogram nodes set no attrs → no preview.
     for (let i = 0; i < nodes.length; i++) {
         const p = positions[i];
         if (!p) continue;
-        svg += `<circle class="sp-web-hit" data-idx="${i}" cx="${p.x}" cy="${p.y}" r="${NODE_R + 10}" fill="transparent" style="cursor:pointer"/>`;
+        const n = nodes[i];
+        const previewAttrs = getPortraitPreviewAttrs(n.portrait, n.name, n.color);
+        svg += `<circle class="sp-web-hit" data-idx="${i}"${previewAttrs} cx="${p.x}" cy="${p.y}" r="${NODE_R + 10}" fill="transparent" style="cursor:pointer"/>`;
     }
 
     svg += '</svg>';
@@ -731,40 +737,13 @@ function _showTooltip(graph, nodeIdx, x, y) {
 }
 function _hideTooltip() { document.querySelectorAll('.sp-web-tooltip').forEach(t => t.remove()); }
 
-// ── Hover-enlarged portrait preview ───────────────────────────────────
-// v6.8.43: when a user hovers a node that has a real image portrait,
-// show an enlarged square preview pinned near the cursor. Only fires
-// for nodes where portrait.type === 'url' — monogram circles get no
-// preview (they carry no extra information at larger size). Reuses
-// the tooltip positioning pattern (avoid viewport edges) but places
-// the preview on the opposite side of the node from the tooltip so
-// the two don't overlap.
-function _showPortraitPreview(node, x, y) {
-    _hidePortraitPreview();
-    const p = node?.portrait;
-    if (!p || p.type !== 'url' || !p.url) return;
-    const box = document.createElement('div');
-    box.className = 'sp-web-portrait-preview';
-    box.innerHTML = `<img src="${esc(p.url)}" alt="${esc(node.name || '')}" onerror="this.parentElement?.remove()">`
-        + `<div class="sp-web-portrait-preview-caption" style="color:${esc(node.color || '#fff')}">${esc(node.name || '')}</div>`;
-    const vw = window.innerWidth, vh = window.innerHeight;
-    // Default to the right of the cursor, offset below the tooltip so
-    // the two don't visually stack. If no room on the right, flip left.
-    const boxW = 224;
-    const boxH = 260;
-    let tx = x + 32;
-    let ty = y + 20;
-    if (tx + boxW > vw - 8) tx = x - boxW - 18;
-    if (tx < 8) tx = 8;
-    if (ty + boxH > vh - 8) ty = vh - boxH - 8;
-    if (ty < 8) ty = 8;
-    box.style.left = tx + 'px';
-    box.style.top = ty + 'px';
-    document.body.appendChild(box);
-}
-function _hidePortraitPreview() {
-    document.querySelectorAll('.sp-web-portrait-preview').forEach(el => el.remove());
-}
+// v6.8.44: the hover-enlarged portrait preview formerly defined here
+// moved to the universal helper in src/ui/portraits.js. Every avatar
+// site in the extension now drives the same preview via document-level
+// event delegation triggered by `data-sp-preview-*` attributes on the
+// target element. The relationship web sets those attributes on its
+// .sp-web-hit circles below (in _buildSvg) instead of wiring explicit
+// mouseenter/mouseleave handlers.
 
 // ── Edge type descriptions for legend ─────────────────────────────────
 // v6.8.28: one-line descriptions shown in the legend panel so users can
@@ -914,13 +893,13 @@ export function openRelationshipWeb(entries) {
             hit.addEventListener('mouseenter', (e) => {
                 if (draggedIdx != null) return;
                 _showTooltip(graph, idx, e.clientX, e.clientY);
-                // v6.8.43: enlarged portrait preview for nodes with
-                // a real image. Monogram fallback nodes skip this.
-                _showPortraitPreview(graph.nodes[idx], e.clientX, e.clientY);
+                // v6.8.44: the enlarged-portrait preview is driven by
+                // the universal delegated listener in portraits.js via
+                // data-sp-preview-* attributes set on the .sp-web-hit
+                // circle in _buildSvg — no explicit wiring here.
             });
             hit.addEventListener('mouseleave', () => {
                 _hideTooltip();
-                _hidePortraitPreview();
             });
             hit.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -932,7 +911,7 @@ export function openRelationshipWeb(entries) {
                     focusedIdx = idx;
                 }
                 _hideTooltip();
-                _hidePortraitPreview();
+                hidePortraitPreview();
                 _rerender();
             });
         });
@@ -1161,7 +1140,7 @@ export function openRelationshipWeb(entries) {
             _close();
         }
     };
-    function _close() { _hideTooltip(); _hidePortraitPreview(); overlay.remove(); document.removeEventListener('keydown', _escHandler); }
+    function _close() { _hideTooltip(); hidePortraitPreview(); overlay.remove(); document.removeEventListener('keydown', _escHandler); }
     overlay.querySelector('.sp-web-close').addEventListener('click', _close);
     overlay.addEventListener('click', e => { if (e.target === overlay) { _hideTooltip(); _close(); } });
     document.addEventListener('keydown', _escHandler);

@@ -202,34 +202,10 @@
 /* Node hover effect (SVG) */
 .sp-web-node:hover circle:first-child { stroke-width: 3; filter: drop-shadow(0 0 6px currentColor); }
 
-/* v6.8.43: enlarged portrait preview that appears on node hover for
-   characters that have a real image. Monogram fallback nodes do NOT
-   show a preview (no new information at larger size). Positioned
-   absolutely by the JS near the cursor; caption shows the name. */
-.sp-web-portrait-preview {
-    position: fixed; z-index: 100015;
-    width: 224px;
-    background: rgba(12,14,20,0.97);
-    border: 1px solid var(--sp-border);
-    border-radius: 10px;
-    box-shadow: 0 16px 48px rgba(0,0,0,0.7);
-    padding: 6px 6px 8px;
-    pointer-events: none;
-    animation: sp-glass-in 0.12s ease-out;
-    display: flex; flex-direction: column; align-items: center; gap: 6px;
-}
-.sp-web-portrait-preview img {
-    width: 100%; aspect-ratio: 1 / 1; object-fit: cover;
-    border-radius: 8px;
-    background: #0c0e14;
-    display: block;
-}
-.sp-web-portrait-preview-caption {
-    font-size: 12px; font-weight: 700; text-align: center;
-    padding: 0 6px; line-height: 1.2;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
-    word-break: break-word;
-}
+/* v6.8.44: hover-enlarged portrait preview styles live in
+   css/characters.css now (same file as .sp-char-portrait). The
+   universal delegated listener in src/ui/portraits.js handles every
+   avatar site in the extension, not just the relationship web. */
 
 /* ═══ RESPONSIVE ═══ */
 @media(max-width:900px){

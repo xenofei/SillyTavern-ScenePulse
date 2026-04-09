@@ -7,7 +7,7 @@ import { normalizeTracker } from '../normalize.js';
 import { charColor } from '../color.js';
 import { createSparklineCanvas, _scrollToMessage } from './sparklines.js';
 import { currentSnapshotMesIdx } from '../state.js';
-import { resolvePortraitUrl, buildPortraitIndex, getPortraitDescriptor } from './portraits.js';
+import { resolvePortraitUrl, buildPortraitIndex, getPortraitDescriptor, getPortraitPreviewAttrs, hidePortraitPreview } from './portraits.js';
 import { getCharacterHistory } from './character-history.js';
 
 // ── v6.8.17: section icons shared with update-panel.js ──
@@ -307,10 +307,14 @@ function _renderEntry(e, viewMode) {
     // on the character's accent color), matching the main character card
     // and thoughts panel. Uses the shared portrait descriptor so the
     // letter + background computation lives in one place.
+    // v6.8.44: URL branch also carries data-sp-preview-* attrs so the
+    // universal delegated listener shows the enlarged preview on hover.
+    // Monogram branch sets no attrs and therefore never triggers.
     const p = e.portrait || getPortraitDescriptor(e.character || { name: e.name, aliases: [] }, cc.accent);
     let avatarHtml;
     if (p.type === 'url' && p.url) {
-        avatarHtml = `<span class="sp-wiki-avatar-slot"><img class="sp-wiki-avatar" src="${esc(p.url)}" alt="" onerror="this.parentElement.classList.add('sp-wiki-avatar-errored');this.remove()"></span>`;
+        const previewAttrs = getPortraitPreviewAttrs(p, e.name, cc.accent);
+        avatarHtml = `<span class="sp-wiki-avatar-slot"${previewAttrs}><img class="sp-wiki-avatar" src="${esc(p.url)}" alt="" onerror="this.parentElement.classList.add('sp-wiki-avatar-errored');this.remove()"></span>`;
     } else {
         avatarHtml = `<span class="sp-wiki-avatar sp-wiki-avatar-monogram" style="background:${esc(p.bg)};color:${esc(p.fg)}">${esc(p.letter)}</span>`;
     }
@@ -609,7 +613,7 @@ export function openCharacterWiki() {
 
     // Close
     const _escHandler = (e) => { if (e.key === 'Escape') _close(); };
-    function _close() { overlay.remove(); document.removeEventListener('keydown', _escHandler); }
+    function _close() { hidePortraitPreview(); overlay.remove(); document.removeEventListener('keydown', _escHandler); }
     overlay.querySelector('.sp-wiki-close').addEventListener('click', _close);
     overlay.addEventListener('click', e => { if (e.target === overlay) _close(); });
     document.addEventListener('keydown', _escHandler);
