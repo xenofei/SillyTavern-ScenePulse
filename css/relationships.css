@@ -1,5 +1,17 @@
 /* ═══ RELATIONSHIPS ═══ */
-.sp-rel-block { padding: 0; margin-bottom: 4px; border-bottom: none; border-radius: var(--sp-radius); background: var(--char-bg, transparent); border-left: 3px solid var(--char-border, var(--sp-border)); }
+/* v6.8.33: per-character background pattern layered over the flat
+   --char-bg tint. Same technique as .sp-char-card — top layer is the
+   SVG pattern URL, bottom layer is the solid color. */
+.sp-rel-block {
+    padding: 0;
+    margin-bottom: 4px;
+    border-bottom: none;
+    border-radius: var(--sp-radius);
+    background-image: var(--char-pattern, none);
+    background-color: var(--char-bg, transparent);
+    background-repeat: repeat;
+    border-left: 3px solid var(--char-border, var(--sp-border));
+}
 .sp-rel-block:last-child { margin-bottom: 0; }
 .sp-rel-header { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; padding: 6px 6px; cursor: pointer; user-select: none; }
 .sp-rel-header:hover { background: rgba(255,255,255,0.02); }

@@ -288,6 +288,7 @@ function _renderEntry(e, viewMode) {
     card.style.setProperty('--char-bg', cc.bg);
     card.style.setProperty('--char-border', cc.border);
     card.style.setProperty('--char-accent', cc.accent);
+    if (cc.pattern) card.style.setProperty('--char-pattern', cc.pattern);
 
     let roleShort = ch.role || '';
     if (roleShort.length > 60) roleShort = roleShort.substring(0, 57) + '\u2026';

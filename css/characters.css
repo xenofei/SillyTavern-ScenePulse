@@ -1,5 +1,22 @@
 /* ═══ CHARACTERS ═══ */
-.sp-char-card { background: var(--char-bg, var(--sp-surface)); border-radius: var(--sp-radius); padding: 0; margin-bottom: 5px; border-left: 3px solid var(--char-border, var(--sp-border)); }
+/* v6.8.33: background is layered — top: per-character SVG pattern
+   (data URI, low-alpha tint), bottom: flat color from --char-bg.
+   The pattern paints first in the stack so it reads as a subtle
+   texture over the flat tint. When --char-pattern is unset (stub
+   entries, absent characters, {{user}} node) the top layer resolves
+   to `none` and the flat bg remains.
+   Note on multi-background fallback: each layer in the comma list
+   needs its own explicit value, so we repeat the color in both the
+   pattern fallback AND the base. */
+.sp-char-card {
+    background-image: var(--char-pattern, none);
+    background-color: var(--char-bg, var(--sp-surface));
+    background-repeat: repeat;
+    border-radius: var(--sp-radius);
+    padding: 0;
+    margin-bottom: 5px;
+    border-left: 3px solid var(--char-border, var(--sp-border));
+}
 .sp-char-card:last-child { margin-bottom: 0; }
 .sp-char-header { display: flex; align-items: center; gap: 6px; padding: 6px 8px; cursor: pointer; user-select: none; overflow: hidden; flex-wrap: wrap; }
 .sp-char-header:hover { background: rgba(255,255,255,0.02); }
@@ -51,7 +68,7 @@
    recent snapshot but not in the current one. Renders as a compact row
    with portrait + name + "last seen" meta line. No body, no expand. */
 .sp-char-offscene-header { font-size: 9px; font-weight: 700; color: var(--sp-text-dim); text-transform: uppercase; letter-spacing: 0.08em; margin: 10px 4px 4px; padding-top: 6px; border-top: 1px dashed var(--sp-border); }
-.sp-char-offscene-stub { opacity: 0.72; background: var(--char-bg, var(--sp-surface)); border-left-width: 2px; padding: 0; margin-bottom: 3px; }
+.sp-char-offscene-stub { opacity: 0.72; background-image: var(--char-pattern, none); background-color: var(--char-bg, var(--sp-surface)); background-repeat: repeat; border-left-width: 2px; padding: 0; margin-bottom: 3px; }
 .sp-char-offscene-stub:hover { opacity: 1; }
 .sp-char-offscene-row { display: flex; align-items: center; gap: 8px; padding: 5px 8px; }
 .sp-char-offscene-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1 1 auto; }

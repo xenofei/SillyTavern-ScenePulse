@@ -219,7 +219,7 @@ export function updateThoughts(d){
     for(const ch of sortedTpChars){
         const cc=charColor(ch.name);
         const card=document.createElement('div');card.className='sp-tp-card';
-        card.style.setProperty('--char-bg',cc.bg);card.style.setProperty('--char-border',cc.border);card.style.setProperty('--char-accent',cc.accent);
+        card.style.setProperty('--char-bg',cc.bg);card.style.setProperty('--char-border',cc.border);card.style.setProperty('--char-accent',cc.accent);if(cc.pattern)card.style.setProperty('--char-pattern',cc.pattern);
         // SVG thought bubble icon
         const thoughtIcon=`<svg class="sp-tp-name-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><ellipse cx="12" cy="9.5" rx="9" ry="7" fill="currentColor" opacity="0.12" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/><circle cx="6.5" cy="18.5" r="2" fill="currentColor" opacity="0.15" stroke="currentColor" stroke-width="0.8"/><circle cx="4" cy="21.5" r="1.2" fill="currentColor" opacity="0.1" stroke="currentColor" stroke-width="0.6"/><circle cx="9" cy="9.5" r="0.9" fill="currentColor" opacity="0.35"/><circle cx="12" cy="9.5" r="0.9" fill="currentColor" opacity="0.35"/><circle cx="15" cy="9.5" r="0.9" fill="currentColor" opacity="0.35"/></svg>`;
         let html=`<div class="sp-tp-name">${thoughtIcon}${esc(ch.name)}</div>`;

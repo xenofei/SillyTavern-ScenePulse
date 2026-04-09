@@ -435,6 +435,50 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.8.33] — 2026-04-09
+
+#### Added \u2014 expanded character color palette (10 \u2192 30 colors)
+Tripled the character color palette to reduce visual collisions when a chat has many tracked characters. Colors hand-curated for:
+- Distinct perceptual spacing (>15\u00B0 hue separation between neighbors)
+- Consistent luminance against the dark theme background
+- No muddy yellows, no unreadable saturated reds
+- Every accent passes a contrast check against `#0c0e14`
+
+The palette is organized in four bands: warm core (teal/pink/amber/sky/rose/sage/gold), cool mid (lavender/mint/periwinkle/coral/cerulean/bronze/lime), saturated feature (orange/mauve/aqua/magenta/chartreuse/royal blue/apricot), and desaturated neutrals (sage green/dusty violet/sand/slate teal/clay pink/steel blue/khaki/dusty mauve/jade). Adjacent indices get visually different hues so the first N characters in a scene don't all look similar.
+
+#### Added \u2014 per-character SVG background patterns
+Every character card, relationship block, thought card, and Character Wiki entry now renders with a subtle per-character SVG pattern layered over the flat background tint. 12 pattern generators:
+- `dots`, `diagonal` (two variants), `crosshatch`, `grid`, `waves`, `triangles`, `circles`, `chevron`, `hex`, `plus`, `zigzag`
+
+Patterns are deterministic per character (hash of lowercased name mod 12) and rendered as inline SVG data URIs. Tint color = the character's accent at 0.08-0.16 alpha so the pattern reads as a subtle texture rather than a distracting foreground. 30 colors \u00D7 12 patterns = **360 distinct (color, pattern) combinations** before any two characters look identical.
+
+Data URI encoding is minimal (only `<`, `>`, `#`, `"` escaped) so payloads stay small; browsers cache repeated pattern instances efficiently.
+
+#### Fixed \u2014 title collision in the fuzzy color matcher
+**Root cause**: the v5.x fuzzy color matcher in [`src/color.js`](src/color.js) had a loose first-token match — any two characters whose first word matched (length > 2) would get the same color. "Officer Jane", "Officer Buzzcut", "Officer Ponytail", "Dr. Smith", "Dr. Jones", "Lord Varys", "Lord Tyrion", "Mr. Brown", "Father Martin" \u2014 all broken.
+
+This was a bigger contributor to the "three of the same colors" user report than the 10-color palette cap alone, because it was *actively* collapsing distinct characters instead of just running out of colors.
+
+**Fix**:
+1. Added a **TITLE_STOPLIST** of ~50 common titles and honorifics (officer, detective, sergeant, doctor, dr, mr, mrs, ms, sir, lord, lady, king, queen, captain, father, mother, priest, saint, the, uncle, grandma, ...).
+2. Added a `_cleanTok()` helper that strips trailing/leading punctuation so `"Dr."` normalizes to `"dr"` for stoplist lookup.
+3. The first-token fuzzy match now skips when the shared token is in the stoplist.
+
+The alias form (`"Yuzuki"` \u2194 `"Yuzuki Tamura"`) is preserved \u2014 only the loose title match is gated.
+
+#### Consumers updated
+`update-panel.js` (character cards + off-scene stubs), `update-panel.js` (relationship blocks), `thoughts.js` (thought panel cards), and `character-wiki.js` (wiki entry cards) all set the new `--char-pattern` CSS variable alongside the existing `--char-bg`/`--char-border`/`--char-accent`. CSS selectors updated to use a two-layer background:
+
+```css
+background-image: var(--char-pattern, none);
+background-color: var(--char-bg, ...);
+background-repeat: repeat;
+```
+
+The pattern paints as the top layer and the flat tint below. When `--char-pattern` is unset (stub entries, absent characters, legacy code paths) the top layer resolves to `none` and the flat bg remains \u2014 backward compatible.
+
+234/234 tests still pass.
+
 ### [6.8.32] — 2026-04-09
 
 #### Fixed \u2014 Thought panel not using full vertical height
