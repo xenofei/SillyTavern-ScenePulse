@@ -435,6 +435,22 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.8.32] — 2026-04-09
+
+#### Fixed \u2014 Thought panel not using full vertical height
+**Reported**: The inner-thoughts panel left dead space at the bottom of the screen even when it had more content to show. The main ScenePulse panel fills the viewport properly; the thoughts panel didn't.
+
+**Root cause**: the thought panel had two compounding height limits that both fell short of the viewport:
+1. CSS: `max-height: 85vh` \u2014 hard 15vh dead zone at the bottom regardless of what else was on screen.
+2. JS `autoFitThoughtPanel`: `maxH = window.innerHeight * 0.85` \u2014 same 85% cap but computed in pixels, same result.
+3. JS `snapThoughtToLeft`: `maxH = Math.min(chatRect.height, window.innerHeight * 0.85)` plus a hardcoded `top = Math.max(34, chatRect.top)` that ignored ST's actual top bar height.
+
+Meanwhile `panel.js` correctly measures ST's top bar (`#top-bar` / `#top-settings-holder` / `.header`) and sets the main panel to `calc(100vh - topBarBottom)`, giving it the full usable column.
+
+**Fix**: the thought panel now mirrors the main panel's approach. New `_measureTopBar()` helper in [src/ui/thoughts.js](src/ui/thoughts.js) reads the actual ST top bar height the same way panel.js does. Both `autoFitThoughtPanel` and `snapThoughtToLeft` use `window.innerHeight - topBarBottom - 8px bottom margin` as their height cap. The 8px margin keeps the panel from butting right up against the viewport edge. CSS `max-height` loosened to `calc(100vh - 16px)` so it acts as a sane fallback before JS layout runs but doesn't fight the JS-computed value.
+
+**Result**: the thought panel now grows to fill the full usable column \u2014 no more 15vh dead zone, no more hardcoded 34px top offset that didn't match the actual top bar in all layouts.
+
 ### [6.8.31] — 2026-04-09
 
 #### Fixed \u2014 duplicate relationship entries leaking through to the panel

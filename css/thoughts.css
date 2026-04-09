@@ -1,6 +1,12 @@
 /* ═══ THOUGHT PANEL (draggable, thought-bubble aesthetic) ═══ */
+/* v6.8.32: max-height removed from the stylesheet and computed in JS
+   via autoFitThoughtPanel / snapThoughtToLeft so the panel uses the full
+   available viewport minus the ST top bar. The old 85vh cap left a dead
+   band at the bottom of the screen when the panel had more content to
+   show. Fallback `max-height: calc(100vh - 16px)` keeps the panel sane
+   before JS layout runs. */
 #sp-thought-panel {
-    position: fixed; width: 280px; min-width: 280px; min-height: 100px; max-height: 85vh;
+    position: fixed; width: 280px; min-width: 280px; min-height: 100px; max-height: calc(100vh - 16px);
     background: rgba(22,24,32,0.98);
     backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
     overflow: hidden;

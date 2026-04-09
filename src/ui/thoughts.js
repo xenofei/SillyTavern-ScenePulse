@@ -253,6 +253,23 @@ export function updateThoughts(d){
     // Auto-fit panel to content -- defer to next frame so layout has completed
     requestAnimationFrame(()=>requestAnimationFrame(()=>autoFitThoughtPanel()));
 }
+// ── v6.8.32: dynamic top-bar measurement ────────────────────────────────
+// Mirrors the same approach panel.js uses to compute the top offset so
+// the thought panel aligns with whatever vertical space ST has actually
+// made available. Before v6.8.32 the thought panel hardcoded a 34px top
+// offset and an 85vh height cap, which left ~15vh of dead space at the
+// bottom even when the panel had more content to show. Now it matches
+// the main ScenePulse panel's full-height behavior.
+function _measureTopBar(){
+    const topBar=document.getElementById('top-bar')
+        ||document.getElementById('top-settings-holder')
+        ||document.querySelector('.header,.nav-bar,header');
+    return topBar?Math.max(0,topBar.getBoundingClientRect().bottom):0;
+}
+// Bottom margin: leave a small gap above the viewport edge so the panel
+// doesn't butt right against the send bar or the browser's scrollbar.
+const _TP_BOTTOM_MARGIN=8;
+
 // ── Auto-fit thought panel to its content height ──
 export function autoFitThoughtPanel(){
     const tp=document.getElementById('sp-thought-panel');
@@ -260,12 +277,16 @@ export function autoFitThoughtPanel(){
     // Step 1: Remove constraints so panel can grow to natural content size
     tp.style.height='auto';
     tp.style.maxHeight='none';
-    // Step 2: After layout settles, read actual height and cap at 85vh
+    // Step 2: After layout settles, read actual height and cap at the full
+    // available viewport minus the ST top bar and a small bottom margin.
+    // Previously hardcoded to 85vh which left ~15vh of empty space at the
+    // bottom of the screen even when the panel had more content to show.
     setTimeout(()=>{
         if(!tp.classList.contains('sp-tp-visible'))return;
         const natural=tp.scrollHeight;
-        const maxH=window.innerHeight*0.85;
-        tp.style.maxHeight='85vh';
+        const topOffset=_measureTopBar();
+        const maxH=Math.max(120,window.innerHeight-topOffset-_TP_BOTTOM_MARGIN);
+        tp.style.maxHeight=maxH+'px';
         tp.style.height=Math.min(natural,maxH)+'px';
         snapThoughtToLeft();
     },50);
@@ -282,13 +303,22 @@ export function snapThoughtToLeft(){
     if(!chatParent)return;
     const chatRect=chatParent.getBoundingClientRect();
     const gap=6;
-    // Snap to left edge of browser
+    // v6.8.32: dynamic top-bar offset (was hardcoded 34).
+    // Align the panel with whatever vertical space ST leaves below the
+    // top bar, matching the main panel's positioning.
+    const topOffset=_measureTopBar();
     tp.style.left='0px';
-    tp.style.top=Math.max(34,chatRect.top)+'px';
+    tp.style.top=Math.max(topOffset,chatRect.top)+'px';
     // Width: from browser left to message panel left edge
     const targetW=Math.max(200,chatRect.left-gap);
     tp.style.width=targetW+'px';
-    // Cap height
-    const maxH=Math.min(chatRect.height,window.innerHeight*0.85);
+    // v6.8.32: full available height minus top bar and bottom margin.
+    // Previously capped at min(chatRect.height, 85vh) which was never
+    // the right answer — chatRect.height excludes ST's send bar area,
+    // and 85vh left dead space. Now the panel grows to the full usable
+    // column.
+    const panelTop=parseFloat(tp.style.top)||topOffset;
+    const maxH=Math.max(120,window.innerHeight-panelTop-_TP_BOTTOM_MARGIN);
+    tp.style.maxHeight=maxH+'px';
     if(tp.offsetHeight>maxH)tp.style.height=maxH+'px';
 }
