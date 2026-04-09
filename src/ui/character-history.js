@@ -146,22 +146,92 @@ function _buildHistory() {
         }
     }
 
+    // ── Pass 3: post-hoc consolidation ──────────────────────────────
+    // Walk the output map once and merge any entry whose aliasesLow
+    // overlaps with another entry's canonical key. This catches edge
+    // cases where pass 1's canonLookup missed an alias mapping because
+    // (e.g.) the alias was added to one snap via delta-merge REVEAL but
+    // never backfilled into older snapshots, AND the iteration order
+    // meant pass 1 set canonLookup[oldName]=oldName before the alias
+    // update. Merging in pass 3 guarantees one entry per canonical
+    // regardless of the order in which the walker encountered data.
+    //
+    // Merge semantics:
+    //   - Keep the entry with the MOST RECENT lastSeen as the winner
+    //     (so canonical name reflects the current name, not the old
+    //     placeholder).
+    //   - Sum appearances.
+    //   - Keep the earliest firstSeen.
+    //   - Union aliasesLow.
+    //   - Keep the winner's lastLocation.
+    const entries = [...out.entries()];
+    const removed = new Set();
+    for (let i = 0; i < entries.length; i++) {
+        const [keyA, metaA] = entries[i];
+        if (removed.has(keyA)) continue;
+        for (let j = i + 1; j < entries.length; j++) {
+            const [keyB, metaB] = entries[j];
+            if (removed.has(keyB)) continue;
+            // Merge condition: either entry's alias set contains the
+            // other's canonical key. This is the symmetric form of
+            // "these are the same character under different recorded
+            // names."
+            const overlap = metaA.aliasesLow.has(keyB) || metaB.aliasesLow.has(keyA);
+            if (!overlap) continue;
+            // Winner = most recent lastSeen. Tie → entry A.
+            const winner = metaA.lastSeen >= metaB.lastSeen ? metaA : metaB;
+            const loser = winner === metaA ? metaB : metaA;
+            const loserKey = winner === metaA ? keyB : keyA;
+            winner.appearances += loser.appearances;
+            if (loser.firstSeen < winner.firstSeen) winner.firstSeen = loser.firstSeen;
+            for (const al of loser.aliasesLow) winner.aliasesLow.add(al);
+            if (!winner.lastLocation && loser.lastLocation) winner.lastLocation = loser.lastLocation;
+            out.delete(loserKey);
+            removed.add(loserKey);
+        }
+    }
+
     return out;
 }
 
 /**
- * Get the cached history map. Rebuilds on first call and whenever the
- * underlying snapshots reference changes (saveSnapshot mutates the
- * tracker data; the reference is the map identity, so as long as
- * saveSnapshot replaces the snapshots object when adding new keys
- * we invalidate on new turns. In practice settings.saveSnapshot does
- * mutate keys in place, so we also re-build when the key count changes).
+ * Get the cached history map. The cache key is built from both the
+ * snapshot count AND a fingerprint of the latest snapshot's characters
+ * array, so regenerating the current turn (which overwrites the latest
+ * snap in place without changing the key count) still invalidates the
+ * cache. Without this, re-gen would leave stale history entries keyed
+ * under the pre-regen names — exactly the scenario that produced orphan
+ * off-scene stubs for aliased characters before v6.8.24.
+ *
+ * invalidateCharacterHistory() remains available for explicit busts
+ * (e.g. after the manual merge flow in update-panel.js).
  */
 export function getCharacterHistory() {
     const data = getTrackerData();
     const snaps = data?.snapshots || {};
-    const keyCount = Object.keys(snaps).length;
-    const cacheKey = `${snaps}|${keyCount}`;
+    const keys = Object.keys(snaps);
+    const keyCount = keys.length;
+    // Fingerprint the latest snapshot's character roster so re-gens on
+    // the same message index bust the cache. Uses character name +
+    // aliases joined; cheap for typical chat sizes (< 30 chars * 2-3
+    // aliases each).
+    let latestFingerprint = '';
+    if (keyCount > 0) {
+        const latestKey = Math.max(...keys.map(Number));
+        const latest = snaps[String(latestKey)];
+        if (latest && Array.isArray(latest.characters)) {
+            const parts = [];
+            for (const c of latest.characters) {
+                const n = (c?.name || '').toLowerCase().trim();
+                const al = Array.isArray(c?.aliases)
+                    ? c.aliases.map(a => (a || '').toLowerCase().trim()).sort().join(',')
+                    : '';
+                parts.push(n + '|' + al);
+            }
+            latestFingerprint = parts.sort().join(';');
+        }
+    }
+    const cacheKey = `${keyCount}|${latestFingerprint}`;
     if (_cache && _cacheKey === cacheKey) return _cache;
     _cache = _buildHistory();
     _cacheKey = cacheKey;

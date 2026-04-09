@@ -1010,10 +1010,46 @@ export function updatePanel(d,_force=false){
         {
             const _OFFSCENE_RECENCY=5; // turns
             const _OFFSCENE_MAX=5;     // stubs
-            const currentNames=new Set((d.characters||[]).map(c=>(c.name||'').toLowerCase().trim()).filter(Boolean));
+            // v6.8.24: dedup by BOTH canonical name AND aliases in both
+            // directions. Build a set of every name the currently-present
+            // characters answer to (canonical + every alias on each
+            // current char). Then a history entry is hidden if its key
+            // OR any of its historical aliases match anything in that
+            // set. This closes the gap where the LLM mis-named a
+            // character ("Vierre" instead of "Vierge"), the alias was
+            // later added to the current character via delta-merge or
+            // manual merge, but the old misname still haunts the
+            // history map as a separate entry due to a stale cache or
+            // an incomplete pass-1 canonicalization.
+            const currentNamesAndAliases = new Set();
+            for (const c of (d.characters || [])) {
+                const n = (c?.name || '').toLowerCase().trim();
+                if (n) currentNamesAndAliases.add(n);
+                if (Array.isArray(c?.aliases)) {
+                    for (const a of c.aliases) {
+                        const al = (a || '').toLowerCase().trim();
+                        if (al) currentNamesAndAliases.add(al);
+                    }
+                }
+            }
             const offScene=[];
             for(const[key,meta]of _charHistory){
-                if(!key||currentNames.has(key))continue;
+                if(!key)continue;
+                // Skip if the history entry's canonical key matches a
+                // currently-present name or alias
+                if(currentNamesAndAliases.has(key))continue;
+                // Also skip if any of the historical aliases this entity
+                // has been known by matches a currently-present name or
+                // alias. This is the belt-and-braces direction — catches
+                // the case where the walker keyed the entry under an old
+                // misname but one of its aliases is a current character.
+                if(meta.aliasesLow){
+                    let hidden=false;
+                    for(const al of meta.aliasesLow){
+                        if(currentNamesAndAliases.has(al)){hidden=true;break}
+                    }
+                    if(hidden)continue;
+                }
                 // Skip if not seen in the recency window
                 if(_currentMsgIdx>0&&(_currentMsgIdx-meta.lastSeen)>_OFFSCENE_RECENCY)continue;
                 // Skip if never been in a scene (appearances === 0)
@@ -1123,10 +1159,29 @@ export function updatePanel(d,_force=false){
         });
         body.appendChild(footer);
     }
-    // Apply field toggle visibility
+    // Apply field toggle visibility.
+    //
+    // v6.8.24: when showEmptyFields is on, the user explicitly asked to
+    // "reveal everything" — so we force-show all field-toggled-off
+    // elements too. This is what makes the "Show empty fields" toggle
+    // actually do something visible: before v6.8.24, carry-forward
+    // meant almost no fields were actually empty, so the toggle had
+    // nothing to reveal. Now it also exposes fields the user has
+    // hidden via the Panel Manager / field toggles, which is the
+    // common user expectation for a "show everything" switch.
     const _ft=s.fieldToggles||{};
     const _dc=s.dashCards||DEFAULTS.dashCards;
-    body.querySelectorAll('[data-ft]').forEach(el=>{const k=el.dataset.ft;const on=_dc[k]!==undefined?_dc[k]!==false:_ft[k]!==false;el.style.display=on?'':'none'});
+    const _forceShowHidden=s.showEmptyFields===true;
+    body.querySelectorAll('[data-ft]').forEach(el=>{
+        const k=el.dataset.ft;
+        const on=_dc[k]!==undefined?_dc[k]!==false:_ft[k]!==false;
+        el.style.display=(on||_forceShowHidden)?'':'none';
+        // Mark force-revealed elements so CSS can dim them to signal
+        // "this is a field you've chosen to hide, we're showing it
+        // because you enabled Show Empty Fields".
+        if(!on&&_forceShowHidden)el.classList.add('sp-ft-force-shown');
+        else el.classList.remove('sp-ft-force-shown');
+    });
     log('\u23F1 updatePanel:',((performance.now()-_perfStart)|0)+'ms');
     } catch(_renderErr) {
         // Error boundary: restore previous panel content on failure

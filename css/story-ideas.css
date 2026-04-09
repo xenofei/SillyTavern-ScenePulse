@@ -57,5 +57,20 @@
 }
 #sp-panel.sp-edit-mode .sp-char-grid .sp-empty-field,
 #sp-panel.sp-show-empty .sp-char-grid .sp-empty-field { display: block; }
+/* v6.8.24: fields that were toggled OFF via Panel Manager but are
+   being force-revealed because Show Empty Fields is on. Dim + striped
+   background to communicate "this is a hidden field we're surfacing
+   temporarily" — distinct from actually-empty fields (which get
+   sp-empty-field and a different opacity treatment). */
+.sp-ft-force-shown {
+    opacity: 0.55;
+    background: repeating-linear-gradient(
+        45deg,
+        rgba(255,255,255,0.015) 0 6px,
+        rgba(255,255,255,0.04) 6px 12px
+    );
+    border-left: 2px solid rgba(255,180,80,0.35);
+    padding-left: 4px;
+}
 /* Empty quest tiers: always visible, editable in edit mode */
 /* Remove old always-on hover */

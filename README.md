@@ -435,6 +435,22 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.8.24] — 2026-04-09
+
+#### Fixed \u2014 "Show empty fields" toggle had no visible effect
+- **The toggle's CSS and class-toggle mechanism were correct**, but [`src/normalize.js`](src/normalize.js) carry-forward (v6.8.15+) aggressively fills every character field from the previous snapshot, so there were almost no actually-empty fields for the class to reveal. Meanwhile, [`update-panel.js:1129`](src/ui/update-panel.js#L1129) applied field-toggle-off visibility via inline `style.display = 'none'`, which isn't affected by the class-based `sp-show-empty` CSS rule at all. Net effect: toggling the button produced no visible change.
+- **Fix**: when `showEmptyFields === true`, the field-toggle-visibility loop in [`updatePanel`](src/ui/update-panel.js) now force-shows elements that are normally hidden by the user's Panel Manager / field toggles, AND stamps them with a new `sp-ft-force-shown` class so CSS can dim them with a diagonal-stripe background + amber left border. This communicates "this is a field you've hidden that we're surfacing temporarily" and is distinct from the existing `sp-empty-field` treatment for actually-empty cells.
+- **User-visible behavior**: clicking the "Show empty fields" toolbar button now immediately reveals any field-toggled-off rows, cards, or sections across the whole panel with a clearly-dimmed striped background. Clicking again re-hides them. The previous behavior (showing actually-empty grid cells) still works too \u2014 both now coexist under the same toggle.
+
+#### Fixed \u2014 orphan "Recently Absent" stubs for aliased characters
+- **Scenario**: LLM mis-typed a character's name early in a chat ("Vierre" instead of "Vierge"), accumulated many snapshots under the misname, then corrected itself and the extension recorded an alias (`aliases: ["Vierre"]`) on the current Vierge entry. The main card correctly showed Vierge with the "also: Vierre" badge, but the "Recently Absent" stub list kept rendering a ghost "Vierre" card sourced from the old snapshots. Three compounding causes, fixed together:
+  1. **Off-scene dedup only checked current canonical names, not aliases.** Now walks both directions: every current character's canonical name + every alias on each current character goes into a `currentNamesAndAliases` set, and a history entry is skipped if its key OR any of its `aliasesLow` matches anything in that set.
+  2. **Character history cache didn't invalidate on re-generation.** The cache key was `${snaps}|${keyCount}` — regenerating the latest turn overwrites `snaps[latest]` in place without changing `keyCount`, so the cache returned stale data. The key now includes a fingerprint of the latest snapshot's character roster (name + sorted aliases per character), so any change to the latest snap's character list busts the cache.
+  3. **Pass-1 canonicalization could miss edge cases** where the alias was added late and older snapshots had already registered themselves under the old name. Added a Pass-3 post-hoc consolidation step that walks the output map and merges any two entries whose `aliasesLow` sets overlap with each other's canonical keys. Merge semantics: most-recent `lastSeen` wins the canonical name, `appearances` is summed, earliest `firstSeen` is kept, `aliasesLow` is unioned. Idempotent.
+
+#### Not changed
+- No schema, migration, or prompt changes. 183/183 tests still pass. Existing chats with orphan stubs will self-heal on next panel render because Pass 3 consolidates historical entries without requiring any data-layer rewrite.
+
 ### [6.8.23] — 2026-04-09
 
 #### Changed \u2014 thought panel shows the full inner thought by default
