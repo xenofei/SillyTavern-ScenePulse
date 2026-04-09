@@ -435,6 +435,37 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.8.36] — 2026-04-09
+
+#### Fixed \u2014 Relationship web rendered multiple edges per NPC pair
+**Reported**: the NPC graph was drawing multiple lines between the same two characters (e.g. Reyes\u2194Officer Jane had both "protective colleague" and "grateful" labels as separate edges).
+
+**Root cause**: the edge dedup in [src/ui/relationship-graph.js](src/ui/relationship-graph.js) keyed by the `(from, to, type)` triple, so the LLM could emit the same pair with two different types and both would pass through as separate edges. Same for reciprocal detection \u2014 it needed identical types on both sides.
+
+**Fix**: dedup by `(from, to)` PAIR only. A relationship between two characters is one connection, period. When the LLM emits multiple facets for the same pair, a new `TYPE_PRIORITY` map picks the strongest narrative tie:
+
+```
+family (10) > lover (9) > lust (8) > antagonist (7) > mentor/authority (6)
+> rival (5) > ally (4) > friend (3) > acquaintance (1) > unknown (0)
+```
+
+First-seen wins on ties so labels stay stable across re-renders. Reciprocal detection simplified to pair-only matching since each direction now has exactly one edge.
+
+#### Fixed \u2014 Hex pattern (pattern 9) had a visible seam on repeat
+**Reported**: "one of the pattern cuts off in its repetition for character cards".
+
+**Root cause**: the hex pattern drew a central hexagon plus two half-hexagons at the left and right edges of the tile at y=20\u201332. The half-hexagons expected continuity with the *previous* tile's bottom-half hexagons \u2014 but those weren't drawn, so tiled repetition showed a visible horizontal seam where the bleeding edges didn't meet.
+
+**Fix**: redesigned as a single centered hexagon fully contained inside a 28\u00D728 tile. No bleeding edges, no continuity dependencies.
+
+```svg
+<path d="M14,5 l7,4 l0,10 l-7,4 l-7,-4 l0,-10 z" .../>
+```
+
+Audited the other 11 patterns for tileability \u2014 diagonal stripes (1, 2), chevron (8), and zigzag (11) rely on edge-meeting continuity but their path geometry is self-consistent (endpoints on opposite edges at matching coordinates). All tile cleanly.
+
+234/234 tests still pass.
+
 ### [6.8.35] — 2026-04-09
 
 #### Fixed \u2014 Relationship Web drag had an invisible wall at default canvas bounds

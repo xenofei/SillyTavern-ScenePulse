@@ -142,9 +142,14 @@ const PATTERN_GENERATORS=[
         const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M0,4 l6,-4 l6,4 l6,-4 l6,4 M0,16 l6,-4 l6,4 l6,-4 l6,4" stroke="${c}" stroke-width="1" opacity="0.07" fill="none"/></svg>`;
         return `url("data:image/svg+xml,${_enc(svg)}")`;
     },
-    // 9: hex — honeycomb dots
+    // 9: hex — single centered hexagon per tile. v6.8.36 redesign:
+    // the previous version drew a central hex plus two half-hexes at
+    // the left/right edges that expected continuity with adjacent
+    // tiles' bottom edges — but those bottom edges weren't drawn, so
+    // the tiled repetition showed a visible seam. Now a single hexagon
+    // fully contained inside the tile with no bleeding edges.
     (c)=>{
-        const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="32" viewBox="0 0 28 32"><path d="M14,4 l8,4 l0,8 l-8,4 l-8,-4 l0,-8 z M0,20 l8,4 l0,8 l-8,4 M28,20 l-8,4 l0,8 l8,4" stroke="${c}" stroke-width="0.9" opacity="0.06" fill="none"/></svg>`;
+        const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28"><path d="M14,5 l7,4 l0,10 l-7,4 l-7,-4 l0,-10 z" stroke="${c}" stroke-width="0.9" opacity="0.06" fill="none"/></svg>`;
         return `url("data:image/svg+xml,${_enc(svg)}")`;
     },
     // 10: plus signs

@@ -316,34 +316,62 @@ function _parseEdges(raw, validNames, userName) {
         });
     }
 
-    // Dedup (from, to, type) triples — model may emit duplicates
-    const seen = new Set();
-    const deduped = [];
+    // v6.8.36: dedup by (from, to) PAIR, not (from, to, type) triple.
+    // A relationship between two characters should be ONE edge. The
+    // previous triple-keyed dedup allowed the LLM to emit multiple
+    // edges for the same pair with different types (e.g. Reyes→Jane as
+    // both "protective colleague" and "grateful"), producing a tangled
+    // multi-line rendering. Pick the best-signal type via a ranked
+    // priority: stronger narrative ties (family, lover) beat weaker
+    // ones (acquaintance, unknown). First non-empty label wins.
+    const TYPE_PRIORITY = {
+        family: 10,
+        lover: 9,
+        lust: 8,
+        antagonist: 7,
+        mentor: 6,
+        authority: 6,
+        rival: 5,
+        ally: 4,
+        friend: 3,
+        acquaintance: 1,
+        unknown: 0,
+    };
+    const bestByPair = new Map();
     for (const e of cleanedEdges) {
-        const k = `${e.from.toLowerCase()}>${e.to.toLowerCase()}:${e.type}`;
-        if (seen.has(k)) continue;
-        seen.add(k);
-        deduped.push(e);
+        const key = `${e.from.toLowerCase()}>${e.to.toLowerCase()}`;
+        const prev = bestByPair.get(key);
+        if (!prev) {
+            bestByPair.set(key, e);
+            continue;
+        }
+        // Replace only if the new type has strictly higher priority.
+        // Ties keep the first-seen (label + type stable across re-renders).
+        const prevP = TYPE_PRIORITY[prev.type] ?? 0;
+        const newP = TYPE_PRIORITY[e.type] ?? 0;
+        if (newP > prevP) {
+            bestByPair.set(key, e);
+        }
     }
+    const deduped = [...bestByPair.values()];
 
-    // Collapse reciprocal pairs: if both A→B and B→A exist for the SAME
-    // type, mark the first one as reciprocal and drop the second. The
-    // renderer uses this flag to draw a two-tone edge. When types differ
-    // (Alice: "sister", Bob: "resented dependent"), both edges are kept as
-    // the asymmetry is narratively important.
+    // Collapse reciprocal pairs: if both A→B and B→A exist, mark the
+    // first one as reciprocal and drop the second. The renderer uses
+    // this flag to draw a two-tone edge. After the pair-dedup above,
+    // each direction has exactly one type, so the reciprocal detection
+    // no longer needs a type suffix on the key.
     const result = [];
-    const pairKey = (a, b, t) => `${a.toLowerCase()}|${b.toLowerCase()}|${t}`;
+    const pairKey = (a, b) => `${a.toLowerCase()}|${b.toLowerCase()}`;
     const indexByPair = new Map();
     for (const e of deduped) {
-        const k = pairKey(e.from, e.to, e.type);
-        const reverseK = pairKey(e.to, e.from, e.type);
+        const reverseK = pairKey(e.to, e.from);
         if (indexByPair.has(reverseK)) {
             // The reverse was already emitted — mark THAT one as reciprocal
-            // and skip this one.
+            // and drop this one. The earlier entry wins (label stable).
             result[indexByPair.get(reverseK)].direction = 'reciprocal';
             continue;
         }
-        indexByPair.set(k, result.length);
+        indexByPair.set(pairKey(e.from, e.to), result.length);
         result.push(e);
     }
 
