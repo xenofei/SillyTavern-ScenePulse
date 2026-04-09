@@ -103,6 +103,11 @@
 .sp-char-inventory-item { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; color: var(--sp-text); line-height: 1.3; padding: 2px 7px 2px 6px; background: rgba(255,255,255,0.035); border: 1px solid var(--sp-border); border-radius: 10px; max-width: 100%; }
 .sp-char-inventory-item::before { content: ''; width: 4px; height: 4px; background: var(--char-accent, var(--sp-accent)); border-radius: 50%; opacity: 0.8; flex-shrink: 0; }
 .sp-char-inventory-item:hover { background: rgba(255,255,255,0.06); border-color: var(--char-accent, var(--sp-border)); }
+/* v6.8.25: placeholder chip shown when the CARRYING section renders
+   empty (via show-empty or edit-mode toggle). Dim italic styling so
+   the reader clearly sees this is "no items" not an actual object. */
+.sp-char-inventory-empty { font-style: italic; color: var(--sp-text-dim); opacity: 0.7; border-style: dashed; }
+.sp-char-inventory-empty::before { display: none; }
 /* v6.8.22 Feature I: delta indicators — a small colored dot appended to
    any field value that differs from the previous snapshot. The dot is
    tinted in the character's accent color and sits after the value text

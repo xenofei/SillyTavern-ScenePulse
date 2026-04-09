@@ -435,6 +435,12 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.8.25] — 2026-04-09
+
+#### Fixed \u2014 CARRYING section now honors "Show empty fields"
+- The inventory/CARRYING section on the character card was gated on `inventory.length > 0` and never rendered when a character had no items, **even with the "Show empty fields" toggle on**. The fertility section had the right pattern (checks `_showEmpty` / `_isEdit`) but CARRYING didn't. A cat NPC with no inventory would therefore show every other field in show-empty mode but the CARRYING header would be invisible, which looked like the toggle was still broken.
+- **Fix**: CARRYING now renders whenever inventory has items OR edit-mode is on OR show-empty is on. When there are no items but the section renders anyway, a single dashed-border "(no items)" placeholder chip appears so the reader can tell the section exists and is deliberately empty. New CSS class `.sp-char-inventory-empty` with italic dim styling and `border-style: dashed`.
+
 ### [6.8.24] — 2026-04-09
 
 #### Fixed \u2014 "Show empty fields" toggle had no visible effect

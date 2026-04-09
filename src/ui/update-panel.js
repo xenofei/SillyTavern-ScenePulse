@@ -916,38 +916,55 @@ export function updatePanel(d,_force=false){
                 _cbody.appendChild(gr);
             }
 
-            // ── CARRYING: inventory as its own section (only when non-empty)
+            // ── CARRYING: inventory as its own section.
             // Split out of the appearance grid because inventory is
             // conceptually "what they have" not "how they look". Items
             // render as individual pill chips in a flex-wrap container
             // so each item is visually distinct instead of melting into
-            // a comma-separated run-on line. v6.8.17 change from the
-            // previous join(', ') rendering.
-            if(Array.isArray(ch.inventory)&&ch.inventory.length){
-                _mkSub(t('Carrying'),_ICON_BAG,'char_inventory');
-                const inv=document.createElement('div');
-                inv.className='sp-char-inventory';
-                inv.dataset.ft='char_inventory';
-                // v6.8.22: compute which items are new/removed vs prev so
-                // we can highlight the changed chips. Items present in
-                // current but not prev get an "added" dot; items removed
-                // are not rendered since they're no longer part of ch.
-                let _prevInvSet = new Set();
-                if (_changedFields.has('inventory') && _prevCh && Array.isArray(_prevCh.inventory)) {
-                    _prevInvSet = new Set(_prevCh.inventory.map(x => String(x || '').toLowerCase().trim()));
-                }
-                for(const item of ch.inventory){
-                    const itemStr = String(item||'').trim();
-                    const chip=document.createElement('span');
-                    chip.className='sp-char-inventory-item';
-                    chip.textContent=itemStr||'\u2014';
-                    if (_changedFields.has('inventory') && itemStr && !_prevInvSet.has(itemStr.toLowerCase())) {
-                        chip.classList.add('sp-char-inventory-item-added');
-                        chip.title = t('New this turn');
+            // a comma-separated run-on line. v6.8.17 introduced pill
+            // chips; v6.8.25 honors edit-mode and show-empty so the
+            // section renders as an empty placeholder when the toggle
+            // is on, matching the FERTILITY section's behavior.
+            {
+                const _hasInv=Array.isArray(ch.inventory)&&ch.inventory.length>0;
+                const _isEdit=document.getElementById('sp-panel')?.classList.contains('sp-edit-mode');
+                const _showEmpty=document.getElementById('sp-panel')?.classList.contains('sp-show-empty');
+                if(_hasInv||_isEdit||_showEmpty){
+                    _mkSub(t('Carrying'),_ICON_BAG,'char_inventory');
+                    const inv=document.createElement('div');
+                    inv.className='sp-char-inventory';
+                    inv.dataset.ft='char_inventory';
+                    if(!_hasInv){
+                        // Placeholder chip so the empty section is visibly
+                        // present but clearly marked as having no items.
+                        inv.classList.add('sp-empty-field');
+                        const empty=document.createElement('span');
+                        empty.className='sp-char-inventory-item sp-char-inventory-empty';
+                        empty.textContent=t('(no items)');
+                        inv.appendChild(empty);
+                    } else {
+                        // v6.8.22: compute which items are new/removed vs prev so
+                        // we can highlight the changed chips. Items present in
+                        // current but not prev get an "added" dot; items removed
+                        // are not rendered since they're no longer part of ch.
+                        let _prevInvSet = new Set();
+                        if (_changedFields.has('inventory') && _prevCh && Array.isArray(_prevCh.inventory)) {
+                            _prevInvSet = new Set(_prevCh.inventory.map(x => String(x || '').toLowerCase().trim()));
+                        }
+                        for(const item of ch.inventory){
+                            const itemStr = String(item||'').trim();
+                            const chip=document.createElement('span');
+                            chip.className='sp-char-inventory-item';
+                            chip.textContent=itemStr||'\u2014';
+                            if (_changedFields.has('inventory') && itemStr && !_prevInvSet.has(itemStr.toLowerCase())) {
+                                chip.classList.add('sp-char-inventory-item-added');
+                                chip.title = t('New this turn');
+                            }
+                            inv.appendChild(chip);
+                        }
                     }
-                    inv.appendChild(chip);
+                    _cbody.appendChild(inv);
                 }
-                _cbody.appendChild(inv);
             }
 
             // ── GOALS: short-term + long-term only (immediateNeed moved to
