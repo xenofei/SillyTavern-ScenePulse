@@ -160,7 +160,30 @@
 .sp-wiki-export-btn:hover { color: var(--sp-text); background: var(--sp-surface); }
 
 /* ═══ AVATAR ═══ */
-.sp-wiki-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1px solid var(--char-border, var(--sp-border)); }
+/* v6.8.43: avatar may be a direct <img>, an <img> wrapped in a
+   sp-wiki-avatar-slot span (URL case), OR a bare <span> with monogram
+   classes (fallback when no image URL resolved). All three render at
+   the same 28px circular size. */
+.sp-wiki-avatar {
+    width: 28px; height: 28px; border-radius: 50%; object-fit: cover;
+    flex-shrink: 0; border: 1px solid var(--char-border, var(--sp-border));
+    display: inline-flex; align-items: center; justify-content: center;
+    box-sizing: border-box; overflow: hidden;
+}
+.sp-wiki-avatar-slot {
+    width: 28px; height: 28px; border-radius: 50%; overflow: hidden;
+    flex-shrink: 0; border: 1px solid var(--char-border, var(--sp-border));
+    display: inline-flex; align-items: center; justify-content: center;
+    box-sizing: border-box;
+}
+.sp-wiki-avatar-slot .sp-wiki-avatar { border: none; width: 100%; height: 100%; }
+.sp-wiki-avatar-monogram {
+    color: #fff; font-weight: 700; font-size: 13px; line-height: 1;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.45); text-transform: uppercase;
+}
+.sp-wiki-avatar-errored {
+    background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+}
 
 /* ═══ USER NOTES ═══ */
 .sp-wiki-notes {
@@ -178,7 +201,9 @@
     display: flex; flex-direction: column; align-items: center; gap: 4px;
     padding: 10px 8px; text-align: center; cursor: default;
 }
-.sp-wiki-grid-inner .sp-wiki-avatar { width: 40px; height: 40px; }
+.sp-wiki-grid-inner .sp-wiki-avatar,
+.sp-wiki-grid-inner .sp-wiki-avatar-slot { width: 40px; height: 40px; }
+.sp-wiki-grid-inner .sp-wiki-avatar-monogram { font-size: 18px; }
 .sp-wiki-grid-name { font-size: 11px; font-weight: 600; color: var(--char-accent, var(--sp-text-bright)); }
 .sp-wiki-grid-role { font-size: 8px; color: var(--sp-text-dim); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sp-wiki-mini-meters { display: flex; flex-direction: column; gap: 2px; width: 100%; margin-top: 4px; }

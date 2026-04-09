@@ -435,6 +435,26 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.8.43] — 2026-04-09
+
+#### Changed — Relationship web labels and avatars are fully uniform
+**Reported**: (1) "For the relationship map, put all names under the circle. Right now, short names are the only ones in it." (2) "If there is no picture for the character in the relationship map, use the first letter of the name. Ensure that there is a function for this and is used for any parts of the code that call for a user picture/avatar." (3) "If a user hovers over an image, it displays an enlarged image on the screen." (4) "Character Wiki has partial avatars — only those with pictures. Ensure all characters have an avatar."
+
+**Fix — labels**: every node in the relationship web now renders its name as a dark pill below the circle, regardless of length. Short names no longer sit inside the circle. Drops the v6.8.42 `_nameFitsInside()` branch entirely — the circle is always either a portrait image OR a monogram letter (never a label), and the label is always a pill below. Visually uniform roster.
+
+**Fix — monogram fallback in the relationship web**: nodes whose characters have no resolvable portrait now render a first-letter monogram inside the circle. The circle is filled with the character's accent color, and the uppercase first letter is drawn in SVG `<text>` scaled to ~95% of the node radius. Matches the style of the main character-card monogram used in the thoughts panel and update panel.
+
+**Fix — unified helper**: added `getPortraitDescriptor(ch, accent, stIndex)` to [src/ui/portraits.js](src/ui/portraits.js). Returns a structured object `{type, url?, letter, bg, fg}` with a guaranteed letter + color, so every avatar-rendering site in the extension can derive the same fallback without duplicating logic. The existing `getPortraitHtml()` now delegates to this helper internally (zero behavior change for callers that already used it). Sites migrated to the descriptor:
+
+- Relationship web nodes (SVG monogram fallback + hover-enlarge)
+- Character wiki entries (HTML monogram fallback)
+
+Older callers (`getPortraitHtml()` consumers in [thoughts.js](src/ui/thoughts.js) and [update-panel.js](src/ui/update-panel.js)) continue to work unchanged because `getPortraitHtml()` now uses the descriptor as its single source of truth.
+
+**Fix — hover preview**: hovering any relationship-web node that has a real image shows an enlarged square preview pinned near the cursor (224px with character-name caption, positioned to avoid viewport edges). Nodes backed by a monogram fallback do not show a preview — the larger size would carry no new information. The preview clears on pointerleave, node click, panel close, or Escape.
+
+**Fix — character wiki avatars for everyone**: the wiki grid and list modes previously rendered an empty slot for any entry without a resolvable portrait URL. Now every entry produces either an `<img>` (URL case) or a `<span class="sp-wiki-avatar sp-wiki-avatar-monogram">` (fallback) with the first letter on the character's accent color. Grid mode uses a 40px avatar with a larger monogram font; list mode uses the 28px default.
+
 ### [6.8.42] — 2026-04-09
 
 #### Fixed — Long character names no longer truncate in the relationship web

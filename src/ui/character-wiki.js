@@ -7,7 +7,7 @@ import { normalizeTracker } from '../normalize.js';
 import { charColor } from '../color.js';
 import { createSparklineCanvas, _scrollToMessage } from './sparklines.js';
 import { currentSnapshotMesIdx } from '../state.js';
-import { resolvePortraitUrl, buildPortraitIndex } from './portraits.js';
+import { resolvePortraitUrl, buildPortraitIndex, getPortraitDescriptor } from './portraits.js';
 import { getCharacterHistory } from './character-history.js';
 
 // ── v6.8.17: section icons shared with update-panel.js ──
@@ -84,10 +84,13 @@ function _buildEntries() {
     }
 
     // v6.8.20: alias-aware + override-aware portrait resolution.
-    // resolvePortraitUrl walks user overrides → ST avatar → alias matches
-    // → monogram fallback. Build the ST index once for the whole loop.
+    // resolvePortraitUrl walks user overrides → ST avatar → alias matches.
+    // v6.8.43: every entry also gets a full portrait descriptor so the
+    // renderer can draw a monogram fallback when no image URL is found.
+    // Build the ST index once for the whole loop.
     const stIdx = buildPortraitIndex();
     const _resolve = (ch) => resolvePortraitUrl(ch, stIdx) || '';
+    const _describe = (ch, accent) => getPortraitDescriptor(ch, accent, stIdx);
     const entries = [];
     const seen = new Set();
     for (const ch of chars) {
@@ -122,11 +125,12 @@ function _buildEntries() {
         const inScene = presentSet.has(cn) || cp.some(p => _nameMatch(p, cn));
         const m = meta.get(cn) || {};
         const prevRel = prevRelMap[cn] || null;
+        const cc1 = charColor(ch.name);
         entries.push({
             name: ch.name, character: ch, relationship: rel, prevRelationship: prevRel, inScene,
             firstSeen: m.firstSeen || 0, lastSeen: m.lastSeen || 0,
             appearances: m.appearances || 0, lastLocation: m.lastLocation || '',
-            color: charColor(ch.name), avatarUrl: _resolve(ch),
+            color: cc1, avatarUrl: _resolve(ch), portrait: _describe(ch, cc1.accent),
         });
     }
     for (const rel of rels) {
@@ -138,12 +142,13 @@ function _buildEntries() {
         const m = meta.get(rn) || {};
         const prevRel = prevRelMap[rn] || null;
         const stub = { name: rel.name, role: rel.relType || '', aliases: [] };
+        const cc2 = charColor(rel.name);
         entries.push({
             name: rel.name, character: stub,
             relationship: rel, prevRelationship: prevRel, inScene,
             firstSeen: m.firstSeen || 0, lastSeen: m.lastSeen || 0,
             appearances: m.appearances || 0, lastLocation: m.lastLocation || '',
-            color: charColor(rel.name), avatarUrl: _resolve(stub),
+            color: cc2, avatarUrl: _resolve(stub), portrait: _describe(stub, cc2.accent),
         });
     }
     return entries;
@@ -297,7 +302,18 @@ function _renderEntry(e, viewMode) {
     const preview = _previewText(e);
 
     // Avatar thumbnail
-    const avatarHtml = e.avatarUrl ? `<img class="sp-wiki-avatar" src="${esc(e.avatarUrl)}" alt="" onerror="this.style.display='none'">` : '';
+    // v6.8.43: always render an avatar for every wiki entry. When there
+    // is no image URL, fall back to a monogram (first letter of the name
+    // on the character's accent color), matching the main character card
+    // and thoughts panel. Uses the shared portrait descriptor so the
+    // letter + background computation lives in one place.
+    const p = e.portrait || getPortraitDescriptor(e.character || { name: e.name, aliases: [] }, cc.accent);
+    let avatarHtml;
+    if (p.type === 'url' && p.url) {
+        avatarHtml = `<span class="sp-wiki-avatar-slot"><img class="sp-wiki-avatar" src="${esc(p.url)}" alt="" onerror="this.parentElement.classList.add('sp-wiki-avatar-errored');this.remove()"></span>`;
+    } else {
+        avatarHtml = `<span class="sp-wiki-avatar sp-wiki-avatar-monogram" style="background:${esc(p.bg)};color:${esc(p.fg)}">${esc(p.letter)}</span>`;
+    }
 
     // ── Grid (compact) mode ──
     if (viewMode === 'grid') {

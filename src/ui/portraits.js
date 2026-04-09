@@ -82,9 +82,50 @@ export function resolvePortraitUrl(ch, stIndex) {
 }
 
 /**
+ * v6.8.43: shared portrait descriptor used by every avatar-rendering site
+ * in the extension (character cards, thoughts panel, relationship web,
+ * character wiki, off-scene stubs). Returns a structured object with a
+ * guaranteed letter + background color, plus the resolved URL when one
+ * is available. This is the single chokepoint: every caller MUST use
+ * this helper so monogram fallback behavior is uniform.
+ *
+ * Shape:
+ *   {
+ *     type: 'url' | 'monogram',
+ *     url: string | null,        // only set when type === 'url'
+ *     letter: string,            // ALWAYS set — first char uppercased, or '?'
+ *     bg: string,                // CSS color string (accent or fallback var)
+ *     fg: string,                // monogram text color (defaults to white)
+ *   }
+ *
+ * Rendering guidance:
+ * - When type === 'url', draw the image first. If it errors at load time,
+ *   fall through to the monogram shown in the same slot (use `letter`).
+ * - When type === 'monogram', draw a solid circle/disc in `bg` with
+ *   `letter` centered in `fg`.
+ *
+ * @param {object} ch  — normalized character object
+ * @param {string} accentColor  — CSS color for the monogram background
+ * @param {object} [stIndex]  — optional pre-built ST avatar index
+ * @returns {{type: string, url: ?string, letter: string, bg: string, fg: string}}
+ */
+export function getPortraitDescriptor(ch, accentColor, stIndex) {
+    const url = resolvePortraitUrl(ch, stIndex);
+    const name = String(ch?.name || '?').trim();
+    const letter = name === '?' || !name ? '?' : (name.charAt(0) || '?').toUpperCase();
+    const bg = accentColor || 'var(--sp-accent)';
+    const fg = '#ffffff';
+    if (url) return { type: 'url', url, letter, bg, fg };
+    return { type: 'monogram', url: null, letter, bg, fg };
+}
+
+/**
  * Build a render-ready portrait HTML string. Always returns something —
  * an <img> tag when a URL was resolved, or a monogram <div> fallback with
  * the first letter of the name on a colored background.
+ *
+ * v6.8.43: delegates to getPortraitDescriptor so there's a single source
+ * of truth for the "URL or monogram" decision and the chosen letter/color.
  *
  * The caller controls sizing via CSS classes. This helper only emits the
  * element structure; the styling lives in css/characters.css under
@@ -96,20 +137,12 @@ export function resolvePortraitUrl(ch, stIndex) {
  * @returns {string}  — HTML string to be inserted via innerHTML
  */
 export function getPortraitHtml(ch, accentColor, stIndex) {
-    const url = resolvePortraitUrl(ch, stIndex);
-    if (url) {
-        return `<div class="sp-char-portrait"><img src="${esc(url)}" alt="" onerror="this.parentElement.classList.add('sp-char-portrait-errored');this.remove()"></div>`;
+    const d = getPortraitDescriptor(ch, accentColor, stIndex);
+    if (d.type === 'url') {
+        return `<div class="sp-char-portrait"><img src="${esc(d.url)}" alt="" onerror="this.parentElement.classList.add('sp-char-portrait-errored');this.remove()"></div>`;
     }
-    // Monogram fallback — first letter of the name, uppercase.
-    // Picks `?` when the character has a truly empty/unknown name (the
-    // normalize placeholder).
-    const name = String(ch?.name || '?').trim();
-    const initial = name === '?' ? '?' : (name.charAt(0) || '?').toUpperCase();
-    const bg = accentColor || 'var(--sp-accent)';
-    // Inline background color so the monogram picks up the character's
-    // accent even when the caller forgot to set --char-accent on the
-    // parent element.
-    return `<div class="sp-char-portrait sp-char-portrait-monogram" style="background:${esc(bg)}"><span class="sp-char-portrait-letter">${esc(initial)}</span></div>`;
+    // Monogram fallback — first letter on the character's accent color
+    return `<div class="sp-char-portrait sp-char-portrait-monogram" style="background:${esc(d.bg)}"><span class="sp-char-portrait-letter">${esc(d.letter)}</span></div>`;
 }
 
 /**

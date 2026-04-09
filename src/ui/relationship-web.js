@@ -19,7 +19,7 @@ import { log, warn } from '../logger.js';
 import { t } from '../i18n.js';
 import { esc, clamp } from '../utils.js';
 import { charColor } from '../color.js';
-import { resolvePortraitUrl, buildPortraitIndex } from './portraits.js';
+import { resolvePortraitUrl, buildPortraitIndex, getPortraitDescriptor } from './portraits.js';
 import {
     isEnabled as isGraphEnabled,
     getCachedEdges,
@@ -36,16 +36,10 @@ const W = 1000, H = 700;
 const NODE_R = 28;    // NPC node radius
 const CENTER_R = 32;  // {{user}} node radius
 
-// v6.8.42: approximate pixel-width-per-character for the in-circle label
-// font (font-size 10, system sans). Used to decide whether a name will
-// overflow the inside-circle text space and must fall through to the
-// below-pill render path instead. Empirically ~6.5 is accurate for the
-// typical proper-noun character mix.
+// v6.8.43: approximate pixel-width-per-character for the below-pill label
+// font (font-size 10, system sans). Used to size the background pill to
+// fit the whole name without truncation.
 const CHAR_PX = 6.5;
-function _nameFitsInside(name, radius) {
-    const diameter = radius * 2;
-    return (name || '').length * CHAR_PX <= (diameter - 10);
-}
 const METER_COLORS = { affection: '#f472b6', trust: '#60a5fa', desire: '#a78bfa', stress: '#facc15', compatibility: '#34d399' };
 
 // ── Deterministic RNG ──────────────────────────────────────────────────
@@ -241,6 +235,14 @@ function _buildGraph(entries, npcEdges, userName) {
         const userAvatar = ctx.user_avatar || ctx.userAvatar;
         if (userAvatar) userPortrait = `/User Avatars/${encodeURIComponent(userAvatar)}`;
     } catch {}
+    // v6.8.43: unified portrait descriptor. When no image URL is
+    // available, the descriptor still carries the monogram letter + bg
+    // color so the SVG renderer can always draw a visible fallback
+    // avatar (either <image> or monogram text).
+    const userLetter = ((userName || '?').charAt(0) || '?').toUpperCase();
+    const userDescriptor = userPortrait
+        ? { type: 'url', url: userPortrait, letter: userLetter, bg: '#4db8a4', fg: '#ffffff' }
+        : { type: 'monogram', url: null, letter: userLetter, bg: '#4db8a4', fg: '#ffffff' };
     nodes.push({
         name: userName,
         isUser: true,
@@ -251,6 +253,7 @@ function _buildGraph(entries, npcEdges, userName) {
         role: '',
         rel: null,
         portraitUrl: userPortrait,
+        portrait: userDescriptor,
     });
     const userIdx = 0;
     nameToIdx.set(userName.toLowerCase().trim(), userIdx);
@@ -259,10 +262,19 @@ function _buildGraph(entries, npcEdges, userName) {
     for (let i = 0; i < entries.length; i++) {
         const e = entries[i];
         const cc = e.color;
-        // Prefer the precomputed avatarUrl the wiki passed through, fall
-        // back to resolving via the shared module. Both paths go through
-        // the same resolver so they match behavior.
-        const portraitUrl = e.avatarUrl || resolvePortraitUrl(e.character || { name: e.name, aliases: [] }, stIdx) || null;
+        // v6.8.43: delegate to the shared portrait descriptor helper so
+        // every node gets a guaranteed-renderable avatar: either the real
+        // image URL, or a monogram spec (first letter + accent background)
+        // for the SVG renderer to draw as a circle + text fallback.
+        const chObj = e.character || { name: e.name, aliases: [] };
+        const descriptor = getPortraitDescriptor(chObj, cc.accent, stIdx);
+        // Honor a precomputed avatarUrl passed through from the wiki:
+        // if it was resolved there, use it even if the descriptor came
+        // back as monogram (different cache state).
+        if (e.avatarUrl && descriptor.type !== 'url') {
+            descriptor.type = 'url';
+            descriptor.url = e.avatarUrl;
+        }
         nodes.push({
             name: e.name,
             isUser: false,
@@ -272,7 +284,8 @@ function _buildGraph(entries, npcEdges, userName) {
             inScene: e.inScene,
             role: e.character?.role || '',
             rel: e.relationship,
-            portraitUrl,
+            portraitUrl: descriptor.type === 'url' ? descriptor.url : null,
+            portrait: descriptor,
         });
         nameToIdx.set(e.name.toLowerCase().trim(), nodes.length - 1);
         // Also index aliases so edge resolution can find aliased references
@@ -619,31 +632,35 @@ function _buildSvg(graph, positions, userName, state) {
             svg += `<circle cx="${p.x}" cy="${p.y}" r="${r + 6}" fill="none" stroke="${haloColor}" stroke-width="3" opacity="0.85"/>`;
             svg += `<circle cx="${p.x}" cy="${p.y}" r="${r + 9}" fill="none" stroke="${haloColor}" stroke-width="1" opacity="0.45"/>`;
         }
-        // Background disc — fills when no portrait is available, or
-        // acts as the border backing when there is one.
-        svg += `<circle cx="${p.x}" cy="${p.y}" r="${r}" fill="${n.bg}" stroke="${n.color}" stroke-width="${strokeWidth}"${isFocused ? ` filter="drop-shadow(0 0 6px ${n.color})"` : ''}/>`;
-        // v6.8.29: portrait image clipped to a circle inside the node.
-        if (n.portraitUrl) {
+        // v6.8.43: when the node has no image, draw the circle filled with
+        // the character's accent color so the monogram letter sits on a
+        // solid colored disc (matches the sp-char-portrait-monogram style
+        // used elsewhere). When the node HAS an image, keep the dark bg
+        // disc so the image sits on a neutral backdrop.
+        const portrait = n.portrait || { type: n.portraitUrl ? 'url' : 'monogram', letter: (n.name || '?').charAt(0).toUpperCase(), bg: n.color, fg: '#fff', url: n.portraitUrl };
+        const discFill = portrait.type === 'url' ? n.bg : portrait.bg;
+        svg += `<circle cx="${p.x}" cy="${p.y}" r="${r}" fill="${discFill}" stroke="${n.color}" stroke-width="${strokeWidth}"${isFocused ? ` filter="drop-shadow(0 0 6px ${n.color})"` : ''}/>`;
+        if (portrait.type === 'url' && portrait.url) {
+            // v6.8.29: portrait image clipped to a circle inside the node.
             const imgR = r - 1;
-            svg += `<image href="${esc(n.portraitUrl)}" x="${p.x - imgR}" y="${p.y - imgR}" width="${imgR * 2}" height="${imgR * 2}" clip-path="url(#sp-web-clip-${i})" preserveAspectRatio="xMidYMid slice"/>`;
-        }
-        // v6.8.42: label rendering with below-pill fallback for overflow.
-        // Short names render inside the circle (unchanged). Long names
-        // OR nodes with a portrait render as a pill below the circle
-        // so the full name is always readable.
-        const fontSize = isUser ? 11 : 10;
-        const fits = _nameFitsInside(n.name, r);
-        const useBelowPill = !!n.portraitUrl || !fits;
-        if (useBelowPill) {
-            // Label below the circle with a dark background pill.
-            // Width grows to fit the full name — no ellipsis truncation.
-            const labelY = p.y + r + 10;
-            const lblW = Math.max(24, n.name.length * CHAR_PX + 10);
-            svg += `<rect x="${p.x - lblW / 2}" y="${labelY - 8}" width="${lblW}" height="16" rx="4" fill="#0c0e14" opacity="0.82" stroke="${n.color}" stroke-width="0.5" stroke-opacity="0.35"/>`;
-            svg += `<text x="${p.x}" y="${labelY}" text-anchor="middle" dominant-baseline="central" fill="${n.color}" font-size="${fontSize}" font-weight="${isUser ? 700 : 600}">${esc(n.name)}</text>`;
+            svg += `<image href="${esc(portrait.url)}" x="${p.x - imgR}" y="${p.y - imgR}" width="${imgR * 2}" height="${imgR * 2}" clip-path="url(#sp-web-clip-${i})" preserveAspectRatio="xMidYMid slice"/>`;
         } else {
-            svg += `<text x="${p.x}" y="${p.y + 1}" text-anchor="middle" dominant-baseline="central" fill="${n.color}" font-size="${fontSize}" font-weight="${isUser ? 700 : 600}">${esc(n.name)}</text>`;
+            // v6.8.43: monogram fallback rendered directly in SVG. Letter
+            // scales with the node radius so the user and NPC circles
+            // look balanced. text-shadow equivalent is faked with a
+            // darker stroke behind the fill for readability on bright
+            // accent backgrounds.
+            const monoSize = Math.round(r * 0.95);
+            svg += `<text x="${p.x}" y="${p.y + 1}" text-anchor="middle" dominant-baseline="central" font-size="${monoSize}" font-weight="700" fill="${portrait.fg || '#ffffff'}" stroke="rgba(0,0,0,0.35)" stroke-width="0.6" paint-order="stroke" style="font-family:system-ui,-apple-system,Segoe UI,sans-serif;letter-spacing:0">${esc(portrait.letter || '?')}</text>`;
         }
+        // v6.8.43: EVERY name renders as a pill below the circle — short
+        // names no longer sit inside. Keeps the roster visually uniform
+        // and the circles clean (image or monogram) without text overlap.
+        const fontSize = isUser ? 11 : 10;
+        const labelY = p.y + r + 10;
+        const lblW = Math.max(24, n.name.length * CHAR_PX + 10);
+        svg += `<rect x="${p.x - lblW / 2}" y="${labelY - 8}" width="${lblW}" height="16" rx="4" fill="#0c0e14" opacity="0.82" stroke="${n.color}" stroke-width="0.5" stroke-opacity="0.35"/>`;
+        svg += `<text x="${p.x}" y="${labelY}" text-anchor="middle" dominant-baseline="central" fill="${n.color}" font-size="${fontSize}" font-weight="${isUser ? 700 : 600}">${esc(n.name)}</text>`;
         if (!isUser && n.inScene) {
             svg += `<circle cx="${p.x + r - 4}" cy="${p.y - r + 4}" r="4" fill="#4ade80" stroke="#0c0e14" stroke-width="1.5"/>`;
         }
@@ -713,6 +730,41 @@ function _showTooltip(graph, nodeIdx, x, y) {
     document.body.appendChild(tip);
 }
 function _hideTooltip() { document.querySelectorAll('.sp-web-tooltip').forEach(t => t.remove()); }
+
+// ── Hover-enlarged portrait preview ───────────────────────────────────
+// v6.8.43: when a user hovers a node that has a real image portrait,
+// show an enlarged square preview pinned near the cursor. Only fires
+// for nodes where portrait.type === 'url' — monogram circles get no
+// preview (they carry no extra information at larger size). Reuses
+// the tooltip positioning pattern (avoid viewport edges) but places
+// the preview on the opposite side of the node from the tooltip so
+// the two don't overlap.
+function _showPortraitPreview(node, x, y) {
+    _hidePortraitPreview();
+    const p = node?.portrait;
+    if (!p || p.type !== 'url' || !p.url) return;
+    const box = document.createElement('div');
+    box.className = 'sp-web-portrait-preview';
+    box.innerHTML = `<img src="${esc(p.url)}" alt="${esc(node.name || '')}" onerror="this.parentElement?.remove()">`
+        + `<div class="sp-web-portrait-preview-caption" style="color:${esc(node.color || '#fff')}">${esc(node.name || '')}</div>`;
+    const vw = window.innerWidth, vh = window.innerHeight;
+    // Default to the right of the cursor, offset below the tooltip so
+    // the two don't visually stack. If no room on the right, flip left.
+    const boxW = 224;
+    const boxH = 260;
+    let tx = x + 32;
+    let ty = y + 20;
+    if (tx + boxW > vw - 8) tx = x - boxW - 18;
+    if (tx < 8) tx = 8;
+    if (ty + boxH > vh - 8) ty = vh - boxH - 8;
+    if (ty < 8) ty = 8;
+    box.style.left = tx + 'px';
+    box.style.top = ty + 'px';
+    document.body.appendChild(box);
+}
+function _hidePortraitPreview() {
+    document.querySelectorAll('.sp-web-portrait-preview').forEach(el => el.remove());
+}
 
 // ── Edge type descriptions for legend ─────────────────────────────────
 // v6.8.28: one-line descriptions shown in the legend panel so users can
@@ -862,8 +914,14 @@ export function openRelationshipWeb(entries) {
             hit.addEventListener('mouseenter', (e) => {
                 if (draggedIdx != null) return;
                 _showTooltip(graph, idx, e.clientX, e.clientY);
+                // v6.8.43: enlarged portrait preview for nodes with
+                // a real image. Monogram fallback nodes skip this.
+                _showPortraitPreview(graph.nodes[idx], e.clientX, e.clientY);
             });
-            hit.addEventListener('mouseleave', () => _hideTooltip());
+            hit.addEventListener('mouseleave', () => {
+                _hideTooltip();
+                _hidePortraitPreview();
+            });
             hit.addEventListener('click', (e) => {
                 e.stopPropagation();
                 // Click-to-focus: clicking a node toggles focus mode.
@@ -874,6 +932,7 @@ export function openRelationshipWeb(entries) {
                     focusedIdx = idx;
                 }
                 _hideTooltip();
+                _hidePortraitPreview();
                 _rerender();
             });
         });
@@ -1102,7 +1161,7 @@ export function openRelationshipWeb(entries) {
             _close();
         }
     };
-    function _close() { _hideTooltip(); overlay.remove(); document.removeEventListener('keydown', _escHandler); }
+    function _close() { _hideTooltip(); _hidePortraitPreview(); overlay.remove(); document.removeEventListener('keydown', _escHandler); }
     overlay.querySelector('.sp-web-close').addEventListener('click', _close);
     overlay.addEventListener('click', e => { if (e.target === overlay) { _hideTooltip(); _close(); } });
     document.addEventListener('keydown', _escHandler);
