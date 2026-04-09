@@ -24,6 +24,23 @@
 }
 .sp-web-close:hover { color: var(--sp-text); background: var(--sp-surface); }
 
+/* v6.8.27: layout toggle + NPC generate button */
+.sp-web-layout-toggle,
+.sp-web-generate-btn {
+    background: var(--sp-surface); border: 1px solid var(--sp-border); color: var(--sp-text-dim);
+    cursor: pointer; border-radius: 4px; padding: 4px 10px; font-size: 11px;
+    transition: all 0.15s; min-height: 28px;
+}
+.sp-web-layout-toggle:hover,
+.sp-web-generate-btn:hover { color: var(--sp-text); border-color: var(--sp-accent); }
+.sp-web-generate-btn.sp-web-loading { opacity: 0.65; cursor: wait; }
+.sp-web-stale { color: #facc15; font-weight: 600; }
+
+/* NPC edge glyph + two-tone edge styles */
+.sp-web-edge-glyph { pointer-events: none; }
+.sp-web-edge-npc { transition: stroke-width 0.15s ease; }
+.sp-web-edge-npc:hover { stroke-width: 3; }
+
 /* SVG container */
 .sp-web-svg-wrap { flex: 1; display: flex; align-items: center; justify-content: center; padding: 8px; overflow: hidden; min-height: 300px; }
 .sp-web-svg-wrap svg { max-width: 100%; max-height: 72vh; }
@@ -48,6 +65,15 @@
 .sp-web-tip-meters { display: flex; flex-direction: column; gap: 2px; }
 .sp-web-tip-meter { display: flex; justify-content: space-between; font-size: 10px; color: var(--sp-text-dim); }
 .sp-web-tip-absent { font-size: 9px; color: var(--sp-text-dim); font-style: italic; margin-top: 4px; opacity: 0.6; }
+
+/* v6.8.27: NPC edge list inside the tooltip — compact rows with glyph
+   + direction arrow + other-character name + label */
+.sp-web-tip-npc-list { margin-top: 6px; padding-top: 4px; border-top: 1px dashed var(--sp-border); display: flex; flex-direction: column; gap: 3px; max-height: 160px; overflow-y: auto; }
+.sp-web-tip-npc-row { display: flex; align-items: center; gap: 5px; font-size: 10px; }
+.sp-web-tip-glyph { font-size: 11px; min-width: 12px; text-align: center; }
+.sp-web-tip-dir { color: var(--sp-text-dim); font-size: 10px; min-width: 14px; text-align: center; }
+.sp-web-tip-other { font-weight: 600; }
+.sp-web-tip-label { color: var(--sp-text-dim); font-style: italic; margin-left: 4px; }
 
 /* Node hover effect (SVG) */
 .sp-web-node:hover circle:first-child { stroke-width: 3; filter: drop-shadow(0 0 6px currentColor); }

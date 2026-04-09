@@ -435,6 +435,42 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.8.27] — 2026-04-09
+
+#### Added \u2014 NPC\u2194NPC relationship web (Phase 1: overlay-time batch inference)
+Relationship Web v2. Architecture shaped by a cross-specialty review (software architecture, LLM compliance, token economics, UX/graph visualization, data modeling). The big decision: **DON'T** add per-turn emission of a new `relations` field to the character schema \u2014 instead, generate the NPC\u2194NPC graph lazily via a one-shot LLM call when the user opens the overlay, then cache the result per-snapshot. This resolves the token economics dissent against continuous emission (rarely-opened feature, expensive per-turn cost) and lets us validate the UX before investing in per-turn data layer changes.
+
+- **New module `src/ui/relationship-graph.js`** handles batch inference, parsing, canonicalization, caching, and feature-flag gating. Cache key is a fingerprint of character names + archetypes + roles; re-opening the overlay without new generations is free. Cache lives in `chatMetadata.scenepulse.relationshipGraph`.
+- **Batch inference prompt** lists the tracked characters with archetype + role, asks the model to emit a JSON array of directed NPC\u2194NPC edges with `{from, to, type, label}`. Explicitly requires NEVER referencing {{user}}, encourages asymmetry, caps at 30 edges. Uses the same SillyTavern `generateQuietPrompt` / `generateRaw` path as the main tracker generator \u2014 inherits the user's configured connection profile.
+- **Validation and dedup at parse time**: strips {{user}} references defensively, drops malformed entries, canonicalizes via alias lookup, dedupes by `(from, to, type)` triples, collapses reciprocal pairs (A\u2192B and B\u2192A for the same type) into a single edge with `direction: 'reciprocal'` for two-tone rendering.
+- **11 edge types** mirroring the v6.8.26 archetype taxonomy minus `background`/`pet`, plus `acquaintance` and `unknown`: `family / friend / ally / rival / antagonist / mentor / authority / lover / lust / acquaintance / unknown`. Each type has a color (reusing the archetype palette) and an emoji glyph (anchor, heart, crossed swords, star, hammer, etc.) for color-blind accessibility.
+
+#### Added \u2014 Force-directed layout for the Relationship Web
+- **Seeded Fruchterman-Reingold simulation** (~180 iterations with cooling schedule) replaces the forced-circular layout as the default. Seeded from a hash of the sorted character name list so the same roster always produces the same layout across re-opens. O(n\u00B2) cost is fine for typical roster sizes.
+- **{{user}} anchored at center** throughout the simulation so the player stays the visual focal point and the layout feels stable.
+- **Curved edges with hashed offset** so multiple edges between similar regions don't overlap exactly. Edge color for NPC edges comes from the type palette; width is fixed at 2.2px.
+- **Two-tone reciprocal edges**: when both A\u2192B and B\u2192A agree on the type, the edge renders as two halves \u2014 first half in A's accent color, second half in B's accent color \u2014 with a thin type-colored core line running through the whole curve so the edge kind is still readable at a glance.
+- **Emoji glyph in a small circle at the edge midpoint** so color-blind users can identify edge types without relying on the palette alone. Glyphs use Unicode characters that render consistently across platforms: \u2693 family, \u2661 friend, \u25C6 ally, \u2694 rival, \u2716 antagonist, \u2605 mentor, \u2692 authority, \u2665 lover, \u263D lust, \u25CB acquaintance, \u25A1 unknown.
+- **Layout toggle in the header**: classic circular view preserved as a fallback for users who prefer the old look or whose roster looks messy under force-directed. Stored per-session, not persisted.
+- **Enriched tooltip** on node hover now shows both the existing user-facing meters (affection/trust/stress) AND a compact list of incident NPC\u2194NPC edges with direction arrows (\u2192 outgoing, \u2190 incoming, \u21C4 reciprocal) + glyph + labeled target. SVG `<title>` elements on nodes for screen-reader compatibility.
+
+#### Added \u2014 Settings toggle
+- **New checkbox in General**: "NPC relationship graph" (Experimental). Off by default. When disabled, the Relationship Web overlay renders exactly as in v6.8.21 \u2014 star topology, no generate button. When enabled, the "\u21BB NPC" button appears in the overlay header; clicking it calls the batch inference and caches the result. Disabling the setting also clears any cached graph.
+
+#### Not shipping in Phase 1 (deferred to v6.8.28+ if the feature proves valuable)
+- Per-turn schema field (`relations: []` on each character) \u2014 rejected in unified review for token cost vs utility.
+- Click-to-focus subgraph highlighting.
+- Drag-to-reposition nodes.
+- Edge type filter chips.
+- Always-visible edge labels (currently hover-only).
+- Zoom/pan on the SVG canvas.
+- Phase 2 decision will be made after real-world data quality from Phase 1 is observed.
+
+#### Not changed
+- Existing `relationships[]` top-level array (user-facing) is untouched. The NPC graph is strictly additive.
+- No schema changes, no migration, no normalize changes, no delta-merge changes.
+- 183/183 tests still pass.
+
 ### [6.8.26] — 2026-04-09
 
 #### Changed \u2014 character archetype taxonomy overhaul

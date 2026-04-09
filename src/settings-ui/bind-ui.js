@@ -75,6 +75,7 @@ export function loadUI(){const s=getSettings();$('#sp-enabled').prop('checked',s
     // Re-apply form values after localStorage override
     $('#sp-show-thoughts').prop('checked',s.showThoughts!==false);
     $('#sp-thought-truncate').prop('checked',s.thoughtPanelTruncate===true);
+    $('#sp-npc-graph').prop('checked',s.npcRelationshipGraph===true);
     $('#sp-show-weather').prop('checked',s.weatherOverlay!==false);
     $('#sp-show-timetint').prop('checked',s.timeTint!==false);
     $('#sp-ctx').val(s.contextMessages);$('#sp-retries').val(s.maxRetries);
@@ -178,6 +179,18 @@ export function bindUI(){const s=getSettings();
     // thought rendered). When on, sentences are sliced to a hash-stable
     // 1-3 count per thought for visual variety in the floating bubble.
     $('#sp-thought-truncate').on('change',function(){s.thoughtPanelTruncate=this.checked;saveSettings();const snap=getLatestSnapshot();if(snap)updateThoughts(normalizeTracker(snap))});
+    // v6.8.27: toggle NPC↔NPC relationship graph feature. Off by default
+    // — when enabled, exposes a "Generate NPC graph" button in the
+    // Relationship Web overlay that triggers a separate LLM call to map
+    // connections between tracked NPCs. Disabling clears any cached graph.
+    $('#sp-npc-graph').on('change',function(){
+        s.npcRelationshipGraph=this.checked;
+        saveSettings();
+        if(!this.checked){
+            // Lazy-import to avoid loading the graph module on every UI rebuild
+            import('../ui/relationship-graph.js').then(m=>m.clearCache?.()).catch(()=>{});
+        }
+    });
     $('#sp-show-weather').on('change',function(){s.weatherOverlay=this.checked;saveSettings();_spSaveLS();const btn=document.getElementById('sp-tb-weather');if(btn)btn.classList.toggle('sp-tb-active',this.checked);if(!this.checked)clearWeatherOverlay();else{const snap=getLatestSnapshot();if(snap){const n=normalizeTracker(snap);updateWeatherOverlay(n.weather)}}});
     $('#sp-show-timetint').on('change',function(){s.timeTint=this.checked;saveSettings();_spSaveLS();const btn=document.getElementById('sp-tb-timeTint');if(btn)btn.classList.toggle('sp-tb-active',this.checked);if(!this.checked)clearTimeTint();else{const snap=getLatestSnapshot();if(snap){const n=normalizeTracker(snap);updateTimeTint(n.time)}}});
     $('#sp-show-devbtns').on('change',function(){s.devButtons=this.checked;saveSettings();const dv=this.checked?'':'none';const dw=document.getElementById('sp-dev-wx-wrap');if(dw)dw.style.display=dv;const dt=document.getElementById('sp-dev-time-wrap');if(dt)dt.style.display=dv});
