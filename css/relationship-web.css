@@ -108,6 +108,67 @@
 .sp-web-legend-inactive { opacity: 0.4; text-decoration: line-through; }
 .sp-web-legend-inactive .sp-web-legend-swatch { box-shadow: none; filter: grayscale(0.7); }
 
+/* v6.8.41: organizations section — chips listing detected orgs.
+   Click a chip to highlight its members with a colored halo and fade
+   all other characters. Multi-select union semantics. */
+.sp-web-legend-org-section {
+    margin-top: 10px; padding-top: 6px;
+    border-top: 1px dashed var(--sp-border);
+    display: flex; flex-direction: column; gap: 4px;
+}
+.sp-web-legend-subheader {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--sp-text-dim);
+    padding: 2px 2px 4px;
+}
+.sp-web-legend-org-list {
+    display: flex; flex-direction: column; gap: 3px;
+}
+.sp-web-org-chip {
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 6px; border-radius: 4px; cursor: pointer;
+    font-size: 10px; color: var(--sp-text);
+    border: 1px solid transparent;
+    background: rgba(255,255,255,0.03);
+    transition: all 0.12s ease; user-select: none;
+    white-space: nowrap;
+}
+.sp-web-org-chip:hover {
+    background: rgba(255,255,255,0.08);
+    border-color: var(--sp-org-color, var(--sp-accent));
+}
+.sp-web-org-chip-active {
+    background: rgba(255,255,255,0.1);
+    border-color: var(--sp-org-color, var(--sp-accent));
+    box-shadow: 0 0 8px -2px var(--sp-org-color, var(--sp-accent));
+}
+.sp-web-org-chip-swatch {
+    width: 10px; height: 10px; border-radius: 2px;
+    flex-shrink: 0; box-shadow: 0 0 4px currentColor;
+}
+.sp-web-org-chip-name {
+    flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    font-weight: 600;
+}
+.sp-web-org-chip-count {
+    font-size: 9px; font-weight: 600; color: var(--sp-text-dim);
+    background: var(--sp-surface); padding: 1px 5px; border-radius: 8px;
+    min-width: 14px; text-align: center;
+}
+.sp-web-org-chip-all {
+    justify-content: center; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--sp-text-dim);
+    border: 1px dashed var(--sp-border);
+    background: transparent;
+    padding: 3px 6px;
+}
+.sp-web-org-chip-all:hover { color: var(--sp-text); border-color: var(--sp-accent); }
+.sp-web-org-chip-all.sp-web-org-chip-active {
+    color: var(--sp-text-bright); border-color: var(--sp-accent);
+    box-shadow: none;
+}
+
 /* Footer */
 .sp-web-footer {
     padding: 6px 16px; border-top: 1px solid var(--sp-border);
@@ -145,14 +206,21 @@
 @media(max-width:900px){
     .sp-web-body { flex-direction: column; }
     .sp-web-legend-panel {
-        flex: 0 0 auto; max-height: 160px; border-left: none;
+        flex: 0 0 auto; max-height: 200px; border-left: none;
         border-top: 1px solid var(--sp-border);
         display: flex; flex-direction: row; flex-wrap: wrap;
-        gap: 4px; overflow-x: auto; overflow-y: visible;
+        gap: 4px; overflow-x: auto; overflow-y: auto;
     }
     .sp-web-legend-header { display: none; }
     .sp-web-legend-row { flex: 0 0 auto; padding: 4px 8px; font-size: 10px; }
     .sp-web-legend-all { flex-basis: 100%; }
+    .sp-web-legend-org-section {
+        flex-basis: 100%; margin-top: 6px; padding-top: 4px;
+        flex-direction: column;
+    }
+    .sp-web-legend-org-list { flex-direction: row; flex-wrap: wrap; gap: 4px; }
+    .sp-web-org-chip { flex: 0 0 auto; }
+    .sp-web-legend-subheader { display: none; }
 }
 @media(max-width:600px){
     .sp-web-container { max-width: calc(100vw - 16px); max-height: calc(100vh - 24px); }

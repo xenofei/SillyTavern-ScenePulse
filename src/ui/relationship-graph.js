@@ -26,6 +26,19 @@
 //         direction: 'from-to' | 'reciprocal',  // reciprocal = both agree on the tie
 //       },
 //       ...
+//     ],
+//     // v6.8.41: organizations tracking — which characters belong to
+//     // which groups (cults, schools, precincts, guilds, ships, clans...).
+//     // The same character can belong to multiple orgs. The filter UI
+//     // reads this directly to build org-highlight dropdowns.
+//     organizations: [
+//       {
+//         name: string,           // e.g. "5th Precinct Police", "The Crimson Hand Cult"
+//         kind: string,           // genre-neutral category: "police", "cult", "school",
+//                                 //   "guild", "crew", "faction", "family", "company", etc.
+//         members: string[],      // canonical NPC names that belong (never {{user}})
+//       },
+//       ...
 //     ]
 //   }
 //
@@ -85,6 +98,35 @@ export const EDGE_COLORS = Object.freeze({
     acquaintance: '#9a9a9a',
     unknown: '#6e6e6e',
 });
+
+// v6.8.41: Organization highlight palette. When a user filters to a
+// specific org in the relationship web, its members get a colored
+// halo using one of these. The color is picked deterministically
+// from the org's hashed name so the same org always gets the same
+// color across re-opens. Distinct from the edge-type palette so
+// org highlights don't visually collide with edge colors.
+export const ORG_COLORS = Object.freeze([
+    '#f59e0b', // amber
+    '#10b981', // emerald
+    '#ef4444', // red
+    '#8b5cf6', // violet
+    '#06b6d4', // cyan
+    '#f97316', // orange
+    '#ec4899', // pink
+    '#84cc16', // lime
+    '#14b8a6', // teal
+    '#a855f7', // purple
+    '#eab308', // yellow
+    '#22c55e', // green
+]);
+
+// Deterministic hash-based color picker for a given org name.
+export function orgColor(orgName) {
+    if (!orgName) return ORG_COLORS[0];
+    let h = 5381;
+    for (let i = 0; i < orgName.length; i++) h = ((h << 5) + h + orgName.charCodeAt(i)) | 0;
+    return ORG_COLORS[Math.abs(h) % ORG_COLORS.length];
+}
 
 // ── Fingerprint ─────────────────────────────────────────────────────────
 // A fingerprint is a deterministic string derived from the current set of
@@ -151,6 +193,8 @@ export function clearCache() {
 
 // Read cached edges if the fingerprint still matches the current snapshot.
 // Returns null if no cache, stale cache, or empty cache.
+// v6.8.41: kept for back-compat — callers that want the full graph
+// should use getCachedGraph() which also returns organizations.
 export function getCachedEdges() {
     const snap = getLatestSnapshot();
     if (!snap) return null;
@@ -158,6 +202,22 @@ export function getCachedEdges() {
     const cache = _getCache();
     if (!cache || cache.fingerprint !== fp) return null;
     return Array.isArray(cache.edges) ? cache.edges : [];
+}
+
+// v6.8.41: Read the full cached graph (edges + organizations). Returns
+// null if no cache or stale cache, or an object `{edges, organizations}`
+// where either field may be an empty array. Gracefully handles legacy
+// caches from <v6.8.41 that only stored `edges`.
+export function getCachedGraph() {
+    const snap = getLatestSnapshot();
+    if (!snap) return null;
+    const fp = _fingerprint(snap);
+    const cache = _getCache();
+    if (!cache || cache.fingerprint !== fp) return null;
+    return {
+        edges: Array.isArray(cache.edges) ? cache.edges : [],
+        organizations: Array.isArray(cache.organizations) ? cache.organizations : [],
+    };
 }
 
 // Is the current cache stale (different fingerprint) vs the latest snap?
@@ -201,7 +261,7 @@ function _buildPrompt(characters, userName) {
     const targetMin = n <= 2 ? Math.max(0, n - 1) : n <= 4 ? n : Math.ceil(n * 1.3);
     const targetMax = Math.min(30, Math.ceil(n * 2.5));
 
-    return `You are a relationship-graph analyst. Given a list of characters from an ongoing story of ANY genre (modern, medieval, fantasy, sci-fi, historical, slice-of-life, noir, post-apocalyptic, wuxia, space opera, urban fantasy, western, horror, romance, or anything else), output a JSON array of the connections BETWEEN THEM (NPC\u2194NPC only \u2014 NEVER include ${userName} in the graph; ${userName} is the player and has a separate relationship tracker).
+    return `You are a relationship-graph analyst. Given a list of characters from an ongoing story of ANY genre (modern, medieval, fantasy, sci-fi, historical, slice-of-life, noir, post-apocalyptic, wuxia, space opera, urban fantasy, western, horror, romance, or anything else), output a JSON object with TWO fields: \`edges\` (NPC\u2194NPC connections) and \`organizations\` (groups/factions/institutions that the characters belong to). NEVER include ${userName} in either \u2014 ${userName} is the player and has a separate tracker.
 
 ## Tracked characters
 ${charLines}
@@ -300,86 +360,177 @@ Teacher/student, master/apprentice, mentor/trainee, elder/novice, initiator/init
 
 When in doubt between friend and acquaintance, pick **acquaintance**. When in doubt between authority and mentor, pick whichever feature dominates the current scene \u2014 power asymmetry = authority, skill transfer = mentor. When in doubt between lover and lust, pick lover if there's ANY emotional investment, lust only if it's purely physical on both sides.
 
+## Organizations (new in v6.8.41)
+In addition to edges, detect the **organizations / factions / institutions** characters belong to. An "organization" is any named group of 2+ characters bound by a shared affiliation:
+
+- Modern: police precinct, hospital, company, news agency, school, political party, gang
+- Medieval/fantasy: knightly order, mage's college, thieves' guild, noble house, temple, clan, cult, coven, adventuring party
+- Sci-fi: starfleet, resistance, corporation, colonial authority, away team, ship's crew, hive, syndicate
+- Historical: legion, dynasty, trading company, ship's company, expedition
+- Slice-of-life: teaching staff, student council, sports team, band, book club, friend group, family unit
+- Any setting: brotherhood, sisterhood, order, circle, league, sect, cult, faction, crew, squad, pack, household
+
+**CRITICAL**: distinguish DIFFERENT organizations even when they sound similar. If the story has two separate cults ("The Crimson Hand" and "The Veiled Ones"), emit them as **two separate organizations** with different members. If two detectives are from different precincts, emit two different precincts. The whole point of this field is to let the user filter characters by specific institution, which requires unique naming.
+
+**What to emit as an organization**:
+- 2 or more characters who share a specific named institution
+- Use the specific name from the story if known ("5th Precinct Police", "The Crimson Hand Cult", "House Velaryon", "USS Endeavor Bridge Crew")
+- If no name is given but the group is clearly a distinct unit, use a descriptive name ("Precinct Patrol Unit", "Hospital ER Staff", "Wizard's Council")
+- The \`kind\` field is a genre-neutral category ("police", "cult", "school", "guild", "crew", "faction", "family", "company", "religious order", "noble house", "academic", "military unit", "criminal", etc.)
+
+**What NOT to emit**:
+- Loose groupings that aren't actually institutions ("people in the same room")
+- A single character as their own organization
+- {{user}} as a member of any organization
+
 ## Output format
-A JSON array of objects. Each object has:
+Output a single JSON object with two fields:
+
+\`\`\`
+{
+  "edges": [
+    { "from": "...", "to": "...", "type": "...", "label": "..." },
+    ...
+  ],
+  "organizations": [
+    { "name": "...", "kind": "...", "members": ["...", "..."] },
+    ...
+  ]
+}
+\`\`\`
+
+Edge fields:
 - "from": name of the character whose view this is (must be one of the listed characters, never ${userName})
 - "to": name of the other character (must be one of the listed characters, never ${userName})
 - "type": one of the edge types above
-- "label": 1-4 word phrase describing the specific connection. Prefer specific labels over generic ones. The label should fit the genre of the story \u2014 "patrol partner" fits modern, "sworn brother" fits medieval, "bridge officer" fits sci-fi, "fellow apprentice" fits fantasy.
+- "label": 1-4 word phrase describing the specific connection. Prefer specific labels that fit the genre.
 
-Output ONLY the JSON array. No prose, no markdown fences, no commentary. Example shapes for different genres \u2014 use these as **structural templates**, not content to copy:
+Organization fields:
+- "name": specific organization name (use story-given names when available, descriptive when not). Each org must have a UNIQUE name.
+- "kind": genre-neutral category — one or two words. Examples: "police", "cult", "school", "guild", "crew", "family", "company", "religious order", "noble house", "academic", "military unit", "criminal".
+- "members": array of character names that belong. A character can appear in multiple organizations' member lists.
 
-Modern procedural:
-[
-  {"from":"Detective Alvarez","to":"Detective Wong","type":"ally","label":"case partner"},
-  {"from":"Officer Jones","to":"Detective Alvarez","type":"acquaintance","label":"same precinct"}
-]
+Output ONLY the JSON object. No prose, no markdown fences, no commentary. Example shapes for different genres \u2014 use these as **structural templates**, not content to copy:
 
-Medieval fantasy:
-[
-  {"from":"Sir Aldric","to":"Squire Tam","type":"mentor","label":"knight and squire"},
-  {"from":"Lyra the Mage","to":"Brother Orin","type":"acquaintance","label":"fellow council member"},
-  {"from":"High Lord Varys","to":"Sir Aldric","type":"authority","label":"sworn lord"}
-]
+Modern procedural (two separate precincts working the same case):
+{
+  "edges": [
+    {"from":"Detective Alvarez","to":"Detective Wong","type":"ally","label":"case partner"},
+    {"from":"Officer Jones","to":"Detective Alvarez","type":"acquaintance","label":"cross-precinct"}
+  ],
+  "organizations": [
+    {"name":"5th Precinct Detectives","kind":"police","members":["Detective Alvarez","Detective Wong"]},
+    {"name":"12th Precinct Patrol","kind":"police","members":["Officer Jones"]}
+  ]
+}
 
-Sci-fi:
-[
-  {"from":"Commander Shen","to":"Lieutenant Vale","type":"authority","label":"commanding officer"},
-  {"from":"Dr. Okafor","to":"Tech Specialist Ren","type":"ally","label":"away team"},
-  {"from":"Captain Iwata","to":"Commander Shen","type":"authority","label":"ship captain"}
-]
+Medieval fantasy (a knightly order + a rival mage's council):
+{
+  "edges": [
+    {"from":"Sir Aldric","to":"Squire Tam","type":"mentor","label":"knight and squire"},
+    {"from":"Lyra the Mage","to":"Archmage Orin","type":"acquaintance","label":"council peer"},
+    {"from":"High Lord Varys","to":"Sir Aldric","type":"authority","label":"sworn lord"}
+  ],
+  "organizations": [
+    {"name":"Order of the Silver Hawk","kind":"knightly order","members":["Sir Aldric","Squire Tam","High Lord Varys"]},
+    {"name":"Veiled Council of Mages","kind":"mage circle","members":["Lyra the Mage","Archmage Orin"]}
+  ]
+}
 
-Slice-of-life:
-[
-  {"from":"Ms. Tanaka","to":"Principal Kimura","type":"authority","label":"staff"},
-  {"from":"Yuki","to":"Haruto","type":"friend","label":"childhood friend"},
-  {"from":"Chef Marcus","to":"Lena","type":"mentor","label":"cooking teacher"}
-]
+Sci-fi (crew of one ship + visitors from another):
+{
+  "edges": [
+    {"from":"Commander Shen","to":"Lieutenant Vale","type":"authority","label":"commanding officer"},
+    {"from":"Dr. Okafor","to":"Tech Specialist Ren","type":"ally","label":"away team"}
+  ],
+  "organizations": [
+    {"name":"USS Endeavor Bridge Crew","kind":"ship crew","members":["Commander Shen","Lieutenant Vale","Captain Iwata"]},
+    {"name":"Research Team Gamma","kind":"science team","members":["Dr. Okafor","Tech Specialist Ren"]}
+  ]
+}
 
-The structure (authority, mentor, ally, acquaintance, family) is identical across genres. Only the labels change to match the setting. Your job is to apply the same structural reasoning to WHATEVER genre the listed characters come from, using labels that fit the story's world.
+Multi-cult horror (TWO different cults worshipping different things):
+{
+  "edges": [
+    {"from":"Brother Malachi","to":"Sister Ada","type":"ally","label":"cultmate"},
+    {"from":"Brother Malachi","to":"Elder Thorne","type":"antagonist","label":"rival cult leader"}
+  ],
+  "organizations": [
+    {"name":"The Crimson Hand","kind":"cult","members":["Brother Malachi","Sister Ada"]},
+    {"name":"The Veiled Ones","kind":"cult","members":["Elder Thorne","Prophet Vex","Acolyte Kara"]}
+  ]
+}
 
-${characters.length === 0 ? 'No characters to analyze — output []' : `Output the JSON array now. Target: ${targetMin}\u2013${targetMax} edges.`}`;
+The structure is identical across genres. Only the labels change. Your job is to apply the same structural reasoning to WHATEVER genre the characters come from, using specific names and kinds that fit the story's world. **Always distinguish separate institutions even when they share a kind.**
+
+${characters.length === 0 ? 'No characters to analyze — output {"edges":[],"organizations":[]}' : `Output the JSON object now. Target: ${targetMin}\u2013${targetMax} edges, plus any organizations you detect.`}`;
 }
 
 // ── Parsing + validation ────────────────────────────────────────────────
-// Parse the raw LLM response into a validated edge list. Drops anything
-// malformed instead of throwing so a partially-broken response still
-// produces a partial graph.
-function _parseEdges(raw, validNames, userName) {
+// Parse the raw LLM response into a validated {edges, organizations}
+// object. Drops anything malformed instead of throwing so a partially-
+// broken response still produces a partial graph.
+//
+// v6.8.41: response format changed from a bare array of edges to an
+// object { edges: [...], organizations: [...] }. This parser handles
+// BOTH formats for back-compat with cached graphs from older versions:
+//   - If the root is an array, treat it as the edges list and emit
+//     organizations: [].
+//   - If the root is an object with `edges` / `organizations` fields,
+//     parse each independently.
+function _parseGraph(raw, validNames, userName) {
+    const empty = { edges: [], organizations: [] };
     if (typeof raw !== 'string') {
         warn('relationship-graph: non-string response — got', typeof raw);
-        return [];
+        return empty;
     }
     if (!raw.trim()) {
         warn('relationship-graph: empty response from LLM');
-        return [];
+        return empty;
     }
     // Strip code fences and leading/trailing prose.
     let cleaned = raw.trim();
-    // Remove ```json fences
     cleaned = cleaned.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '');
-    // Find the first [ and last ] so we can handle leading/trailing commentary
+    // Find the outermost JSON span. Try object-first (new format),
+    // fall back to array (legacy format).
+    const firstBrace = cleaned.indexOf('{');
+    const lastBrace = cleaned.lastIndexOf('}');
     const firstBracket = cleaned.indexOf('[');
     const lastBracket = cleaned.lastIndexOf(']');
-    if (firstBracket === -1 || lastBracket === -1 || lastBracket < firstBracket) {
-        // v6.8.30: log the first 400 chars of the response so users can see
-        // WHY parsing failed (LLM refused, wrapped JSON in prose, returned
-        // empty, etc.). Previously this warning gave zero diagnostic info.
+    // Prefer object format when both are present AND the object
+    // encloses the array (or at least starts first).
+    const useObject = firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace &&
+        (firstBracket === -1 || firstBrace < firstBracket);
+    if (!useObject && (firstBracket === -1 || lastBracket === -1 || lastBracket < firstBracket)) {
         const preview = raw.substring(0, 400).replace(/\n/g, ' \u21B5 ');
-        warn('relationship-graph: no JSON array found in response. First 400 chars:', preview);
-        return [];
+        warn('relationship-graph: no JSON object or array found in response. First 400 chars:', preview);
+        return empty;
     }
-    cleaned = cleaned.substring(firstBracket, lastBracket + 1);
+    if (useObject) {
+        cleaned = cleaned.substring(firstBrace, lastBrace + 1);
+    } else {
+        cleaned = cleaned.substring(firstBracket, lastBracket + 1);
+    }
     let parsed;
     try { parsed = JSON.parse(cleaned); }
     catch (e) {
         const preview = cleaned.substring(0, 400).replace(/\n/g, ' \u21B5 ');
         warn('relationship-graph: JSON parse failed:', e?.message, '| Attempted to parse:', preview);
-        return [];
+        return empty;
     }
-    if (!Array.isArray(parsed)) {
-        warn('relationship-graph: parsed value is not an array, got', typeof parsed);
-        return [];
+
+    // Normalize: whatever format we got, extract rawEdges and rawOrgs.
+    let rawEdges = [];
+    let rawOrgs = [];
+    if (Array.isArray(parsed)) {
+        // Legacy bare-array format
+        rawEdges = parsed;
+    } else if (parsed && typeof parsed === 'object') {
+        rawEdges = Array.isArray(parsed.edges) ? parsed.edges : [];
+        rawOrgs = Array.isArray(parsed.organizations) ? parsed.organizations : [];
+    } else {
+        warn('relationship-graph: parsed value is neither object nor array, got', typeof parsed);
+        return empty;
     }
 
     const validSet = new Set(validNames.map(n => n.toLowerCase().trim()));
@@ -391,19 +542,17 @@ function _parseEdges(raw, validNames, userName) {
     const canonByLow = new Map();
     for (const n of validNames) canonByLow.set(n.toLowerCase().trim(), n);
 
+    // ── Parse edges ─────────────────────────────────────────
     const cleanedEdges = [];
-    for (const entry of parsed) {
+    for (const entry of rawEdges) {
         if (!entry || typeof entry !== 'object') continue;
         const rawFrom = String(entry.from || '').trim();
         const rawTo = String(entry.to || '').trim();
         if (!rawFrom || !rawTo) continue;
         const fromLow = rawFrom.toLowerCase();
         const toLow = rawTo.toLowerCase();
-        // {{user}} guard in both directions
         if (userLow && (fromLow === userLow || toLow === userLow)) continue;
-        // Both endpoints must be known characters
         if (!validSet.has(fromLow) || !validSet.has(toLow)) continue;
-        // No self-edges
         if (fromLow === toLow) continue;
         const rawType = String(entry.type || 'unknown').toLowerCase().trim();
         const type = typeSet.has(rawType) ? rawType : 'unknown';
@@ -477,7 +626,42 @@ function _parseEdges(raw, validNames, userName) {
     }
 
     // Cap at 30 edges defensively in case the model ignored the prompt cap.
-    return result.slice(0, 30);
+    const finalEdges = result.slice(0, 30);
+
+    // ── Parse organizations ────────────────────────────────
+    // Validate each org: must have a non-empty name, a non-empty member
+    // list with at least 2 valid known characters, and a kind (default
+    // to "group" if missing). Dedup members within each org. Skip orgs
+    // that collapse to <2 members after validation.
+    const cleanedOrgs = [];
+    const seenOrgNames = new Set();
+    for (const entry of rawOrgs) {
+        if (!entry || typeof entry !== 'object') continue;
+        const orgName = String(entry.name || '').trim().substring(0, 80);
+        if (!orgName) continue;
+        const orgKey = orgName.toLowerCase();
+        if (seenOrgNames.has(orgKey)) continue; // dedup by name
+        const orgKind = String(entry.kind || 'group').trim().substring(0, 30).toLowerCase() || 'group';
+        const rawMembers = Array.isArray(entry.members) ? entry.members : [];
+        const validMembers = [];
+        const seenMembers = new Set();
+        for (const m of rawMembers) {
+            const name = String(m || '').trim();
+            if (!name) continue;
+            const low = name.toLowerCase();
+            if (userLow && low === userLow) continue; // {{user}} guard
+            if (!validSet.has(low)) continue;          // must be a known character
+            if (seenMembers.has(low)) continue;        // dedup members
+            seenMembers.add(low);
+            validMembers.push(canonByLow.get(low) || name);
+        }
+        // Orgs with fewer than 2 valid members are useless for filtering
+        if (validMembers.length < 2) continue;
+        seenOrgNames.add(orgKey);
+        cleanedOrgs.push({ name: orgName, kind: orgKind, members: validMembers });
+    }
+
+    return { edges: finalEdges, organizations: cleanedOrgs };
 }
 
 // ── Batch inference entry point ─────────────────────────────────────────
@@ -491,9 +675,14 @@ export async function generateGraph() {
     const characters = Array.isArray(snap.characters) ? snap.characters : [];
     if (characters.length < 2) {
         // Nothing to graph — cache empty and return immediately.
-        const cache = { fingerprint: _fingerprint(snap), generatedAt: Date.now(), edges: [] };
+        const cache = {
+            fingerprint: _fingerprint(snap),
+            generatedAt: Date.now(),
+            edges: [],
+            organizations: [],
+        };
         _setCache(cache);
-        return cache.edges;
+        return { edges: cache.edges, organizations: cache.organizations };
     }
 
     let userName = 'You';
@@ -525,16 +714,17 @@ export async function generateGraph() {
     }
 
     const validNames = characters.map(c => c.name).filter(Boolean);
-    const edges = _parseEdges(raw, validNames, userName);
-    log('relationship-graph: parsed', edges.length, 'edges from response');
+    const { edges, organizations } = _parseGraph(raw, validNames, userName);
+    log('relationship-graph: parsed', edges.length, 'edges and', organizations.length, 'organizations from response');
 
     const cache = {
         fingerprint: _fingerprint(snap),
         generatedAt: Date.now(),
         edges,
+        organizations,
     };
     _setCache(cache);
-    return edges;
+    return { edges, organizations };
 }
 
 // ── Feature-flag helper ─────────────────────────────────────────────────

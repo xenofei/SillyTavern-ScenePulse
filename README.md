@@ -435,6 +435,34 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.8.41] — 2026-04-08
+
+#### Added — Organization tracking + filter in the relationship web
+**Reported**: "I want the relationship web to generate organizations that can be filtered. For example, what if there are 5 cultists, but 3 of them are for a different cult? Or multiple teachers, but they work for different schools? There needs to be a tracking for that."
+
+**Fix**: the NPC graph inference now emits a top-level `organizations` array alongside `edges`. Each organization has a `name`, a genre-neutral `kind`, and a `members` list. Characters may belong to multiple organizations, and two organizations with the same `kind` are deliberately kept separate when the story implies they are distinct institutions (two cults with different names, two schools with different names, two crews on different ships, etc.).
+
+The prompt was extended with a dedicated **## Organizations** section containing multi-genre examples (modern precincts, medieval orders, sci-fi crews, slice-of-life staff, horror cults) and an explicit rule: *"When two characters share the same kind of role (both teachers, both cultists, both knights), ask whether the story implies they belong to the SAME institution or DIFFERENT ones. If it's ambiguous, err on the side of treating them as separate unless there's clear textual evidence they work together."*
+
+The relationship web legend now shows a new **Organizations** section below the edge-type filters. Each detected org renders as a colored chip showing `[name] [kind] [member count]`. Clicking a chip highlights all its members with a colored halo ring and fades non-members to 15% opacity (union semantics for multi-select). The "All" reset chip clears the org filter. Chips persist across re-renders and are cleared automatically on regeneration since the org list may change.
+
+#### Changed — Relationship web layout spacing
+**Reported**: "The initial webbing is very closely packed. Is there a way so that there is more spacing between them?"
+
+**Fix**: Fruchterman-Reingold constants rebalanced for more breathing room on first layout:
+
+- `k` multiplier bumped `0.65` → `1.05` (main ideal-edge-length constant)
+- Initial ring radius bumped `0.28` → `0.36` of `min(W, H)` so nodes start more spread out
+- Initial temperature bumped `0.12` → `0.18` so the early simulation can travel further
+- Iterations bumped `180` → `200`
+- Per-node jitter bumped `30` → `40` pixels
+- New `radiusBonus` term: when the roster contains dynamically-sized nodes (see next section), `k` is increased proportional to the largest node radius so oversized circles don't overlap
+
+#### Changed — Dynamic node radius for long names
+**Reported**: "Increase the size of the circles dynamically to accommodate longer names. Make the current size the default size still until it gets dynamically adjusted."
+
+**Fix**: added `_dynamicNodeRadius(name)` which returns the existing `NODE_R = 28` for names of 10 characters or fewer (so most rosters are visually unchanged) and grows linearly up to `NODE_R_MAX = 48` for names of 22+ characters. The computed radius is stored on each node as `node.radius` and propagated through every rendering path: the clipPath `<defs>`, the node background circle, the portrait image, the hit-area radius, the in-scene dot position, the drag clamp, the layout margin clamp, and the label fit-capacity calculation. `{{user}}` node also uses dynamic sizing with a `+4px` bonus over `CENTER_R`.
+
 ### [6.8.40] — 2026-04-09
 
 #### Changed \u2014 NPC graph prompt rewritten to be genre-agnostic

@@ -23,16 +23,33 @@ import { resolvePortraitUrl, buildPortraitIndex } from './portraits.js';
 import {
     isEnabled as isGraphEnabled,
     getCachedEdges,
+    getCachedGraph,
     isCacheStale,
     generateGraph,
     clearCache,
     EDGE_COLORS,
     EDGE_GLYPHS,
+    orgColor,
 } from './relationship-graph.js';
 
 const W = 1000, H = 700;
-const NODE_R = 28;
-const CENTER_R = 32;
+const NODE_R = 28;    // base (default) NPC node radius
+const NODE_R_MAX = 48; // cap for dynamic-sized nodes with long names
+const CENTER_R = 32;   // base {{user}} node radius
+
+// v6.8.41: compute a per-node radius from the name length so long
+// names like "Detective Keene" or "Female Paramedic" get circles big
+// enough to not truncate the label. Returns NODE_R for names ≤ 10
+// chars (unchanged default), growing linearly up to NODE_R_MAX for
+// names ≥ 22 chars. Keeps most rosters at the default size.
+function _dynamicNodeRadius(name) {
+    const len = (name || '').length;
+    if (len <= 10) return NODE_R;
+    const extra = Math.min(len - 10, 12);
+    // Each character above 10 adds ~1.67px to the radius, capping at
+    // +20px (NODE_R + 20 = 48 = NODE_R_MAX).
+    return Math.round(NODE_R + (extra / 12) * (NODE_R_MAX - NODE_R));
+}
 const METER_COLORS = { affection: '#f472b6', trust: '#60a5fa', desire: '#a78bfa', stress: '#facc15', compatibility: '#34d399' };
 
 // ── Deterministic RNG ──────────────────────────────────────────────────
@@ -71,16 +88,28 @@ function _layoutForceDirected(nodes, edges, userIdx) {
     const names = nodes.map(node => node.name || '?');
     const rng = _mulberry32(_seedFromNames(names));
 
+    // v6.8.41: find the largest node radius in the roster so the
+    // spacing constant k scales with it. Nodes with dynamic sizing
+    // (long names) take more room and need proportionally more space
+    // between them so edges and labels don't crush together.
+    let maxNodeR = NODE_R;
+    for (const node of nodes) {
+        if (node && typeof node.radius === 'number' && node.radius > maxNodeR) maxNodeR = node.radius;
+    }
+
     // Initial positions: concentric ring around center with a small
     // random offset. User pinned at center.
+    // v6.8.41: bumped initial ring radius from 0.28 → 0.36 of min(W,H)
+    // so nodes start more spread out, giving the simulation breathing
+    // room to settle into a roomier final layout.
     const positions = new Array(n);
-    const initRadius = Math.min(W, H) * 0.28;
+    const initRadius = Math.min(W, H) * 0.36;
     for (let i = 0; i < n; i++) {
         if (i === userIdx) {
             positions[i] = { x: cx, y: cy };
         } else {
             const angle = (2 * Math.PI * i) / Math.max(1, n - 1) - Math.PI / 2;
-            const jitter = (rng() - 0.5) * 30;
+            const jitter = (rng() - 0.5) * 40;
             positions[i] = {
                 x: cx + (initRadius + jitter) * Math.cos(angle),
                 y: cy + (initRadius + jitter) * Math.sin(angle),
@@ -89,9 +118,16 @@ function _layoutForceDirected(nodes, edges, userIdx) {
     }
     if (n <= 1) return positions;
 
-    // Ideal edge length k — Fruchterman-Reingold's constant
+    // Ideal edge length k — Fruchterman-Reingold's constant.
+    // v6.8.41: bumped the multiplier from 0.65 → 1.05 to give nodes
+    // significantly more breathing room. Also scales with the max
+    // node radius so oversized nodes (long names) get proportional
+    // space. The minimum ensures we never collapse below a readable
+    // density even for very small rosters.
     const area = W * H;
-    const k = Math.sqrt(area / n) * 0.65;
+    const baseK = Math.sqrt(area / n) * 1.05;
+    const radiusBonus = Math.max(0, maxNodeR - NODE_R) * 2.2;
+    const k = Math.max(120, baseK + radiusBonus);
     const k2 = k * k;
 
     // Adjacency for attractive force lookups
@@ -108,8 +144,11 @@ function _layoutForceDirected(nodes, edges, userIdx) {
     }
 
     // Simulation loop
-    const ITER = 180;
-    let temp = Math.min(W, H) * 0.12;
+    // v6.8.41: bumped initial temperature from 0.12 → 0.18 so nodes
+    // can travel further early in the simulation. The linear cooling
+    // schedule still ends at 0.1 so final-iteration jitter is unchanged.
+    const ITER = 200;
+    let temp = Math.min(W, H) * 0.18;
     const cooling = temp / ITER;
 
     for (let iter = 0; iter < ITER; iter++) {
@@ -157,8 +196,10 @@ function _layoutForceDirected(nodes, edges, userIdx) {
             const d = Math.sqrt(disp[i].x * disp[i].x + disp[i].y * disp[i].y) || 0.01;
             positions[i].x += (disp[i].x / d) * Math.min(d, temp);
             positions[i].y += (disp[i].y / d) * Math.min(d, temp);
-            // Keep nodes inside the viewbox with margin
-            const margin = NODE_R + 20;
+            // Keep nodes inside the viewbox with margin. v6.8.41: use
+            // per-node radius so oversized nodes don't clip past the edge.
+            const nodeR = (nodes[i] && typeof nodes[i].radius === 'number') ? nodes[i].radius : NODE_R;
+            const margin = nodeR + 24;
             positions[i].x = clamp(positions[i].x, margin, W - margin);
             positions[i].y = clamp(positions[i].y, margin, H - margin);
         }
@@ -228,6 +269,9 @@ function _buildGraph(entries, npcEdges, userName) {
         role: '',
         rel: null,
         portraitUrl: userPortrait,
+        // v6.8.41: {{user}} node also uses dynamic sizing. CENTER_R
+        // is the base; longer persona names grow up to NODE_R_MAX+4.
+        radius: Math.max(CENTER_R, _dynamicNodeRadius(userName) + 4),
     });
     const userIdx = 0;
     nameToIdx.set(userName.toLowerCase().trim(), userIdx);
@@ -250,6 +294,9 @@ function _buildGraph(entries, npcEdges, userName) {
             role: e.character?.role || '',
             rel: e.relationship,
             portraitUrl,
+            // v6.8.41: dynamic radius based on name length so long
+            // names don't truncate. Short names keep NODE_R (28).
+            radius: _dynamicNodeRadius(e.name),
         });
         nameToIdx.set(e.name.toLowerCase().trim(), nodes.length - 1);
         // Also index aliases so edge resolution can find aliased references
@@ -389,6 +436,10 @@ function _buildSvg(graph, positions, userName, state) {
     const vb = state?.viewBox || { x: 0, y: 0, w: W, h: H };
     const showLabels = state?.showLabels !== false; // default true
     const isUserEdgeVisible = filterSet == null || filterSet.has('user');
+    // v6.8.41: organization highlight map — nodeIdx → org color ring,
+    // or null when no org filter is active.
+    const orgMap = state?.orgHighlightMap instanceof Map ? state.orgHighlightMap : null;
+    const orgFilterActive = orgMap != null && orgMap.size > 0;
 
     let svg = `<svg viewBox="${vb.x} ${vb.y} ${vb.w} ${vb.h}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;max-height:72vh" role="img" aria-label="${esc(t('Relationship Web'))}">`;
     svg += `<title>${esc(t('Relationship Web'))}</title>`;
@@ -405,12 +456,14 @@ function _buildSvg(graph, positions, userName, state) {
     // each portrait can be positioned and sized independently inside
     // its own circular clip. Rendered first inside <defs> then
     // referenced by the node <image> elements below.
+    // v6.8.41: uses the per-node dynamic radius so oversized nodes
+    // with long names get proportionally larger portrait clips.
     svg += '<defs>';
     for (let i = 0; i < nodes.length; i++) {
         const n = nodes[i];
         const p = positions[i];
         if (!p || !n.portraitUrl) continue;
-        const r = n.isUser ? CENTER_R : NODE_R;
+        const r = (typeof n.radius === 'number') ? n.radius : (n.isUser ? CENTER_R : NODE_R);
         svg += `<clipPath id="sp-web-clip-${i}"><circle cx="${p.x}" cy="${p.y}" r="${r - 1}"/></clipPath>`;
     }
     svg += '</defs>';
@@ -438,7 +491,12 @@ function _buildSvg(graph, positions, userName, state) {
         // skipping it (so the structural shape of the whole graph is
         // still visible in the background).
         const focusDim = focusSet != null && !(focusSet.has(edge.from) && focusSet.has(edge.to));
-        const dimFactor = focusDim ? 0.15 : 1;
+        // v6.8.41: dim edges when an org filter is active and either
+        // endpoint is NOT part of a highlighted organization. Edges
+        // between two highlighted members stay full-opacity; all
+        // others fade to the same 0.15 as focus-dimmed edges.
+        const orgEdgeDim = orgFilterActive && !(orgMap.has(edge.from) && orgMap.has(edge.to));
+        const dimFactor = (focusDim || orgEdgeDim) ? 0.15 : 1;
 
         const dx = to.x - from.x;
         const dy = to.y - from.y;
@@ -478,7 +536,7 @@ function _buildSvg(graph, positions, userName, state) {
                 }
             }
             // User-edge label
-            if (showLabels && labelText && !focusDim) {
+            if (showLabels && labelText && !focusDim && !orgEdgeDim) {
                 labelPositions.push({
                     x: cpx, y: cpy, nx, ny,
                     text: labelText,
@@ -506,14 +564,14 @@ function _buildSvg(graph, positions, userName, state) {
             }
             // Glyph circle — dimmed if focus-filtered
             const glyph = EDGE_GLYPHS[edge.type] || '';
-            if (glyph && !focusDim) {
+            if (glyph && !focusDim && !orgEdgeDim) {
                 svg += `<g class="sp-web-edge-glyph">`;
                 svg += `<circle cx="${cpx}" cy="${cpy}" r="9" fill="#0c0e14" stroke="${col}" stroke-width="1"/>`;
                 svg += `<text x="${cpx}" y="${cpy + 3}" text-anchor="middle" dominant-baseline="central" font-size="11" fill="${col}">${glyph}</text>`;
                 svg += `</g>`;
             }
             // Collect label for second rendering pass
-            if (showLabels && edge.label && !focusDim) {
+            if (showLabels && edge.label && !focusDim && !orgEdgeDim) {
                 // Position label slightly offset from the glyph so they don't overlap
                 labelPositions.push({
                     x: cpx + nx * offsetSign * 16,
@@ -559,34 +617,50 @@ function _buildSvg(graph, positions, userName, state) {
         const p = positions[i];
         if (!p) continue;
         const isUser = n.isUser;
-        const r = isUser ? CENTER_R + 2 : NODE_R;
+        // v6.8.41: per-node radius — falls back to the old CENTER_R/
+        // NODE_R defaults when a node doesn't carry a `radius` field,
+        // which preserves the unchanged visual for short-name rosters.
+        const baseR = (typeof n.radius === 'number') ? n.radius : (isUser ? CENTER_R : NODE_R);
+        const r = isUser ? baseR + 2 : baseR;
         // v6.8.28: focus mode dims unrelated nodes to 15% so the
         // selected subgraph stands out. The focused node itself +
         // its direct neighbors stay at full opacity.
         const focusDim = focusSet != null && !focusSet.has(i);
+        // v6.8.41: organization filter dimming — when an org filter is
+        // active, nodes not in the highlighted member set fade to 15%
+        // so the selected org(s) visually pop out of the roster. The
+        // user node is never part of an organization, so it also
+        // fades while an org filter is active unless it happens to be
+        // the focus target.
+        const orgDim = orgFilterActive && !orgMap.has(i);
         const baseOpacity = isUser ? 1 : (n.inScene ? 1 : 0.5);
-        const nodeOpacity = focusDim ? 0.15 : baseOpacity;
+        const dimmed = focusDim || orgDim;
+        const nodeOpacity = dimmed ? 0.15 : baseOpacity;
         const isFocused = state?.focusedIdx === i;
         svg += `<g class="sp-web-node ${isFocused ? 'sp-web-node-focused' : ''}" data-idx="${i}" style="cursor:pointer;opacity:${nodeOpacity}">`;
         svg += `<title>${esc(n.name)}${n.role ? ' — ' + esc(n.role) : ''}</title>`;
         const strokeWidth = isFocused ? (isUser ? 4 : 3.5) : (isUser ? 2.5 : 2);
+        // v6.8.41: organization halo — a colored ring outside the node's
+        // main border when it's a member of a highlighted org. Rendered
+        // BEFORE the main circle so it sits behind it.
+        if (orgFilterActive && orgMap.has(i)) {
+            const haloColor = orgMap.get(i);
+            svg += `<circle cx="${p.x}" cy="${p.y}" r="${r + 6}" fill="none" stroke="${haloColor}" stroke-width="3" opacity="0.85"/>`;
+            svg += `<circle cx="${p.x}" cy="${p.y}" r="${r + 9}" fill="none" stroke="${haloColor}" stroke-width="1" opacity="0.45"/>`;
+        }
         // Background disc — fills when no portrait is available, or
         // acts as the border backing when there is one.
         svg += `<circle cx="${p.x}" cy="${p.y}" r="${r}" fill="${n.bg}" stroke="${n.color}" stroke-width="${strokeWidth}"${isFocused ? ` filter="drop-shadow(0 0 6px ${n.color})"` : ''}/>`;
         // v6.8.29: portrait image clipped to a circle inside the node.
-        // The image fills the inner area (r - 1px to avoid bleeding
-        // past the colored border). onerror is NOT supported on SVG
-        // image elements across all browsers — if the URL 404s, the
-        // browser leaves the clip empty and the background disc shows
-        // through, which is the correct fallback behavior.
         if (n.portraitUrl) {
             const imgR = r - 1;
             svg += `<image href="${esc(n.portraitUrl)}" x="${p.x - imgR}" y="${p.y - imgR}" width="${imgR * 2}" height="${imgR * 2}" clip-path="url(#sp-web-clip-${i})" preserveAspectRatio="xMidYMid slice"/>`;
         }
-        // Name label — positioned BELOW the node when there's a
-        // portrait so the image isn't obscured by text. When there's
-        // no portrait the name sits inside the disc as before.
-        const shortName = n.name.length > 12 ? n.name.substring(0, 11) + '\u2026' : n.name;
+        // v6.8.41: name display. With the dynamic radius, we can fit
+        // more characters inside larger circles without truncation.
+        // Approximate char-fit capacity: (radius * 2) / 7px-per-char.
+        const fitCapacity = Math.max(8, Math.floor((r * 2 - 8) / 7));
+        const shortName = n.name.length > fitCapacity ? n.name.substring(0, fitCapacity - 1) + '\u2026' : n.name;
         if (n.portraitUrl) {
             // Label below the circle with a faint dark background for legibility
             const labelY = p.y + r + 10;
@@ -597,7 +671,9 @@ function _buildSvg(graph, positions, userName, state) {
             svg += `<text x="${p.x}" y="${p.y + 1}" text-anchor="middle" dominant-baseline="central" fill="${n.color}" font-size="${isUser ? 11 : 10}" font-weight="${isUser ? 700 : 600}">${esc(shortName)}</text>`;
         }
         if (!isUser && n.inScene) {
-            svg += `<circle cx="${p.x + NODE_R - 4}" cy="${p.y - NODE_R + 4}" r="4" fill="#4ade80" stroke="#0c0e14" stroke-width="1.5"/>`;
+            // In-scene indicator dot positioned at the upper-right edge
+            // of the actual node radius, not the fixed default.
+            svg += `<circle cx="${p.x + r - 4}" cy="${p.y - r + 4}" r="4" fill="#4ade80" stroke="#0c0e14" stroke-width="1.5"/>`;
         }
         svg += `</g>`;
     }
@@ -606,7 +682,9 @@ function _buildSvg(graph, positions, userName, state) {
     for (let i = 0; i < nodes.length; i++) {
         const p = positions[i];
         if (!p) continue;
-        svg += `<circle class="sp-web-hit" data-idx="${i}" cx="${p.x}" cy="${p.y}" r="${NODE_R + 10}" fill="transparent" style="cursor:pointer"/>`;
+        const n = nodes[i];
+        const nr = (typeof n?.radius === 'number') ? n.radius : NODE_R;
+        svg += `<circle class="sp-web-hit" data-idx="${i}" cx="${p.x}" cy="${p.y}" r="${nr + 10}" fill="transparent" style="cursor:pointer"/>`;
     }
 
     svg += '</svg>';
@@ -700,10 +778,22 @@ export function openRelationshipWeb(entries) {
     //   viewBox         — SVG viewBox for zoom/pan {x,y,w,h}
     //   positions       — persistent node positions (for drag-to-reposition)
     //   draggedIdx      — node being dragged, or null
+    // v6.8.41: organization tracking
+    //   npcOrganizations — array of {name,kind,members[]} from the cached graph
+    //   activeOrgFilter  — Set<orgName> highlighted, or null = no org filter
     let layoutMode = 'force';
-    let npcEdges = isGraphEnabled() ? (getCachedEdges() || []) : [];
+    let npcEdges = [];
+    let npcOrganizations = [];
+    if (isGraphEnabled()) {
+        const cached = getCachedGraph();
+        if (cached) {
+            npcEdges = cached.edges || [];
+            npcOrganizations = cached.organizations || [];
+        }
+    }
     let focusedIdx = null;
     let filter = null; // null = show all types
+    let activeOrgFilter = null; // null = no org filter; Set = union of highlighted org names
     let showLabels = true;
     let viewBox = { x: 0, y: 0, w: W, h: H };
     let positions = null; // computed on first render, persisted for drag
@@ -721,7 +811,37 @@ export function openRelationshipWeb(entries) {
                 ? _layoutForceDirected(graph.nodes, graph.edges, graph.userIdx)
                 : _layoutCircular(graph.nodes, graph.userIdx);
         }
-        const state = { focusedIdx, filter, showLabels, viewBox };
+        // v6.8.41: compute the set of node indexes highlighted by the
+        // active organization filter so the renderer can draw halos and
+        // fade out non-members. Names are matched case-insensitively
+        // against node names so minor casing drift from the LLM output
+        // still resolves to the correct characters.
+        let orgHighlightMap = null;
+        if (activeOrgFilter && activeOrgFilter.size > 0 && Array.isArray(npcOrganizations)) {
+            orgHighlightMap = new Map(); // nodeIdx → orgColor
+            for (const org of npcOrganizations) {
+                if (!org || !activeOrgFilter.has(org.name)) continue;
+                const col = orgColor(org.name);
+                const members = Array.isArray(org.members) ? org.members : [];
+                for (const memberName of members) {
+                    const key = (memberName || '').toLowerCase().trim();
+                    if (!key) continue;
+                    for (let i = 0; i < graph.nodes.length; i++) {
+                        const nodeName = (graph.nodes[i].name || '').toLowerCase().trim();
+                        if (nodeName === key && !graph.nodes[i].isUser) {
+                            // First matching org wins for color, but still add
+                            // node to the highlight map if not already present.
+                            if (!orgHighlightMap.has(i)) orgHighlightMap.set(i, col);
+                            break;
+                        }
+                    }
+                }
+            }
+            // If no members resolved (e.g., roster change invalidated the
+            // filter), treat as no-filter so the view doesn't go blank.
+            if (orgHighlightMap.size === 0) orgHighlightMap = null;
+        }
+        const state = { focusedIdx, filter, showLabels, viewBox, orgHighlightMap };
         const svgWrap = overlay.querySelector('.sp-web-svg-wrap');
         if (svgWrap) svgWrap.innerHTML = _buildSvg(graph, positions, userName, state);
         const footer = overlay.querySelector('.sp-web-footer');
@@ -734,6 +854,7 @@ export function openRelationshipWeb(entries) {
             footer.innerHTML = `${graph.nodes.length - 1} ${t('characters')} \u00B7 ${userEdgeCount} ${t('user ties')}${npcEdgeCount ? ' \u00B7 ' + npcEdgeCount + ' ' + t('NPC ties') : ''}${staleIndicator}${focusIndicator}`;
         }
         _updateLegendCounts(graph);
+        _renderOrgChips();
         _attachNodeHandlers(graph);
         _attachDragHandlers(graph);
     }
@@ -822,19 +943,16 @@ export function openRelationshipWeb(entries) {
             if (draggedIdx == null) return;
             const p = _pointerToSvg(e);
             // v6.8.35: clamp against the CURRENT viewBox, not the fixed
-            // W×H SVG canvas. Previously nodes couldn't be dragged past
-            // (W-NODE_R, H-NODE_R) even when the user had zoomed out to
-            // a larger viewBox — creating an invisible wall at the
-            // default 1000×700 bounds. Now you can drag anywhere the
-            // cursor can reach on screen, at any zoom level.
-            //
-            // A small NODE_R margin inside the viewBox keeps the node
-            // circle fully visible (otherwise the edge could clip past
-            // the canvas bounds during the drag gesture).
-            const minX = viewBox.x + NODE_R;
-            const maxX = viewBox.x + viewBox.w - NODE_R;
-            const minY = viewBox.y + NODE_R;
-            const maxY = viewBox.y + viewBox.h - NODE_R;
+            // W×H SVG canvas. v6.8.41: margin now uses the dragged node's
+            // actual radius so oversized nodes can still be dragged to
+            // the visible edge without clipping.
+            const draggedR = (graph?.nodes?.[draggedIdx] && typeof graph.nodes[draggedIdx].radius === 'number')
+                ? graph.nodes[draggedIdx].radius
+                : NODE_R;
+            const minX = viewBox.x + draggedR;
+            const maxX = viewBox.x + viewBox.w - draggedR;
+            const minY = viewBox.y + draggedR;
+            const maxY = viewBox.y + viewBox.h - draggedR;
             positions[draggedIdx] = {
                 x: clamp(p.x, minX, maxX),
                 y: clamp(p.y, minY, maxY),
@@ -903,6 +1021,9 @@ export function openRelationshipWeb(entries) {
     // v6.8.28: legend is a vertical panel on the right side of the overlay.
     // Each row shows color swatch + glyph + label + count + description.
     // Clicking a row toggles that type in the filter. "All" row resets.
+    // v6.8.41: adds an "Organizations" section below the edge-type list.
+    // The org section is populated/refreshed by _renderOrgChips() on each
+    // rerender because the org list can change on regenerate.
     const legendTypes = ['user', 'family', 'friend', 'ally', 'rival', 'antagonist', 'mentor', 'authority', 'lover', 'lust', 'acquaintance', 'unknown'];
     function _buildLegendHtml() {
         let html = '<div class="sp-web-legend-panel">';
@@ -925,15 +1046,70 @@ export function openRelationshipWeb(entries) {
             html += `<span class="sp-web-legend-count">0</span>`;
             html += `</div>`;
         }
+        // v6.8.41: organizations section (populated at render time)
+        html += `<div class="sp-web-legend-org-section">`;
+        html += `<div class="sp-web-legend-subheader">${t('Organizations')}</div>`;
+        html += `<div class="sp-web-legend-org-list"></div>`;
+        html += `</div>`;
         html += '</div>';
         return html;
+    }
+
+    function _renderOrgChips() {
+        const list = overlay.querySelector('.sp-web-legend-org-list');
+        const section = overlay.querySelector('.sp-web-legend-org-section');
+        if (!list || !section) return;
+        // Hide the whole section when there are no organizations
+        if (!Array.isArray(npcOrganizations) || npcOrganizations.length === 0) {
+            section.style.display = 'none';
+            list.innerHTML = '';
+            return;
+        }
+        section.style.display = '';
+        let html = '';
+        // "All orgs" reset chip
+        const allActive = activeOrgFilter == null;
+        html += `<div class="sp-web-org-chip sp-web-org-chip-all${allActive ? ' sp-web-org-chip-active' : ''}" data-org="__all__">${t('All')}</div>`;
+        for (const org of npcOrganizations) {
+            if (!org || !org.name) continue;
+            const col = orgColor(org.name);
+            const active = activeOrgFilter != null && activeOrgFilter.has(org.name);
+            const count = Array.isArray(org.members) ? org.members.length : 0;
+            const kind = org.kind ? ` — ${esc(org.kind)}` : '';
+            const memberList = Array.isArray(org.members) ? org.members.join(', ') : '';
+            const tipText = `${esc(org.name)}${kind}\n${esc(memberList)}`;
+            html += `<div class="sp-web-org-chip${active ? ' sp-web-org-chip-active' : ''}" data-org="${esc(org.name)}" title="${tipText}" style="--sp-org-color:${col}">`;
+            html += `<span class="sp-web-org-chip-swatch" style="background:${col}"></span>`;
+            html += `<span class="sp-web-org-chip-name">${esc(org.name)}</span>`;
+            html += `<span class="sp-web-org-chip-count">${count}</span>`;
+            html += `</div>`;
+        }
+        list.innerHTML = html;
+        // Attach click handlers for the chips (bind fresh each render)
+        list.querySelectorAll('.sp-web-org-chip').forEach(chip => {
+            chip.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const orgName = chip.dataset.org;
+                if (orgName === '__all__') {
+                    activeOrgFilter = null;
+                } else if (activeOrgFilter == null) {
+                    activeOrgFilter = new Set([orgName]);
+                } else if (activeOrgFilter.has(orgName)) {
+                    activeOrgFilter.delete(orgName);
+                    if (activeOrgFilter.size === 0) activeOrgFilter = null;
+                } else {
+                    activeOrgFilter.add(orgName);
+                }
+                _rerender();
+            });
+        });
     }
 
     // Build overlay shell.
     const overlay = document.createElement('div');
     overlay.className = 'sp-web-overlay';
     const graphEnabled = isGraphEnabled();
-    const hasCache = graphEnabled && getCachedEdges() !== null;
+    const hasCache = graphEnabled && getCachedGraph() !== null;
     const generateBtnLabel = hasCache ? t('Regenerate NPC graph') : t('Generate NPC graph');
     overlay.innerHTML = `<div class="sp-web-container">
         <div class="sp-web-header">
@@ -1025,9 +1201,22 @@ export function openRelationshipWeb(entries) {
             genBtn.innerHTML = '\u29D6 ' + t('Generating...');
             try {
                 const fresh = await generateGraph();
-                npcEdges = fresh || [];
+                // v6.8.41: generateGraph() now returns {edges, organizations}
+                if (fresh && Array.isArray(fresh.edges)) {
+                    npcEdges = fresh.edges;
+                    npcOrganizations = Array.isArray(fresh.organizations) ? fresh.organizations : [];
+                } else if (Array.isArray(fresh)) {
+                    // Legacy shape — bare edge array
+                    npcEdges = fresh;
+                    npcOrganizations = [];
+                } else {
+                    npcEdges = [];
+                    npcOrganizations = [];
+                }
+                // Drop any stale org filter since the org list may have changed
+                activeOrgFilter = null;
                 _relayout();
-                log('Relationship Web: generated', npcEdges.length, 'NPC edges');
+                log('Relationship Web: generated', npcEdges.length, 'NPC edges,', npcOrganizations.length, 'organizations');
             } catch (err) {
                 warn('Relationship Web: graph generation failed:', err?.message);
                 genBtn.innerHTML = '\u2716 ' + t('Failed');
