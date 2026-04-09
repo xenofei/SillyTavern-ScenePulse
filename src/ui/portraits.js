@@ -22,7 +22,7 @@
 // have `.name`, optionally `.aliases`, and optionally come with a charColor
 // already computed (otherwise the caller wraps the output in a CSS var).
 
-import { esc } from '../utils.js';
+import { esc, clamp } from '../utils.js';
 import { getSettings } from '../settings.js';
 
 // Cache the ST avatar map per-call so we don't walk ST characters more
@@ -251,15 +251,41 @@ function _showPreviewForTarget(target, clientX, clientY) {
         caption.textContent = name;
         caption.style.color = color;
     }
-    // Pinned-near-cursor positioning with viewport-edge avoidance.
-    // Matches the v6.8.43 behavior exactly.
+    // v6.8.45: position the preview relative to the target's bounding
+    // rect rather than the cursor. Cursor-relative positioning put the
+    // preview ON TOP of the target's own label (the name pill sitting
+    // directly below the avatar circle) whenever the cursor was inside
+    // the circle. Rect-relative placement puts the preview OUTSIDE the
+    // target entirely: to the right by default, flipped left if there
+    // isn't room. The `clientX`/`clientY` params are still accepted so
+    // a future caller can pass them, but they're not used for the
+    // primary placement math. The generous 24px horizontal gap ensures
+    // we're clear of any name label below the avatar.
     const vw = window.innerWidth, vh = window.innerHeight;
     const boxW = 224, boxH = 260;
-    let tx = clientX + 32, ty = clientY + 20;
-    if (tx + boxW > vw - 8) tx = clientX - boxW - 18;
-    if (tx < 8) tx = 8;
-    if (ty + boxH > vh - 8) ty = vh - boxH - 8;
-    if (ty < 8) ty = 8;
+    const rect = target.getBoundingClientRect();
+    const gap = 24;
+    let tx, ty;
+    // Prefer the right side of the target (reading order).
+    if (rect.right + gap + boxW <= vw - 8) {
+        tx = rect.right + gap;
+    } else if (rect.left - gap - boxW >= 8) {
+        // Not enough room on the right — flip to the left side.
+        tx = rect.left - gap - boxW;
+    } else {
+        // Target is too central to fit either side — center horizontally
+        // and let the vertical anchor handle overlap avoidance.
+        tx = clamp((vw - boxW) / 2, 8, vw - boxW - 8);
+    }
+    // Vertical: align the preview's top with the target's top, then
+    // clamp to the viewport. If the target is near the bottom, anchor
+    // the preview's BOTTOM to the target's bottom instead so it never
+    // spills off-screen.
+    if (rect.top + boxH <= vh - 8) {
+        ty = Math.max(8, rect.top);
+    } else {
+        ty = Math.max(8, rect.bottom - boxH);
+    }
     el.style.left = tx + 'px';
     el.style.top = ty + 'px';
     el.style.display = '';

@@ -124,7 +124,7 @@ export function buildDynamicPrompt(s, opts = {}){
 You are a precise scene analysis engine. Read the story context and output a single JSON object conforming exactly to the provided schema. Output raw JSON only \u2014 no prose, no markdown fences, no commentary.
 
 ## CRITICAL RULES
-1. EVERY field in the schema MUST contain meaningful data. NEVER return empty string "", empty array [], or null for ANY field. If not explicitly stated in the story, INFER from context, character descriptions, genre conventions, or the previous state. A best-guess answer is ALWAYS better than an empty field.
+1. EVERY field in the schema MUST contain meaningful data. NEVER return empty string "", empty array [], or null for ANY field, EXCEPT for charactersPresent, which MUST be an empty array [] during genuinely solo scenes ({{user}} alone, internal monologue, solitary travel, sleeping, hiding). If not explicitly stated in the story, INFER from context, character descriptions, genre conventions, or the previous state. A best-guess answer is ALWAYS better than an empty field.
 2. Output must be valid parseable JSON. No trailing commas, no comments.
 3. If the previous state provided a value and you have no new information, carry that value forward UNCHANGED. Emptying a previously-populated field is a critical error.
 
@@ -154,7 +154,7 @@ You are a precise scene analysis engine. Read the story context and output a sin
         if(ft.sceneTension!==false)sceneFields.push('- sceneTension: One of: calm, low, moderate, high, critical. Reflects stakes and urgency.');
         if(ft.sceneSummary!==false)sceneFields.push('- sceneSummary: 2-3 sentence factual summary of what is currently happening.');
         if(ft.soundEnvironment!==false)sceneFields.push('- soundEnvironment: What is audible right now.');
-        if(ft.charactersPresent!==false)sceneFields.push('- charactersPresent: Array of ALL character names in the current location or nearby.');
+        if(ft.charactersPresent!==false)sceneFields.push('- charactersPresent: Array of character names PHYSICALLY PRESENT in the current beat with {{user}}. Only include characters who are in the same location RIGHT NOW, close enough to interact or observe. EXCLUDE anyone {{user}} is merely thinking about, remembering, dreaming of, reading about, or who is in a different location. SOLO SCENES ARE REAL: if {{user}} is alone (walking, hiding, internal monologue, sleeping, meditating, travelling alone), emit an EMPTY array []. An empty charactersPresent is valid and expected for solitude beats. NEVER carry forward the previous scene\'s roster out of habit \u2014 re-verify presence from THIS turn\'s narration every time.');
         if(sceneFields.length)prompt+='\n### Scene Analysis (REQUIRED)\n'+sceneFields.join('\n')+'\n';
     }
     // Characters
@@ -279,7 +279,8 @@ You are in DELTA mode. The previous state is provided for reference.
 4. For characters/relationships: include ONLY entities with changes. Include the FULL entity object (all fields) if ANY field changed.
 5. For quests: include the FULL array if ANY quest was added/removed/modified. Omit entirely if unchanged.
 6. plotBranches: ALWAYS include (fresh suggestions every time).
-7. Do NOT echo unchanged data. Omitting a field means "unchanged."
+7. charactersPresent: ALWAYS include, re-verified from THIS turn's narration. Use an empty array [] when {{user}} is alone. Omitting this field is a BUG \u2014 the client interprets it as an implicit empty array and will mark everyone as absent. This field overrides rule 1 above: it must be present every turn regardless of whether it changed.
+8. Do NOT echo unchanged data. Omitting a field means "unchanged" (except for the ALWAYS-include fields above).
 `;
     }
     return prompt;

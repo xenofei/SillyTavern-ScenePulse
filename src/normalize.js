@@ -561,10 +561,16 @@ export function normalizeTracker(d){
         }
     }
     // Post-normalization: infer missing scene fields from available context
-    if(!o.charactersPresent||!o.charactersPresent.length){
-        // Infer from characters array
-        if(o.characters?.length)o.charactersPresent=o.characters.map(c=>c.name).filter(Boolean);
-    }
+    // v6.8.45: REMOVED the "fill charactersPresent from characters[]"
+    // fallback. It used to paper over LLM output that listed tracked
+    // characters without emitting charactersPresent, but it was also
+    // the reason solo scenes stayed populated with everyone from the
+    // previous beat — the LLM would correctly emit an empty present
+    // list (or omit it), and this fallback would immediately refill
+    // it with the whole tracked roster. The schema.js prompt now
+    // explicitly requires charactersPresent as "ALWAYS include" with
+    // an empty array [] for solitude beats, so the auto-fill is both
+    // unnecessary and actively harmful.
     if(!o.witnesses||!o.witnesses.length)o.witnesses=[];
     // Scene fields: try to extract from environment sub-objects or sceneSummary
     if(!o.sceneTension){
@@ -706,8 +712,13 @@ export function normalizeTracker(d){
         for(const _ck of['time','date','elapsed','location','weather','temperature','soundEnvironment','sceneTopic','sceneMood','sceneInteraction','sceneTension','sceneSummary']){
             if(!o[_ck]&&_prev[_ck]){o[_ck]=_prev[_ck];if(_verbose)log('Carry-forward:',_ck)}
         }
-        // charactersPresent: carry forward if empty
-        if(!o.charactersPresent?.length&&_prev.charactersPresent?.length){o.charactersPresent=_prev.charactersPresent;if(_verbose)log('Carry-forward: charactersPresent')}
+        // v6.8.45: REMOVED "carry forward charactersPresent if empty".
+        // Solo scenes MUST stay empty — carrying forward the previous
+        // beat's roster was the bug that left 9 characters marked "In
+        // Scene" when {{user}} was alone in a train yard. The delta-
+        // merge fix in src/generation/delta-merge.js now sets an empty
+        // array whenever the LLM omits the field in delta mode, and the
+        // prompt explicitly requires an empty array for solitude beats.
         // Characters: fill empty sub-fields from matching previous character
         if(o.characters?.length&&_prev.characters?.length){
             for(const _ch of o.characters){
@@ -1133,13 +1144,26 @@ export function filterForView(snap){
     // present-set so filtering never drops them silently.
     const _gmNames=getGroupMemberNames();
     const _isGroupChat=_gmNames.length>1;
+    // v6.8.45: when charactersPresent is empty, an empty roster IS the
+    // correct answer for a solo scene — not "skip filter and show
+    // everyone." The old behavior left every tracked character visible
+    // during solitude beats (the "Devon alone in the train yard" bug).
+    // Group chats still get the member-roster union below so the chat
+    // participants survive even when the model forgot to list them.
     if(!Array.isArray(cp)||!cp.length){
-        // No filter data — skip the char/rel sync but still return the
-        // shallow copy with capped quest arrays.
-        out._spViewFiltered=true;
-        return out;
+        if(!_isGroupChat){
+            // Solo beat or genuinely no-one-present scene.
+            out.characters=[];
+            out.relationships=[];
+            out._spViewFiltered=true;
+            return out;
+        }
+        // Group chat fall-through: treat the chat member roster as the
+        // present set so chat participants remain visible.
     }
-    const presentSet=new Set(cp.map(n=>(n||'').toLowerCase().trim()).filter(Boolean));
+    // v6.8.45: cp may be an empty / non-array value here in the group-chat
+    // fall-through branch above, so normalize to [] before mapping.
+    const presentSet=new Set((Array.isArray(cp)?cp:[]).map(n=>(n||'').toLowerCase().trim()).filter(Boolean));
     if(_isGroupChat){
         for(const gm of _gmNames){
             const gmLow=(gm||'').toLowerCase().trim();

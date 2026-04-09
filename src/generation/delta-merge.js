@@ -185,6 +185,24 @@ export function mergeDelta(prev, delta) {
         }
     }
 
+    // v6.8.45: charactersPresent is "ALWAYS include" per the delta-mode
+    // prompt contract (schema.js rule 7). If the delta still omits it,
+    // treat the absence as an EMPTY scene roster rather than carrying
+    // forward the prior snapshot's value. Old behavior was: omitted
+    // field → previous array survives untouched, which caused every
+    // tracked character from earlier scenes to remain marked "In Scene"
+    // during a solo beat (e.g. {{user}} walking alone at night while
+    // a 9-person cast from the prior interrogation scene stayed "In
+    // Scene" indefinitely). The prompt now explicitly requires an empty
+    // array for solitude beats, and this fallback matches that contract
+    // for any model that forgets. mergeDelta is only ever called from
+    // delta-mode codepaths (engine.js:351, pipeline.js:50), so no
+    // isDelta guard is needed — reaching this function means we're
+    // processing a delta where every turn must carry its OWN presence.
+    if (!('charactersPresent' in delta)) {
+        merged.charactersPresent = [];
+    }
+
     // v6.8.18: reconcile relationships and charactersPresent against the
     // merged character roster's alias map. If a character was renamed this
     // turn via the reveal path (e.g. "Stranger" → "Jenna" with aliases=

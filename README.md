@@ -435,6 +435,39 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.8.45] — 2026-04-09
+
+#### Fixed — Solo scenes no longer populated with the previous beat's cast
+**Reported**: "I have a scene where the character is by himself, but a whole cast of crew appears in the scene. Determine why." User showed Devon walking alone through a train yard at dawn ("No voice in his head. No women. Just the dawn coming whether he wanted it to or not."), while the Characters and Relationships panels displayed 9 characters (Buzzcut, Detective Keene, Detective Orozco, Female Paramedic, Jack Browning, Mrs. Patterson, Officer Jane, Paramedic Chris, Reyes) all marked "In Scene".
+
+**Root cause**: four stacked failure modes, any one of which would defeat an empty `charactersPresent` signal from the LLM:
+
+1. **[src/generation/delta-merge.js:181](src/generation/delta-merge.js#L181)** — `charactersPresent` was in `REPLACE_ARRAYS`, meaning an omitted field in the delta left the previous snapshot's value untouched. The LLM interpreted "omit fields whose values didn't change" (delta-mode rule 2) as permission to skip the field entirely in solo scenes, and delta-merge carried the previous beat's full roster forward.
+2. **[src/normalize.js:564-566](src/normalize.js#L564-L566)** — when `charactersPresent` was empty, normalize synthesized it from `characters[]` ("infer from characters array"). Even if delta-merge produced an empty roster, normalize immediately filled it back with every tracked character.
+3. **[src/normalize.js:710](src/normalize.js#L710)** — if `charactersPresent` was still empty after that, normalize carried it forward from the previous snapshot via the comprehensive carry-forward block. A third safety net, also actively wrong for solo scenes.
+4. **[src/normalize.js:1147-1152](src/normalize.js#L1147-L1152)** — `filterForView` treated an empty `charactersPresent` as "no filter data — skip the char/rel sync," returning every character and relationship in the snapshot unfiltered. The view-layer final gate that would have caught the bug instead perpetuated it.
+
+**The prompt side** ([src/schema.js:127, 157, 278](src/schema.js)) also had two direct contradictions: rule 1 said "NEVER return empty array []" while delta-mode rule 2 said "omit fields whose values didn't change." Combined with a vague field description ("ALL character names in the current location or nearby"), the LLM had no clean way to express "the scene is solo" — every path was either forbidden or ambiguous.
+
+**Fix**: all five layers updated to agree on a single contract — *`charactersPresent` is the authoritative signal every turn, an empty array means solo, and no layer may invent or carry forward character presence.*
+
+- **[schema.js](src/schema.js)** — carved out `charactersPresent` from the "NEVER return empty array" rule; rewrote the field description with explicit solo-scene language ("SOLO SCENES ARE REAL... NEVER carry forward the previous scene's roster out of habit"); added `charactersPresent: ALWAYS include` as a new delta-mode rule #7 with an explicit note that omission is a bug.
+- **[delta-merge.js](src/generation/delta-merge.js)** — after the main delta loop, check if the delta omitted `charactersPresent` and set it to `[]` explicitly. The function is only called from delta-mode codepaths, so no conditional guard is needed.
+- **[normalize.js](src/normalize.js)** — deleted the "fill from characters[]" fallback (lines 564-566) and the "carry forward from previous" block (line 710). Both were defensive hacks from a time when the prompt contract was loose; the new strict prompt makes them actively harmful.
+- **[normalize.js filterForView](src/normalize.js#L1147-L1165)** — when `charactersPresent` is empty AND not a group chat, return empty `characters[]` and `relationships[]` arrays instead of skipping the filter. Solo scenes correctly show zero characters in the panel. Group chats still rescue chat members via the existing `_isGroupChat` fallthrough so the chat roster survives even when the model forgot to list them.
+- **[tests/solo-scene.test.mjs](tests/solo-scene.test.mjs)** — new regression test file (11 cases) locking down all four failure modes independently: delta-merge omission, delta-merge explicit empty, delta-merge non-empty replacement, normalize empty preservation, filterForView solo collapse, and a control case for non-empty presence filtering. `tests/group-chat.test.mjs` (20 cases) also continues to pass, verifying the group chat rescue path is unaffected.
+
+After the fix, a solo beat correctly displays zero characters in the Characters and Relationships panels, while the Wiki still shows the full historical roster (the Wiki deliberately reads raw tracker data so you can browse everyone who ever appeared, regardless of current presence).
+
+#### Fixed — Hover preview no longer overlaps the target's own label
+**Reported**: "For the relationship web, the image blocks the data on hover." Screenshot showed the enlarged "Female Paramedic" portrait preview rendered directly on top of the character's name pill below the circle, making the caption unreadable.
+
+**Root cause**: the v6.8.43 / v6.8.44 preview positioned itself relative to the cursor (`clientX + 32, clientY + 20`). When the cursor was inside the target's own avatar circle — which is where the hover handler fires — the `+20` vertical offset placed the preview immediately below the cursor, which landed squarely on top of the target's name label (the pill sitting just below the relationship-web node circle).
+
+**Fix**: replaced cursor-relative positioning with target-relative positioning. The preview now reads `target.getBoundingClientRect()` and places itself outside the target's rect entirely: to the right by default (`rect.right + 24`), flipping to the left (`rect.left - 24 - boxW`) if there isn't enough horizontal room, or centered horizontally as a last resort. Vertical alignment matches `rect.top`, clamped to the viewport. This guarantees the preview never overlaps the source element regardless of how wide or tall the source is — the train-yard "Female Paramedic" node now shows its preview cleanly to the right of the circle + label block instead of on top of the label.
+
+The `clientX`/`clientY` parameters are still accepted by `_showPreviewForTarget()` but are no longer used for primary placement; they're kept for API compatibility in case a future caller wants to influence secondary positioning.
+
 ### [6.8.44] — 2026-04-09
 
 #### Fixed — Hover-enlarged portrait preview now universal across the extension
