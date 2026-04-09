@@ -621,7 +621,16 @@ function _buildSvg(graph, positions, userName, state) {
         const dimmed = focusDim || orgDim;
         const nodeOpacity = dimmed ? 0.15 : baseOpacity;
         const isFocused = state?.focusedIdx === i;
-        svg += `<g class="sp-web-node ${isFocused ? 'sp-web-node-focused' : ''}" data-idx="${i}" style="cursor:pointer;opacity:${nodeOpacity}">`;
+        // v6.8.47: split the node rendering into TWO groups. The outer
+        // .sp-web-node group carries the click/hover identity and the
+        // node's in-scene/focus label, but draws at FULL opacity so
+        // edges behind the node are always hidden by the disc fill.
+        // The inner .sp-web-node-dim group carries the dim/focus/org
+        // opacity modifier, so dimmed characters still look faded but
+        // edges passing behind their circle don't bleed through. This
+        // fixes the "lines showing through the circle" bug for off-
+        // scene and org-filtered characters.
+        svg += `<g class="sp-web-node ${isFocused ? 'sp-web-node-focused' : ''}" data-idx="${i}" style="cursor:pointer">`;
         svg += `<title>${esc(n.name)}${n.role ? ' — ' + esc(n.role) : ''}</title>`;
         const strokeWidth = isFocused ? (isUser ? 4 : 3.5) : (isUser ? 2.5 : 2);
         // v6.8.41: organization halo — a colored ring outside the node's
@@ -632,6 +641,19 @@ function _buildSvg(graph, positions, userName, state) {
             svg += `<circle cx="${p.x}" cy="${p.y}" r="${r + 6}" fill="none" stroke="${haloColor}" stroke-width="3" opacity="0.85"/>`;
             svg += `<circle cx="${p.x}" cy="${p.y}" r="${r + 9}" fill="none" stroke="${haloColor}" stroke-width="1" opacity="0.45"/>`;
         }
+        // v6.8.47: opaque background disc. Always drawn at the full
+        // node color with ZERO dim, so edges behind the node are
+        // completely hidden by the disc even when the character is
+        // off-scene or org-filtered. The dim effect applies only to
+        // the image/monogram/label drawn over the disc.
+        svg += `<circle cx="${p.x}" cy="${p.y}" r="${r}" fill="#0c0e14" stroke="${n.color}" stroke-width="${strokeWidth}"${isFocused ? ` filter="drop-shadow(0 0 6px ${n.color})"` : ''}/>`;
+        // v6.8.47: opaque name pill background — drawn BEFORE the dim
+        // group so it's always fully solid and hides any edges passing
+        // behind its rectangular area, regardless of node dim state.
+        const fontSize = isUser ? 11 : 10;
+        const labelY = p.y + r + 10;
+        const lblW = Math.max(24, n.name.length * CHAR_PX + 10);
+        svg += `<rect x="${p.x - lblW / 2}" y="${labelY - 8}" width="${lblW}" height="16" rx="4" fill="#0c0e14" stroke="${n.color}" stroke-width="0.5" stroke-opacity="0.6"/>`;
         // v6.8.43: when the node has no image, draw the circle filled with
         // the character's accent color so the monogram letter sits on a
         // solid colored disc (matches the sp-char-portrait-monogram style
@@ -639,7 +661,16 @@ function _buildSvg(graph, positions, userName, state) {
         // disc so the image sits on a neutral backdrop.
         const portrait = n.portrait || { type: n.portraitUrl ? 'url' : 'monogram', letter: (n.name || '?').charAt(0).toUpperCase(), bg: n.color, fg: '#fff', url: n.portraitUrl };
         const discFill = portrait.type === 'url' ? n.bg : portrait.bg;
-        svg += `<circle cx="${p.x}" cy="${p.y}" r="${r}" fill="${discFill}" stroke="${n.color}" stroke-width="${strokeWidth}"${isFocused ? ` filter="drop-shadow(0 0 6px ${n.color})"` : ''}/>`;
+        // Dimmed sub-group — the coloured disc, the portrait/monogram,
+        // the name text, and the in-scene dot all share this opacity
+        // so they fade together as a unit. The opaque backing disc
+        // and the opaque name pill above are outside this group so
+        // they stay fully solid and hide edges behind them.
+        svg += `<g class="sp-web-node-dim" style="opacity:${nodeOpacity}">`;
+        // Inner coloured disc (what you actually see as "the node").
+        // Drawn on top of the opaque backing disc so the visible colour
+        // matches the character's accent / bg.
+        svg += `<circle cx="${p.x}" cy="${p.y}" r="${r}" fill="${discFill}" stroke="none"/>`;
         if (portrait.type === 'url' && portrait.url) {
             // v6.8.29: portrait image clipped to a circle inside the node.
             const imgR = r - 1;
@@ -653,18 +684,15 @@ function _buildSvg(graph, positions, userName, state) {
             const monoSize = Math.round(r * 0.95);
             svg += `<text x="${p.x}" y="${p.y + 1}" text-anchor="middle" dominant-baseline="central" font-size="${monoSize}" font-weight="700" fill="${portrait.fg || '#ffffff'}" stroke="rgba(0,0,0,0.35)" stroke-width="0.6" paint-order="stroke" style="font-family:system-ui,-apple-system,Segoe UI,sans-serif;letter-spacing:0">${esc(portrait.letter || '?')}</text>`;
         }
-        // v6.8.43: EVERY name renders as a pill below the circle — short
-        // names no longer sit inside. Keeps the roster visually uniform
-        // and the circles clean (image or monogram) without text overlap.
-        const fontSize = isUser ? 11 : 10;
-        const labelY = p.y + r + 10;
-        const lblW = Math.max(24, n.name.length * CHAR_PX + 10);
-        svg += `<rect x="${p.x - lblW / 2}" y="${labelY - 8}" width="${lblW}" height="16" rx="4" fill="#0c0e14" opacity="0.82" stroke="${n.color}" stroke-width="0.5" stroke-opacity="0.35"/>`;
+        // v6.8.47: pill text only (the pill rect is drawn above,
+        // outside the dim group, so it stays opaque even when the
+        // node is dimmed).
         svg += `<text x="${p.x}" y="${labelY}" text-anchor="middle" dominant-baseline="central" fill="${n.color}" font-size="${fontSize}" font-weight="${isUser ? 700 : 600}">${esc(n.name)}</text>`;
         if (!isUser && n.inScene) {
             svg += `<circle cx="${p.x + r - 4}" cy="${p.y - r + 4}" r="4" fill="#4ade80" stroke="#0c0e14" stroke-width="1.5"/>`;
         }
-        svg += `</g>`;
+        svg += `</g>`; // close .sp-web-node-dim
+        svg += `</g>`; // close .sp-web-node
     }
 
     // Transparent hit areas for hover/click (larger than the visible nodes).

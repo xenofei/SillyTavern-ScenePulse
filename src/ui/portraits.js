@@ -206,18 +206,42 @@ export function getPortraitPreviewAttrs(descriptor, nameOverride, colorOverride)
     return ` data-sp-preview-url="${esc(descriptor.url)}" data-sp-preview-name="${esc(name)}" data-sp-preview-color="${esc(color)}"`;
 }
 
-// v6.8.46: "panel anchors" — selectors for the outer data container
-// of each site that renders an avatar. When the user hovers an avatar,
-// the preview snaps to the LEFT of the closest matching ancestor
-// instead of to the avatar itself. Anchoring to the target put the
-// preview inside the panel's own content area (e.g. over the character
-// name label in the relationship web). Anchoring to the container
-// lets the preview sit in the side gutter outside the panel where it
-// never collides with the data.
+// v6.8.47: anchor selector priority chain.
 //
-// Order matters only when containers nest — the innermost match wins
-// via closest(). Sites that don't match any selector fall back to
-// target-relative positioning with left-of-target preference.
+// DATA_ANCHOR_SELECTORS — floating "data cards" that appear alongside
+// a hovered target (e.g. the relationship web's hover tooltip with the
+// character's meters and edges list). When present, the preview should
+// snap to the LEFT of the data card so the image and data read as a
+// single [preview] [data] pair. These selectors are checked via a
+// document-wide querySelector, not closest() ancestor walking, because
+// the data card is typically appended to document.body, not nested
+// inside the hovered target.
+//
+// PANEL_ANCHOR_SELECTORS — static outer containers that house the
+// hovered target (the relationship web overlay, wiki overlay, main
+// panel character card). Used via closest() ancestor walking when no
+// data card is present. The preview snaps to the LEFT of the container
+// so it sits in the side gutter outside the panel.
+//
+// The v6.8.46 fix only had PANEL anchors, which meant the relationship
+// web preview snapped to the LEFT of the whole overlay — way off to
+// the side, far from the hover tooltip that contained the actual data.
+// Adding DATA anchors with higher priority closes that gap: the
+// preview nestles directly against the tooltip card instead.
+//
+// Timing gotcha: when the user hovers a node, mouseover fires BEFORE
+// mouseenter, and the sibling mouseenter handler in relationship-web.js
+// is what creates the tooltip DOM node. So at the moment our delegated
+// mouseover listener fires, the tooltip does not yet exist. We work
+// around this by computing an initial position synchronously (using
+// panel anchor as fallback), then re-running the position computation
+// inside a requestAnimationFrame — by the next frame the sibling
+// mouseenter has run, the tooltip exists, and the rAF pass can snap
+// to it. The user sees a brief position transition inside the fade-in
+// animation, which is visually seamless.
+const DATA_ANCHOR_SELECTORS = [
+    '.sp-web-tooltip',      // Relationship Web hover tooltip (appended to body)
+].join(', ');
 const PANEL_ANCHOR_SELECTORS = [
     '.sp-web-container',    // Relationship Web overlay
     '.sp-wiki-container',   // Character Wiki overlay
@@ -251,6 +275,54 @@ function _orphanCheck() {
     _orphanRaf = requestAnimationFrame(_orphanCheck);
 }
 
+function _positionPreview(el, target) {
+    // v6.8.47: anchor priority chain.
+    //   1. DATA anchor (e.g. relationship web tooltip) — preview snaps
+    //      to the LEFT of the data card so image + data form a single
+    //      visual pair. Checked via documentwide querySelector since
+    //      the data card is appended to body, not nested inside the
+    //      hovered target.
+    //   2. PANEL anchor (relationship web container, wiki container,
+    //      character card) — preview snaps to the LEFT of the panel
+    //      itself, sitting in the side gutter. Checked via ancestor
+    //      walk (closest()).
+    //   3. Target itself — last-resort fallback for sites that don't
+    //      match any registered anchor.
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const boxW = 224, boxH = 260;
+    const gap = 16;
+    const dataAnchor = document.querySelector(DATA_ANCHOR_SELECTORS);
+    const anchor = dataAnchor || target.closest(PANEL_ANCHOR_SELECTORS) || target;
+    const anchorRect = anchor.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+    let tx, ty;
+    // Horizontal: snap preview's right edge to the anchor's left edge
+    // minus a gap. Flip to the anchor's right side if there's no room
+    // on the left; fall back to the viewport's left edge if neither
+    // side fits (very narrow screens).
+    const leftOfAnchor = anchorRect.left - gap - boxW;
+    if (leftOfAnchor >= 8) {
+        tx = leftOfAnchor;
+    } else if (anchorRect.right + gap + boxW <= vw - 8) {
+        tx = anchorRect.right + gap;
+    } else {
+        tx = 8;
+    }
+    // Vertical: align top-of-preview with top-of-anchor. This keeps
+    // the preview visually paired with the data card (which starts at
+    // the same Y). If the anchor is the target itself (no data/panel
+    // match), use the target's top. Clamp to the viewport, flipping
+    // to bottom-anchored if the anchor is too close to the bottom.
+    const topSource = (anchor === target) ? targetRect : anchorRect;
+    if (topSource.top + boxH <= vh - 8) {
+        ty = Math.max(8, topSource.top);
+    } else {
+        ty = Math.max(8, topSource.bottom - boxH);
+    }
+    el.style.left = tx + 'px';
+    el.style.top = ty + 'px';
+}
+
 function _showPreviewForTarget(target, clientX, clientY) {
     const url = target.getAttribute('data-sp-preview-url');
     if (!url) return;
@@ -269,52 +341,24 @@ function _showPreviewForTarget(target, clientX, clientY) {
         caption.textContent = name;
         caption.style.color = color;
     }
-    // v6.8.46: anchor the preview to the OUTER DATA CONTAINER
-    // (relationship web container, wiki container, character card,
-    // etc.) rather than the hovered avatar itself. The avatar lives
-    // inside the container, so "right of target" landed in the
-    // container's own content area and overlapped the character name
-    // label. "Left of container" puts the preview OUTSIDE the panel
-    // entirely, in the side gutter where nothing else renders.
-    //
-    // Placement strategy, tried in order:
-    //   1. Snap the preview's right edge to the container's left edge
-    //      minus a gap. This is the user's preferred "snapped left" case.
-    //   2. If there's no room on the left, flip to the right of the
-    //      container (still outside the data area).
-    //   3. If neither side fits, snap to the viewport's left edge as
-    //      a last resort — may still overlap the container on narrow
-    //      screens but this is better than cursor-relative guessing.
-    //
-    // Vertical placement always tracks the TARGET (not the container)
-    // so hovering different avatars in the same panel produces distinct
-    // Y positions that visually track which one is being previewed.
-    const vw = window.innerWidth, vh = window.innerHeight;
-    const boxW = 224, boxH = 260;
-    const gap = 16;
-    const anchor = target.closest(PANEL_ANCHOR_SELECTORS) || target;
-    const anchorRect = anchor.getBoundingClientRect();
-    const targetRect = target.getBoundingClientRect();
-    let tx, ty;
-    const leftOfAnchor = anchorRect.left - gap - boxW;
-    if (leftOfAnchor >= 8) {
-        tx = leftOfAnchor;
-    } else if (anchorRect.right + gap + boxW <= vw - 8) {
-        tx = anchorRect.right + gap;
-    } else {
-        tx = 8;
-    }
-    // Vertical: align top-of-preview with top-of-target, then flip
-    // bottom-anchored if the target is too close to the viewport bottom.
-    if (targetRect.top + boxH <= vh - 8) {
-        ty = Math.max(8, targetRect.top);
-    } else {
-        ty = Math.max(8, targetRect.bottom - boxH);
-    }
-    el.style.left = tx + 'px';
-    el.style.top = ty + 'px';
+    // v6.8.47: two-pass positioning. The first pass runs synchronously
+    // using whatever anchor is available at this instant (typically
+    // the panel container, since sibling mouseenter handlers that
+    // create data tooltips haven't fired yet). The second pass runs
+    // on the next frame inside requestAnimationFrame, by which time
+    // any sibling-triggered tooltip DOM has been added and can serve
+    // as a higher-priority DATA anchor. The visual transition is
+    // inside the preview's fade-in animation so the user perceives
+    // it as a single smooth reveal rather than two positions.
+    _positionPreview(el, target);
     el.style.display = '';
     _currentTarget = target;
+    // Re-position after sibling mouseenter handlers have run (they
+    // fire AFTER our mouseover handler but BEFORE the next frame).
+    requestAnimationFrame(() => {
+        if (_currentTarget !== target) return; // hover moved or hid
+        _positionPreview(el, target);
+    });
     // Start (or restart) the orphan-element guard.
     if (_orphanRaf) cancelAnimationFrame(_orphanRaf);
     _orphanRaf = requestAnimationFrame(_orphanCheck);

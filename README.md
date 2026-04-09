@@ -435,6 +435,31 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.8.47] — 2026-04-09
+
+#### Fixed — Hover preview now snaps to the hover tooltip (not the overlay gutter)
+**Reported**: "The image isn't snapping to the data for the relationship web data. It's off to the side still."
+
+**Root cause**: the v6.8.46 fix anchored the preview to the outer panel container (`.sp-web-container`), which for a full-width relationship web overlay meant the preview landed way off in the left viewport gutter. The actual "data" the user wanted to see adjacent to the image is the hover tooltip card that appears next to the cursor — a separate DOM node appended to `document.body` by `_showTooltip` in relationship-web.js, containing the character's meters, relationship edges, and absent/present status. That tooltip, not the overlay container, is what the user thinks of as "the data."
+
+**Fix**: added a `DATA_ANCHOR_SELECTORS` priority list to [src/ui/portraits.js](src/ui/portraits.js) checked BEFORE `PANEL_ANCHOR_SELECTORS` on every preview positioning pass. `.sp-web-tooltip` is the first (and currently only) data anchor. When present, the preview snaps its right edge to the tooltip's left edge minus a 16px gap, visually pairing the enlarged image with the tooltip's text. When absent (no hover tooltip active), the preview falls back to panel-anchor positioning, then target-anchor as a last resort.
+
+**Timing fix**: the sibling `mouseenter` handler that creates the tooltip fires AFTER our delegated `mouseover` handler, so at the moment our handler reads the DOM to compute preview placement, the tooltip doesn't yet exist. Fixed by running positioning in two passes: a synchronous first pass (falls back to panel anchor since tooltip isn't there yet), then a `requestAnimationFrame` re-run on the next frame (by which time the sibling handler has added the tooltip, which is now detected as the DATA anchor). The visual transition happens inside the preview's fade-in animation, so the user perceives a single smooth reveal rather than two positions.
+
+#### Fixed — Edges no longer bleed through name labels and dimmed node circles
+**Reported**: "Hide the lines behind the images and bottom text." User showed an "Elly Forester" node with yellow edge lines crossing through both the circle and the name pill beneath it, making the text hard to read.
+
+**Root causes** — two separate opacity issues:
+
+1. **Name pill was translucent** (`opacity="0.82"`). Edges drawn first (behind nodes) showed through the rectangular pill area whenever an edge between two OTHER nodes happened to cross that space. Made the character name hard to read.
+2. **Node group opacity dimmed the whole node, including the backing disc** — off-scene characters rendered at `opacity="0.5"`, meaning 50% of the edges behind their circle showed through the disc fill. The "Elly Forester" line-through-circle case was specifically this: she was off-scene, so her whole node group was at 0.5, and edges behind her circle were half-visible through the dimmed disc.
+
+**Fix — pill**: removed the `opacity="0.82"` attribute and drew the pill rect **outside the dim sub-group** entirely. The pill is now solid `#0c0e14` at full opacity regardless of whether the character is in-scene, off-scene, focused, or org-filtered. Edges behind the pill area are completely hidden.
+
+**Fix — nodes**: split the node `<g>` into two nested groups. The outer `.sp-web-node` carries the click/hover identity and draws an **always-opaque backing disc** (`#0c0e14` at full opacity). The inner `.sp-web-node-dim` carries the dim modifier (`opacity="0.5"` for off-scene, `0.15` for focus/org dim) and contains the coloured disc, portrait/monogram, name text, and in-scene dot. Because the backing disc is outside the dim group, edges behind the node circle are always hidden by a fully-opaque dark disc, then the coloured disc + image/monogram/label render at the dim opacity on top. Off-scene characters still look correctly faded, but no edges show through them.
+
+Visually: in-scene characters look identical to before, off-scene characters still fade to 50% in the coloured disc and label (the same dim state), but now the dim is layered over an opaque dark backing disc so nothing behind the node ever bleeds through.
+
 ### [6.8.46] — 2026-04-09
 
 #### Fixed — Hover preview now snaps to the LEFT of the data panel, not the target
