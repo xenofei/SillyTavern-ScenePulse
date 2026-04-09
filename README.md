@@ -435,6 +435,23 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.8.35] — 2026-04-09
+
+#### Fixed \u2014 Relationship Web drag had an invisible wall at default canvas bounds
+**Reported**: "relationship web has a maximum distance for dragging people around. I want the user to be able to drag as far as they want within the window pane when fully zoomed out."
+
+**Root cause**: the drag handler in [src/ui/relationship-web.js](src/ui/relationship-web.js) was clamping node positions to `[NODE_R, W-NODE_R]` \u00D7 `[NODE_R, H-NODE_R]` where `W=1000, H=700` are the default SVG canvas constants. When users zoomed out (`viewBox.w` grew to 2-3\u00D7 the default), they could still only drag nodes inside the original 1000\u00D7700 box \u2014 creating an invisible wall at the canvas center regardless of how far they'd zoomed out.
+
+**Fix**: clamp against the CURRENT viewBox bounds instead of fixed W\u00D7H constants:
+
+```js
+const minX = viewBox.x + NODE_R;
+const maxX = viewBox.x + viewBox.w - NODE_R;
+// ...
+```
+
+Now when you zoom out to see more canvas area, you can drag nodes to any point in the expanded view. The small `NODE_R` margin inside the viewBox keeps the node circle from clipping past the visible edge during the drag. 234/234 tests still pass.
+
 ### [6.8.34] — 2026-04-09
 
 #### Changed \u2014 character pattern backgrounds less prominent

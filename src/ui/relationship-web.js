@@ -821,7 +821,24 @@ export function openRelationshipWeb(entries) {
         svgEl.addEventListener('pointermove', (e) => {
             if (draggedIdx == null) return;
             const p = _pointerToSvg(e);
-            positions[draggedIdx] = { x: clamp(p.x, NODE_R, W - NODE_R), y: clamp(p.y, NODE_R, H - NODE_R) };
+            // v6.8.35: clamp against the CURRENT viewBox, not the fixed
+            // W×H SVG canvas. Previously nodes couldn't be dragged past
+            // (W-NODE_R, H-NODE_R) even when the user had zoomed out to
+            // a larger viewBox — creating an invisible wall at the
+            // default 1000×700 bounds. Now you can drag anywhere the
+            // cursor can reach on screen, at any zoom level.
+            //
+            // A small NODE_R margin inside the viewBox keeps the node
+            // circle fully visible (otherwise the edge could clip past
+            // the canvas bounds during the drag gesture).
+            const minX = viewBox.x + NODE_R;
+            const maxX = viewBox.x + viewBox.w - NODE_R;
+            const minY = viewBox.y + NODE_R;
+            const maxY = viewBox.y + viewBox.h - NODE_R;
+            positions[draggedIdx] = {
+                x: clamp(p.x, minX, maxX),
+                y: clamp(p.y, minY, maxY),
+            };
             _rerender();
         });
         svgEl.addEventListener('pointerup', () => { draggedIdx = null; });
