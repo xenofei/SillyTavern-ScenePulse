@@ -24,6 +24,7 @@ export function createThoughtPanel(){
         <span class="sp-tp-header-spacer"></span>
         <button class="sp-tp-snapleft${s.thoughtSnapLeft!==false?' sp-tb-active':''}" title="${t('Snap to left of chat')}"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><rect x="1" y="2" width="6" height="12" rx="1" stroke="currentColor" stroke-width="1.2" opacity="0.8"/><rect x="9" y="2" width="6" height="12" rx="1" stroke="currentColor" stroke-width="1.2" opacity="0.35"/><path d="M4.5 6.5L2.5 8l2 1.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         <button class="sp-tp-ghost${s.thoughtGhost!==false?' sp-tb-active':''}" title="${t('Ghost mode')}"><svg viewBox="0 0 20 20" width="15" height="15" fill="none"><path d="M10 2C6.5 2 4 4.8 4 7.5v7c0 .4.2.7.5.5l1.5-1.2 1.5 1.2c.3.2.7.2 1 0L10 13.8l1.5 1.2c.3.2.7.2 1 0l1.5-1.2 1.5 1.2c.3.2.5-.1.5-.5v-7C16 4.8 13.5 2 10 2z" fill="currentColor" opacity="0.12" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/><ellipse cx="7.8" cy="8" rx="1.3" ry="1.6" fill="currentColor" opacity="0.7"/><ellipse cx="12.2" cy="8" rx="1.3" ry="1.6" fill="currentColor" opacity="0.7"/><circle cx="7.8" cy="7.6" r="0.5" fill="var(--sp-bg, #161820)"/><circle cx="12.2" cy="7.6" r="0.5" fill="var(--sp-bg, #161820)"/><ellipse cx="10" cy="11" rx="1.5" ry="1" fill="currentColor" opacity="0.2"/></svg></button>
+        <button class="sp-tp-fit${s.thoughtPanelFit===true?' sp-tb-active':''}" title="${t('Auto-fit thoughts to screen')}"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M2 2 L5 2 L5 5 M2 2 L5 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 2 L11 2 L11 5 M14 2 L11 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 14 L5 14 L5 11 M2 14 L5 11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 14 L11 14 L11 11 M14 14 L11 11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><rect x="6" y="6" width="4" height="4" rx="0.5" fill="currentColor" opacity="0.3"/></svg></button>
         <button class="sp-tp-regen" title="${t('Regenerate thoughts')}"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M13.5 8a5.5 5.5 0 1 1-1.3-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M13.5 3v2.5h-2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         <button class="sp-tp-close" title="${t('Hide thoughts')}"><svg viewBox="0 0 12 12" width="13" height="13" fill="none"><line x1="2" y1="2" x2="10" y2="10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="10" y1="2" x2="2" y2="10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
     </div><div id="sp-tp-body"></div>
@@ -60,6 +61,24 @@ export function createThoughtPanel(){
     });
     // Apply ghost on creation if enabled
     if(s.thoughtGhost!==false)tp.classList.add('sp-tp-ghost-mode');
+
+    // v6.8.39: Auto-fit toggle — mirrors settings.thoughtPanelFit so
+    // users can toggle it from the thought panel header without
+    // opening the settings drawer. Keeps the checkbox in the settings
+    // UI in sync via the DOM.
+    tp.querySelector('.sp-tp-fit').addEventListener('click',(e)=>{
+        e.stopPropagation();
+        const st=getSettings();
+        st.thoughtPanelFit=st.thoughtPanelFit!==true;
+        saveSettings();
+        const btn=e.currentTarget;
+        btn.classList.toggle('sp-tb-active',st.thoughtPanelFit===true);
+        // Keep the settings drawer checkbox in sync if it's rendered
+        const cb=document.getElementById('sp-thought-fit');
+        if(cb)cb.checked=st.thoughtPanelFit===true;
+        // Re-run autofit immediately so the scale change is visible
+        autoFitThoughtPanel();
+    });
 
     // Regen button
     tp.querySelector('.sp-tp-regen').addEventListener('click',async(e)=>{
@@ -104,7 +123,7 @@ export function createThoughtPanel(){
     const drag=tp.querySelector('#sp-tp-drag');
     let dragging=false,dx=0,dy=0;
     function dragStart(cx,cy,e){
-        if(e.target.closest('.sp-tp-close')||e.target.closest('.sp-tp-regen')||e.target.closest('.sp-tp-snapleft')||e.target.closest('.sp-tp-ghost'))return;
+        if(e.target.closest('.sp-tp-close')||e.target.closest('.sp-tp-regen')||e.target.closest('.sp-tp-snapleft')||e.target.closest('.sp-tp-ghost')||e.target.closest('.sp-tp-fit'))return;
         dragging=true;dx=cx-tp.offsetLeft;dy=cy-tp.offsetTop;
         e.preventDefault();
     }

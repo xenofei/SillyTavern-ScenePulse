@@ -185,7 +185,16 @@ export function bindUI(){const s=getSettings();
     // custom property that shrinks every card dimension proportionally
     // so all characters fit on-screen without scrolling. Disabling
     // resets to the natural scrolling behavior.
-    $('#sp-thought-fit').on('change',function(){s.thoughtPanelFit=this.checked;saveSettings();const snap=getLatestSnapshot();if(snap)updateThoughts(normalizeTracker(snap))});
+    // v6.8.39: also update the header toggle button's active state so
+    // the two UI controls stay in sync when toggled from either side.
+    $('#sp-thought-fit').on('change',function(){
+        s.thoughtPanelFit=this.checked;
+        saveSettings();
+        const headerBtn=document.querySelector('#sp-thought-panel .sp-tp-fit');
+        if(headerBtn)headerBtn.classList.toggle('sp-tb-active',this.checked);
+        const snap=getLatestSnapshot();
+        if(snap)updateThoughts(normalizeTracker(snap));
+    });
     // v6.8.27: toggle NPC↔NPC relationship graph feature. Off by default
     // — when enabled, exposes a "Generate NPC graph" button in the
     // Relationship Web overlay that triggers a separate LLM call to map

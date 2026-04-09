@@ -193,51 +193,90 @@ function _buildPrompt(characters, userName) {
         return `- ${name} ${arch}${role}`;
     }).join('\n');
 
-    return `You are a relationship-graph analyst. Given a list of characters from an ongoing story, output a JSON array of the narratively significant connections BETWEEN THEM (NPC↔NPC only — NEVER include ${userName} in the graph; ${userName} is the player and has their own separate relationship tracker).
+    const n = characters.length;
+    // v6.8.39: soft minimum edge quota based on roster size. For small
+    // rosters (2-3) we expect 1-3 edges; for medium (4-6) we expect
+    // 4-8; for large (7+) we want ~1.5x the roster so the graph
+    // actually visualizes the web rather than 1-2 hand-picked ties.
+    const targetMin = n <= 2 ? Math.max(0, n - 1) : n <= 4 ? n : Math.ceil(n * 1.3);
+    const targetMax = Math.min(30, Math.ceil(n * 2.5));
+
+    return `You are a relationship-graph analyst. Given a list of characters from an ongoing story, output a JSON array of the connections BETWEEN THEM (NPC\u2194NPC only \u2014 NEVER include ${userName} in the graph; ${userName} is the player and has a separate relationship tracker).
 
 ## Tracked characters
 ${charLines}
 
 ## Task
-Output a JSON array of edges between these characters. Each edge represents one character's view of another. Edges are DIRECTIONAL — if Alice sees Bob as a protective brother and Bob sees Alice as a resented dependent, emit BOTH edges with different types and labels.
+For EACH PAIR of characters in the roster, consider whether they have ANY connection \u2014 structural, social, professional, familial, romantic, or conflict-based \u2014 and emit an edge when they do. Work through the list systematically. A complete pass over all pairs produces a richer graph than cherry-picking only the most dramatic ties.
+
+## Target edge count
+Roster has **${n} characters** \u2014 aim for **${targetMin}\u2013${targetMax} total edges**. If you emit fewer than ${targetMin}, you are undercounting structural ties (co-workers, partners, family, team members). If you emit more than ${targetMax}, you are inventing connections.
+
+## What COUNTS as an edge
+- **Structural ties** (emit these eagerly):
+  * Same team or partnership \u2014 patrol partners, shift-mates, IA detectives working the same case, paramedics on the same truck, co-workers at the same company, crew of the same ship
+  * Same organization \u2014 all officers on one police force are colleagues even without specific dialogue
+  * Family household \u2014 everyone in the same family unit has family edges to each other
+  * Squad, unit, band, gang, crew, class, department
+- **Narrative ties** (emit when story-relevant):
+  * Named friendships, romances, feuds, rivalries
+  * Mentorships with explicit teaching content
+  * Active conflicts between specific characters
+  * Family relationships mentioned in the story
+
+## What does NOT count
+- A waiter who served one drink to a character once
+- Strangers who happened to share a room with no interaction
+- Background crowd members with no role description
+- Connections you would have to invent from pure genre convention with no evidence in the roles
+
+## Role-keyword shortcuts
+Look at the role descriptions and emit edges for these common patterns:
+- Two characters both described as "officer", "detective", "deputy", "cop" from the same precinct \u2192 **ally / friend / acquaintance** (colleague)
+- Two characters both "paramedic", "EMT", "medic" on the same call \u2192 **ally / friend** (shift partners)
+- Roles like "junior partner", "senior partner", "mentor", "trainee" \u2192 **mentor** or **authority** paired with the other party
+- Role mentions another named character ("Jenna's sister", "Marcus's lawyer") \u2192 emit that explicit relationship
+- Roles sharing a last name usually implies **family**
 
 ## Rules
-1. NEVER include ${userName} as a \`from\` or \`to\`. This graph is NPC↔NPC only.
-2. Only emit connections with actual narrative weight. A waiter who served a drink is NOT a relation. A mentioned estranged parent IS.
-3. Asymmetry is encouraged — A's view of B often differs from B's view of A. Emit both sides when they differ.
-4. If two characters are symmetrically related (both love each other equally), emit just ONE edge; the renderer will display it as reciprocal.
-5. Characters marked [background] should have NO edges unless they have a specific tie to another named character.
-6. Characters marked [pet] CAN and SHOULD have edges to other NPCs when they have meaningful ties (e.g. a cat bonded to a human, a dog with a rival squirrel). Their tie to ${userName} is tracked separately by the main relationship meters \u2014 don't include it here. Pets are full citizens of the NPC graph, not background characters.
-7. Cap: maximum 30 edges total. Prioritize the most narratively important.
+1. NEVER include ${userName} as \`from\` or \`to\`. This graph is NPC\u2194NPC only.
+2. Asymmetry is allowed and valuable \u2014 A's view of B may differ from B's view of A. Emit both sides when they meaningfully differ (e.g. A loves B but B is using A).
+3. If two characters are symmetrically related (colleague\u2194colleague, mutual friends, partners), emit just ONE edge; the renderer will display it as reciprocal.
+4. Characters marked [background] should have NO edges unless they have a specific named tie to another character.
+5. Characters marked [pet] CAN have edges to other NPCs when meaningful (a cat bonded to a human, a dog with a rival dog). Their tie to ${userName} is tracked separately; don't include it here.
+6. Hard cap: maximum 30 edges total. Prioritize structural ties + named narrative ties.
 
-## Edge types (pick the most specific)
-- family: blood/legal kin (parent, sibling, child, spouse-as-kin)
-- friend: established platonic bond
-- ally: actively supports the other's goals
-- rival: competitive tension, not hostile
-- antagonist: actively opposes the other
-- mentor: teaches/trains/guides the other
-- authority: has institutional power over the other
-- lover: romantic partner or interest (emotional bond)
-- lust: purely sexual, no romance
-- acquaintance: knows each other, no strong bond
-- unknown: connection exists but type unclear
+## Edge types (pick the most specific that fits)
+- **family**: blood/legal kin (parent, sibling, child, spouse-as-kin)
+- **lover**: romantic partner or active romantic interest (emotional bond)
+- **lust**: purely sexual, no romance
+- **antagonist**: actively opposes the other
+- **mentor**: teaches/trains/guides the other (knowledge flow is the defining feature)
+- **authority**: has institutional power over the other (commanding officer, boss, judge)
+- **rival**: competitive tension, not hostile (fellow candidates, friendly rivals, competitors)
+- **ally**: actively supports the other's goals \u2014 "we are on the same team right now"
+- **friend**: established platonic bond \u2014 "we know and like each other"
+- **acquaintance**: knows each other but no strong bond \u2014 the default for "same team" colleagues without specific narrative feelings
+- **unknown**: connection exists but type unclear
+
+When in doubt between friend and acquaintance, pick **acquaintance** \u2014 it's the honest default for colleague relationships without specific warmth established.
 
 ## Output format
 A JSON array of objects. Each object has:
 - "from": name of the character whose view this is (must be one of the listed characters, never ${userName})
 - "to": name of the other character (must be one of the listed characters, never ${userName})
 - "type": one of the edge types above
-- "label": 1-4 word phrase describing the connection (e.g. "older sister", "bitter rival", "childhood friend", "protective mentor", "business partner")
+- "label": 1-4 word phrase describing the specific connection. Examples: "patrol partner", "senior partner", "IA partner", "fellow officer", "shift partner", "ex-wife", "childhood friend", "bitter rival", "estranged brother", "protective mentor". Prefer specific labels over generic ones.
 
-Output ONLY the JSON array. No prose, no markdown fences, no commentary. Example shape:
+Output ONLY the JSON array. No prose, no markdown fences, no commentary. Example shape for a roster of officers + a paramedic:
 [
-  {"from":"Alice","to":"Bob","type":"family","label":"older sister"},
-  {"from":"Bob","to":"Alice","type":"family","label":"resented sibling"},
-  {"from":"Alice","to":"Charlie","type":"mentor","label":"trusted advisor"}
+  {"from":"Officer Jones","to":"Officer Smith","type":"ally","label":"patrol partner"},
+  {"from":"Detective Alvarez","to":"Detective Wong","type":"ally","label":"IA partner"},
+  {"from":"Officer Jones","to":"Detective Alvarez","type":"acquaintance","label":"same precinct"},
+  {"from":"Paramedic Lee","to":"Paramedic Rivera","type":"ally","label":"shift partner"}
 ]
 
-${characters.length === 0 ? 'No characters to analyze — output []' : 'Output the JSON array now.'}`;
+${characters.length === 0 ? 'No characters to analyze — output []' : `Output the JSON array now. Target: ${targetMin}\u2013${targetMax} edges.`}`;
 }
 
 // ── Parsing + validation ────────────────────────────────────────────────

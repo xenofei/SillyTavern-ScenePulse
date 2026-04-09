@@ -435,6 +435,49 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.8.39] — 2026-04-09
+
+#### Added \u2014 "Auto-fit thoughts" toggle button in thought panel header
+The fit toggle (added as a settings drawer checkbox in v6.8.38) now also has a dedicated button in the thought panel header, next to the existing snapleft / ghost / regen / close buttons. Clicking it flips `settings.thoughtPanelFit`, updates the header button's active state, and immediately re-runs `autoFitThoughtPanel()` so the scale change is visible without reloading. The settings drawer checkbox stays in sync when toggled from either side.
+
+**Custom icon**: four arrows pointing inward from each corner toward a centered highlight square \u2014 the universal "compact / fit to screen" glyph. Rendered as inline SVG to match the other header buttons' visual weight. No PNG or icon font dependency.
+
+#### Changed \u2014 NPC graph prompt rewritten for richer relationship coverage
+**Reported**: "there are multiple officers and multiple paramedics. After a generation, it only accounted for one link. How can we improve relation building?"
+
+**Root cause**: the v6.8.27-v6.8.36 NPC graph prompt told the model to emit only "narratively significant" connections with a negative example of "a waiter who served a drink". The model was interpreting that conservatively \u2014 two cops in the same scene without specific dialogue about their shared job got classified as "not narratively significant enough" and skipped. Same for two paramedics on the same call, two IA detectives working the same case, family members without explicit mentioned relationships. The model defaulted to "emit the most dramatic few" rather than "systematic pass over all pairs."
+
+**Fix**: four prompt rewrites working together:
+
+1. **Explicit pairwise instruction.** The new prompt says: "For EACH PAIR of characters in the roster, consider whether they have ANY connection \u2014 structural, social, professional, familial, romantic, or conflict-based \u2014 and emit an edge when they do. Work through the list systematically." This replaces the old "only emit connections with actual narrative weight" framing that encouraged skipping.
+
+2. **Soft target edge count.** Based on roster size:
+   - 2\u20133 characters: `n-1` to `~2n` edges
+   - 4\u20136 characters: `n` to `~2.5n` edges
+   - 7+ characters: `~1.3n` to `~2.5n` edges (capped at 30)
+   
+   The prompt tells the model the target range explicitly: "Roster has **N characters** \u2014 aim for **X\u2013Y total edges**. If you emit fewer than X, you are undercounting structural ties." This gives the model a floor it can hit instead of defaulting to 1-2 "important" edges.
+
+3. **Structural ties section.** New "What COUNTS as an edge" block lists examples the model should emit eagerly:
+   - Same team/partnership (patrol partners, shift-mates, IA detectives on the same case, paramedics on the same truck)
+   - Same organization (all officers on one force are colleagues even without specific dialogue)
+   - Family household, squad, unit, band, gang, crew, class, department
+   
+   Paired with a "What does NOT count" block that keeps the old negative examples (waiter, background crowd, strangers).
+
+4. **Role-keyword shortcuts.** The prompt now tells the model to scan role descriptions for common patterns:
+   - `"officer"`, `"detective"`, `"deputy"`, `"cop"` from same precinct \u2192 colleague edges
+   - `"paramedic"`, `"EMT"`, `"medic"` on same call \u2192 shift partner edges
+   - `"junior partner"`, `"senior partner"`, `"mentor"`, `"trainee"` \u2192 paired mentor/authority edges
+   - Role mentions another named character (`"Jenna's sister"`) \u2192 explicit relationship
+   - Shared last names often imply family
+
+5. **Default type guidance.** "When in doubt between friend and acquaintance, pick acquaintance \u2014 it's the honest default for colleague relationships without specific warmth established." Prevents the model from inflating every colleague tie to "friend".
+
+**Impact**: a 7-character roster like the user's (Officer Jane, Buzzcut, Reyes, Detective K, Detective O, Paramedic Chris, Female Paramedic) should now emit roughly 9\u201317 edges instead of 1\u20133 \u2014 capturing the "same precinct" colleague edges, the paramedic shift pairing, the IA detective partnership, and any named narrative ties on top. Regenerate the NPC graph after upgrading to see the richer web.
+
+234/234 tests still pass.
+
 ### [6.8.38] — 2026-04-09
 
 #### Added \u2014 character portraits in relationships panel
