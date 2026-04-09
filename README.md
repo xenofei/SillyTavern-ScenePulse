@@ -435,6 +435,28 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.8.31] — 2026-04-09
+
+#### Fixed \u2014 duplicate relationship entries leaking through to the panel
+**Reported**: A new chat showed 4 characters (Officer Jane, Truck Driver, Officer Buzzcut, Officer Ponytail) but 4 relationships where three of them were separate entries for Officer Jane with different relType labels ("Former Predator/Prey", "Interrogating Authority", "Peripheral Authority"). The LLM was emitting multiple relationship entries for the same character representing different "facets" of the NPC's perception of {{user}}.
+
+**Root cause**: The v6.8.30 normalize canonicalization pass correctly dedupes multiple same-name relationship entries, BUT the assignment back to `o.relationships = out` only fires when `rewrote > 0 || out.length !== original.length`. In this case `rewrote === 0` (all three "Officer Jane" entries are already canonical — no alias rewriting happened) but `out.length !== original.length` (dedup did reduce from 4 → 2) so the assignment SHOULD have fired. A unit test reproducing the exact payload confirmed normalize DID dedupe correctly.
+
+So the dedup was happening at the normalize layer, but something downstream was bypassing it \u2014 either a render path that fed filterForView a snapshot without re-normalizing, a WeakMap cache hit on an old code path, or delta-merge reconstituting a fresh relationships array from storage.
+
+**Fix**: add the canonical-name dedup directly to `filterForView` as a belt-and-braces pass. This guarantees the render layer NEVER sees duplicate relationship entries regardless of which normalize path the snapshot came through, what WeakMap caches might exist, or whether delta-merge rewrote the array.
+
+**Semantics**: for multiple entries collapsing to the same canonical name, the merged entry keeps the FIRST-seen `relType` / `relPhase` / `milestone` labels so user-visible display stays stable turn-to-turn. Non-zero numeric meters win (first-seen non-zero). Non-empty string fields fill in where the first entry had empty values.
+
+**Tests**: 2 new cases in `tests/character-paren-aliases.test.mjs`:
+- `filterForView: dedup duplicate same-name relationships` \u2014 4 rels (3 Officer Jane + 1 Truck Driver) collapse to 2, Officer Jane keeps first-seen label
+- `filterForView: dedup via alias resolution` \u2014 3 alias-equivalent rels (Officer Jane / The Entity / Lilith) collapse to 1 canonical
+
+**Full sweep**: 234/234 passing (51 character-paren-aliases + 49 character-aliases + 26 delta-merge-fuzzy + 24 classify-quest + 46 no-user-as-character + 20 group-chat + 18 extraction-cleanjson).
+
+#### Changed \u2014 canonicalization log promoted to info level
+The `Canonicalize: relationships rewrote=X before=Y after=Z` log in normalizeTracker previously fired only when verbose logging was on, which made the v6.8.30 regression hard to diagnose. Now fires at info level so the next time this kind of dedup issue arises, the console shows which path did what.
+
 ### [6.8.30] — 2026-04-09
 
 #### Fixed \u2014 empty character card for chars with paren-aliases in cross-array references

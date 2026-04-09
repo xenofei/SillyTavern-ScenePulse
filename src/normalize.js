@@ -674,7 +674,10 @@ export function normalizeTracker(d){
                 }
             }
             if(rewrote>0||out.length!==o.relationships.length){
-                if(_verbose)log('Canonicalize: relationships rewrote=',rewrote,'before=',o.relationships.length,'after=',out.length);
+                // v6.8.31: log at info level (not verbose-only) because this
+                // pass is load-bearing for dedup correctness; invisible
+                // logging made the v6.8.30 regression hard to diagnose.
+                log('Canonicalize: relationships rewrote=',rewrote,'before=',o.relationships.length,'after=',out.length);
                 o.relationships=out;
             }
         }
@@ -1032,6 +1035,82 @@ export function filterForView(snap){
     }
     if (Array.isArray(out.charactersPresent)) {
         out.charactersPresent = out.charactersPresent.filter(n => !isUserName(n));
+    }
+
+    // ── v6.8.31: dedup relationships by canonical name + resolve aliases ──
+    // Belt-and-braces dedup so we catch the case where the LLM emits
+    // multiple relationship entries for the same character (different
+    // "facets" of how they perceive {{user}}), AND the case where normalize
+    // canonicalization was bypassed (stale cache, render path that didn't
+    // re-normalize, etc.).
+    //
+    // First builds an alias map from characters[]. Then walks relationships,
+    // canonicalizes each `name` through the alias map, and merges entries
+    // that collapse to the same canonical. Merge semantics: non-zero
+    // numeric fields win on collision; non-empty strings win on collision.
+    // The merged entry preserves the first-seen relType/relPhase/milestone/
+    // etc. from the earliest entry so user-visible labels stay stable.
+    if (Array.isArray(out.relationships) && out.relationships.length > 1) {
+        const aliasMap = new Map();
+        if (Array.isArray(out.characters)) {
+            for (const ch of out.characters) {
+                const canon = (ch?.name || '').trim();
+                const canonLow = canon.toLowerCase();
+                if (!canonLow) continue;
+                aliasMap.set(canonLow, canon);
+                if (Array.isArray(ch.aliases)) {
+                    for (const a of ch.aliases) {
+                        const al = (a || '').toString().toLowerCase().trim();
+                        if (al && al !== canonLow && !aliasMap.has(al)) aliasMap.set(al, canon);
+                    }
+                }
+            }
+        }
+        const _resolveName = (raw) => {
+            if (!raw || typeof raw !== 'string') return raw;
+            const low = raw.toLowerCase().trim();
+            if (!low) return raw;
+            if (aliasMap.has(low)) return aliasMap.get(low);
+            const mm = raw.match(/^(.*?)\s*\(([^)]*)\)\s*$/);
+            if (mm) {
+                const baseLow = mm[1].trim().toLowerCase();
+                if (baseLow && aliasMap.has(baseLow)) return aliasMap.get(baseLow);
+                const parts = mm[2].split(/[\/,;]/).map(s => s.trim()).filter(Boolean);
+                for (const p of parts) {
+                    const pl = p.toLowerCase();
+                    if (aliasMap.has(pl)) return aliasMap.get(pl);
+                }
+            }
+            return raw;
+        };
+        const byCanon = new Map();
+        const merged = [];
+        let collapsed = 0;
+        for (const rel of out.relationships) {
+            if (!rel || typeof rel !== 'object') { merged.push(rel); continue; }
+            const canonName = _resolveName(rel.name);
+            const finalRel = canonName !== rel.name ? { ...rel, name: canonName } : rel;
+            const key = (canonName || '').toLowerCase().trim();
+            if (key && byCanon.has(key)) {
+                const existing = merged[byCanon.get(key)];
+                for (const [fk, fv] of Object.entries(finalRel)) {
+                    if (fk === 'name') continue;
+                    if (typeof fv === 'number') {
+                        if (fv !== 0 && (existing[fk] == null || existing[fk] === 0)) existing[fk] = fv;
+                    } else if (fv !== undefined && fv !== null && fv !== '') {
+                        if (!existing[fk]) existing[fk] = fv;
+                    }
+                }
+                collapsed++;
+            } else {
+                byCanon.set(key, merged.length);
+                merged.push(finalRel);
+            }
+        }
+        if (collapsed > 0) {
+            if (!_isTimelineScrub) log('filterForView: collapsed', collapsed, 'duplicate relationship(s) to canonical names');
+            out.relationships = merged;
+        }
     }
 
     // ── Quest tier caps (always applied, regardless of charactersPresent) ──

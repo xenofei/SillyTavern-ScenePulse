@@ -292,6 +292,65 @@ console.log('\n── Collision merge: non-zero meters win ──');
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+// 9. v6.8.31: filterForView dedups relationships by canonical name
+// ═══════════════════════════════════════════════════════════════════════
+console.log('\n── filterForView: dedup duplicate same-name relationships ──');
+{
+    // The LLM emits multiple relationship entries for the same character
+    // representing different "facets" of the relationship. filterForView
+    // should merge them into one canonical entry.
+    const snap = {
+        time: '12:00',
+        date: '01/01/2026',
+        characters: [
+            { name: 'Officer Jane', aliases: ['The Entity'], archetype: 'antagonist', role: 'officer' },
+            { name: 'Truck Driver', archetype: 'ally', role: 'trucker' },
+        ],
+        relationships: [
+            { name: 'Officer Jane', relType: 'Former Predator/Prey', relPhase: 'Host abandoned', affection: 10, trust: 5 },
+            { name: 'Truck Driver', relType: 'Uneasy Ally', relPhase: 'Growing belief', affection: 50, trust: 55 },
+            { name: 'Officer Jane', relType: 'Interrogating Authority', relPhase: 'Gathering testimony', affection: 20, trust: 30 },
+            { name: 'Officer Jane', relType: 'Peripheral Authority', relPhase: 'Assessing Jane', affection: 15, trust: 25 },
+        ],
+        charactersPresent: ['Officer Jane', 'Truck Driver'],
+    };
+    // Call filterForView directly on the raw (unnormalized) snap so we
+    // test the belt-and-braces path, not the normalize canonicalization.
+    const view = filterForView(snap);
+    assertEq('filterForView collapses 4 rels to 2', view.relationships.length, 2);
+    const janeRel = view.relationships.find(r => r.name === 'Officer Jane');
+    assertTrue('Officer Jane rel survived', !!janeRel);
+    // First-seen label wins on merge
+    assertEq('first relType wins', janeRel?.relType, 'Former Predator/Prey');
+    // Non-zero meters: first non-zero wins (affection=10 from first entry)
+    assertEq('first non-zero affection wins', janeRel?.affection, 10);
+}
+
+// v6.8.31: same dedup applies when relationships reference by alias
+console.log('\n── filterForView: dedup via alias resolution ──');
+{
+    const snap = {
+        time: '12:00',
+        date: '01/01/2026',
+        characters: [
+            { name: 'Officer Jane', aliases: ['The Entity', 'Lilith'], archetype: 'antagonist', role: 'officer' },
+        ],
+        relationships: [
+            { name: 'Officer Jane', relType: 'Host', affection: 50 },
+            { name: 'The Entity', relType: 'Predator', affection: 80 },
+            { name: 'Lilith', relType: 'Eternal Mate', affection: 100 },
+        ],
+        charactersPresent: ['Officer Jane'],
+    };
+    const view = filterForView(snap);
+    assertEq('3 alias-equivalent rels collapse to 1', view.relationships.length, 1);
+    assertEq('canonical name preserved', view.relationships[0].name, 'Officer Jane');
+    // Non-zero wins: affection 100 beats 80 beats 50, but first-seen
+    // semantics mean we keep the FIRST non-zero (50)
+    assertEq('first non-zero affection wins on merge', view.relationships[0].affection, 50);
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 // Summary
 // ═══════════════════════════════════════════════════════════════════════
 console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
