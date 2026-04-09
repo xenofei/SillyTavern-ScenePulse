@@ -207,7 +207,8 @@ Output a JSON array of edges between these characters. Each edge represents one 
 3. Asymmetry is encouraged — A's view of B often differs from B's view of A. Emit both sides when they differ.
 4. If two characters are symmetrically related (both love each other equally), emit just ONE edge; the renderer will display it as reciprocal.
 5. Characters marked [background] should have NO edges unless they have a specific tie to another named character.
-6. Cap: maximum 30 edges total. Prioritize the most narratively important.
+6. Characters marked [pet] CAN and SHOULD have edges to other NPCs when they have meaningful ties (e.g. a cat bonded to a human, a dog with a rival squirrel). Their tie to ${userName} is tracked separately by the main relationship meters \u2014 don't include it here. Pets are full citizens of the NPC graph, not background characters.
+7. Cap: maximum 30 edges total. Prioritize the most narratively important.
 
 ## Edge types (pick the most specific)
 - family: blood/legal kin (parent, sibling, child, spouse-as-kin)

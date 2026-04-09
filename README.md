@@ -435,6 +435,48 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.8.29] — 2026-04-09
+
+#### Fixed \u2014 Relationship Web background color inconsistency
+The `.sp-web-svg-wrap` container previously inherited the `rgba(12,14,20,0.98)` container background, while the SVG had its own internal `#0c0e14` `<rect>` fill. Close but not identical. When the SVG didn't fill the entire wrap (zoomed out, `max-height: 72vh` constraint hit, short aspect ratio), a visible "halo" appeared around the graph where the two shades met.
+
+**Fix**: explicit `background: #0c0e14` on `.sp-web-svg-wrap`, removed the 8px padding that was adding visual gap, and set the SVG to `width: 100%; height: auto; display: block` so it renders seamlessly edge-to-edge regardless of aspect ratio.
+
+#### Fixed \u2014 Edge labels were visually off-center inside their background rect
+The v6.8.28 label rendering had a 4-pixel vertical misalignment: the `<rect>` spanned `y` from `lp.y - 8` to `lp.y + 6` (center at `lp.y - 1`), while the text with `dominant-baseline="central"` sat at `y="lp.y + 3"` (center at `lp.y + 3`). Text appeared to sit below the visual midline of its background pill.
+
+**Fix**: rect center and text center now both land at exactly `lp.y`. `rectY = lp.y - 7` (height 14 → spans `lp.y - 7` to `lp.y + 7`), text `y = lp.y` (central baseline). Pixel-perfect alignment.
+
+#### Added \u2014 Character portraits in relationship web nodes
+Nodes now render the character's portrait inside the circle when one is resolvable, using the same four-layer priority as the main character cards and the Character Wiki:
+1. User override in `settings.charPortraits`
+2. SillyTavern character avatar by canonical name
+3. Alias-matched ST avatar (handles v6.8.18 reveal flow)
+4. Fallback to the v6.8.20 accent-colored disc with no image
+
+**Implementation**: SVG `<image>` element clipped to a circle via per-node `<clipPath>` defs. Image fills inner area at `r - 1px` to avoid bleeding past the colored border. `preserveAspectRatio="xMidYMid slice"` for a proper center-crop. When a portrait is present, the character name renders BELOW the circle with its own faint background pill so the image isn't obscured by text.
+
+The user's persona avatar is also resolved via `SillyTavern.getContext().user_avatar` and rendered in the center node. Group chats work transparently \u2014 the web takes whatever characters are in the snapshot, so v6.8.15 group carry-forward already feeds it correctly.
+
+#### Fixed \u2014 Missing {{user}}\u2194pet edges in the relationship web
+**Reported**: "Vierge has a relation to Devon (it was his cat originally). yet the graph doesn't account for that." Full diagnosis:
+
+The relationship web shows **two kinds of edges**: (a) {{user}}-facing edges from the top-level `relationships[]` array (pink/red meter edges to Devon), and (b) NPC\u2194NPC edges from the v6.8.27 batch inference. Vierge had neither:
+- **NPC-NPC direction**: The batch prompt correctly excludes {{user}} from NPC-NPC edges \u2014 those connections belong in the user-facing tracker instead. Working as intended.
+- **User-facing direction**: The LLM never emitted a `relationships[]` entry for Vierge in the main tracker. Cats don't naturally fit the 5-meter shape (affection / trust / desire / stress / compatibility), so the model typically skips generating one. No entry \u2192 no `rel` object \u2192 no edge rendered. This was the actual bug.
+
+The main panel already has `filterForView` which stubs zero-meter relationships for any tracked character missing one. The Character Wiki's `_buildEntries` in [src/ui/character-wiki.js](src/ui/character-wiki.js) uses `normalizeTracker` directly and NEVER calls `filterForView`, so the stub sync was bypassed.
+
+**Fix**: `_buildEntries` now synthesizes a zero-meter stub relationship locally when the LLM didn't emit one for a tracked character. The stub carries a new `_spStub: true` marker so the relationship web can render it distinctly from a genuine zero-affection (i.e. actively cold) edge.
+
+**Rendering**: stub edges draw as a faint gray (`#5b6372`) 1.2px dashed curve with a 0.45 base opacity and "unspecified" as the label (or the model's `relType` if one happens to exist). Clearly visible but obviously secondary to real user-facing edges. A cat NPC with no explicit meters will now show a faint dashed line to the user with a label so the reader can see the tie exists even if the model never quantified it.
+
+**Prompt update**: the NPC batch prompt now includes a new rule #6 clarifying that `[pet]` characters ARE full citizens of the NPC graph (they can have edges to other NPCs) and that their connection to {{user}} lives in the main relationship meters, not the NPC graph. Prevents future LLM confusion about how to handle pets.
+
+#### Not changed
+- No schema changes, no migration needed. 183/183 tests still pass.
+- Existing cached NPC graphs work unchanged \u2014 the new `[pet]` clarification only matters on next regeneration.
+
 ### [6.8.28] — 2026-04-09
 
 #### Added \u2014 Relationship Web Phase 2: frame of understanding

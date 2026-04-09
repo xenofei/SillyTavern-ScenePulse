@@ -50,10 +50,15 @@
 .sp-web-edge-npc { transition: stroke-width 0.15s ease; }
 .sp-web-edge-npc:hover { stroke-width: 3; }
 
-/* SVG container */
-.sp-web-svg-wrap { flex: 1; display: flex; align-items: center; justify-content: center; padding: 8px; overflow: hidden; min-height: 300px; position: relative; cursor: grab; }
+/* SVG container — v6.8.29: background matches the SVG's internal canvas
+   rect (#0c0e14) so there's no visible color break between the SVG and
+   the wrap when the SVG doesn't fill the entire container (zoomed out,
+   short aspect ratio, etc). Previously the wrap inherited the container
+   background rgba(12,14,20,0.98) which was close but not identical —
+   created a visible "halo" around the SVG at small sizes. */
+.sp-web-svg-wrap { flex: 1; display: flex; align-items: center; justify-content: center; padding: 0; overflow: hidden; min-height: 300px; position: relative; cursor: grab; background: #0c0e14; }
 .sp-web-svg-wrap:active { cursor: grabbing; }
-.sp-web-svg-wrap svg { max-width: 100%; max-height: 72vh; user-select: none; touch-action: none; }
+.sp-web-svg-wrap svg { max-width: 100%; width: 100%; height: auto; max-height: 72vh; user-select: none; touch-action: none; display: block; }
 
 /* v6.8.28: legend panel — right sidebar showing edge type → color + glyph
    + count + filter state. Click a row to toggle that type's filter. */

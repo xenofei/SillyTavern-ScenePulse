@@ -19,6 +19,7 @@ import { log, warn } from '../logger.js';
 import { t } from '../i18n.js';
 import { esc, clamp } from '../utils.js';
 import { charColor } from '../color.js';
+import { resolvePortraitUrl, buildPortraitIndex } from './portraits.js';
 import {
     isEnabled as isGraphEnabled,
     getCachedEdges,
@@ -201,7 +202,22 @@ function _buildGraph(entries, npcEdges, userName) {
     const nodes = [];
     const nameToIdx = new Map();
 
+    // v6.8.29: resolve portraits for every node via the shared portraits
+    // module. Builds the ST avatar index once, reuses for every node.
+    // Returns null when no image is resolvable; the renderer falls back
+    // to a monogram-style colored disc in that case.
+    const stIdx = buildPortraitIndex();
+
     // Add {{user}} as node 0 (by convention — the renderer uses userIdx=0)
+    // Try to resolve a portrait for the user via the ST context avatar.
+    let userPortrait = null;
+    try {
+        // The user's persona avatar in SillyTavern is accessed differently
+        // than NPC avatars. Fall back gracefully if unavailable.
+        const ctx = SillyTavern.getContext();
+        const userAvatar = ctx.user_avatar || ctx.userAvatar;
+        if (userAvatar) userPortrait = `/User Avatars/${encodeURIComponent(userAvatar)}`;
+    } catch {}
     nodes.push({
         name: userName,
         isUser: true,
@@ -211,6 +227,7 @@ function _buildGraph(entries, npcEdges, userName) {
         inScene: true,
         role: '',
         rel: null,
+        portraitUrl: userPortrait,
     });
     const userIdx = 0;
     nameToIdx.set(userName.toLowerCase().trim(), userIdx);
@@ -219,6 +236,10 @@ function _buildGraph(entries, npcEdges, userName) {
     for (let i = 0; i < entries.length; i++) {
         const e = entries[i];
         const cc = e.color;
+        // Prefer the precomputed avatarUrl the wiki passed through, fall
+        // back to resolving via the shared module. Both paths go through
+        // the same resolver so they match behavior.
+        const portraitUrl = e.avatarUrl || resolvePortraitUrl(e.character || { name: e.name, aliases: [] }, stIdx) || null;
         nodes.push({
             name: e.name,
             isUser: false,
@@ -228,6 +249,7 @@ function _buildGraph(entries, npcEdges, userName) {
             inScene: e.inScene,
             role: e.character?.role || '',
             rel: e.relationship,
+            portraitUrl,
         });
         nameToIdx.set(e.name.toLowerCase().trim(), nodes.length - 1);
         // Also index aliases so edge resolution can find aliased references
@@ -239,6 +261,12 @@ function _buildGraph(entries, npcEdges, userName) {
     }
 
     // {{user}}-facing edges from relationships[] (unchanged from v6.8.21 logic)
+    // v6.8.29: stub relationships (synthesized by the wiki loader when
+    // the LLM didn't emit a user-facing entry for a tracked character)
+    // get a dedicated `isStub` flag so the renderer can style them
+    // distinctly — faint gray + "unspecified" label — rather than
+    // rendering as a zero-affection edge that looks identical to an
+    // actively-cold relationship.
     const edges = [];
     for (let i = 1; i < nodes.length; i++) {
         const rel = nodes[i].rel;
@@ -254,6 +282,7 @@ function _buildGraph(entries, npcEdges, userName) {
             trust,
             stress,
             relType: rel.relType || '',
+            isStub: rel._spStub === true,
             direction: 'from-to',
         });
     }
@@ -372,6 +401,20 @@ function _buildSvg(graph, positions, userName, state) {
         svg += `<circle cx="${userPos.x}" cy="${userPos.y}" r="${r}" fill="none" stroke="#1a1e2a" stroke-width="0.5"/>`;
     }
 
+    // v6.8.29: clipPath defs for character portraits. One per node so
+    // each portrait can be positioned and sized independently inside
+    // its own circular clip. Rendered first inside <defs> then
+    // referenced by the node <image> elements below.
+    svg += '<defs>';
+    for (let i = 0; i < nodes.length; i++) {
+        const n = nodes[i];
+        const p = positions[i];
+        if (!p || !n.portraitUrl) continue;
+        const r = n.isUser ? CENTER_R : NODE_R;
+        svg += `<clipPath id="sp-web-clip-${i}"><circle cx="${p.x}" cy="${p.y}" r="${r - 1}"/></clipPath>`;
+    }
+    svg += '</defs>';
+
     // ── Edges (drawn first, behind nodes) ──
     // v6.8.28: filter by active edge-type set, fade if focus mode is on
     // and this edge isn't adjacent to the focused node, and collect
@@ -412,19 +455,33 @@ function _buildSvg(graph, positions, userName, state) {
         const cpy = my + ny * offset * offsetSign;
 
         if (edge.kind === 'user') {
-            const col = _userEdgeColor(edge.affection);
-            const w = _userEdgeWidth(edge.trust);
-            const stressDim = edge.stress > 70 ? 0.4 : 0.7;
-            const opacity = stressDim * dimFactor;
-            svg += `<path class="sp-web-edge sp-web-edge-user" d="M${from.x},${from.y} Q${cpx},${cpy} ${to.x},${to.y}" fill="none" stroke="${col}" stroke-width="${w}" opacity="${opacity}" stroke-linecap="round"/>`;
-            if (edge.stress > 60) {
-                svg += `<path d="M${from.x},${from.y} Q${cpx},${cpy} ${to.x},${to.y}" fill="none" stroke="${METER_COLORS.stress}" stroke-width="1" opacity="${0.3 * dimFactor}" stroke-dasharray="4 4" stroke-linecap="round"/>`;
+            // v6.8.29: stub relationships render as a dashed faint gray
+            // edge to communicate "this tie exists but the model never
+            // quantified it." Distinct from a genuine zero-affection
+            // edge (which uses a solid gray line).
+            let col, w, opacity, labelText;
+            if (edge.isStub) {
+                col = '#5b6372';
+                w = 1.2;
+                opacity = 0.45 * dimFactor;
+                labelText = edge.relType || t('unspecified');
+                svg += `<path class="sp-web-edge sp-web-edge-user sp-web-edge-stub" d="M${from.x},${from.y} Q${cpx},${cpy} ${to.x},${to.y}" fill="none" stroke="${col}" stroke-width="${w}" opacity="${opacity}" stroke-linecap="round" stroke-dasharray="3 4"/>`;
+            } else {
+                col = _userEdgeColor(edge.affection);
+                w = _userEdgeWidth(edge.trust);
+                const stressDim = edge.stress > 70 ? 0.4 : 0.7;
+                opacity = stressDim * dimFactor;
+                labelText = edge.relType;
+                svg += `<path class="sp-web-edge sp-web-edge-user" d="M${from.x},${from.y} Q${cpx},${cpy} ${to.x},${to.y}" fill="none" stroke="${col}" stroke-width="${w}" opacity="${opacity}" stroke-linecap="round"/>`;
+                if (edge.stress > 60) {
+                    svg += `<path d="M${from.x},${from.y} Q${cpx},${cpy} ${to.x},${to.y}" fill="none" stroke="${METER_COLORS.stress}" stroke-width="1" opacity="${0.3 * dimFactor}" stroke-dasharray="4 4" stroke-linecap="round"/>`;
+                }
             }
-            // User-edge label: the relType (e.g. "partner", "ex-wife") if present
-            if (showLabels && edge.relType && !focusDim) {
+            // User-edge label
+            if (showLabels && labelText && !focusDim) {
                 labelPositions.push({
                     x: cpx, y: cpy, nx, ny,
-                    text: edge.relType,
+                    text: labelText,
                     color: col,
                 });
             }
@@ -478,12 +535,20 @@ function _buildSvg(graph, positions, userName, state) {
     if (showLabels && labelPositions.length) {
         _layoutEdgeLabels(labelPositions);
         for (const lp of labelPositions) {
+            // v6.8.29: fix label off-center rendering. The rect and the
+            // text must share the same vertical center (lp.y). With
+            // `dominant-baseline="central"`, the text's y attribute IS
+            // its vertical center. With a rect of height 14, rectY =
+            // lp.y - 7 makes the rect center fall exactly at lp.y too.
+            // The old code used rectY = lp.y - 8 and text y = lp.y + 3,
+            // which produced a 4-pixel offset — the text sat below the
+            // visual midline of its background pill.
             const txtWidth = lp.text.length * 5.6 + 10; // rough approximation at 9px
             const rectX = lp.x - txtWidth / 2;
-            const rectY = lp.y - 8;
+            const rectY = lp.y - 7;
             svg += `<g class="sp-web-edge-label" pointer-events="none">`;
             svg += `<rect x="${rectX}" y="${rectY}" width="${txtWidth}" height="14" rx="3" fill="#0c0e14" stroke="${lp.color}" stroke-width="0.8" opacity="0.92"/>`;
-            svg += `<text x="${lp.x}" y="${lp.y + 3}" text-anchor="middle" dominant-baseline="central" font-size="9" fill="${lp.color}" font-weight="600">${esc(lp.text)}</text>`;
+            svg += `<text x="${lp.x}" y="${lp.y}" text-anchor="middle" dominant-baseline="central" font-size="9" fill="${lp.color}" font-weight="600">${esc(lp.text)}</text>`;
             svg += `</g>`;
         }
     }
@@ -505,9 +570,32 @@ function _buildSvg(graph, positions, userName, state) {
         svg += `<g class="sp-web-node ${isFocused ? 'sp-web-node-focused' : ''}" data-idx="${i}" style="cursor:pointer;opacity:${nodeOpacity}">`;
         svg += `<title>${esc(n.name)}${n.role ? ' — ' + esc(n.role) : ''}</title>`;
         const strokeWidth = isFocused ? (isUser ? 4 : 3.5) : (isUser ? 2.5 : 2);
+        // Background disc — fills when no portrait is available, or
+        // acts as the border backing when there is one.
         svg += `<circle cx="${p.x}" cy="${p.y}" r="${r}" fill="${n.bg}" stroke="${n.color}" stroke-width="${strokeWidth}"${isFocused ? ` filter="drop-shadow(0 0 6px ${n.color})"` : ''}/>`;
-        const shortName = n.name.length > 10 ? n.name.substring(0, 9) + '\u2026' : n.name;
-        svg += `<text x="${p.x}" y="${p.y + 1}" text-anchor="middle" dominant-baseline="central" fill="${n.color}" font-size="${isUser ? 11 : 10}" font-weight="${isUser ? 700 : 600}">${esc(shortName)}</text>`;
+        // v6.8.29: portrait image clipped to a circle inside the node.
+        // The image fills the inner area (r - 1px to avoid bleeding
+        // past the colored border). onerror is NOT supported on SVG
+        // image elements across all browsers — if the URL 404s, the
+        // browser leaves the clip empty and the background disc shows
+        // through, which is the correct fallback behavior.
+        if (n.portraitUrl) {
+            const imgR = r - 1;
+            svg += `<image href="${esc(n.portraitUrl)}" x="${p.x - imgR}" y="${p.y - imgR}" width="${imgR * 2}" height="${imgR * 2}" clip-path="url(#sp-web-clip-${i})" preserveAspectRatio="xMidYMid slice"/>`;
+        }
+        // Name label — positioned BELOW the node when there's a
+        // portrait so the image isn't obscured by text. When there's
+        // no portrait the name sits inside the disc as before.
+        const shortName = n.name.length > 12 ? n.name.substring(0, 11) + '\u2026' : n.name;
+        if (n.portraitUrl) {
+            // Label below the circle with a faint dark background for legibility
+            const labelY = p.y + r + 10;
+            const lblW = shortName.length * 6 + 8;
+            svg += `<rect x="${p.x - lblW / 2}" y="${labelY - 7}" width="${lblW}" height="14" rx="3" fill="#0c0e14" opacity="0.78"/>`;
+            svg += `<text x="${p.x}" y="${labelY}" text-anchor="middle" dominant-baseline="central" fill="${n.color}" font-size="${isUser ? 11 : 10}" font-weight="${isUser ? 700 : 600}">${esc(shortName)}</text>`;
+        } else {
+            svg += `<text x="${p.x}" y="${p.y + 1}" text-anchor="middle" dominant-baseline="central" fill="${n.color}" font-size="${isUser ? 11 : 10}" font-weight="${isUser ? 700 : 600}">${esc(shortName)}</text>`;
+        }
         if (!isUser && n.inScene) {
             svg += `<circle cx="${p.x + NODE_R - 4}" cy="${p.y - NODE_R + 4}" r="4" fill="#4ade80" stroke="#0c0e14" stroke-width="1.5"/>`;
         }

@@ -94,7 +94,31 @@ function _buildEntries() {
         const cn = (ch.name || '').toLowerCase().trim();
         if (!cn || cn === '?' || seen.has(cn)) continue;
         seen.add(cn);
-        const rel = rels.find(r => _nameMatch(r.name, ch.name)) || null;
+        let rel = rels.find(r => _nameMatch(r.name, ch.name)) || null;
+        // v6.8.29: if the LLM didn't emit a user-facing relationships[]
+        // entry for this character (common for pets — the 5-meter shape
+        // doesn't feel natural for animal NPCs), synthesize a zero-meter
+        // stub so the wiki and relationship web can still show the
+        // character has SOME connection to {{user}}. The relationship
+        // web renders zero-meter stubs as faint gray edges with an
+        // "unspecified" label so users see the tie exists even if the
+        // LLM never quantified it. This matches the behavior
+        // filterForView provides for the main panel.
+        if (!rel) {
+            rel = {
+                name: ch.name,
+                relType: '',
+                relPhase: '',
+                timeTogether: '',
+                milestone: '',
+                affection: 0, affectionLabel: 'unknown',
+                trust: 0, trustLabel: 'unknown',
+                desire: 0, desireLabel: 'unknown',
+                stress: 0, stressLabel: 'unknown',
+                compatibility: 0, compatibilityLabel: 'unknown',
+                _spStub: true,
+            };
+        }
         const inScene = presentSet.has(cn) || cp.some(p => _nameMatch(p, cn));
         const m = meta.get(cn) || {};
         const prevRel = prevRelMap[cn] || null;
