@@ -583,6 +583,120 @@ export function normalizeTracker(d){
     for(const k of Object.keys(d)){
         if(!knownKeys.has(k))o[k]=d[k];
     }
+    // ── v6.8.30: Canonicalize cross-array name references ──
+    // The LLM sometimes emits name references inconsistently across the
+    // characters[], relationships[], and charactersPresent[] arrays —
+    // e.g. characters has `{name: "Officer Jane", aliases: ["The Entity"]}`
+    // but relationships has `{name: "Officer Jane (The Entity)", ...}` and
+    // charactersPresent has `["Officer Jane (The Entity/Lilith)"]`. The
+    // downstream filterForView path uses exact-name matching, so the
+    // mismatched references silently drop the real character and synthesize
+    // phantom stubs from the relationship entries.
+    //
+    // Fix: build an alias → canonical map from the already-normalized
+    // characters[] array, then rewrite any relationship or charactersPresent
+    // entry whose name matches a known alias (or contains a parenthetical
+    // alias list matching a known character). After the rewrite, relationships
+    // get deduped because multiple paren-variants may collapse to the same
+    // canonical name.
+    {
+        const aliasMap=new Map();
+        for(const ch of(o.characters||[])){
+            const canon=(ch?.name||'').trim();
+            const canonLow=canon.toLowerCase();
+            if(!canonLow)continue;
+            aliasMap.set(canonLow,canon);
+            if(Array.isArray(ch.aliases)){
+                for(const a of ch.aliases){
+                    const al=(a||'').toString().toLowerCase().trim();
+                    if(al&&al!==canonLow&&!aliasMap.has(al))aliasMap.set(al,canon);
+                }
+            }
+        }
+        // Resolve any raw name string to its canonical form. Handles:
+        //   - Direct canonical match
+        //   - Direct alias match
+        //   - "Canonical (Alias)" or "Canonical (Alias1/Alias2,Alias3)" forms —
+        //     strips the parenthetical, tries the base, then each paren item
+        //   - "(Alias)" bare parenthetical
+        // Returns the original string unchanged when nothing matches.
+        const _canonicalize=(raw)=>{
+            if(!raw||typeof raw!=='string')return raw;
+            const low=raw.toLowerCase().trim();
+            if(!low)return raw;
+            if(aliasMap.has(low))return aliasMap.get(low);
+            const parenMatch=raw.match(/^(.*?)\s*\(([^)]*)\)\s*$/);
+            if(parenMatch){
+                const base=parenMatch[1].trim();
+                const inside=parenMatch[2];
+                if(base){
+                    const baseLow=base.toLowerCase();
+                    if(aliasMap.has(baseLow))return aliasMap.get(baseLow);
+                }
+                const parts=inside.split(/[\/,;]/).map(s=>s.trim()).filter(Boolean);
+                for(const part of parts){
+                    const pl=part.toLowerCase();
+                    if(aliasMap.has(pl))return aliasMap.get(pl);
+                }
+                // Also try adding each paren item as an alias candidate so
+                // a reverse lookup can fire: "Officer Jane (The Entity)"
+                // where only "The Entity" is in aliasMap resolves correctly.
+            }
+            return raw;
+        };
+        // Rewrite relationships[] + dedup by canonical name. When two
+        // entries collapse to the same canonical, merge them by preferring
+        // non-zero numeric fields and non-empty strings from later entries.
+        if(Array.isArray(o.relationships)){
+            let rewrote=0;
+            const byCanon=new Map();
+            const out=[];
+            for(const rel of o.relationships){
+                if(!rel||typeof rel!=='object'){out.push(rel);continue}
+                const original=rel.name;
+                const canon=_canonicalize(original);
+                if(canon!==original)rewrote++;
+                const finalRel={...rel,name:canon};
+                const key=(canon||'').toLowerCase().trim();
+                if(key&&byCanon.has(key)){
+                    const existing=out[byCanon.get(key)];
+                    for(const[fk,fv]of Object.entries(finalRel)){
+                        if(fk==='name')continue;
+                        if(typeof fv==='number'){
+                            if(fv!==0&&(existing[fk]==null||existing[fk]===0))existing[fk]=fv;
+                        }else if(fv!==undefined&&fv!==null&&fv!==''){
+                            if(!existing[fk])existing[fk]=fv;
+                        }
+                    }
+                }else{
+                    byCanon.set(key,out.length);
+                    out.push(finalRel);
+                }
+            }
+            if(rewrote>0||out.length!==o.relationships.length){
+                if(_verbose)log('Canonicalize: relationships rewrote=',rewrote,'before=',o.relationships.length,'after=',out.length);
+                o.relationships=out;
+            }
+        }
+        // Rewrite charactersPresent + dedup
+        if(Array.isArray(o.charactersPresent)){
+            const seen=new Set();
+            const out=[];
+            let rewrote=0;
+            for(const n of o.charactersPresent){
+                const canon=_canonicalize(n);
+                if(canon!==n)rewrote++;
+                const k=(canon||'').toLowerCase().trim();
+                if(!k||seen.has(k))continue;
+                seen.add(k);
+                out.push(canon);
+            }
+            if(rewrote>0||out.length!==o.charactersPresent.length){
+                if(_verbose)log('Canonicalize: charactersPresent rewrote=',rewrote);
+                o.charactersPresent=out;
+            }
+        }
+    }
     // ── Comprehensive carry-forward: fill ALL empty fields from previous snapshot ──
     try{const _prev=getLatestSnapshot();if(_prev){
         // Scalar fields: carry forward if current is empty string
@@ -662,6 +776,36 @@ export function normalizeChar(ch){
         if(nameFromRole)name=nameFromRole[1];
     }
     if(!name)name='?';
+    // v6.8.30: split parenthetical aliases out of the name field.
+    // The LLM sometimes emits `"name": "Officer Jane (The Entity/Lilith)"`
+    // instead of using the aliases array. Detect the trailing paren form
+    // and move the contents into a list we'll fold into aliases below.
+    //
+    // Heuristic — only strip when the parenthetical looks alias-like:
+    //   - Short (≤ 40 chars)
+    //   - Contains no sentence punctuation ('.', '!', '?')
+    //   - Contains no possessive indicators ("'s ", "of the")
+    //   - Contains only title-case words or a slash/comma/semicolon-separated list
+    // This preserves descriptive parentheses like "John Doe (the scientist)"
+    // as part of the name, while catching the aliases-baked-into-name form.
+    let _nameParenAliases=[];
+    {
+        const m=name.match(/^(.*?)\s*\(([^)]*)\)\s*$/);
+        if(m){
+            const base=m[1].trim();
+            const inside=m[2].trim();
+            if(base&&inside.length<=60&&!/[.!?]/.test(inside)&&!/'s\s/.test(inside)&&!/\bof the\b/i.test(inside)){
+                const parts=inside.split(/[\/,;]/).map(s=>s.trim()).filter(Boolean);
+                // Require at least one part and all parts to look name-like
+                // (start with capital letter or be short enough to be a title).
+                const looksLikeNames=parts.length>0&&parts.every(p=>/^[A-Z]/.test(p)||p.length<=15);
+                if(looksLikeNames){
+                    _nameParenAliases=parts;
+                    name=base;
+                }
+            }
+        }
+    }
     if(!_isTimelineScrub)log('normalizeChar flat keys for',name,':',Object.keys(flat).join(', '));
     const o={name};
     // v6.8.18: aliases array. Former names (usually descriptive placeholders
@@ -669,11 +813,17 @@ export function normalizeChar(ch){
     // before their real name was revealed. Parsed defensively: tolerates a
     // string (single alias), an array, or missing. Canonical name is stripped
     // from the list so we never list a character as an alias of themselves.
+    // v6.8.30: also merges in any parenthetical aliases we pulled off the
+    // name field above, so both emission styles converge on the same
+    // canonical + aliases shape.
     {
         const rawAliases=flat['aliases']||ch.aliases;
         let arr=[];
         if(Array.isArray(rawAliases))arr=rawAliases;
         else if(typeof rawAliases==='string'&&rawAliases.trim())arr=[rawAliases];
+        // Fold in the parenthetical-from-name aliases BEFORE deduping so
+        // they survive the dedup pass and show up in the canonical list.
+        if(_nameParenAliases.length)arr=arr.concat(_nameParenAliases);
         const seen=new Set();
         const canonLow=(name||'').toLowerCase().trim();
         o.aliases=[];

@@ -435,6 +435,46 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.8.30] — 2026-04-09
+
+#### Fixed \u2014 empty character card for chars with paren-aliases in cross-array references
+**Reported**: "I'm on message 18 on a new chat, and no information is being pushed to a character." Character card rendered as "Officer Jane (The Entity/Lilith)" with every field empty except role = "Eternal Mates Reborn".
+
+**Root cause** \u2014 traced via the actual payload provided by the user:
+
+The LLM emitted the character cleanly in `characters[]`:
+```json
+{ "name": "Officer Jane", "aliases": ["The Entity", "Lilith"], "role": "...", "innerThought": "...", ... }
+```
+
+But referenced the same character inconsistently elsewhere:
+```json
+"relationships": [
+  { "name": "Officer Jane (The Entity)", ... },
+  { "name": "Officer Jane (The Entity/Lilith)", ... }
+],
+"charactersPresent": ["Officer Jane (The Entity/Lilith)"]
+```
+
+`filterForView` at [src/normalize.js](src/normalize.js) did exact-name matching against `charactersPresent`. The real "Officer Jane" was NOT in the present-set ("officer jane (the entity/lilith)" is a different string) so she got **filtered out**. Then the sync-stub fallback invented a phantom character `{name: "Officer Jane (The Entity/Lilith)", role: "Eternal Mates Reborn"}` from the mismatched relationship entry. That synthetic stub is what rendered as the empty card \u2014 the real character data was in storage the whole time, just filtered out of the view.
+
+**Fix \u2014 five layers**:
+
+1. **`normalizeChar` now splits paren-aliases from the name field** when they look alias-like. Heuristic: short (\u226460 chars), no sentence punctuation, no possessive 's, no "of the", parts start with uppercase or are \u226415 chars. `"Officer Jane (The Entity/Lilith)"` \u2192 `name: "Officer Jane", aliases: ["The Entity", "Lilith"]`. Descriptive parentheticals like `"John (the scientist who studied black holes.)"` are preserved as-is.
+2. **`normalizeTracker` canonicalizes cross-array references**. After characters[] is parsed, an alias \u2192 canonical map is built. Any relationship or charactersPresent entry whose name matches a known alias (or a paren-stripped base name, or a paren item) is rewritten to the canonical form.
+3. **Post-canonicalization dedup** merges relationship entries that collapsed to the same canonical. Non-zero numeric fields win on collision; non-empty strings win on collision.
+4. **Prompt tightening**: new "NAME FIELD INTEGRITY" rule in `BUILTIN_PROMPT`, `buildDynamicPrompt`, and the `interceptor.js` runtime reminder. Explicitly forbids paren-aliases in the `name` field across ALL THREE arrays (characters, relationships, charactersPresent), and warns the model that mixing "Name" and "Name (Alias)" forms will cause the system to filter out the real character and replace it with an empty stub. The consequences are spelled out so the model understands the stakes.
+5. **Lazy migration** in `settings.getTrackerData()` walks every stored snapshot in a chat on first load: strips paren-aliases from character name fields, folds them into the aliases array, builds an alias map, rewrites relationships and charactersPresent, dedups. Guarded by `_spNameCanonMigrated` per-chat flag. This heals existing chats on the next panel open without any user action \u2014 the "empty Officer Jane card" will self-repair when you reload.
+
+#### Tests
+- **New `tests/character-paren-aliases.test.mjs` with 44 cases** covering: paren-alias split across slash/comma/semicolon separators, preservation of descriptive parentheticals (possessive, sentence punctuation, long phrases), cross-array canonicalization, filterForView preserving the real character's data, paren-in-name emission by the LLM, no-parens regression, reverse case (char has parens, rel uses canonical), and collision-merge (non-zero meters win).
+- **Full sweep**: 227/227 passing (44 new + 183 pre-existing).
+
+#### Fixed \u2014 NPC graph parser diagnostics
+When the NPC graph generation fails parse, the warning now includes the first 400 chars of the raw LLM response so users can diagnose why (LLM refused, wrapped JSON in prose, returned empty, etc). Previously `no JSON array found in response` gave zero context. Also added explicit warnings for non-string responses, empty responses, and parsed-but-not-array cases.
+
+This is a pure diagnostic improvement \u2014 no behavior change, just better logs for troubleshooting the v6.8.29 "0 NPC edges" issue when it happens.
+
 ### [6.8.29] — 2026-04-09
 
 #### Fixed \u2014 Relationship Web background color inconsistency

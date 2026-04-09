@@ -245,7 +245,14 @@ ${characters.length === 0 ? 'No characters to analyze — output []' : 'Output t
 // malformed instead of throwing so a partially-broken response still
 // produces a partial graph.
 function _parseEdges(raw, validNames, userName) {
-    if (typeof raw !== 'string') return [];
+    if (typeof raw !== 'string') {
+        warn('relationship-graph: non-string response — got', typeof raw);
+        return [];
+    }
+    if (!raw.trim()) {
+        warn('relationship-graph: empty response from LLM');
+        return [];
+    }
     // Strip code fences and leading/trailing prose.
     let cleaned = raw.trim();
     // Remove ```json fences
@@ -254,17 +261,25 @@ function _parseEdges(raw, validNames, userName) {
     const firstBracket = cleaned.indexOf('[');
     const lastBracket = cleaned.lastIndexOf(']');
     if (firstBracket === -1 || lastBracket === -1 || lastBracket < firstBracket) {
-        warn('relationship-graph: no JSON array found in response');
+        // v6.8.30: log the first 400 chars of the response so users can see
+        // WHY parsing failed (LLM refused, wrapped JSON in prose, returned
+        // empty, etc.). Previously this warning gave zero diagnostic info.
+        const preview = raw.substring(0, 400).replace(/\n/g, ' \u21B5 ');
+        warn('relationship-graph: no JSON array found in response. First 400 chars:', preview);
         return [];
     }
     cleaned = cleaned.substring(firstBracket, lastBracket + 1);
     let parsed;
     try { parsed = JSON.parse(cleaned); }
     catch (e) {
-        warn('relationship-graph: JSON parse failed:', e?.message);
+        const preview = cleaned.substring(0, 400).replace(/\n/g, ' \u21B5 ');
+        warn('relationship-graph: JSON parse failed:', e?.message, '| Attempted to parse:', preview);
         return [];
     }
-    if (!Array.isArray(parsed)) return [];
+    if (!Array.isArray(parsed)) {
+        warn('relationship-graph: parsed value is not an array, got', typeof parsed);
+        return [];
+    }
 
     const validSet = new Set(validNames.map(n => n.toLowerCase().trim()));
     const userLow = (userName || '').toLowerCase().trim();

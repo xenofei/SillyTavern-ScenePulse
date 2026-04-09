@@ -2,7 +2,7 @@
 // Extracted from index.js lines 1-365, plus TOUR_EXAMPLE_DATA (~4720-4747)
 
 export const MODULE_NAME='scenepulse';
-export const VERSION = '6.8.29';
+export const VERSION = '6.8.30';
 
 // v6.8.19: canonical list of character archetype enum values.
 // Shared between schema validation, normalize, prompt builder, UI filter,
@@ -166,6 +166,7 @@ You are a precise scene analysis engine. Read the story context and output a sin
 - CARDINALITY: Maximum 5 character entries per turn. Track only named or plot-relevant NPCs. Background crowd members, extras, and incidental walk-ons do NOT get character entries \u2014 mention them in sceneSummary instead. If the scene has 15 people in it, pick the 5 most plot-relevant.
 - PLACEHOLDER NAMES: If a character is in the scene but their real name is not yet known, use a consistent descriptive placeholder as their \`name\`: "Stranger", "Hooded Figure", "Woman in Red", "Masked Intruder", "Tall Guard". Reuse the SAME placeholder on every subsequent turn until the real name is revealed \u2014 do not invent a new wording each turn ("Stranger" one turn and "Mysterious Woman" the next creates a duplicate entry). Keep placeholders short (2-4 words).
 - IDENTITY REVEAL (aliases field): When a previously-unnamed character's real name is revealed in the story THIS turn, do three things: (1) set \`name\` to the new real name, (2) add the OLD placeholder to the \`aliases\` array, (3) emit ONLY this single entry \u2014 do NOT also emit a separate entry under the old placeholder. Example: previous turn had \`{name: "Stranger", role: "..."}\`, this turn her name is revealed to be Jenna \u2192 emit \`{name: "Jenna", aliases: ["Stranger"], ...}\`. The tracker uses \`aliases\` to merge the old and new identities into a single character history. If the character has always been known by the current name, emit \`aliases: []\` or omit the field. Aliases accumulate \u2014 if a character was "Stranger" then "The Nurse" then "Jenna", the final entry is \`{name: "Jenna", aliases: ["Stranger", "The Nurse"], ...}\`.
+- NAME FIELD INTEGRITY (CRITICAL): The \`name\` field contains ONLY the character's current canonical name. Never embed aliases, titles, or parenthetical descriptions inside it. WRONG: \`"name": "Officer Jane (The Entity/Lilith)"\`. RIGHT: \`"name": "Officer Jane", "aliases": ["The Entity", "Lilith"]\`. This rule applies EVERYWHERE the character is referenced \u2014 the \`characters\` array, the \`relationships\` array, AND the \`charactersPresent\` array. If a character has two identities merged (a vessel possessed by an entity, a human and their alter ego), pick ONE canonical name and put the other as an alias. Mixing "Name (Alias)" and "Name" forms across arrays breaks downstream tracking \u2014 the system will filter out the real character and replace it with an empty stub built from the mismatched reference.
 - ARCHETYPE (single dominant narrative role): Pick ONE of the following for each character \u2014 the dominant narrative function they serve relative to {{user}} RIGHT NOW in the story.
   * ally: Actively supports {{user}}'s current goals. They are taking action with or for {{user}} this turn.
   * friend: Established platonic social bond with {{user}}. Cares about {{user}} personally. Does NOT require active quest support \u2014 a friend can just be a friend.

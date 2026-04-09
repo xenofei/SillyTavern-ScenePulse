@@ -234,6 +234,156 @@ export function getTrackerData(){
             try{SillyTavern.getContext().saveMetadata()}catch(e){warn('Migration save failed:',e?.message)}
         }
     }
+    // ── v6.8.30 migration: canonicalize paren-aliased name references ──
+    // Heals chats where the LLM emitted inconsistent name references across
+    // arrays, e.g. characters[] has `{name: "Officer Jane", aliases: ["The
+    // Entity", "Lilith"]}` but relationships[] has `{name: "Officer Jane
+    // (The Entity)"}` and charactersPresent has `"Officer Jane (The Entity/
+    // Lilith)"`. The mismatched references caused filterForView to drop the
+    // real character and build an empty stub from the relationship entry.
+    //
+    // For every snapshot: strip paren-aliases from character name fields
+    // (folding them into aliases), build an alias → canonical map, then
+    // rewrite relationships[].name and charactersPresent through the map.
+    // Deduplicates relationships that collapse to the same canonical name.
+    if(!m.scenepulse._spNameCanonMigrated){
+        let touched=0;
+        const snaps=m.scenepulse.snapshots||{};
+        // Inline helper: strip a trailing parenthetical from a name when it
+        // looks alias-like (short, no sentence punctuation, capitalized
+        // parts). Returns { base, aliases } where base is the canonical
+        // name and aliases is the split list (empty if no strip happened).
+        function _splitParenAliases(rawName){
+            if(typeof rawName!=='string')return{base:rawName,aliases:[]};
+            const mm=rawName.match(/^(.*?)\s*\(([^)]*)\)\s*$/);
+            if(!mm)return{base:rawName,aliases:[]};
+            const base=mm[1].trim();
+            const inside=mm[2].trim();
+            if(!base||inside.length>60||/[.!?]/.test(inside)||/'s\s/.test(inside)||/\bof the\b/i.test(inside)){
+                return{base:rawName,aliases:[]};
+            }
+            const parts=inside.split(/[\/,;]/).map(s=>s.trim()).filter(Boolean);
+            if(parts.length===0)return{base:rawName,aliases:[]};
+            const looksLikeNames=parts.every(p=>/^[A-Z]/.test(p)||p.length<=15);
+            if(!looksLikeNames)return{base:rawName,aliases:[]};
+            return{base,aliases:parts};
+        }
+        for(const k of Object.keys(snaps)){
+            const snap=snaps[k];
+            if(!snap)continue;
+            let changed=false;
+            // Step 1: strip paren-aliases from character names
+            if(Array.isArray(snap.characters)){
+                for(const ch of snap.characters){
+                    if(!ch||typeof ch!=='object')continue;
+                    const{base,aliases:parenAliases}=_splitParenAliases(ch.name);
+                    if(parenAliases.length>0&&base!==ch.name){
+                        ch.name=base;
+                        if(!Array.isArray(ch.aliases))ch.aliases=[];
+                        const seen=new Set(ch.aliases.map(a=>(a||'').toString().toLowerCase().trim()));
+                        const canonLow=base.toLowerCase().trim();
+                        for(const a of parenAliases){
+                            const al=a.toLowerCase();
+                            if(al===canonLow)continue;
+                            if(seen.has(al))continue;
+                            seen.add(al);
+                            ch.aliases.push(a);
+                        }
+                        changed=true;
+                    }
+                }
+            }
+            // Step 2: build alias → canonical map from the cleaned characters
+            const aliasMap=new Map();
+            if(Array.isArray(snap.characters)){
+                for(const ch of snap.characters){
+                    const canon=(ch?.name||'').trim();
+                    const canonLow=canon.toLowerCase();
+                    if(!canonLow)continue;
+                    aliasMap.set(canonLow,canon);
+                    if(Array.isArray(ch.aliases)){
+                        for(const a of ch.aliases){
+                            const al=(a||'').toString().toLowerCase().trim();
+                            if(al&&al!==canonLow&&!aliasMap.has(al))aliasMap.set(al,canon);
+                        }
+                    }
+                }
+            }
+            // Step 3: canonicalize a raw name against the alias map
+            function _canonicalizeName(raw){
+                if(!raw||typeof raw!=='string')return raw;
+                const low=raw.toLowerCase().trim();
+                if(!low)return raw;
+                if(aliasMap.has(low))return aliasMap.get(low);
+                const mm=raw.match(/^(.*?)\s*\(([^)]*)\)\s*$/);
+                if(mm){
+                    const base=mm[1].trim();
+                    if(base&&aliasMap.has(base.toLowerCase()))return aliasMap.get(base.toLowerCase());
+                    const parts=mm[2].split(/[\/,;]/).map(s=>s.trim()).filter(Boolean);
+                    for(const p of parts){
+                        const pl=p.toLowerCase();
+                        if(aliasMap.has(pl))return aliasMap.get(pl);
+                    }
+                }
+                return raw;
+            }
+            // Step 4: rewrite relationships[] and dedup
+            if(Array.isArray(snap.relationships)){
+                const byCanon=new Map();
+                const out=[];
+                let rewrote=0;
+                for(const rel of snap.relationships){
+                    if(!rel||typeof rel!=='object'){out.push(rel);continue}
+                    const orig=rel.name;
+                    const canon=_canonicalizeName(orig);
+                    if(canon!==orig){rel.name=canon;rewrote++}
+                    const key=(canon||'').toLowerCase().trim();
+                    if(key&&byCanon.has(key)){
+                        const existing=out[byCanon.get(key)];
+                        for(const[fk,fv]of Object.entries(rel)){
+                            if(fk==='name')continue;
+                            if(typeof fv==='number'){
+                                if(fv!==0&&(existing[fk]==null||existing[fk]===0))existing[fk]=fv;
+                            }else if(fv!==undefined&&fv!==null&&fv!==''){
+                                if(!existing[fk])existing[fk]=fv;
+                            }
+                        }
+                    }else{
+                        byCanon.set(key,out.length);
+                        out.push(rel);
+                    }
+                }
+                if(rewrote>0||out.length!==snap.relationships.length){
+                    snap.relationships=out;
+                    changed=true;
+                }
+            }
+            // Step 5: rewrite charactersPresent + dedup
+            if(Array.isArray(snap.charactersPresent)){
+                const seen=new Set();
+                const out=[];
+                let rewrote=0;
+                for(const n of snap.charactersPresent){
+                    const canon=_canonicalizeName(n);
+                    if(canon!==n)rewrote++;
+                    const k=(canon||'').toLowerCase().trim();
+                    if(!k||seen.has(k))continue;
+                    seen.add(k);
+                    out.push(canon);
+                }
+                if(rewrote>0||out.length!==snap.charactersPresent.length){
+                    snap.charactersPresent=out;
+                    changed=true;
+                }
+            }
+            if(changed)touched++;
+        }
+        m.scenepulse._spNameCanonMigrated=true;
+        if(touched>0){
+            log('Migration v6.8.30: canonicalized paren-aliased name references in',touched,'snapshot(s) in this chat');
+            try{SillyTavern.getContext().saveMetadata()}catch(e){warn('Migration save failed:',e?.message)}
+        }
+    }
     return m.scenepulse;
 }
 
