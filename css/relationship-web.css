@@ -7,7 +7,7 @@
 }
 .sp-web-container {
     background: var(--sp-bg, rgba(12,14,20,0.98)); border: 1px solid var(--sp-border);
-    border-radius: 12px; max-width: min(1100px, calc(100vw - 32px)); max-height: calc(100vh - 48px);
+    border-radius: 12px; max-width: min(1280px, calc(100vw - 32px)); max-height: calc(100vh - 48px);
     width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.7); overflow: hidden;
     display: flex; flex-direction: column;
 }
@@ -15,8 +15,10 @@
     display: flex; align-items: center; gap: 10px; padding: 10px 16px;
     border-bottom: 1px solid var(--sp-border);
 }
-.sp-web-title { font-size: 14px; font-weight: 700; color: var(--sp-text-bright); }
-.sp-web-legend { flex: 1; display: flex; gap: 10px; justify-content: center; font-size: 9px; color: var(--sp-text-dim); }
+.sp-web-title { font-size: 14px; font-weight: 700; color: var(--sp-text-bright); flex: 1; }
+/* v6.8.28: two-column body layout — SVG on the left, legend panel on the right. */
+.sp-web-body { flex: 1; display: flex; flex-direction: row; min-height: 0; }
+.sp-web-toolbar { display: flex; align-items: center; gap: 6px; }
 .sp-web-close {
     background: none; border: 1px solid var(--sp-border); color: var(--sp-text-dim); cursor: pointer;
     border-radius: 4px; padding: 4px 10px; font-size: 13px; transition: all 0.15s;
@@ -24,26 +26,82 @@
 }
 .sp-web-close:hover { color: var(--sp-text); background: var(--sp-surface); }
 
-/* v6.8.27: layout toggle + NPC generate button */
+/* v6.8.27+8.28: toolbar buttons */
 .sp-web-layout-toggle,
-.sp-web-generate-btn {
+.sp-web-generate-btn,
+.sp-web-labels-toggle,
+.sp-web-reset-btn {
     background: var(--sp-surface); border: 1px solid var(--sp-border); color: var(--sp-text-dim);
     cursor: pointer; border-radius: 4px; padding: 4px 10px; font-size: 11px;
     transition: all 0.15s; min-height: 28px;
 }
 .sp-web-layout-toggle:hover,
-.sp-web-generate-btn:hover { color: var(--sp-text); border-color: var(--sp-accent); }
+.sp-web-generate-btn:hover,
+.sp-web-labels-toggle:hover,
+.sp-web-reset-btn:hover { color: var(--sp-text); border-color: var(--sp-accent); }
 .sp-web-generate-btn.sp-web-loading { opacity: 0.65; cursor: wait; }
+.sp-web-tb-active { color: var(--sp-text-bright) !important; border-color: var(--sp-accent) !important; background: rgba(77,184,164,0.08) !important; }
 .sp-web-stale { color: #facc15; font-weight: 600; }
+.sp-web-focus-note { color: var(--sp-accent); font-weight: 600; }
 
 /* NPC edge glyph + two-tone edge styles */
 .sp-web-edge-glyph { pointer-events: none; }
+.sp-web-edge-label { pointer-events: none; }
 .sp-web-edge-npc { transition: stroke-width 0.15s ease; }
 .sp-web-edge-npc:hover { stroke-width: 3; }
 
 /* SVG container */
-.sp-web-svg-wrap { flex: 1; display: flex; align-items: center; justify-content: center; padding: 8px; overflow: hidden; min-height: 300px; }
-.sp-web-svg-wrap svg { max-width: 100%; max-height: 72vh; }
+.sp-web-svg-wrap { flex: 1; display: flex; align-items: center; justify-content: center; padding: 8px; overflow: hidden; min-height: 300px; position: relative; cursor: grab; }
+.sp-web-svg-wrap:active { cursor: grabbing; }
+.sp-web-svg-wrap svg { max-width: 100%; max-height: 72vh; user-select: none; touch-action: none; }
+
+/* v6.8.28: legend panel — right sidebar showing edge type → color + glyph
+   + count + filter state. Click a row to toggle that type's filter. */
+.sp-web-legend-panel {
+    flex: 0 0 200px; display: flex; flex-direction: column; gap: 2px;
+    padding: 8px 10px; border-left: 1px solid var(--sp-border);
+    overflow-y: auto; max-height: 72vh; font-size: 11px;
+    background: rgba(0,0,0,0.12);
+}
+.sp-web-legend-header {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--sp-text-dim);
+    padding: 4px 2px; border-bottom: 1px solid var(--sp-border);
+    margin-bottom: 4px;
+}
+.sp-web-legend-row {
+    display: flex; align-items: center; gap: 6px; padding: 4px 6px;
+    border-radius: 4px; cursor: pointer; transition: background 0.12s ease;
+    user-select: none;
+}
+.sp-web-legend-row:hover { background: rgba(255,255,255,0.06); }
+.sp-web-legend-all {
+    font-size: 10px; font-weight: 700; color: var(--sp-text-dim);
+    text-transform: uppercase; letter-spacing: 0.06em;
+    padding: 4px 6px; margin-bottom: 4px;
+    border: 1px dashed var(--sp-border);
+}
+.sp-web-legend-all:hover { color: var(--sp-text); border-color: var(--sp-accent); }
+.sp-web-legend-swatch {
+    width: 10px; height: 10px; border-radius: 50%;
+    flex-shrink: 0; box-shadow: 0 0 4px currentColor;
+}
+.sp-web-legend-glyph {
+    font-size: 12px; min-width: 14px; text-align: center; flex-shrink: 0;
+}
+.sp-web-legend-label {
+    flex: 1; color: var(--sp-text); font-size: 11px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.sp-web-legend-count {
+    font-size: 9px; font-weight: 600; color: var(--sp-text-dim);
+    background: var(--sp-surface); padding: 1px 5px; border-radius: 8px;
+    min-width: 14px; text-align: center;
+}
+.sp-web-legend-empty { opacity: 0.35; }
+.sp-web-legend-empty:hover { background: transparent; cursor: default; }
+.sp-web-legend-inactive { opacity: 0.4; text-decoration: line-through; }
+.sp-web-legend-inactive .sp-web-legend-swatch { box-shadow: none; filter: grayscale(0.7); }
 
 /* Footer */
 .sp-web-footer {
@@ -79,9 +137,21 @@
 .sp-web-node:hover circle:first-child { stroke-width: 3; filter: drop-shadow(0 0 6px currentColor); }
 
 /* ═══ RESPONSIVE ═══ */
+@media(max-width:900px){
+    .sp-web-body { flex-direction: column; }
+    .sp-web-legend-panel {
+        flex: 0 0 auto; max-height: 160px; border-left: none;
+        border-top: 1px solid var(--sp-border);
+        display: flex; flex-direction: row; flex-wrap: wrap;
+        gap: 4px; overflow-x: auto; overflow-y: visible;
+    }
+    .sp-web-legend-header { display: none; }
+    .sp-web-legend-row { flex: 0 0 auto; padding: 4px 8px; font-size: 10px; }
+    .sp-web-legend-all { flex-basis: 100%; }
+}
 @media(max-width:600px){
     .sp-web-container { max-width: calc(100vw - 16px); max-height: calc(100vh - 24px); }
-    .sp-web-legend { display: none; }
     .sp-web-svg-wrap { min-height: 250px; }
     .sp-web-close { min-width: 44px; min-height: 44px; }
+    .sp-web-toolbar button { padding: 4px 6px; font-size: 10px; }
 }

@@ -435,6 +435,50 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.8.28] — 2026-04-09
+
+#### Added \u2014 Relationship Web Phase 2: frame of understanding
+User feedback on v6.8.27: "There's no frame of understanding between the relationships." The edges were there with glyphs and colors, but you couldn't decode what any of it meant without hovering every single edge. Phase 2 fixes that by adding six complementary features that together turn the web from a pretty picture into an actual graph you can read at a glance.
+
+**1. Always-visible edge labels with collision avoidance.** Every edge now shows its label text on the graph by default \u2014 "older sister", "bitter rival", "estranged brother", etc. Labels render in a rounded-rect background tinted to the edge color so they stay readable against the dark canvas. A two-pass layout algorithm pushes overlapping labels along the edge normal in 14-pixel steps until they don't collide. Up to 6 displacement attempts per label. Toggle on/off via a new "Labels" button in the header \u2014 on by default.
+
+**2. Persistent legend panel on the right side.** Replaces the tiny header strip from v6.8.27. Lists all 12 edge types (11 NPC types + "Ties to you" for user-facing edges), each with a color swatch, glyph, label, and live edge count. Types with zero edges in the current graph dim to 35% opacity. Hovering a row shows a tooltip description ("Blood or legal kin", "Institutional power", "Purely physical", etc.). Collapses into a horizontal strip under the SVG on screens \u2264900px wide.
+
+**3. Click-to-filter.** Click any legend row to isolate that edge type \u2014 only edges of the selected type(s) remain visible. Click another to add it to the active filter. Click a row already in the filter to remove it. Click "Show all" at the top of the legend to reset. Filtered-out rows are rendered with strikethrough text and a desaturated swatch so you can see what's disabled. The footer shows the current filter state.
+
+**4. Click-to-focus subgraph.** Click any node to enter focus mode: the clicked node + its direct neighbors stay at full opacity; everything else fades to 15%. The focused node gets a brighter stroke and a drop-shadow glow so it stands out. The footer shows "focused on <name>". Click the same node again OR press Escape to clear focus. Click a different node to switch focus. This is the biggest readability improvement for dense webs \u2014 you can isolate "show me just Vierge's connections" in one click.
+
+**5. Zoom + pan.** Scroll-wheel on the SVG canvas zooms in/out centered on the cursor (0.25x to 3x). Click-drag on empty background panning. Touch-supported via pointer events. The SVG viewBox is manipulated directly so zoom/pan is pure view transformation \u2014 no re-layout, no performance cost. The new reset button (\u2921 icon) snaps back to the default viewport + clears focus + clears filters + recomputes node positions in one action.
+
+**6. Drag-to-reposition nodes.** Pointer-drag any NPC node (not {{user}}, which stays anchored at center) to move it. Positions persist across re-renders triggered by filter changes, focus changes, or hover \u2014 so you can lay the graph out the way you want and the layout sticks until you click the reset button or the character roster changes. Touch drag works too.
+
+#### Changed \u2014 Layout structure
+- **Two-column body**: SVG canvas on the left flexing to fill available space, legend panel fixed 200px wide on the right. Previously the SVG took the full width.
+- **Container widened** from 1100px to 1280px max to accommodate the legend without shrinking the graph.
+- **Responsive**: on screens \u2264900px the legend drops below the SVG as a horizontal chip row. On \u2264600px the toolbar buttons compress their padding.
+- **Body height** uses flex min-height so the SVG and legend share space properly inside the container's max-height constraint.
+
+#### Changed \u2014 Header toolbar
+Grouped all action buttons into a `.sp-web-toolbar` flex container aligned right after the title:
+- **Labels** (toggle) \u2014 new in v6.8.28
+- **\u2921 Reset** \u2014 new in v6.8.28, resets view + positions + filters + focus
+- **\u26B2 Layout** \u2014 force/circular toggle (from v6.8.27)
+- **\u21BB NPC** \u2014 generate/regenerate (when feature enabled, from v6.8.27)
+- **\u2715 Close**
+
+#### Changed \u2014 Escape key behavior
+Escape now clears the focus state first (if focused on a node), then closes the overlay on a second press. Matches the expected behavior of modal overlays with internal focus states.
+
+#### Architecture notes
+- **Position persistence**: `positions` array now lives in the `openRelationshipWeb` closure scope instead of being recomputed on every render. Only `_relayout()` forces recomputation; `_rerender()` reuses existing positions. This unlocks drag-to-reposition without sacrificing force-directed determinism.
+- **State object**: `_buildSvg` now takes a `state` parameter (`{focusedIdx, filter, showLabels, viewBox}`) so all the new features flow through one signature change.
+- **Label layout pass**: edge labels are collected during the edge-drawing loop and positioned in a separate collision-avoidance pass. Uses a simple O(n\u00B2) scan against already-placed labels \u2014 fine for typical edge counts (< 30).
+- **Touch + pointer events**: drag and pan use `pointerdown`/`pointermove`/`pointerup` instead of mouse events, so touch devices work the same way. `touch-action: none` on the SVG prevents browser scroll hijacking.
+
+#### Not changed
+- The batch-inference data layer from v6.8.27 is unchanged. No schema changes, no prompt changes, no migration. Pure presentation refactor of the overlay.
+- 183/183 tests still pass.
+
 ### [6.8.27] — 2026-04-09
 
 #### Added \u2014 NPC\u2194NPC relationship web (Phase 1: overlay-time batch inference)
