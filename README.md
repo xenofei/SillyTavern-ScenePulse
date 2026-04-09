@@ -435,6 +435,15 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.8.34] — 2026-04-09
+
+#### Changed \u2014 character pattern backgrounds less prominent
+Per user feedback that the v6.8.33 per-character SVG patterns were too visible. Reduced the baked-in opacity of all 12 pattern generators by ~40%:
+- Previous range: 0.08 \u2013 0.14 (average ~0.11)
+- New range: 0.04 \u2013 0.08 (average ~0.07)
+
+Patterns now read as barely-there ambient texture rather than a noticeable foreground layer. The character accent color is still identifiable at a glance but the flat tint dominates instead of the pattern. 234/234 tests still pass.
+
 ### [6.8.33] — 2026-04-09
 
 #### Added \u2014 expanded character color palette (10 \u2192 30 colors)

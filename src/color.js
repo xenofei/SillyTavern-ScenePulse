@@ -77,10 +77,15 @@ export const UNRESOLVED_COLOR={
 // ── Pattern generators ────────────────────────────────────────────────
 // Each pattern generator returns an SVG data URI sized to tile naturally
 // (24×24 to 36×36). The stroke/fill color is passed in so each character
-// gets their accent as the pattern tint. Opacity is kept low (0.10-0.16)
-// so the pattern reads as a subtle texture rather than a distracting
-// foreground element. The data URI format is base64-free — raw SVG
-// with URL-encoded hashes — for smaller payloads.
+// gets their accent as the pattern tint. Opacity is kept very low
+// (0.04-0.08) so the pattern reads as barely-there ambient texture
+// rather than a distracting foreground layer. The data URI format is
+// base64-free — raw SVG with URL-encoded hashes — for smaller payloads.
+//
+// v6.8.34: opacities reduced ~40% from v6.8.33 per user feedback the
+// patterns were too prominent. Previous range was 0.08-0.14; current
+// range is 0.05-0.08. Users who want more/less visibility can further
+// tune via the --char-pattern-opacity CSS var (see characters.css).
 //
 // Pattern generators are pure — same (color) input → same output URL,
 // so browsers cache repeated pattern instances efficiently.
@@ -94,62 +99,62 @@ function _enc(svg){
 const PATTERN_GENERATORS=[
     // 0: dots — small filled circles in a grid
     (c)=>{
-        const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28"><circle cx="7" cy="7" r="1.4" fill="${c}" opacity="0.14"/><circle cx="21" cy="21" r="1.4" fill="${c}" opacity="0.14"/><circle cx="21" cy="7" r="1" fill="${c}" opacity="0.08"/><circle cx="7" cy="21" r="1" fill="${c}" opacity="0.08"/></svg>`;
+        const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28"><circle cx="7" cy="7" r="1.4" fill="${c}" opacity="0.08"/><circle cx="21" cy="21" r="1.4" fill="${c}" opacity="0.08"/><circle cx="21" cy="7" r="1" fill="${c}" opacity="0.05"/><circle cx="7" cy="21" r="1" fill="${c}" opacity="0.05"/></svg>`;
         return `url("data:image/svg+xml,${_enc(svg)}")`;
     },
     // 1: diagonal stripes (forward slash)
     (c)=>{
-        const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M-2,6 l8,-8 M-2,18 l20,-20 M6,26 l20,-20 M18,26 l8,-8" stroke="${c}" stroke-width="1.2" opacity="0.12" fill="none"/></svg>`;
+        const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M-2,6 l8,-8 M-2,18 l20,-20 M6,26 l20,-20 M18,26 l8,-8" stroke="${c}" stroke-width="1.2" opacity="0.07" fill="none"/></svg>`;
         return `url("data:image/svg+xml,${_enc(svg)}")`;
     },
     // 2: diagonal stripes (backslash)
     (c)=>{
-        const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M-2,18 l8,8 M-2,6 l20,20 M6,-2 l20,20 M18,-2 l8,8" stroke="${c}" stroke-width="1.2" opacity="0.12" fill="none"/></svg>`;
+        const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M-2,18 l8,8 M-2,6 l20,20 M6,-2 l20,20 M18,-2 l8,8" stroke="${c}" stroke-width="1.2" opacity="0.07" fill="none"/></svg>`;
         return `url("data:image/svg+xml,${_enc(svg)}")`;
     },
     // 3: crosshatch — thin grid of intersecting lines
     (c)=>{
-        const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M0,0 l24,24 M0,24 l24,-24 M0,12 l24,0 M12,0 l0,24" stroke="${c}" stroke-width="0.7" opacity="0.10" fill="none"/></svg>`;
+        const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M0,0 l24,24 M0,24 l24,-24 M0,12 l24,0 M12,0 l0,24" stroke="${c}" stroke-width="0.7" opacity="0.06" fill="none"/></svg>`;
         return `url("data:image/svg+xml,${_enc(svg)}")`;
     },
     // 4: grid — simple rectangular grid
     (c)=>{
-        const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M0,0 h24 M0,12 h24 M0,24 h24 M0,0 v24 M12,0 v24 M24,0 v24" stroke="${c}" stroke-width="0.8" opacity="0.10" fill="none"/></svg>`;
+        const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M0,0 h24 M0,12 h24 M0,24 h24 M0,0 v24 M12,0 v24 M24,0 v24" stroke="${c}" stroke-width="0.8" opacity="0.06" fill="none"/></svg>`;
         return `url("data:image/svg+xml,${_enc(svg)}")`;
     },
     // 5: waves — shallow sine curves
     (c)=>{
-        const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="32" height="24" viewBox="0 0 32 24"><path d="M0,8 q8,-6 16,0 t16,0 M0,16 q8,-6 16,0 t16,0" stroke="${c}" stroke-width="1" opacity="0.12" fill="none"/></svg>`;
+        const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="32" height="24" viewBox="0 0 32 24"><path d="M0,8 q8,-6 16,0 t16,0 M0,16 q8,-6 16,0 t16,0" stroke="${c}" stroke-width="1" opacity="0.07" fill="none"/></svg>`;
         return `url("data:image/svg+xml,${_enc(svg)}")`;
     },
     // 6: triangles — tessellation pattern
     (c)=>{
-        const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M4,4 l4,6 l-8,0 z M16,4 l4,6 l-8,0 z M10,14 l4,6 l-8,0 z M22,14 l4,6 l-8,0 z" stroke="${c}" stroke-width="0.8" opacity="0.11" fill="${c}" fill-opacity="0.04"/></svg>`;
+        const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M4,4 l4,6 l-8,0 z M16,4 l4,6 l-8,0 z M10,14 l4,6 l-8,0 z M22,14 l4,6 l-8,0 z" stroke="${c}" stroke-width="0.8" opacity="0.06" fill="${c}" fill-opacity="0.025"/></svg>`;
         return `url("data:image/svg+xml,${_enc(svg)}")`;
     },
     // 7: circles — outlined rings
     (c)=>{
-        const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 30 30"><circle cx="8" cy="8" r="4" stroke="${c}" stroke-width="0.9" opacity="0.12" fill="none"/><circle cx="22" cy="22" r="4" stroke="${c}" stroke-width="0.9" opacity="0.12" fill="none"/><circle cx="22" cy="8" r="2" stroke="${c}" stroke-width="0.8" opacity="0.08" fill="none"/><circle cx="8" cy="22" r="2" stroke="${c}" stroke-width="0.8" opacity="0.08" fill="none"/></svg>`;
+        const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 30 30"><circle cx="8" cy="8" r="4" stroke="${c}" stroke-width="0.9" opacity="0.07" fill="none"/><circle cx="22" cy="22" r="4" stroke="${c}" stroke-width="0.9" opacity="0.07" fill="none"/><circle cx="22" cy="8" r="2" stroke="${c}" stroke-width="0.8" opacity="0.05" fill="none"/><circle cx="8" cy="22" r="2" stroke="${c}" stroke-width="0.8" opacity="0.05" fill="none"/></svg>`;
         return `url("data:image/svg+xml,${_enc(svg)}")`;
     },
     // 8: chevron — arrow V shapes
     (c)=>{
-        const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M0,4 l6,-4 l6,4 l6,-4 l6,4 M0,16 l6,-4 l6,4 l6,-4 l6,4" stroke="${c}" stroke-width="1" opacity="0.12" fill="none"/></svg>`;
+        const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M0,4 l6,-4 l6,4 l6,-4 l6,4 M0,16 l6,-4 l6,4 l6,-4 l6,4" stroke="${c}" stroke-width="1" opacity="0.07" fill="none"/></svg>`;
         return `url("data:image/svg+xml,${_enc(svg)}")`;
     },
     // 9: hex — honeycomb dots
     (c)=>{
-        const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="32" viewBox="0 0 28 32"><path d="M14,4 l8,4 l0,8 l-8,4 l-8,-4 l0,-8 z M0,20 l8,4 l0,8 l-8,4 M28,20 l-8,4 l0,8 l8,4" stroke="${c}" stroke-width="0.9" opacity="0.11" fill="none"/></svg>`;
+        const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="32" viewBox="0 0 28 32"><path d="M14,4 l8,4 l0,8 l-8,4 l-8,-4 l0,-8 z M0,20 l8,4 l0,8 l-8,4 M28,20 l-8,4 l0,8 l8,4" stroke="${c}" stroke-width="0.9" opacity="0.06" fill="none"/></svg>`;
         return `url("data:image/svg+xml,${_enc(svg)}")`;
     },
     // 10: plus signs
     (c)=>{
-        const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M6,4 v4 M4,6 h4 M18,16 v4 M16,18 h4 M18,4 v4 M16,6 h4 M6,16 v4 M4,18 h4" stroke="${c}" stroke-width="1.1" opacity="0.13" fill="none" stroke-linecap="round"/></svg>`;
+        const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M6,4 v4 M4,6 h4 M18,16 v4 M16,18 h4 M18,4 v4 M16,6 h4 M6,16 v4 M4,18 h4" stroke="${c}" stroke-width="1.1" opacity="0.08" fill="none" stroke-linecap="round"/></svg>`;
         return `url("data:image/svg+xml,${_enc(svg)}")`;
     },
     // 11: zigzag
     (c)=>{
-        const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="16" viewBox="0 0 24 16"><path d="M0,4 l6,4 l6,-4 l6,4 l6,-4 M0,12 l6,4 l6,-4 l6,4 l6,-4" stroke="${c}" stroke-width="1" opacity="0.11" fill="none"/></svg>`;
+        const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="16" viewBox="0 0 24 16"><path d="M0,4 l6,4 l6,-4 l6,4 l6,-4 M0,12 l6,4 l6,-4 l6,4 l6,-4" stroke="${c}" stroke-width="1" opacity="0.06" fill="none"/></svg>`;
         return `url("data:image/svg+xml,${_enc(svg)}")`;
     },
 ];
