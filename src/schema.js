@@ -161,8 +161,8 @@ You are a precise scene analysis engine. Read the story context and output a sin
     if(panels.characters){
         const ft=s.fieldToggles||{};
         let charFields=[
-            '- name: Character CURRENT canonical name ONLY. Never embed aliases, titles, or parentheticals. WRONG: "Officer Jane (The Entity)". RIGHT: {name: "Officer Jane", aliases: ["The Entity"]}. This rule applies in characters[], relationships[], AND charactersPresent[] \u2014 all references to the same character must use the identical canonical name. If their real name is unknown, use a consistent descriptive placeholder and reuse it each turn until revealed.',
-            '- aliases: Array of former names or merged identities. When a previously-unnamed character\'s real name is revealed THIS turn, set `name` to the new real name AND add the old placeholder to `aliases`. Emit a SINGLE entry with the new name + old placeholder in aliases; never emit a separate entry under the old placeholder. For characters with multiple identities (vessel + entity, human + alter ego), pick ONE canonical name and put the other in aliases.'
+            '- name: Character CURRENT canonical name ONLY. Never embed aliases, titles, or parentheticals. WRONG: "Officer Jane (The Entity)". RIGHT: {name: "Officer Jane", aliases: ["The Entity"]}. This rule applies in characters[], relationships[], AND charactersPresent[] \u2014 all references to the same character must use the identical canonical name. See the NAME AWARENESS checklist below for how to choose and update this field.',
+            '- aliases: Array of former names, placeholders, partial names, or merged identities the character has been known by. Every time you promote a name (placeholder \u2192 real, partial \u2192 full), the previous value MUST go here. Emit a SINGLE character entry; never a separate entry under an old name. See NAME AWARENESS checklist below.'
         ];
         if(ft.char_archetype!==false)charFields.push('- archetype: ONE dominant narrative role. ally=actively supports current goals | friend=platonic bond, no active quest required | rival=competitive, not hostile | mentor=teaches/trains {{user}} (skill/wisdom transfer) | authority=institutional power over {{user}} (boss/cop/judge/commander \u2014 power asymmetry is the defining feature, NOT teaching) | antagonist=actively opposes | family=blood/legal kin | lover=romantic partner or interest (emotional bond) | lust=purely sexual, no romance | pet=non-human companion | background=minor NPC with no story weight. Empty string if unclassified. A teacher running a lesson is mentor; the same teacher in a disciplinary meeting is authority \u2014 archetype is turn-to-turn mutable.');
         charFields.push('- role: WHO this person IS \u2014 their identity/title/relationship. NOT feelings.');
@@ -179,6 +179,44 @@ You are a precise scene analysis engine. Read the story context and output a sin
         if(ft.char_inventory!==false)charFields.push('- inventory: ONLY objects (phone, keys, weapons, bags) \u2014 NOT clothing');
         if(ft.char_fertility!==false){charFields.push('- fertStatus: "active" ONLY when pregnancy/cycle is narratively relevant. "N/A" for children, men, non-humans, and any scenario where fertility isn\'t part of the story.');charFields.push('- fertNotes: Free-text details (cycle day, pregnancy week, etc) when fertStatus is "active". Empty or "N/A" otherwise.');}
         prompt+='\n### Characters (all EXCEPT {{user}}) \u2014 MAX 5 entries, named NPCs only\n'+charFields.join('\n')+'\n';
+        // v6.8.42: NAME AWARENESS checklist. The alias/placeholder
+        // infrastructure in delta-merge.js already handles promotion
+        // correctly when the LLM emits {name: new, aliases: [old]}, but
+        // observation showed the model often forgets to emit the aliases
+        // hint on reveal. This block forces a per-character check and
+        // gives concrete promotion examples spanning full and partial
+        // reveals, so the downstream REVEAL merge path actually fires.
+        prompt+='\n#### NAME AWARENESS \u2014 run this check for EVERY character, EVERY turn\n';
+        prompt+='1. Is the character\'s CURRENT canonical name a PLACEHOLDER or a REAL NAME?\n';
+        prompt+='   PLACEHOLDER signals (treat as unverified identity):\n';
+        prompt+='   - Physical descriptor: "Buzzcut", "Red-haired Woman", "The Tall Man", "Scar-face"\n';
+        prompt+='   - Role-only label: "The Paramedic", "The Guard", "Officer", "Bartender", "The Teacher"\n';
+        prompt+='   - Definite-article epithet: "The Stranger", "The Entity", "The Hooded Figure"\n';
+        prompt+='   - Story-invented identifier that is NOT what people actually call each other\n';
+        prompt+='   REAL NAME signals: proper first/last name used in dialogue, narration, introductions, IDs, nametags, third-party references.\n';
+        prompt+='2. Was ANY real name \u2014 first name OR last name OR full \u2014 mentioned this turn for that character?\n';
+        prompt+='   - "Browning, you\'re with me" reveals last name "Browning"\n';
+        prompt+='   - "Jack, grab the evidence" reveals first name "Jack"\n';
+        prompt+='   - "Detective Jack Browning of the 42nd" reveals full name "Jack Browning"\n';
+        prompt+='   - Check dialogue, narration, nametags, IDs, introductions, and what OTHER characters call them.\n';
+        prompt+='3. If #1 is PLACEHOLDER and #2 is YES: PROMOTE NOW.\n';
+        prompt+='   - Set `name` to the fullest real name currently known (even if only first or only last is known).\n';
+        prompt+='   - Push the OLD placeholder into `aliases` so the client can reconcile relationships and presence lists.\n';
+        prompt+='   - If you already had a partial (e.g. canonical was "Jack") and the full name is now known, set `name` to "Jack Browning" and push "Jack" into `aliases` alongside any earlier placeholder.\n';
+        prompt+='   - Emit a SINGLE character entry. NEVER a separate entry under the old placeholder or partial.\n';
+        prompt+='   - All references in relationships[] and charactersPresent[] must use the NEW canonical name this turn.\n';
+        prompt+='4. If you are unsure whether a mentioned word is a real name or a descriptor, PREFER PROMOTING. The client preserves the old placeholder as an alias, so nothing is lost, and correct identity matters more than playing it safe.\n';
+        prompt+='PROMOTION EXAMPLES (canonical name progression across turns):\n';
+        prompt+='  Turn N:   {name: "Buzzcut",        aliases: []}                       \u2014 real name unknown\n';
+        prompt+='  Turn N+1: {name: "Jack",           aliases: ["Buzzcut"]}              \u2014 first name revealed\n';
+        prompt+='  Turn N+2: {name: "Jack Browning",  aliases: ["Buzzcut", "Jack"]}      \u2014 full name revealed\n';
+        prompt+='  Turn N:   {name: "The Paramedic",  aliases: []}                       \u2014 role-only placeholder\n';
+        prompt+='  Turn N+1: {name: "Chris Hale",     aliases: ["The Paramedic"]}        \u2014 both names revealed at once\n';
+        prompt+='WRONG \u2014 do NOT do any of this:\n';
+        prompt+='  - Emitting two entries, one under "Buzzcut" and one under "Jack Browning"\n';
+        prompt+='  - Keeping "Buzzcut" as canonical after the real name was spoken\n';
+        prompt+='  - Putting "(Jack Browning)" inside the name field \u2014 names never contain parens\n';
+        prompt+='  - Omitting the old placeholder from `aliases` on the reveal turn (breaks relationship reconciliation)\n';
     }
     // Quests
     if(panels.quests){

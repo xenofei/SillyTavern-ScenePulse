@@ -33,22 +33,18 @@ import {
 } from './relationship-graph.js';
 
 const W = 1000, H = 700;
-const NODE_R = 28;    // base (default) NPC node radius
-const NODE_R_MAX = 48; // cap for dynamic-sized nodes with long names
-const CENTER_R = 32;   // base {{user}} node radius
+const NODE_R = 28;    // NPC node radius
+const CENTER_R = 32;  // {{user}} node radius
 
-// v6.8.41: compute a per-node radius from the name length so long
-// names like "Detective Keene" or "Female Paramedic" get circles big
-// enough to not truncate the label. Returns NODE_R for names ≤ 10
-// chars (unchanged default), growing linearly up to NODE_R_MAX for
-// names ≥ 22 chars. Keeps most rosters at the default size.
-function _dynamicNodeRadius(name) {
-    const len = (name || '').length;
-    if (len <= 10) return NODE_R;
-    const extra = Math.min(len - 10, 12);
-    // Each character above 10 adds ~1.67px to the radius, capping at
-    // +20px (NODE_R + 20 = 48 = NODE_R_MAX).
-    return Math.round(NODE_R + (extra / 12) * (NODE_R_MAX - NODE_R));
+// v6.8.42: approximate pixel-width-per-character for the in-circle label
+// font (font-size 10, system sans). Used to decide whether a name will
+// overflow the inside-circle text space and must fall through to the
+// below-pill render path instead. Empirically ~6.5 is accurate for the
+// typical proper-noun character mix.
+const CHAR_PX = 6.5;
+function _nameFitsInside(name, radius) {
+    const diameter = radius * 2;
+    return (name || '').length * CHAR_PX <= (diameter - 10);
 }
 const METER_COLORS = { affection: '#f472b6', trust: '#60a5fa', desire: '#a78bfa', stress: '#facc15', compatibility: '#34d399' };
 
@@ -88,15 +84,6 @@ function _layoutForceDirected(nodes, edges, userIdx) {
     const names = nodes.map(node => node.name || '?');
     const rng = _mulberry32(_seedFromNames(names));
 
-    // v6.8.41: find the largest node radius in the roster so the
-    // spacing constant k scales with it. Nodes with dynamic sizing
-    // (long names) take more room and need proportionally more space
-    // between them so edges and labels don't crush together.
-    let maxNodeR = NODE_R;
-    for (const node of nodes) {
-        if (node && typeof node.radius === 'number' && node.radius > maxNodeR) maxNodeR = node.radius;
-    }
-
     // Initial positions: concentric ring around center with a small
     // random offset. User pinned at center.
     // v6.8.41: bumped initial ring radius from 0.28 → 0.36 of min(W,H)
@@ -120,14 +107,11 @@ function _layoutForceDirected(nodes, edges, userIdx) {
 
     // Ideal edge length k — Fruchterman-Reingold's constant.
     // v6.8.41: bumped the multiplier from 0.65 → 1.05 to give nodes
-    // significantly more breathing room. Also scales with the max
-    // node radius so oversized nodes (long names) get proportional
-    // space. The minimum ensures we never collapse below a readable
-    // density even for very small rosters.
+    // significantly more breathing room. v6.8.42: dropped the
+    // dynamic-radius bonus term since all nodes are the same size
+    // again, but kept the roomier base so the web is still legible.
     const area = W * H;
-    const baseK = Math.sqrt(area / n) * 1.05;
-    const radiusBonus = Math.max(0, maxNodeR - NODE_R) * 2.2;
-    const k = Math.max(120, baseK + radiusBonus);
+    const k = Math.max(120, Math.sqrt(area / n) * 1.05);
     const k2 = k * k;
 
     // Adjacency for attractive force lookups
@@ -196,10 +180,8 @@ function _layoutForceDirected(nodes, edges, userIdx) {
             const d = Math.sqrt(disp[i].x * disp[i].x + disp[i].y * disp[i].y) || 0.01;
             positions[i].x += (disp[i].x / d) * Math.min(d, temp);
             positions[i].y += (disp[i].y / d) * Math.min(d, temp);
-            // Keep nodes inside the viewbox with margin. v6.8.41: use
-            // per-node radius so oversized nodes don't clip past the edge.
-            const nodeR = (nodes[i] && typeof nodes[i].radius === 'number') ? nodes[i].radius : NODE_R;
-            const margin = nodeR + 24;
+            // Keep nodes inside the viewbox with margin.
+            const margin = NODE_R + 24;
             positions[i].x = clamp(positions[i].x, margin, W - margin);
             positions[i].y = clamp(positions[i].y, margin, H - margin);
         }
@@ -269,9 +251,6 @@ function _buildGraph(entries, npcEdges, userName) {
         role: '',
         rel: null,
         portraitUrl: userPortrait,
-        // v6.8.41: {{user}} node also uses dynamic sizing. CENTER_R
-        // is the base; longer persona names grow up to NODE_R_MAX+4.
-        radius: Math.max(CENTER_R, _dynamicNodeRadius(userName) + 4),
     });
     const userIdx = 0;
     nameToIdx.set(userName.toLowerCase().trim(), userIdx);
@@ -294,9 +273,6 @@ function _buildGraph(entries, npcEdges, userName) {
             role: e.character?.role || '',
             rel: e.relationship,
             portraitUrl,
-            // v6.8.41: dynamic radius based on name length so long
-            // names don't truncate. Short names keep NODE_R (28).
-            radius: _dynamicNodeRadius(e.name),
         });
         nameToIdx.set(e.name.toLowerCase().trim(), nodes.length - 1);
         // Also index aliases so edge resolution can find aliased references
@@ -456,14 +432,12 @@ function _buildSvg(graph, positions, userName, state) {
     // each portrait can be positioned and sized independently inside
     // its own circular clip. Rendered first inside <defs> then
     // referenced by the node <image> elements below.
-    // v6.8.41: uses the per-node dynamic radius so oversized nodes
-    // with long names get proportionally larger portrait clips.
     svg += '<defs>';
     for (let i = 0; i < nodes.length; i++) {
         const n = nodes[i];
         const p = positions[i];
         if (!p || !n.portraitUrl) continue;
-        const r = (typeof n.radius === 'number') ? n.radius : (n.isUser ? CENTER_R : NODE_R);
+        const r = n.isUser ? CENTER_R : NODE_R;
         svg += `<clipPath id="sp-web-clip-${i}"><circle cx="${p.x}" cy="${p.y}" r="${r - 1}"/></clipPath>`;
     }
     svg += '</defs>';
@@ -617,10 +591,7 @@ function _buildSvg(graph, positions, userName, state) {
         const p = positions[i];
         if (!p) continue;
         const isUser = n.isUser;
-        // v6.8.41: per-node radius — falls back to the old CENTER_R/
-        // NODE_R defaults when a node doesn't carry a `radius` field,
-        // which preserves the unchanged visual for short-name rosters.
-        const baseR = (typeof n.radius === 'number') ? n.radius : (isUser ? CENTER_R : NODE_R);
+        const baseR = isUser ? CENTER_R : NODE_R;
         const r = isUser ? baseR + 2 : baseR;
         // v6.8.28: focus mode dims unrelated nodes to 15% so the
         // selected subgraph stands out. The focused node itself +
@@ -656,23 +627,24 @@ function _buildSvg(graph, positions, userName, state) {
             const imgR = r - 1;
             svg += `<image href="${esc(n.portraitUrl)}" x="${p.x - imgR}" y="${p.y - imgR}" width="${imgR * 2}" height="${imgR * 2}" clip-path="url(#sp-web-clip-${i})" preserveAspectRatio="xMidYMid slice"/>`;
         }
-        // v6.8.41: name display. With the dynamic radius, we can fit
-        // more characters inside larger circles without truncation.
-        // Approximate char-fit capacity: (radius * 2) / 7px-per-char.
-        const fitCapacity = Math.max(8, Math.floor((r * 2 - 8) / 7));
-        const shortName = n.name.length > fitCapacity ? n.name.substring(0, fitCapacity - 1) + '\u2026' : n.name;
-        if (n.portraitUrl) {
-            // Label below the circle with a faint dark background for legibility
+        // v6.8.42: label rendering with below-pill fallback for overflow.
+        // Short names render inside the circle (unchanged). Long names
+        // OR nodes with a portrait render as a pill below the circle
+        // so the full name is always readable.
+        const fontSize = isUser ? 11 : 10;
+        const fits = _nameFitsInside(n.name, r);
+        const useBelowPill = !!n.portraitUrl || !fits;
+        if (useBelowPill) {
+            // Label below the circle with a dark background pill.
+            // Width grows to fit the full name — no ellipsis truncation.
             const labelY = p.y + r + 10;
-            const lblW = shortName.length * 6 + 8;
-            svg += `<rect x="${p.x - lblW / 2}" y="${labelY - 7}" width="${lblW}" height="14" rx="3" fill="#0c0e14" opacity="0.78"/>`;
-            svg += `<text x="${p.x}" y="${labelY}" text-anchor="middle" dominant-baseline="central" fill="${n.color}" font-size="${isUser ? 11 : 10}" font-weight="${isUser ? 700 : 600}">${esc(shortName)}</text>`;
+            const lblW = Math.max(24, n.name.length * CHAR_PX + 10);
+            svg += `<rect x="${p.x - lblW / 2}" y="${labelY - 8}" width="${lblW}" height="16" rx="4" fill="#0c0e14" opacity="0.82" stroke="${n.color}" stroke-width="0.5" stroke-opacity="0.35"/>`;
+            svg += `<text x="${p.x}" y="${labelY}" text-anchor="middle" dominant-baseline="central" fill="${n.color}" font-size="${fontSize}" font-weight="${isUser ? 700 : 600}">${esc(n.name)}</text>`;
         } else {
-            svg += `<text x="${p.x}" y="${p.y + 1}" text-anchor="middle" dominant-baseline="central" fill="${n.color}" font-size="${isUser ? 11 : 10}" font-weight="${isUser ? 700 : 600}">${esc(shortName)}</text>`;
+            svg += `<text x="${p.x}" y="${p.y + 1}" text-anchor="middle" dominant-baseline="central" fill="${n.color}" font-size="${fontSize}" font-weight="${isUser ? 700 : 600}">${esc(n.name)}</text>`;
         }
         if (!isUser && n.inScene) {
-            // In-scene indicator dot positioned at the upper-right edge
-            // of the actual node radius, not the fixed default.
             svg += `<circle cx="${p.x + r - 4}" cy="${p.y - r + 4}" r="4" fill="#4ade80" stroke="#0c0e14" stroke-width="1.5"/>`;
         }
         svg += `</g>`;
@@ -682,9 +654,7 @@ function _buildSvg(graph, positions, userName, state) {
     for (let i = 0; i < nodes.length; i++) {
         const p = positions[i];
         if (!p) continue;
-        const n = nodes[i];
-        const nr = (typeof n?.radius === 'number') ? n.radius : NODE_R;
-        svg += `<circle class="sp-web-hit" data-idx="${i}" cx="${p.x}" cy="${p.y}" r="${nr + 10}" fill="transparent" style="cursor:pointer"/>`;
+        svg += `<circle class="sp-web-hit" data-idx="${i}" cx="${p.x}" cy="${p.y}" r="${NODE_R + 10}" fill="transparent" style="cursor:pointer"/>`;
     }
 
     svg += '</svg>';
@@ -943,16 +913,11 @@ export function openRelationshipWeb(entries) {
             if (draggedIdx == null) return;
             const p = _pointerToSvg(e);
             // v6.8.35: clamp against the CURRENT viewBox, not the fixed
-            // W×H SVG canvas. v6.8.41: margin now uses the dragged node's
-            // actual radius so oversized nodes can still be dragged to
-            // the visible edge without clipping.
-            const draggedR = (graph?.nodes?.[draggedIdx] && typeof graph.nodes[draggedIdx].radius === 'number')
-                ? graph.nodes[draggedIdx].radius
-                : NODE_R;
-            const minX = viewBox.x + draggedR;
-            const maxX = viewBox.x + viewBox.w - draggedR;
-            const minY = viewBox.y + draggedR;
-            const maxY = viewBox.y + viewBox.h - draggedR;
+            // W×H SVG canvas, so drag stays usable at any zoom level.
+            const minX = viewBox.x + NODE_R;
+            const maxX = viewBox.x + viewBox.w - NODE_R;
+            const minY = viewBox.y + NODE_R;
+            const maxY = viewBox.y + viewBox.h - NODE_R;
             positions[draggedIdx] = {
                 x: clamp(p.x, minX, maxX),
                 y: clamp(p.y, minY, maxY),

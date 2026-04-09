@@ -435,6 +435,37 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.8.42] — 2026-04-09
+
+#### Fixed — Long character names no longer truncate in the relationship web
+**Reported**: "Relationship circles still aren't dynamically adjusting to account for the name of the person so that it's fully displayed." Example screenshot showed "Jack Browning" rendered as "Jack Br…" inside a force-directed web node.
+
+**Root cause**: the v6.8.41 dynamic-radius formula produced a 33px radius for 13-character names, which gave an inside-circle fit capacity of 8 characters (`(33*2 - 8) / 7`). The `_dynamicNodeRadius()` curve capped growth at a 22-character threshold, so names in the 11-21 range always fell short of the radius needed to fit them inside the circle. The inside-circle label path had a fundamental geometric ceiling regardless of how far the radius was grown.
+
+**Fix**: replaced the per-node radius growth with a below-pill label fallback. All nodes now use the same `NODE_R = 28` radius (reverting v6.8.41's per-node sizing, the growth curve's `NODE_R_MAX`, and the layout-spacing `radiusBonus` term). When a name would overflow the inside-circle text space (approximated as `name.length × 6.5 > diameter − 10`), the label renders as a dark pill below the circle with width growing to fit the full name, reusing the same render path already used for portrait nodes. Short names ("Reyes", "Buzzcut") still render inside the circle unchanged; long names ("Jack Browning", "Paramedic Chris") get a below-pill label with no truncation. This removes three magic-number tuning knobs (`NODE_R_MAX`, the 22-char cap, the radius bonus multiplier) and simplifies the layout code.
+
+#### Changed — NAME AWARENESS checklist added to the character prompt
+**Reported**: "I want names to be updated once they're found out. For instance, 'Buzzcut' was 'Officer Buzzcut' because his name wasn't mentioned in the story, but they referred to him as 'Buzzcut' as if it was, when it was just an identifier for his character at the time. There needs to be ways to track full names for characters (first and last). If any part of their name isn't known, then it should be an alias until then. Once either a last name or a first name is known, then the true name gets replaced with the actual name."
+
+**Root cause**: the infrastructure for placeholder → real-name promotion already existed and was correct. `src/generation/delta-merge.js` lines 289-318 have a REVEAL match path: when the LLM emits `{name: "Jack Browning", aliases: ["Buzzcut"]}`, the merger renames the prior entry from "Buzzcut" to "Jack Browning" and `reconcileIdentityAliases()` rewrites all stale relationship and presence references. `tests/character-aliases.test.mjs` covers 13 cases of this flow. The failure wasn't in the code path — it was in **LLM compliance**. The prior prompt mentioned alias promotion as a single sentence buried inside the `aliases` field description, and the model routinely forgot to emit the aliases hint on reveal.
+
+**Fix**: added a dedicated **NAME AWARENESS** checklist section in `src/schema.js` that runs as part of the character-output prompt. It forces a per-character, per-turn check:
+
+1. Classify the current canonical name as PLACEHOLDER or REAL NAME (with explicit placeholder signals: physical descriptors, role-only labels, definite-article epithets).
+2. Check whether any real name — first OR last OR full — was mentioned this turn.
+3. If #1 is placeholder and #2 is yes, PROMOTE NOW: set `name` to the fullest known real name, push the old placeholder into `aliases`, emit a single entry.
+4. When uncertain, prefer promoting — the client preserves the old value as an alias, so nothing is lost.
+
+The checklist includes explicit multi-turn progression examples covering both first-name-only and full-name reveals:
+
+```
+Turn N:   {name: "Buzzcut",       aliases: []}
+Turn N+1: {name: "Jack",          aliases: ["Buzzcut"]}         ← first name revealed
+Turn N+2: {name: "Jack Browning", aliases: ["Buzzcut", "Jack"]} ← last name revealed
+```
+
+Plus explicit anti-patterns (two entries under different names, keeping the placeholder after reveal, embedding aliases in parens in the `name` field, omitting the old placeholder from `aliases` on the reveal turn). No code changes to `delta-merge.js` or `normalize.js` were needed — the existing REVEAL path handles everything once the model actually emits the aliases hint.
+
 ### [6.8.41] — 2026-04-08
 
 #### Added — Organization tracking + filter in the relationship web
