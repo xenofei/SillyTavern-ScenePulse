@@ -74,6 +74,7 @@ export function loadUI(){const s=getSettings();$('#sp-enabled').prop('checked',s
     if(ls.timeTint!==undefined)s.timeTint=ls.timeTint;
     // Re-apply form values after localStorage override
     $('#sp-show-thoughts').prop('checked',s.showThoughts!==false);
+    $('#sp-thought-truncate').prop('checked',s.thoughtPanelTruncate===true);
     $('#sp-show-weather').prop('checked',s.weatherOverlay!==false);
     $('#sp-show-timetint').prop('checked',s.timeTint!==false);
     $('#sp-ctx').val(s.contextMessages);$('#sp-retries').val(s.maxRetries);
@@ -173,6 +174,10 @@ export function bindUI(){const s=getSettings();
     });
     $('#sp-injection-method').on('change',function(){s.injectionMethod=this.value;saveSettings();_spSaveLS();$('#sp-method-inline').toggle(this.value==='inline');$('#sp-method-separate').toggle(this.value!=='inline');$('#sp-embed-section').toggle(this.value!=='inline');$('#sp-separate-settings').toggle(this.value!=='inline');updateLorebookRec()});
     $('#sp-show-thoughts').on('change',function(){s.showThoughts=this.checked;saveSettings();_spSaveLS();const tp=document.getElementById('sp-thought-panel');if(tp){if(this.checked){const snap=getLatestSnapshot();if(snap)updateThoughts(normalizeTracker(snap))}else tp.classList.remove('sp-tp-visible')}});
+    // v6.8.23: toggle thought panel truncation. Off by default (full
+    // thought rendered). When on, sentences are sliced to a hash-stable
+    // 1-3 count per thought for visual variety in the floating bubble.
+    $('#sp-thought-truncate').on('change',function(){s.thoughtPanelTruncate=this.checked;saveSettings();const snap=getLatestSnapshot();if(snap)updateThoughts(normalizeTracker(snap))});
     $('#sp-show-weather').on('change',function(){s.weatherOverlay=this.checked;saveSettings();_spSaveLS();const btn=document.getElementById('sp-tb-weather');if(btn)btn.classList.toggle('sp-tb-active',this.checked);if(!this.checked)clearWeatherOverlay();else{const snap=getLatestSnapshot();if(snap){const n=normalizeTracker(snap);updateWeatherOverlay(n.weather)}}});
     $('#sp-show-timetint').on('change',function(){s.timeTint=this.checked;saveSettings();_spSaveLS();const btn=document.getElementById('sp-tb-timeTint');if(btn)btn.classList.toggle('sp-tb-active',this.checked);if(!this.checked)clearTimeTint();else{const snap=getLatestSnapshot();if(snap){const n=normalizeTracker(snap);updateTimeTint(n.time)}}});
     $('#sp-show-devbtns').on('change',function(){s.devButtons=this.checked;saveSettings();const dv=this.checked?'':'none';const dw=document.getElementById('sp-dev-wx-wrap');if(dw)dw.style.display=dv;const dt=document.getElementById('sp-dev-time-wrap');if(dt)dt.style.display=dv});

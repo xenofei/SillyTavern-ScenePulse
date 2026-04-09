@@ -435,6 +435,13 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.8.23] — 2026-04-09
+
+#### Changed \u2014 thought panel shows the full inner thought by default
+- **The floating thought panel now renders the complete `innerThought` string** instead of a hash-truncated 1\u20133 sentence slice. The old behavior was a visual-variety trick \u2014 it hashed the thought text to pick a stable 1\u20133 sentence cap per character so each bubble felt like a distinct voice length at a glance \u2014 but it was surprising to anyone who expected to see the whole thought they'd asked the model to generate, and it was undocumented outside the code.
+- **The old behavior is still available** as an opt-in setting: **General \u2192 \u2018Truncate thought bubbles to 1\u20133 sentences\u2019** (off by default). When enabled, the legacy hash-stable slice logic runs: the same thought always renders with the same length across re-renders, and *different* thoughts vary between 1, 2, and 3 sentences based on a djb2-style hash mod 3.
+- **No migration needed.** New `thoughtPanelTruncate: false` key added to `DEFAULTS`; existing chats inherit the default (full thought) on next load. Wired through `bind-ui.js` with the same pattern as the other thought-panel toggles.
+
 ### [6.8.22] — 2026-04-08
 
 #### Added \u2014 per-field delta indicators (Feature I)

@@ -223,14 +223,25 @@ export function updateThoughts(d){
         // SVG thought bubble icon
         const thoughtIcon=`<svg class="sp-tp-name-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><ellipse cx="12" cy="9.5" rx="9" ry="7" fill="currentColor" opacity="0.12" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/><circle cx="6.5" cy="18.5" r="2" fill="currentColor" opacity="0.15" stroke="currentColor" stroke-width="0.8"/><circle cx="4" cy="21.5" r="1.2" fill="currentColor" opacity="0.1" stroke="currentColor" stroke-width="0.6"/><circle cx="9" cy="9.5" r="0.9" fill="currentColor" opacity="0.35"/><circle cx="12" cy="9.5" r="0.9" fill="currentColor" opacity="0.35"/><circle cx="15" cy="9.5" r="0.9" fill="currentColor" opacity="0.35"/></svg>`;
         let html=`<div class="sp-tp-name">${thoughtIcon}${esc(ch.name)}</div>`;
-        // Inner dialogue -- pure first-person thought, limited to 1-3 sentences
+        // Inner dialogue — pure first-person thought.
+        //
+        // Default (v6.8.23+): render the full thought as the model wrote it.
+        // Opt-in truncate mode (settings.thoughtPanelTruncate=true) keeps the
+        // legacy behavior: hash the thought to a stable 1–3 sentence count
+        // and slice to that limit. The hash is stable per thought so the
+        // same input always renders with the same length across re-renders,
+        // while *different* thoughts vary visually between 1 and 3 sentences
+        // — creating a sense of distinct character voices at a glance.
         const thought=ch.innerThought||'';
         if(thought){
-            const sentences=thought.match(/[^.!?]+[.!?]+/g)||[thought];
-            let th=0;for(let i=0;i<thought.length;i++)th=((th<<5)-th+thought.charCodeAt(i))|0;
-            const sentenceLimit=(Math.abs(th)%3)+1;
-            const limited=sentences.slice(0,sentenceLimit).join(' ').trim();
-            html+=`<div class="sp-tp-monologue">${esc(limited)}</div>`;
+            let rendered=thought;
+            if(s.thoughtPanelTruncate){
+                const sentences=thought.match(/[^.!?]+[.!?]+/g)||[thought];
+                let th=0;for(let i=0;i<thought.length;i++)th=((th<<5)-th+thought.charCodeAt(i))|0;
+                const sentenceLimit=(Math.abs(th)%3)+1;
+                rendered=sentences.slice(0,sentenceLimit).join(' ').trim();
+            }
+            html+=`<div class="sp-tp-monologue">${esc(rendered)}</div>`;
         } else {
             html+=`<div class="sp-tp-monologue sp-tp-monologue-empty">\u2026</div>`;
         }
