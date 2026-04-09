@@ -435,6 +435,37 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.8.37] — 2026-04-09
+
+#### Fixed \u2014 Relationships panel showed wrong name for title-collision characters
+**Reported**: Two new characters "Detective Keene" and "Detective Orozco" both rendered as "Detective Keene" in the relationships panel, while the characters panel correctly showed both. The data layer was fine \u2014 the bug was only in the relationship section's `displayName` resolver.
+
+**Root cause**: [src/ui/update-panel.js](src/ui/update-panel.js) line 600 did a loose first-token fuzzy match as a fallback when looking up the canonical casing of a relationship name in the characters array:
+
+```js
+const chFirst = chLow.split(/\s/)[0];   // "detective"
+const relFirst = relLow.split(/\s/)[0]; // "detective"
+if (chFirst === relFirst && chFirst.length > 2) {
+    displayName = ch.name;  // picks WHICHEVER detective came first
+    break;
+}
+```
+
+This is the same class of bug I fixed in `src/color.js` in v6.8.33 \u2014 any two characters sharing a title/honorific first word ("Detective", "Officer", "Dr.", "Lord", "Captain", "Father", "Lady") would collide to whichever character the loop iterated first. The `src/color.js` fix used a TITLE_STOPLIST; the update-panel.js displayName resolver was never touched.
+
+**Fix**: removed the fuzzy first-token branch entirely. Since v6.8.30 the normalizer already canonicalizes relationship names via the alias map, so an exact match plus the substring alias form (`"Jenna"` \u2194 `"Jenna Smith"`) is sufficient. The fuzzy fallback was legacy code that hasn't been needed for several releases but kept firing on title collisions.
+
+Scenarios verified:
+- `"Detective Keene"` + `"Detective Orozco"` \u2192 distinct display names
+- `"Jenna"` \u2194 `"Jenna Smith"` alias \u2192 still resolves (substring clause)
+- `"Officer Jane"` exact match \u2192 still works
+- Previously broken: all cases with a shared first token + a title prefix
+
+234/234 tests still pass.
+
+#### Not a bug \u2014 log line duplication explained
+The debug logs showed each `Entity merge: new entity added: detective keene` line appearing twice, which looked suspicious. It's actually correct behavior: the merge loop runs once per entity array in the delta (characters, relationships, mainQuests, sideQuests), so one new character that appears in both `characters[]` and `relationships[]` produces two log lines. Chatty but not a duplication bug.
+
 ### [6.8.36] — 2026-04-09
 
 #### Fixed \u2014 Relationship web rendered multiple edges per NPC pair
