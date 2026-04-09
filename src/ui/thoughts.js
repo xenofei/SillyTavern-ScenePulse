@@ -10,6 +10,7 @@ import { generateTracker } from '../generation/engine.js';
 import { normalizeTracker, filterForView } from '../normalize.js';
 import { updatePanel } from './update-panel.js';
 import { syncThoughts } from './panel.js';
+import { getPortraitHtml, buildPortraitIndex } from './portraits.js';
 
 export function createThoughtPanel(){
     if(document.getElementById('sp-thought-panel'))return;
@@ -216,13 +217,19 @@ export function updateThoughts(d){
         if(bP&&!aP)return 1;
         return 0;
     });
+    // v6.8.38: portrait index built once for the whole render loop
+    const _tpPortraitIdx=buildPortraitIndex();
     for(const ch of sortedTpChars){
         const cc=charColor(ch.name);
         const card=document.createElement('div');card.className='sp-tp-card';
         card.style.setProperty('--char-bg',cc.bg);card.style.setProperty('--char-border',cc.border);card.style.setProperty('--char-accent',cc.accent);if(cc.pattern)card.style.setProperty('--char-pattern',cc.pattern);
-        // SVG thought bubble icon
+        // v6.8.38: portrait thumbnail on the left of the name. The existing
+        // thought-bubble icon is kept on the right (it floats via order:1
+        // + margin-left:auto in the CSS) as a decorative accent so the
+        // card still reads as "thoughts" at a glance.
+        const portraitHtml=getPortraitHtml(ch,cc.accent,_tpPortraitIdx);
         const thoughtIcon=`<svg class="sp-tp-name-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><ellipse cx="12" cy="9.5" rx="9" ry="7" fill="currentColor" opacity="0.12" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/><circle cx="6.5" cy="18.5" r="2" fill="currentColor" opacity="0.15" stroke="currentColor" stroke-width="0.8"/><circle cx="4" cy="21.5" r="1.2" fill="currentColor" opacity="0.1" stroke="currentColor" stroke-width="0.6"/><circle cx="9" cy="9.5" r="0.9" fill="currentColor" opacity="0.35"/><circle cx="12" cy="9.5" r="0.9" fill="currentColor" opacity="0.35"/><circle cx="15" cy="9.5" r="0.9" fill="currentColor" opacity="0.35"/></svg>`;
-        let html=`<div class="sp-tp-name">${thoughtIcon}${esc(ch.name)}</div>`;
+        let html=`<div class="sp-tp-name">${portraitHtml}<span class="sp-tp-name-text">${esc(ch.name)}</span>${thoughtIcon}</div>`;
         // Inner dialogue — pure first-person thought.
         //
         // Default (v6.8.23+): render the full thought as the model wrote it.
@@ -274,20 +281,42 @@ const _TP_BOTTOM_MARGIN=8;
 export function autoFitThoughtPanel(){
     const tp=document.getElementById('sp-thought-panel');
     if(!tp||!tp.classList.contains('sp-tp-visible'))return;
-    // Step 1: Remove constraints so panel can grow to natural content size
+    // Step 1: reset the fit-scale to 1 BEFORE measuring natural height
+    // so we're always measuring the unscaled content. Without this,
+    // repeated autoFit calls would compound the scale factor and the
+    // cards would shrink further every render.
+    tp.style.removeProperty('--sp-tp-fit-scale');
     tp.style.height='auto';
     tp.style.maxHeight='none';
-    // Step 2: After layout settles, read actual height and cap at the full
-    // available viewport minus the ST top bar and a small bottom margin.
-    // Previously hardcoded to 85vh which left ~15vh of empty space at the
-    // bottom of the screen even when the panel had more content to show.
+    // Step 2: After layout settles, measure natural height and cap at
+    // viewport - topBar - bottom margin.
     setTimeout(()=>{
         if(!tp.classList.contains('sp-tp-visible'))return;
         const natural=tp.scrollHeight;
         const topOffset=_measureTopBar();
         const maxH=Math.max(120,window.innerHeight-topOffset-_TP_BOTTOM_MARGIN);
         tp.style.maxHeight=maxH+'px';
-        tp.style.height=Math.min(natural,maxH)+'px';
+        // v6.8.38: opt-in auto-fit mode — when the natural content would
+        // overflow the panel (typical with 6+ characters visible at once),
+        // compute a scale factor and apply it as a CSS custom property
+        // that the .sp-tp-card rules multiply into font-size, padding,
+        // and margin. Scale is clamped to [0.55, 1.0] so the text stays
+        // readable. Without this mode the panel scrolls internally.
+        const s=getSettings();
+        if(s.thoughtPanelFit===true&&natural>maxH){
+            // Leave a few pixels of slack so rounding + border widths
+            // don't push us just past the limit after scaling.
+            const slack=12;
+            const rawScale=(maxH-slack)/natural;
+            const scale=Math.max(0.55,Math.min(1,rawScale));
+            tp.style.setProperty('--sp-tp-fit-scale',scale.toFixed(3));
+            // After scaling, height should be `natural * scale` but we
+            // also want it to match the viewport cap exactly so the
+            // panel fills the available column without an empty gap.
+            tp.style.height=maxH+'px';
+        } else {
+            tp.style.height=Math.min(natural,maxH)+'px';
+        }
         snapThoughtToLeft();
     },50);
 }

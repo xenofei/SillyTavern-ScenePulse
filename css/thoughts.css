@@ -104,31 +104,61 @@
     font-size: 10px; padding: 5px 10px; gap: 6px;
 }
 
-/* Character thought cards — v6.8.33: pattern layered over --char-bg */
+/* Character thought cards — v6.8.33: pattern layered over --char-bg
+   v6.8.38: all size values multiplied by --sp-tp-fit-scale (default 1)
+   so the auto-fit mode can shrink cards to fit a large roster on
+   screen without scrolling. Scale is set by autoFitThoughtPanel when
+   settings.thoughtPanelFit is true and natural height > viewport cap. */
 .sp-tp-card {
-    padding: 12px 14px; border-bottom: none;
-    position: relative; margin: 0 6px 6px; border-radius: 10px;
+    padding: calc(12px * var(--sp-tp-fit-scale, 1)) calc(14px * var(--sp-tp-fit-scale, 1));
+    border-bottom: none;
+    position: relative;
+    margin: 0 6px calc(6px * var(--sp-tp-fit-scale, 1));
+    border-radius: 10px;
     background-image: var(--char-pattern, none);
     background-color: var(--char-bg, rgba(255,255,255,0.02));
     background-repeat: repeat;
     border-left: 3px solid var(--char-border, rgba(255,255,255,0.06));
 }
 .sp-tp-card:last-child { margin-bottom: 2px; }
-.sp-tp-card:first-child { padding-top: 12px; }
+.sp-tp-card:first-child { padding-top: calc(12px * var(--sp-tp-fit-scale, 1)); }
 
 .sp-tp-name {
-    font-size: 15px; font-weight: 700; color: var(--char-accent, var(--sp-text-bright));
-    margin-bottom: 8px; display: flex; align-items: center; gap: 8px;
+    font-size: calc(15px * var(--sp-tp-fit-scale, 1));
+    font-weight: 700; color: var(--char-accent, var(--sp-text-bright));
+    margin-bottom: calc(8px * var(--sp-tp-fit-scale, 1));
+    display: flex; align-items: center; gap: calc(8px * var(--sp-tp-fit-scale, 1));
 }
+/* v6.8.38: the name span separated from the container so the portrait
+   can sit to the left and the thought-bubble icon stays on the right
+   via order:1 + margin-left:auto. */
+.sp-tp-name-text {
+    flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* v6.8.38: portrait thumbnail in thought panel card. 28px — slightly
+   larger than rel panel (22px) because thought panel cards are bigger
+   and have more breathing room. Reuses .sp-char-portrait styling.
+   Scales with --sp-tp-fit-scale in auto-fit mode. */
+.sp-tp-name .sp-char-portrait {
+    width: calc(28px * var(--sp-tp-fit-scale, 1));
+    height: calc(28px * var(--sp-tp-fit-scale, 1));
+    order: 0;
+}
+.sp-tp-name .sp-char-portrait-monogram { font-size: calc(14px * var(--sp-tp-fit-scale, 1)); }
 .sp-tp-name-icon {
-    width: 22px; height: 22px; flex-shrink: 0; color: var(--char-accent, var(--sp-accent)); opacity: 0.5;
+    width: calc(22px * var(--sp-tp-fit-scale, 1));
+    height: calc(22px * var(--sp-tp-fit-scale, 1));
+    flex-shrink: 0; color: var(--char-accent, var(--sp-accent)); opacity: 0.5;
     margin-left: auto; order: 1;
 }
 
 /* Inner monologue — italic, inset, like hearing whispered thoughts */
 .sp-tp-monologue {
-    font-size: 17px; color: rgba(170,180,198,0.9); font-style: italic;
-    line-height: 1.55; padding: 12px 14px; margin: 0 0 4px 0;
+    font-size: calc(17px * var(--sp-tp-fit-scale, 1));
+    color: rgba(170,180,198,0.9); font-style: italic;
+    line-height: 1.55;
+    padding: calc(12px * var(--sp-tp-fit-scale, 1)) calc(14px * var(--sp-tp-fit-scale, 1));
+    margin: 0 0 calc(4px * var(--sp-tp-fit-scale, 1)) 0;
     background: var(--char-bg, linear-gradient(135deg, rgba(77,184,164,0.05), rgba(77,184,164,0.02)));
     border-left: 2px solid var(--char-border, rgba(77,184,164,0.3));
     border-radius: 0 10px 10px 0;

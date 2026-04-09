@@ -13,8 +13,14 @@
     border-left: 3px solid var(--char-border, var(--sp-border));
 }
 .sp-rel-block:last-child { margin-bottom: 0; }
-.sp-rel-header { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; padding: 6px 6px; cursor: pointer; user-select: none; }
+.sp-rel-header { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 6px 6px; cursor: pointer; user-select: none; }
 .sp-rel-header:hover { background: rgba(255,255,255,0.02); }
+/* v6.8.38: portrait thumbnail in relationship header. Smaller than the
+   main character card's 26px — compact rel blocks use 22px. Reuses
+   .sp-char-portrait classes from characters.css for monogram fallback
+   and image clipping. */
+.sp-rel-header .sp-char-portrait { width: 22px; height: 22px; }
+.sp-rel-header .sp-char-portrait-monogram { font-size: 11px; }
 .sp-rel-chevron { font-size: 8px; color: var(--sp-text-dim); transition: transform 0.2s ease; flex-shrink: 0; }
 .sp-rel-block.sp-card-open .sp-rel-chevron { transform: rotate(90deg); }
 .sp-rel-name { font-size: 12px; font-weight: 700; color: var(--char-accent, var(--sp-text-bright)); }

@@ -75,6 +75,7 @@ export function loadUI(){const s=getSettings();$('#sp-enabled').prop('checked',s
     // Re-apply form values after localStorage override
     $('#sp-show-thoughts').prop('checked',s.showThoughts!==false);
     $('#sp-thought-truncate').prop('checked',s.thoughtPanelTruncate===true);
+    $('#sp-thought-fit').prop('checked',s.thoughtPanelFit===true);
     $('#sp-npc-graph').prop('checked',s.npcRelationshipGraph===true);
     $('#sp-show-weather').prop('checked',s.weatherOverlay!==false);
     $('#sp-show-timetint').prop('checked',s.timeTint!==false);
@@ -179,6 +180,12 @@ export function bindUI(){const s=getSettings();
     // thought rendered). When on, sentences are sliced to a hash-stable
     // 1-3 count per thought for visual variety in the floating bubble.
     $('#sp-thought-truncate').on('change',function(){s.thoughtPanelTruncate=this.checked;saveSettings();const snap=getLatestSnapshot();if(snap)updateThoughts(normalizeTracker(snap))});
+    // v6.8.38: auto-fit thought panel toggle. Off by default. When
+    // enabled, autoFitThoughtPanel computes a --sp-tp-fit-scale CSS
+    // custom property that shrinks every card dimension proportionally
+    // so all characters fit on-screen without scrolling. Disabling
+    // resets to the natural scrolling behavior.
+    $('#sp-thought-fit').on('change',function(){s.thoughtPanelFit=this.checked;saveSettings();const snap=getLatestSnapshot();if(snap)updateThoughts(normalizeTracker(snap))});
     // v6.8.27: toggle NPC↔NPC relationship graph feature. Off by default
     // — when enabled, exposes a "Generate NPC graph" button in the
     // Relationship Web overlay that triggers a separate LLM call to map

@@ -597,7 +597,10 @@ export function updatePanel(d,_force=false){
         const sortedRels=[...(d.relationships||[])].sort((a,b)=>{const aMatch=(a.name||'').toLowerCase().startsWith(charName)||charName.startsWith((a.name||'').toLowerCase());const bMatch=(b.name||'').toLowerCase().startsWith(charName)||charName.startsWith((b.name||'').toLowerCase());if(aMatch&&!bMatch)return -1;if(bMatch&&!aMatch)return 1;return 0});
         const _prevSnap=getPrevSnapshot(currentSnapshotMesIdx);
         const _prevRelMap={};if(_prevSnap?.relationships)for(const pr of(Array.isArray(_prevSnap.relationships)?_prevSnap.relationships:[]))_prevRelMap[(pr.name||'').toLowerCase()]=pr;
-        for(let _ri=0;_ri<sortedRels.length;_ri++){const rel=sortedRels[_ri];let displayName=rel.name;const chars=d.characters||[];const relLow=(rel.name||'').toLowerCase();
+        // v6.8.38: build the ST avatar index once for this render loop
+        // so relationship blocks can show portraits alongside names.
+        const _relPortraitIdx=buildPortraitIndex();
+        for(let _ri=0;_ri<sortedRels.length;_ri++){const rel=sortedRels[_ri];let displayName=rel.name;let matchedChar=null;const chars=d.characters||[];const relLow=(rel.name||'').toLowerCase();
         // v6.8.37: the displayName resolver (used to look up canonical
         // casing from the characters array) used to do a loose first-
         // token fuzzy match as a fallback. That fired on every title
@@ -610,8 +613,15 @@ export function updatePanel(d,_force=false){
         // names via the alias map, so the fuzzy fallback is no longer
         // needed for any real use case. Exact match + substring alias
         // ("Jenna" ↔ "Jenna Smith") is sufficient.
-        for(const ch of chars){const chLow=(ch.name||'').toLowerCase();if(chLow===relLow||chLow.startsWith(relLow+' ')||relLow.startsWith(chLow+' ')){displayName=ch.name;break}}
-        const cc=charColor(displayName);const bl=document.createElement('div');bl.className='sp-rel-block';if(sortedRels.length<=1||_ri===0)bl.classList.add('sp-card-open');bl.style.setProperty('--char-bg',cc.bg);bl.style.setProperty('--char-border',cc.border);bl.style.setProperty('--char-accent',cc.accent);if(cc.pattern)bl.style.setProperty('--char-pattern',cc.pattern);let hh=`<div class="sp-rel-header"><span class="sp-rel-chevron">\u25B6</span><span class="sp-rel-name">${esc(displayName)}</span>`;if(rel.relType)hh+=`<span class="sp-rel-type-badge" data-ft="rel_type">${esc(rel.relType)}</span>`;if(rel.relPhase)hh+=`<span class="sp-rel-phase-badge" data-ft="rel_phase">${esc(rel.relPhase)}</span>`;hh+=`</div>`;bl.innerHTML=hh;bl.querySelector('.sp-rel-header').addEventListener('click',()=>bl.classList.toggle('sp-card-open'));
+        for(const ch of chars){const chLow=(ch.name||'').toLowerCase();if(chLow===relLow||chLow.startsWith(relLow+' ')||relLow.startsWith(chLow+' ')){displayName=ch.name;matchedChar=ch;break}}
+        const cc=charColor(displayName);const bl=document.createElement('div');bl.className='sp-rel-block';if(sortedRels.length<=1||_ri===0)bl.classList.add('sp-card-open');bl.style.setProperty('--char-bg',cc.bg);bl.style.setProperty('--char-border',cc.border);bl.style.setProperty('--char-accent',cc.accent);if(cc.pattern)bl.style.setProperty('--char-pattern',cc.pattern);
+        // v6.8.38: portrait thumbnail in relationship header. Passes the
+        // matched character object (with aliases) so the resolver can
+        // fall through alias lookup when the relationship's displayName
+        // is a canonical form that matches an ST character by alias.
+        // Falls back to a bare {name} stub if no character matched.
+        const _relPortraitHtml=getPortraitHtml(matchedChar||{name:displayName,aliases:[]},cc.accent,_relPortraitIdx);
+        let hh=`<div class="sp-rel-header">${_relPortraitHtml}<span class="sp-rel-chevron">\u25B6</span><span class="sp-rel-name">${esc(displayName)}</span>`;if(rel.relType)hh+=`<span class="sp-rel-type-badge" data-ft="rel_type">${esc(rel.relType)}</span>`;if(rel.relPhase)hh+=`<span class="sp-rel-phase-badge" data-ft="rel_phase">${esc(rel.relPhase)}</span>`;hh+=`</div>`;bl.innerHTML=hh;bl.querySelector('.sp-rel-header').addEventListener('click',()=>bl.classList.toggle('sp-card-open'));
         const _body=document.createElement('div');_body.className='sp-rel-body';
         {const meta=document.createElement('div');meta.className='sp-rel-meta';{const ttItem=document.createElement('div');ttItem.className='sp-rel-meta-item';ttItem.dataset.ft='rel_timeknown';ttItem.innerHTML=`<span class="sp-rel-meta-label">${t('Time Known')}</span>`;const ttVal=document.createElement('span');ttVal.textContent=rel.timeTogether||'\u2014';if(!rel.timeTogether){ttItem.classList.add('sp-empty-field');ttVal.dataset.placeholder='Time known'}mkEditable(ttVal,()=>rel.timeTogether||'',v=>{rel.timeTogether=v;const snap=getLatestSnapshot();if(snap){const sr=snap.relationships?.find(r=>r.name===rel.name);if(sr)sr.timeTogether=v}});ttItem.appendChild(ttVal);meta.appendChild(ttItem)}{const msItem=document.createElement('div');msItem.className='sp-rel-meta-item sp-rel-milestone';msItem.dataset.ft='rel_milestone';msItem.innerHTML=`<span class="sp-rel-meta-label">${t('Milestone')}</span>`;const msVal=document.createElement('span');msVal.textContent=rel.milestone||'\u2014';if(!rel.milestone){msItem.classList.add('sp-empty-field');msVal.dataset.placeholder='Milestone'}mkEditable(msVal,()=>rel.milestone||'',v=>{rel.milestone=v;const snap=getLatestSnapshot();if(snap){const sr=snap.relationships?.find(r=>r.name===rel.name);if(sr)sr.milestone=v}});msItem.appendChild(msVal);meta.appendChild(msItem)}_body.appendChild(meta)}
         // Unique per-meter delta icons — emotionally distinct UP and DOWN variants

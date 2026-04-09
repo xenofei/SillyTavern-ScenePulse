@@ -435,6 +435,35 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.8.38] — 2026-04-09
+
+#### Added \u2014 character portraits in relationships panel
+The relationship blocks now show a 22\u00D722 circular portrait thumbnail next to the character name. Uses the same four-layer `portraits.js` resolver as the main character card: user override \u2192 SillyTavern character avatar \u2192 alias-matched ST avatar \u2192 monogram fallback. The resolver walks the character entry's `aliases` field so an NPC named "Stranger" (that was later revealed as "Jenna") still picks up Jenna's ST avatar once the alias link is established.
+
+#### Added \u2014 character portraits in thought panel
+The thought panel cards now show a 28\u00D728 circular portrait thumbnail to the left of the character name. The existing thought-bubble decorative icon stays on the right of the header (it floats via `order: 1` + `margin-left: auto` in the CSS). Same portrait resolver as the relationships panel and main character card.
+
+#### Added \u2014 "Auto-fit thoughts to screen" toggle
+**Reported**: "I have 7 characters that are present in the scene currently. The thoughts extend past the scene. I want a toggle setting for having the system auto-adjust the thoughts so that they all fit on-screen and visible to the viewer."
+
+New setting in General: **"Auto-fit thoughts to screen"** (off by default). When enabled:
+1. `autoFitThoughtPanel` measures the panel's natural scrollHeight.
+2. If natural height exceeds the viewport cap (window height minus ST top bar minus 8px bottom margin), it computes a scale factor `(availableHeight - slack) / naturalHeight`, clamped to `[0.55, 1.0]` so text stays readable.
+3. Sets a new CSS custom property `--sp-tp-fit-scale` on the panel root.
+4. Every card dimension in `css/thoughts.css` is now wrapped in `calc(base * var(--sp-tp-fit-scale, 1))` \u2014 font size, padding, margin, portrait size, thought-bubble icon size.
+5. When the natural content fits without scaling, the scale property is unset and cards render at their full size.
+
+Result: a roster of 7+ characters that previously forced internal scrolling now shrinks proportionally so every card is visible at once. The 55% minimum scale keeps text legible; below that, the panel falls back to scrolling instead of making text unreadable.
+
+**Not affected when off**: users who prefer the current scrolling behavior see no change. The CSS `calc()` expressions default to `* 1` when the scale property is unset.
+
+#### Architecture notes
+- The fit-scale must be reset to the unset state BEFORE measuring natural height at the start of each `autoFitThoughtPanel` call, otherwise repeated calls would compound the scale and cards would shrink further on every render.
+- CSS `calc()` with a CSS custom-property-based scale is preferred over `transform: scale()` because transforms don't re-flow \u2014 a transform-scaled panel would still occupy its original bounding box, wasting space. Multiplying through font-size and padding makes the panel actually smaller.
+- Pattern backgrounds (v6.8.33) continue to work unchanged because they're `background-image` URIs; scaling the container doesn't affect how the pattern tiles.
+
+234/234 tests still pass.
+
 ### [6.8.37] — 2026-04-09
 
 #### Fixed \u2014 Relationships panel showed wrong name for title-collision characters
