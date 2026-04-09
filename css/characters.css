@@ -20,14 +20,21 @@
    allies from rivals from antagonists at a glance. Uses text-only, no
    icon, to keep the header compact. */
 .sp-char-archetype { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 2px 6px; border-radius: 9px; border: 1px solid currentColor; background: rgba(255,255,255,0.035); flex-shrink: 0; line-height: 1; }
-.sp-char-archetype-protagonist { color: #e7c26e; }
-.sp-char-archetype-ally { color: #6ab8e0; }
-.sp-char-archetype-rival { color: #d4a855; }
-.sp-char-archetype-mentor { color: #a1d080; }
-.sp-char-archetype-antagonist { color: #d45050; }
-.sp-char-archetype-family { color: #b68ae0; }
-.sp-char-archetype-love { color: #e07ab0; }
-.sp-char-archetype-incidental { color: var(--sp-text-dim); opacity: 0.75; }
+/* v6.8.26 archetype palette — 11 values. Colors chosen for contrast
+   against the character's accent border and readable against both dark
+   and light panel backgrounds. Each archetype gets a distinct hue so
+   users can scan a character roster and identify roles at a glance. */
+.sp-char-archetype-ally { color: #6ab8e0; }        /* blue — support */
+.sp-char-archetype-friend { color: #7dd3c0; }      /* soft cyan — bond */
+.sp-char-archetype-rival { color: #d4a855; }       /* amber — tension */
+.sp-char-archetype-mentor { color: #a1d080; }      /* green — growth */
+.sp-char-archetype-authority { color: #8a9bb5; }   /* steel blue-gray — hierarchy */
+.sp-char-archetype-antagonist { color: #d45050; }  /* red — opposition */
+.sp-char-archetype-family { color: #b68ae0; }      /* lilac — kin */
+.sp-char-archetype-lover { color: #e07ab0; }       /* pink — romance */
+.sp-char-archetype-lust { color: #c74a6a; }        /* crimson — physical */
+.sp-char-archetype-pet { color: #5fc8b8; }         /* teal — companion animal */
+.sp-char-archetype-background { color: #7a8794; }  /* slate gray-blue — peripheral */
 
 /* v6.8.18: alias badge and merge button in the character card header. */
 .sp-char-alias-badge { font-size: 9px; color: var(--sp-text-dim); font-style: italic; padding: 1px 5px; background: rgba(255,255,255,0.04); border: 1px solid var(--sp-border); border-radius: 3px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0; }

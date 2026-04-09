@@ -723,10 +723,11 @@ export function updatePanel(d,_force=false){
             // v6.8.18: aliases (former names) shown as a small "(also: X, Y)"
             // badge after the name so users can see the character's identity
             // history at a glance.
-            // v6.8.19: archetype pill (ally / rival / mentor / antagonist /
-            // family / love / incidental / protagonist) sits between name
-            // and aliases. Each archetype maps to a CSS modifier class that
-            // controls the pill color and glyph.
+            // v6.8.19 + v6.8.26 overhaul: archetype pill sits between name
+            // and aliases. Current 11-value set: ally / friend / rival /
+            // mentor / authority / antagonist / family / lover / lust /
+            // pet / background. Each archetype maps to a CSS modifier
+            // class that controls the pill color.
             const _aliasesList=Array.isArray(ch.aliases)?ch.aliases.filter(Boolean):[];
             const _aliasBadge=_aliasesList.length
                 ? `<span class="sp-char-alias-badge" title="${esc(t('Former names'))}: ${esc(_aliasesList.join(', '))}">${t('also')}: ${esc(_aliasesList.slice(0,2).join(', '))}${_aliasesList.length>2?'\u2026':''}</span>`

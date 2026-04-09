@@ -435,6 +435,44 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.8.26] — 2026-04-09
+
+#### Changed \u2014 character archetype taxonomy overhaul
+Rewrote the v6.8.19 archetype enum from 8 values to 11 to fix ambiguity and cover gaps users were running into.
+
+**Removed:**
+- `protagonist` \u2014 unused in practice. {{user}} is the protagonist of their own story, so the value confused more than it clarified.
+
+**Renamed:**
+- `love` \u2192 **`lover`** \u2014 clearer as a noun for "romantic partner", covers short-term / long-term / prospective romantic interest. Old snapshots with `love` auto-migrate via the synonym map \u2014 no data rewrite.
+- `incidental` \u2192 **`background`** with a new slate blue-gray color (`#7a8794`). Less medical-sounding; "background character" is the standard screenwriter term. Auto-migrated.
+
+**Added:**
+- **`friend`** (soft cyan `#7dd3c0`) \u2014 established platonic bond with {{user}}. Doesn't require active quest support, unlike `ally`. The most-abused bucket in the old taxonomy was `ally`; now friends can be friends.
+- **`authority`** (steel blue-gray `#8a9bb5`) \u2014 institutional or hierarchical power over {{user}}. Boss, judge, cop, commanding officer, strict principal. Distinguished from `mentor` by power asymmetry, not teaching.
+- **`lust`** (crimson `#c74a6a`) \u2014 purely sexual interest with no romantic attachment. Hookups, FWB, sex workers, one-sided physical attraction. Distinguished from `lover` by the presence/absence of emotional investment.
+- **`pet`** (teal `#5fc8b8`) \u2014 non-human companion. Cat, dog, horse, familiar, bonded creature. Previously forced into `incidental` (undervalued) or `ally` (wrong).
+
+**Mentor vs Authority \u2014 new explicit rule** in the prompt to resolve the teacher case: *"If {{user}} ignored this person, what happens?"* If nothing formal, it's `mentor`. If there are institutional consequences (grade drops, firing, arrest, detention), it's `authority`. A high-school teacher running a lesson is `mentor` during the lesson and `authority` during a disciplinary meeting \u2014 same character, different dominant role per scene, both correct.
+
+**Lover vs Lust \u2014 explicit rule**: does this character have emotional investment in {{user}}? A sex worker sleeping with {{user}} transactionally is `lust`. The same sex worker once real feelings develop is `lover`. A one-night stand is `lust`; a one-night stand that leaves {{user}} thinking about them the next morning is `lover`.
+
+#### Synonym map overhaul
+`normalize.js` archetype parser rewrote its synonym map from scratch. Canonical judgment calls:
+- `teacher` \u2192 `mentor` (the dictionary-level word implies teaching, not power).
+- `boss`, `cop`, `judge`, `priest`, `principal`, `commander` \u2192 `authority`.
+- `colleague`, `coworker`, `companion`, `acquaintance`, `neighbor`, `roommate`, `classmate` \u2192 `friend`.
+- `partner` NOT in the map \u2014 too ambiguous (romantic / business / firm / life). The LLM is expected to pick `lover` or `ally` explicitly.
+- `client` NOT in the map \u2014 too ambiguous (legal / medical / sex work). LLM picks `lust` or `background` explicitly.
+- `ex` \u2192 `lover` (an ex that still matters narratively). If the relationship is fully resolved, the LLM should emit empty.
+- `prostitute`, `sex worker`, `escort`, `hookup`, `fwb`, `dominatrix`, `mistress`, `one-night stand` \u2192 `lust`.
+- Legacy values `love` and `incidental` are in the map as back-compat so old snapshots normalize to the new names on next read.
+
+#### Not changed
+- No migration needed \u2014 the synonym map does it transparently on normalize.
+- No schema-layer data changes beyond the enum expansion.
+- 183/183 tests still pass.
+
 ### [6.8.25] — 2026-04-09
 
 #### Fixed \u2014 CARRYING section now honors "Show empty fields"

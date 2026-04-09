@@ -518,14 +518,17 @@ export function openCharacterWiki() {
                 <button class="sp-wiki-expand-btn" id="sp-wiki-collapse-all" title="${t('Collapse All')}">\u25B2</button>
                 <select class="sp-wiki-archetype-filter" title="${t('Archetype')}">
                     <option value="">${t('All roles')}</option>
-                    <option value="arch:protagonist">${t('protagonist')}</option>
                     <option value="arch:ally">${t('ally')}</option>
+                    <option value="arch:friend">${t('friend')}</option>
                     <option value="arch:rival">${t('rival')}</option>
                     <option value="arch:mentor">${t('mentor')}</option>
+                    <option value="arch:authority">${t('authority')}</option>
                     <option value="arch:antagonist">${t('antagonist')}</option>
                     <option value="arch:family">${t('family')}</option>
-                    <option value="arch:love">${t('love')}</option>
-                    <option value="arch:incidental">${t('incidental')}</option>
+                    <option value="arch:lover">${t('lover')}</option>
+                    <option value="arch:lust">${t('lust')}</option>
+                    <option value="arch:pet">${t('pet')}</option>
+                    <option value="arch:background">${t('background')}</option>
                 </select>
                 <select class="sp-wiki-sort">
                     <option value="default">${t('Relevance')}</option>

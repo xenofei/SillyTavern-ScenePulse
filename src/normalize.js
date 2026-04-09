@@ -691,18 +691,84 @@ export function normalizeChar(ch){
     // Parsed case-insensitively and validated against the canonical list.
     // Empty string if missing or not recognized (treated as "unclassified"
     // by the UI — no badge rendered).
+    //
+    // v6.8.26 overhaul: full taxonomy rewrite (drop protagonist, rename
+    // love→lover and incidental→background, add friend/authority/lust/pet,
+    // extensive synonym map). Old snapshots still normalize transparently
+    // because the legacy values "love" and "incidental" are in the alias
+    // map and forward to the new canonical values.
     {
         const rawArch=String(flat['archetype']||ch.archetype||'').toLowerCase().trim();
-        const VALID=new Set(['protagonist','ally','rival','mentor','antagonist','family','love','incidental']);
-        // Tolerate a few common near-synonyms
+        const VALID=new Set(['ally','friend','rival','mentor','authority','antagonist','family','lover','lust','pet','background']);
+        // Synonym map. Every key is lowercase. Values must be in VALID.
+        // The map doubles as a back-compat layer: "love"→"lover" and
+        // "incidental"→"background" migrate legacy snapshots on read.
         const ALIASES={
-            friend:'ally',friendly:'ally',companion:'ally',ally:'ally',
-            enemy:'antagonist',villain:'antagonist',foe:'antagonist',adversary:'antagonist',
-            romance:'love',romantic:'love','love interest':'love',partner:'love',
-            teacher:'mentor',guide:'mentor',
-            bg:'incidental',background:'incidental',minor:'incidental',extra:'incidental',
-            relative:'family','family member':'family',
-            competitor:'rival',opponent:'rival',
+            // → ally (active support)
+            ally:'ally',allies:'ally',supporter:'ally','right hand':'ally',
+            // → friend (platonic bond, no active quest alignment)
+            friend:'friend',friends:'friend',buddy:'friend',pal:'friend',
+            bestie:'friend','best friend':'friend',bff:'friend',mate:'friend',
+            colleague:'friend',coworker:'friend','co-worker':'friend',
+            classmate:'friend',roommate:'friend',neighbor:'friend',
+            acquaintance:'friend',companion:'friend',friendly:'friend',
+            // → rival
+            rival:'rival',rivals:'rival',competitor:'rival',opponent:'rival',
+            contender:'rival',
+            // → mentor (teaching / skill transfer)
+            mentor:'mentor',teacher:'mentor',guide:'mentor',instructor:'mentor',
+            tutor:'mentor',coach:'mentor',sensei:'mentor',master:'mentor',
+            trainer:'mentor',
+            // → authority (institutional power)
+            authority:'authority',boss:'authority',supervisor:'authority',
+            manager:'authority',superior:'authority',commander:'authority',
+            captain:'authority',general:'authority',lieutenant:'authority',
+            sergeant:'authority',officer:'authority',cop:'authority',
+            police:'authority',detective:'authority',judge:'authority',
+            magistrate:'authority',warden:'authority',priest:'authority',
+            pastor:'authority',clergy:'authority',bishop:'authority',
+            principal:'authority',headmaster:'authority',dean:'authority',
+            overseer:'authority',chief:'authority',
+            // → antagonist
+            antagonist:'antagonist',enemy:'antagonist',villain:'antagonist',
+            foe:'antagonist',adversary:'antagonist',nemesis:'antagonist',
+            // → family (blood/legal kin)
+            family:'family','family member':'family',relative:'family',
+            mother:'family',mom:'family',father:'family',dad:'family',
+            parent:'family',sister:'family',brother:'family',sibling:'family',
+            daughter:'family',son:'family',child:'family',kid:'family',
+            grandmother:'family',grandfather:'family',grandparent:'family',
+            aunt:'family',uncle:'family',cousin:'family',niece:'family',
+            nephew:'family',spouse:'family',husband:'family',wife:'family',
+            'in-law':'family',stepmother:'family',stepfather:'family',
+            stepsister:'family',stepbrother:'family',
+            // → lover (romantic, current / unresolved / prospective)
+            lover:'lover',love:'lover','love interest':'lover',
+            romance:'lover',romantic:'lover','romantic interest':'lover',
+            boyfriend:'lover',girlfriend:'lover','significant other':'lover',
+            fiance:'lover',fiancee:'lover','fiancé':'lover','fiancée':'lover',
+            crush:'lover',paramour:'lover',sweetheart:'lover',
+            darling:'lover',beloved:'lover',ex:'lover',
+            // → lust (purely sexual, no romance)
+            lust:'lust','sexual interest':'lust','sexual partner':'lust',
+            'sex partner':'lust','casual sex':'lust',
+            hookup:'lust',fling:'lust','one night stand':'lust',
+            'one-night stand':'lust',fwb:'lust',
+            'friend with benefits':'lust','friends with benefits':'lust',
+            'booty call':'lust',prostitute:'lust','sex worker':'lust',
+            escort:'lust',john:'lust',mistress:'lust',
+            dominatrix:'lust',dom:'lust',sub:'lust',
+            // → pet (non-human companion)
+            pet:'pet',animal:'pet',creature:'pet',familiar:'pet',
+            cat:'pet',dog:'pet',horse:'pet',bird:'pet','animal companion':'pet',
+            mount:'pet',steed:'pet',hound:'pet',
+            // → background (minor NPC, no story weight)
+            background:'background',bg:'background',incidental:'background',
+            minor:'background',extra:'background','walk-on':'background',
+            bystander:'background',passerby:'background','passer-by':'background',
+            stranger:'background',witness:'background',crowd:'background',
+            waiter:'background',waitress:'background',bartender:'background',
+            clerk:'background',cashier:'background',driver:'background',npc:'background',
         };
         const canonized=ALIASES[rawArch]||rawArch;
         o.archetype=VALID.has(canonized)?canonized:'';
