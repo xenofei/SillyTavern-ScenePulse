@@ -435,6 +435,42 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.8.40] — 2026-04-09
+
+#### Changed \u2014 NPC graph prompt rewritten to be genre-agnostic
+**Reported**: "Do the changes account for different scenarios, like common medieval roleplay, sci-fi, modern, etc. It needs to be universal to all forms of story telling... it needs to also account for other types of fields \u2014 not just the ones listed."
+
+**Root cause**: the v6.8.39 prompt rewrite was heavily biased toward modern procedural/police/medical settings. The "What COUNTS as an edge" examples were patrol partners and IA detectives; the keyword shortcut list mentioned "officer", "detective", "paramedic", "EMT"; the output example showed Officer Jones + Detective Alvarez + Paramedic Lee. A fantasy chat with knights and wizards, a sci-fi chat with bridge crew, or a slice-of-life chat with teachers wouldn't get the same structural-tie detection because the prompt was pattern-matching on modern vocabulary instead of teaching the model to reason about the underlying structures.
+
+**Fix**: rewrote the prompt from scratch around the principle that **relationship structures are genre-independent** \u2014 only the vocabulary changes. Key changes:
+
+1. **Explicit multi-genre framing at the top**: *"Given a list of characters from an ongoing story of ANY genre (modern, medieval, fantasy, sci-fi, historical, slice-of-life, noir, post-apocalyptic, wuxia, space opera, urban fantasy, western, horror, romance, or anything else)..."*
+
+2. **Replaced "keyword shortcut list" with structural categories**. Instead of enumerating modern-only keywords, the prompt now teaches 7 genre-neutral questions the model should ask for each pair:
+   - Do they share a **hierarchy**? (any ranking system where one answers to another)
+   - Do they share a **team, unit, or working group**?
+   - Do they belong to the same **organization, order, house, or clan**?
+   - Do they share a **household, camp, caravan, ship, or lodging**?
+   - Do they share a **craft, calling, or role-type**? (healer, warrior, scholar, performer, spy/scout)
+   - Is there a **vertical teaching relationship**? (master/apprentice, mentor/trainee, elder/novice)
+   - Is there a **named story-specific tie**?
+
+3. **Examples for each category span 6+ genres** (modern, military, medieval/fantasy, sci-fi, academic, criminal/political, religious, historical) with the explicit note: *"these are illustrations, not a closed list"*. The prompt instructs the model to generalize the pattern, not match on the specific words.
+
+4. **"The pattern generalizes" callouts** for craft/calling \u2014 "any kind of healer", "any kind of warrior", "any kind of scholar" \u2014 teaching the model to detect peer relationships across profession vocabulary it hasn't seen specific examples for (monster hunter, herbalist, hacker, wuxia sect disciple, post-apocalyptic scavenger, xenolinguist, etc.).
+
+5. **Genre-neutral type definitions**: `mentor` includes "magic tutor, combat instructor, academic advisor, wise elder"; `authority` includes "liege, master, abbot, guildmaster, boss, judge, king"; `family` includes "clan relative, sworn brother".
+
+6. **Four output example templates spanning different genres** (modern procedural, medieval fantasy, sci-fi, slice-of-life) with explicit framing: *"use these as **structural templates**, not content to copy. The structure is identical across genres \u2014 only the labels change to match the setting."* Anchors the model on the structural shape rather than on any one genre's vocabulary.
+
+7. **"What does NOT count" negatives updated**: added *"don't assume all elves hate all dwarves; don't assume all soldiers are bitter; don't assume all nobles know each other"* to prevent the model from inventing relationships from genre convention alone.
+
+8. **Label guidance**: *"The label should fit the genre of the story \u2014 'patrol partner' fits modern, 'sworn brother' fits medieval, 'bridge officer' fits sci-fi, 'fellow apprentice' fits fantasy."*
+
+**Impact**: a medieval chat with a fellowship should now produce "sworn brother" + "knight and squire" + "fellow council member" edges. A sci-fi chat should produce "bridge officer" + "commanding officer" + "away team" edges. A slice-of-life school chat should produce "teaching staff" + "childhood friend" + "student club member" edges. The structural reasoning is the same; only the labels change to match the world.
+
+234/234 tests still pass. No code changes outside the prompt function.
+
 ### [6.8.39] — 2026-04-09
 
 #### Added \u2014 "Auto-fit thoughts" toggle button in thought panel header

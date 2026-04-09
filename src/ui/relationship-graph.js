@@ -201,80 +201,142 @@ function _buildPrompt(characters, userName) {
     const targetMin = n <= 2 ? Math.max(0, n - 1) : n <= 4 ? n : Math.ceil(n * 1.3);
     const targetMax = Math.min(30, Math.ceil(n * 2.5));
 
-    return `You are a relationship-graph analyst. Given a list of characters from an ongoing story, output a JSON array of the connections BETWEEN THEM (NPC\u2194NPC only \u2014 NEVER include ${userName} in the graph; ${userName} is the player and has a separate relationship tracker).
+    return `You are a relationship-graph analyst. Given a list of characters from an ongoing story of ANY genre (modern, medieval, fantasy, sci-fi, historical, slice-of-life, noir, post-apocalyptic, wuxia, space opera, urban fantasy, western, horror, romance, or anything else), output a JSON array of the connections BETWEEN THEM (NPC\u2194NPC only \u2014 NEVER include ${userName} in the graph; ${userName} is the player and has a separate relationship tracker).
 
 ## Tracked characters
 ${charLines}
 
 ## Task
-For EACH PAIR of characters in the roster, consider whether they have ANY connection \u2014 structural, social, professional, familial, romantic, or conflict-based \u2014 and emit an edge when they do. Work through the list systematically. A complete pass over all pairs produces a richer graph than cherry-picking only the most dramatic ties.
+For EACH PAIR of characters in the roster, ask: "do these two people share any structure, history, or active story tie?" Emit an edge when the answer is yes. Work through the list systematically. A complete pairwise pass produces a richer, more honest graph than cherry-picking only the most dramatic ties.
 
 ## Target edge count
-Roster has **${n} characters** \u2014 aim for **${targetMin}\u2013${targetMax} total edges**. If you emit fewer than ${targetMin}, you are undercounting structural ties (co-workers, partners, family, team members). If you emit more than ${targetMax}, you are inventing connections.
+Roster has **${n} characters** \u2014 aim for **${targetMin}\u2013${targetMax} total edges**. If you emit fewer than ${targetMin}, you are undercounting structural ties. If you emit more than ${targetMax}, you are inventing connections that aren't supported by the role descriptions.
 
-## What COUNTS as an edge
-- **Structural ties** (emit these eagerly):
-  * Same team or partnership \u2014 patrol partners, shift-mates, IA detectives working the same case, paramedics on the same truck, co-workers at the same company, crew of the same ship
-  * Same organization \u2014 all officers on one police force are colleagues even without specific dialogue
-  * Family household \u2014 everyone in the same family unit has family edges to each other
-  * Squad, unit, band, gang, crew, class, department
-- **Narrative ties** (emit when story-relevant):
-  * Named friendships, romances, feuds, rivalries
-  * Mentorships with explicit teaching content
-  * Active conflicts between specific characters
-  * Family relationships mentioned in the story
+## How to find edges \u2014 genre-independent patterns
 
-## What does NOT count
-- A waiter who served one drink to a character once
+The story's setting doesn't matter. The STRUCTURES that generate relationships are the same across every genre. Ask these questions for each pair:
+
+### 1. Do they share a hierarchy?
+Any ranking system where one answers to another. Examples across genres \u2014 these are **illustrations, not a closed list**:
+- Modern: boss/employee, captain/officer, doctor/nurse, president/staff
+- Military: commanding officer/subordinate, sergeant/private
+- Medieval/fantasy: lord/vassal, knight/squire, master/apprentice, guildmaster/journeyman, high priest/acolyte
+- Sci-fi: captain/crew, admiral/ensign, council/delegate, AI overseer/operator
+- Academic: professor/student, dean/faculty, mentor/trainee
+- Criminal/political: boss/lieutenant, elder/initiate, handler/agent
+- Religious: abbot/monk, archbishop/priest, high matriarch/novice
+- **Any setting where one person has formal power to reward, punish, command, or evaluate another.**
+\u2192 emit **authority** (or **mentor** if the defining feature is teaching rather than commanding)
+
+### 2. Do they share a team, unit, or working group?
+Small groups bound by shared purpose and proximity. Examples \u2014 again, illustrations only:
+- Modern: patrol partners, shift partners, surgical team, news crew, band members
+- Medieval/fantasy: adventuring party, fellowship, warband, coven, pack, circle of mages, hunting party, war-council
+- Sci-fi: bridge crew, away team, strike team, science team, pod, squadron
+- Historical: expedition, convoy, regiment, royal retinue, ship's company, caravan
+- Any setting: cell, clique, crew, ensemble, faction, fellowship, outfit, posse, ring, squad, troupe
+\u2192 emit **ally** (if actively working together on a current goal), **acquaintance** (if just same-team default), or **friend** (if the team bond has developed into genuine platonic warmth)
+
+### 3. Do they belong to the same organization, order, house, or clan?
+Larger institutions where all members are at least nominally related. Examples:
+- Modern: company, agency, police force, hospital, university, newsroom, political party
+- Medieval/fantasy: knightly order, mage's college, thieves' guild, noble house, temple, clan, school of sorcery
+- Sci-fi: starfleet, resistance, corporation, colonial authority, hive, syndicate
+- Historical: legion, dynasty, senate, trading company
+- Any setting: brotherhood, sisterhood, circle, confederation, cult, federation, league, network, sect, tribe, union
+\u2192 usually **acquaintance** as the default, or **ally**/**rival** if they're pulling the same or different ways within the org
+
+### 4. Do they share a household, camp, caravan, ship, or lodging?
+People physically living together usually form ties. Examples: family home, monastery, barracks, starship quarters, tribal longhouse, refugee camp, traveling troupe, pirate ship, noble's palace, academy dormitory, space station district, post-apocalyptic bunker, wizard's tower, inn regulars.
+\u2192 **family** if they're actually kin; otherwise **friend** / **acquaintance** depending on warmth.
+
+### 5. Do they share a craft, calling, or role-type?
+Two people with the same profession are usually peers even when not formally organized. Examples:
+- Any kind of **healer** (doctor, medic, cleric, herbalist, shaman, med-tech, chirurgeon, priestess of healing) \u2014 peers in their craft
+- Any kind of **warrior** (soldier, knight, samurai, mercenary, ranger, paladin, stormtrooper, bounty hunter) \u2014 professional peers
+- Any kind of **scholar** (professor, mage, alchemist, engineer, researcher, scribe, xenobiologist) \u2014 academic peers
+- Any kind of **performer** (bard, actor, musician, courtesan, dancer, oracle) \u2014 craft peers
+- Any kind of **spy/scout** (agent, operative, ranger, assassin, informant, recon) \u2014 shadow peers
+- **The pattern generalizes: two characters in the same line of work know of each other by reputation even without specific dialogue.**
+\u2192 usually **acquaintance** as default, **rival** if competitive, **ally** if currently working together
+
+### 6. Is there a vertical teaching relationship?
+Teacher/student, master/apprentice, mentor/trainee, elder/novice, initiator/initiate. Present in every genre (martial arts master, wizard's apprentice, knight's squire, academic advisor, crime boss grooming a protege, sage and disciple, captain training a new officer).
+\u2192 emit **mentor** on the teaching side
+
+### 7. Is there a named story-specific tie?
+- Named friendships, romances, feuds, rivalries, oaths, debts, grudges, pacts, marriages, betrayals
+- Family relationships explicitly stated (brother, mother, cousin, bastard child, sworn brother, blood sister, adopted son)
+- Role text that mentions another named character ("Jenna's sister", "Marcus's liegeman", "Captain Reyes' second-in-command", "the Duke's former lover")
+- Role text sharing a last name or clan name usually implies **family**
+\u2192 emit the specific type (**family**, **lover**, **antagonist**, etc.) with a descriptive label
+
+## What does NOT count as an edge
+- A service worker who interacted once in passing with no role beyond the service (a one-time waiter, a cab driver, a guard who checked papers)
 - Strangers who happened to share a room with no interaction
 - Background crowd members with no role description
-- Connections you would have to invent from pure genre convention with no evidence in the roles
-
-## Role-keyword shortcuts
-Look at the role descriptions and emit edges for these common patterns:
-- Two characters both described as "officer", "detective", "deputy", "cop" from the same precinct \u2192 **ally / friend / acquaintance** (colleague)
-- Two characters both "paramedic", "EMT", "medic" on the same call \u2192 **ally / friend** (shift partners)
-- Roles like "junior partner", "senior partner", "mentor", "trainee" \u2192 **mentor** or **authority** paired with the other party
-- Role mentions another named character ("Jenna's sister", "Marcus's lawyer") \u2192 emit that explicit relationship
-- Roles sharing a last name usually implies **family**
+- Connections you would have to invent from pure genre convention with no evidence in the listed roles (don't assume all elves hate all dwarves; don't assume all soldiers are bitter; don't assume all nobles know each other)
 
 ## Rules
 1. NEVER include ${userName} as \`from\` or \`to\`. This graph is NPC\u2194NPC only.
-2. Asymmetry is allowed and valuable \u2014 A's view of B may differ from B's view of A. Emit both sides when they meaningfully differ (e.g. A loves B but B is using A).
-3. If two characters are symmetrically related (colleague\u2194colleague, mutual friends, partners), emit just ONE edge; the renderer will display it as reciprocal.
+2. Asymmetry is allowed and valuable \u2014 A's view of B may differ from B's view of A. Emit both sides when they meaningfully differ (e.g. A loves B but B is using A, or one is a mentor and the other is a resentful student).
+3. If two characters are symmetrically related (mutual colleagues, mutual friends, partners, fellow members), emit just ONE edge; the renderer will display it as reciprocal.
 4. Characters marked [background] should have NO edges unless they have a specific named tie to another character.
-5. Characters marked [pet] CAN have edges to other NPCs when meaningful (a cat bonded to a human, a dog with a rival dog). Their tie to ${userName} is tracked separately; don't include it here.
+5. Characters marked [pet] CAN have edges to other NPCs when meaningful (a bonded cat, a war-hound, a familiar, a pack animal's handler). Their tie to ${userName} is tracked separately; don't include it here.
 6. Hard cap: maximum 30 edges total. Prioritize structural ties + named narrative ties.
 
 ## Edge types (pick the most specific that fits)
-- **family**: blood/legal kin (parent, sibling, child, spouse-as-kin)
+- **family**: blood/legal/adopted kin (parent, sibling, child, spouse-as-kin, clan relative, sworn brother)
 - **lover**: romantic partner or active romantic interest (emotional bond)
 - **lust**: purely sexual, no romance
 - **antagonist**: actively opposes the other
-- **mentor**: teaches/trains/guides the other (knowledge flow is the defining feature)
-- **authority**: has institutional power over the other (commanding officer, boss, judge)
-- **rival**: competitive tension, not hostile (fellow candidates, friendly rivals, competitors)
-- **ally**: actively supports the other's goals \u2014 "we are on the same team right now"
-- **friend**: established platonic bond \u2014 "we know and like each other"
-- **acquaintance**: knows each other but no strong bond \u2014 the default for "same team" colleagues without specific narrative feelings
+- **mentor**: teaches/trains/guides the other (knowledge flow is the defining feature \u2014 magic tutor, combat instructor, academic advisor, wise elder, etc.)
+- **authority**: has institutional power over the other (commanding officer, liege, master, abbot, guildmaster, boss, judge, king)
+- **rival**: competitive tension, not hostile (fellow candidates, friendly rivals, competitors for the same prize)
+- **ally**: actively supports the other's goals \u2014 "we are pulling the same rope right now"
+- **friend**: established platonic bond with real warmth
+- **acquaintance**: knows each other but no strong bond \u2014 the honest default for same-organization peers without specific feelings established
 - **unknown**: connection exists but type unclear
 
-When in doubt between friend and acquaintance, pick **acquaintance** \u2014 it's the honest default for colleague relationships without specific warmth established.
+When in doubt between friend and acquaintance, pick **acquaintance**. When in doubt between authority and mentor, pick whichever feature dominates the current scene \u2014 power asymmetry = authority, skill transfer = mentor. When in doubt between lover and lust, pick lover if there's ANY emotional investment, lust only if it's purely physical on both sides.
 
 ## Output format
 A JSON array of objects. Each object has:
 - "from": name of the character whose view this is (must be one of the listed characters, never ${userName})
 - "to": name of the other character (must be one of the listed characters, never ${userName})
 - "type": one of the edge types above
-- "label": 1-4 word phrase describing the specific connection. Examples: "patrol partner", "senior partner", "IA partner", "fellow officer", "shift partner", "ex-wife", "childhood friend", "bitter rival", "estranged brother", "protective mentor". Prefer specific labels over generic ones.
+- "label": 1-4 word phrase describing the specific connection. Prefer specific labels over generic ones. The label should fit the genre of the story \u2014 "patrol partner" fits modern, "sworn brother" fits medieval, "bridge officer" fits sci-fi, "fellow apprentice" fits fantasy.
 
-Output ONLY the JSON array. No prose, no markdown fences, no commentary. Example shape for a roster of officers + a paramedic:
+Output ONLY the JSON array. No prose, no markdown fences, no commentary. Example shapes for different genres \u2014 use these as **structural templates**, not content to copy:
+
+Modern procedural:
 [
-  {"from":"Officer Jones","to":"Officer Smith","type":"ally","label":"patrol partner"},
-  {"from":"Detective Alvarez","to":"Detective Wong","type":"ally","label":"IA partner"},
-  {"from":"Officer Jones","to":"Detective Alvarez","type":"acquaintance","label":"same precinct"},
-  {"from":"Paramedic Lee","to":"Paramedic Rivera","type":"ally","label":"shift partner"}
+  {"from":"Detective Alvarez","to":"Detective Wong","type":"ally","label":"case partner"},
+  {"from":"Officer Jones","to":"Detective Alvarez","type":"acquaintance","label":"same precinct"}
 ]
+
+Medieval fantasy:
+[
+  {"from":"Sir Aldric","to":"Squire Tam","type":"mentor","label":"knight and squire"},
+  {"from":"Lyra the Mage","to":"Brother Orin","type":"acquaintance","label":"fellow council member"},
+  {"from":"High Lord Varys","to":"Sir Aldric","type":"authority","label":"sworn lord"}
+]
+
+Sci-fi:
+[
+  {"from":"Commander Shen","to":"Lieutenant Vale","type":"authority","label":"commanding officer"},
+  {"from":"Dr. Okafor","to":"Tech Specialist Ren","type":"ally","label":"away team"},
+  {"from":"Captain Iwata","to":"Commander Shen","type":"authority","label":"ship captain"}
+]
+
+Slice-of-life:
+[
+  {"from":"Ms. Tanaka","to":"Principal Kimura","type":"authority","label":"staff"},
+  {"from":"Yuki","to":"Haruto","type":"friend","label":"childhood friend"},
+  {"from":"Chef Marcus","to":"Lena","type":"mentor","label":"cooking teacher"}
+]
+
+The structure (authority, mentor, ally, acquaintance, family) is identical across genres. Only the labels change to match the setting. Your job is to apply the same structural reasoning to WHATEVER genre the listed characters come from, using labels that fit the story's world.
 
 ${characters.length === 0 ? 'No characters to analyze — output []' : `Output the JSON array now. Target: ${targetMin}\u2013${targetMax} edges.`}`;
 }
