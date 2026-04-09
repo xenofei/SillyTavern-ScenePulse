@@ -435,6 +435,24 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.8.46] — 2026-04-09
+
+#### Fixed — Hover preview now snaps to the LEFT of the data panel, not the target
+**Reported**: "Image is still hovering over the data in the relationship web. Have the image nestled to the left of the data (snapped to the left of it)."
+
+**Root cause**: the v6.8.45 fix positioned the preview relative to the hovered target's bounding rect (`rect.right + gap`), which put it to the right of the avatar circle. But the avatar circle lives INSIDE the `.sp-web-container` (the centered data panel of the relationship web overlay), so "right of target" landed squarely in the container's content area, overlapping the character name label that sits directly below each avatar node.
+
+**Fix**: the preview now snaps to the LEFT of the nearest **data container**, not the hovered target. A new `PANEL_ANCHOR_SELECTORS` list at the top of [src/ui/portraits.js](src/ui/portraits.js) names the outer container for each avatar-rendering site: `.sp-web-container` (relationship web), `.sp-wiki-container` (character wiki), `.sp-char-card` (main panel cards). On hover, `_showPreviewForTarget` walks up from the target via `closest()` to find the innermost matching ancestor, then positions the preview so its RIGHT edge touches the container's LEFT edge minus a 16px gap. The preview now sits in the side gutter OUTSIDE the data panel where nothing else renders.
+
+Placement fallback chain (tried in order):
+1. **Snap to left of container** — preview's right edge touches `containerRect.left − 16`. User's preferred case.
+2. **Flip to right of container** — if there isn't enough room on the left (narrow viewport, container near the left edge), flip to `containerRect.right + 16`. Still outside the data panel.
+3. **Snap to viewport left edge** — if neither side fits, `tx = 8`. Last resort for extremely narrow screens; may still overlap the container but better than cursor-relative guessing.
+
+Vertical placement still tracks the hovered TARGET (not the container), so hovering different avatars in the same panel produces distinct Y positions that visually correspond to which one is being previewed. The vertical flip-to-bottom-anchored logic from v6.8.45 is preserved for targets near the viewport bottom.
+
+Adding preview support for a new avatar site is now a two-step opt-in: (1) place the three `data-sp-preview-*` attributes on the target (or go through `getPortraitHtml()` which bakes them in), and (2) add the site's outer container class to `PANEL_ANCHOR_SELECTORS` in portraits.js so the preview knows where to snap. Sites that skip step 2 still work via the fallback to target-relative positioning, which gives the old behavior.
+
 ### [6.8.45] — 2026-04-09
 
 #### Fixed — Solo scenes no longer populated with the previous beat's cast

@@ -22,7 +22,7 @@
 // have `.name`, optionally `.aliases`, and optionally come with a charColor
 // already computed (otherwise the caller wraps the output in a CSS var).
 
-import { esc, clamp } from '../utils.js';
+import { esc } from '../utils.js';
 import { getSettings } from '../settings.js';
 
 // Cache the ST avatar map per-call so we don't walk ST characters more
@@ -206,6 +206,24 @@ export function getPortraitPreviewAttrs(descriptor, nameOverride, colorOverride)
     return ` data-sp-preview-url="${esc(descriptor.url)}" data-sp-preview-name="${esc(name)}" data-sp-preview-color="${esc(color)}"`;
 }
 
+// v6.8.46: "panel anchors" — selectors for the outer data container
+// of each site that renders an avatar. When the user hovers an avatar,
+// the preview snaps to the LEFT of the closest matching ancestor
+// instead of to the avatar itself. Anchoring to the target put the
+// preview inside the panel's own content area (e.g. over the character
+// name label in the relationship web). Anchoring to the container
+// lets the preview sit in the side gutter outside the panel where it
+// never collides with the data.
+//
+// Order matters only when containers nest — the innermost match wins
+// via closest(). Sites that don't match any selector fall back to
+// target-relative positioning with left-of-target preference.
+const PANEL_ANCHOR_SELECTORS = [
+    '.sp-web-container',    // Relationship Web overlay
+    '.sp-wiki-container',   // Character Wiki overlay
+    '.sp-char-card',        // Main panel character cards (update-panel)
+].join(', ');
+
 let _previewEl = null;
 let _currentTarget = null;
 let _orphanRaf = 0;
@@ -251,40 +269,47 @@ function _showPreviewForTarget(target, clientX, clientY) {
         caption.textContent = name;
         caption.style.color = color;
     }
-    // v6.8.45: position the preview relative to the target's bounding
-    // rect rather than the cursor. Cursor-relative positioning put the
-    // preview ON TOP of the target's own label (the name pill sitting
-    // directly below the avatar circle) whenever the cursor was inside
-    // the circle. Rect-relative placement puts the preview OUTSIDE the
-    // target entirely: to the right by default, flipped left if there
-    // isn't room. The `clientX`/`clientY` params are still accepted so
-    // a future caller can pass them, but they're not used for the
-    // primary placement math. The generous 24px horizontal gap ensures
-    // we're clear of any name label below the avatar.
+    // v6.8.46: anchor the preview to the OUTER DATA CONTAINER
+    // (relationship web container, wiki container, character card,
+    // etc.) rather than the hovered avatar itself. The avatar lives
+    // inside the container, so "right of target" landed in the
+    // container's own content area and overlapped the character name
+    // label. "Left of container" puts the preview OUTSIDE the panel
+    // entirely, in the side gutter where nothing else renders.
+    //
+    // Placement strategy, tried in order:
+    //   1. Snap the preview's right edge to the container's left edge
+    //      minus a gap. This is the user's preferred "snapped left" case.
+    //   2. If there's no room on the left, flip to the right of the
+    //      container (still outside the data area).
+    //   3. If neither side fits, snap to the viewport's left edge as
+    //      a last resort — may still overlap the container on narrow
+    //      screens but this is better than cursor-relative guessing.
+    //
+    // Vertical placement always tracks the TARGET (not the container)
+    // so hovering different avatars in the same panel produces distinct
+    // Y positions that visually track which one is being previewed.
     const vw = window.innerWidth, vh = window.innerHeight;
     const boxW = 224, boxH = 260;
-    const rect = target.getBoundingClientRect();
-    const gap = 24;
+    const gap = 16;
+    const anchor = target.closest(PANEL_ANCHOR_SELECTORS) || target;
+    const anchorRect = anchor.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
     let tx, ty;
-    // Prefer the right side of the target (reading order).
-    if (rect.right + gap + boxW <= vw - 8) {
-        tx = rect.right + gap;
-    } else if (rect.left - gap - boxW >= 8) {
-        // Not enough room on the right — flip to the left side.
-        tx = rect.left - gap - boxW;
+    const leftOfAnchor = anchorRect.left - gap - boxW;
+    if (leftOfAnchor >= 8) {
+        tx = leftOfAnchor;
+    } else if (anchorRect.right + gap + boxW <= vw - 8) {
+        tx = anchorRect.right + gap;
     } else {
-        // Target is too central to fit either side — center horizontally
-        // and let the vertical anchor handle overlap avoidance.
-        tx = clamp((vw - boxW) / 2, 8, vw - boxW - 8);
+        tx = 8;
     }
-    // Vertical: align the preview's top with the target's top, then
-    // clamp to the viewport. If the target is near the bottom, anchor
-    // the preview's BOTTOM to the target's bottom instead so it never
-    // spills off-screen.
-    if (rect.top + boxH <= vh - 8) {
-        ty = Math.max(8, rect.top);
+    // Vertical: align top-of-preview with top-of-target, then flip
+    // bottom-anchored if the target is too close to the viewport bottom.
+    if (targetRect.top + boxH <= vh - 8) {
+        ty = Math.max(8, targetRect.top);
     } else {
-        ty = Math.max(8, rect.bottom - boxH);
+        ty = Math.max(8, targetRect.bottom - boxH);
     }
     el.style.left = tx + 'px';
     el.style.top = ty + 'px';
