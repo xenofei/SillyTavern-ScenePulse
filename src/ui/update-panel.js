@@ -478,13 +478,44 @@ export function updatePanel(d,_force=false){
         }catch{}
     }
 
-    // Scene Details section
-    const sceneBadge=(d.sceneMood||'').split(/[,;]/)[0].trim().substring(0,20)||null;
-    {const _sec=mkSection('scene',t('Scene Details'),sceneBadge,()=>{
+    // Scene Details section — v6.9.5: overhauled with visual tension
+    // meter, sceneSummary row, colored character chips, witness display,
+    // changed-this-turn indicators, solo scene label, and richer badge.
+    const _scenePrev = getPrevSnapshot(currentSnapshotMesIdx);
+    const _tension = (d.sceneTension || '').toLowerCase();
+    const _tensionColors = { calm: '#60a5fa', low: '#4ade80', moderate: '#facc15', high: '#fb923c', critical: '#ef4444' };
+    const _tensionColor = _tensionColors[_tension] || '#9a9a9a';
+    // Collapsed badge: tension dot + topic + character count
+    const _cpLen = (d.charactersPresent || []).length;
+    const _badgeText = (d.sceneTopic || d.sceneMood || '').split(/[,;]/)[0].trim().substring(0, 18) || null;
+    const _sceneBadge = _badgeText ? `\u25CF ${_badgeText}${_cpLen ? ' \u00B7 ' + _cpLen : ''}` : (_cpLen ? String(_cpLen) : null);
+    {const _sec=mkSection('scene',t('Scene Details'),_sceneBadge,()=>{
         const f=document.createDocumentFragment();
+        // Helper: check if a scene field changed since previous snapshot
+        function _changed(key) {
+            if (!_scenePrev) return false;
+            const cur = (d[key] || '').toString().trim();
+            const prev = (_scenePrev[key] || '').toString().trim();
+            return cur !== prev && cur !== '' && cur !== '\u2014';
+        }
+        // v6.9.5: sceneSummary as a dedicated row at the top
+        if (d.sceneSummary) {
+            const sr = document.createElement('div'); sr.className = 'sp-row sp-scene-summary-row'; sr.dataset.ft = 'sceneSummary';
+            sr.innerHTML = `<div class="sp-row-label">${esc(t('Summary'))}</div>`;
+            const sv = document.createElement('div'); sv.className = 'sp-row-value sp-scene-summary'; sv.textContent = d.sceneSummary;
+            if (_changed('sceneSummary')) sr.classList.add('sp-scene-changed');
+            mkEditable(sv, () => d.sceneSummary || '', v => { d.sceneSummary = v; const snap = getLatestSnapshot(); if (snap) snap.sceneSummary = v; });
+            sr.appendChild(sv); f.appendChild(sr);
+        }
         const sceneFields=[[t('Tension'),'sceneTension'],[t('Topic'),'sceneTopic'],[t('Mood'),'sceneMood'],[t('Interaction'),'sceneInteraction'],[t('Sounds'),'soundEnvironment']];
         for(const[l,key]of sceneFields){
             const r=document.createElement('div');r.className='sp-row';r.dataset.ft=key;
+            // v6.9.5: tension row gets a visual meter class
+            if (key === 'sceneTension' && _tension) r.classList.add('sp-scene-tension-row', 'sp-tension-' + _tension);
+            // v6.9.5: sounds get italic/muted styling
+            if (key === 'soundEnvironment') r.classList.add('sp-scene-sounds-row');
+            // v6.9.5: changed-this-turn indicator dot
+            if (_changed(key)) r.classList.add('sp-scene-changed');
             r.innerHTML=`<div class="sp-row-label">${esc(l)}</div>`;
             let displayVal=d[key]||'\u2014';
             if(key==='sceneTension'&&d[key])displayVal=t(d[key]).toUpperCase();
@@ -492,9 +523,46 @@ export function updatePanel(d,_force=false){
             mkEditable(val,()=>d[key]||'',v=>{d[key]=v;const snap=getLatestSnapshot();if(snap)snap[key]=v});
             r.appendChild(val);f.appendChild(r);
         }
-        {const pr=document.createElement('div');pr.className='sp-row';pr.dataset.ft='charactersPresent';pr.innerHTML=`<div class="sp-row-label">${esc(t('Present'))}</div><div class="sp-row-value">${esc((d.charactersPresent||[]).join(', ')||'\u2014')}</div>`;f.appendChild(pr)}
+        // v6.9.5: charactersPresent as colored name chips
+        {const pr=document.createElement('div');pr.className='sp-row';pr.dataset.ft='charactersPresent';
+            pr.innerHTML=`<div class="sp-row-label">${esc(t('Present'))}</div>`;
+            const pv=document.createElement('div');pv.className='sp-row-value sp-scene-present';
+            const cpArr=d.charactersPresent||[];
+            if(cpArr.length===0){
+                // v6.9.5: solo scene indicator
+                const solo=document.createElement('span');solo.className='sp-scene-solo';solo.textContent=t('Solo scene');pv.appendChild(solo);
+            } else {
+                for(const name of cpArr){
+                    const chip=document.createElement('span');chip.className='sp-scene-chip';
+                    const cc=charColor(name);chip.style.setProperty('--chip-color',cc.accent);
+                    chip.textContent=name;pv.appendChild(chip);
+                }
+            }
+            pr.appendChild(pv);f.appendChild(pr);
+        }
+        // v6.9.5: witnesses (dimmed chips below present)
+        {const wArr=d.witnesses||[];
+            if(wArr.length>0){
+                const wr=document.createElement('div');wr.className='sp-row';wr.dataset.ft='witnesses';
+                wr.innerHTML=`<div class="sp-row-label">${esc(t('Witnesses'))}</div>`;
+                const wv=document.createElement('div');wv.className='sp-row-value sp-scene-present';
+                for(const name of wArr){
+                    const chip=document.createElement('span');chip.className='sp-scene-chip sp-scene-chip-witness';
+                    const cc=charColor(name);chip.style.setProperty('--chip-color',cc.accent);
+                    chip.textContent=name;wv.appendChild(chip);
+                }
+                wr.appendChild(wv);f.appendChild(wr);
+            }
+        }
         return f;
-    },s);if(s.panels?.scene===false)_sec.classList.add('sp-panel-hidden');body.appendChild(_sec)}
+    },s);
+    // v6.9.5: tension-colored left border on the section
+    if (_tensionColor) _sec.style.setProperty('--sp-scene-tension-color', _tensionColor);
+    _sec.classList.add('sp-scene-section');
+    // v6.9.5: override the badge with tension-colored dot via innerHTML
+    const _badgeEl = _sec.querySelector('.sp-section-badge');
+    if (_badgeEl && _sceneBadge) _badgeEl.innerHTML = `<span class="sp-scene-badge-dot" style="color:${esc(_tensionColor)}">\u25CF</span> ${esc(_badgeText || '')}${_cpLen ? ' \u00B7 ' + _cpLen : ''}`;
+    if(s.panels?.scene===false)_sec.classList.add('sp-panel-hidden');body.appendChild(_sec)}
 
     // ── Quest diff: classify quests as new/updated/stale/resolved ──
     // Uses the shared classifyQuest() from ./classify-quest.js so the

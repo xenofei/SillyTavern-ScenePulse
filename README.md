@@ -435,6 +435,21 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.9.5] — 2026-04-09
+
+#### Changed — Scene Details panel overhaul
+Comprehensive visual and informational upgrade to the Scene Details panel: sceneSummary now visible as a dedicated row, sceneTension as a color-coded visual meter with tension-colored left border on the section, charactersPresent as colored name chips, witnesses shown as dimmed dashed chips, solo scene indicator, changed-this-turn dots, italic sound environment, and a richer collapsed badge (tension dot + topic + character count).
+
+### [6.9.4] — 2026-04-09
+
+#### Changed — Separate Experimental section in General settings
+Moved experimental features (function tool calling, NPC relationship graph, weather overlay, time-of-day ambience) into a dedicated "Experimental" section at the bottom of the General settings tab, separated by a dashed border and disclaimer hint.
+
+### [6.9.3] — 2026-04-09
+
+#### Changed — Remove delta mode toggle from settings UI
+Delta mode is now always-on with no user-facing toggle. The `/sp-refresh` command remains as the manual escape hatch.
+
 ### [6.9.2] — 2026-04-09
 
 #### Fixed — Integration sweep: 2 critical stale deltaMode checks

@@ -39,3 +39,56 @@
 .sp-row { display: flex; gap: 8px; padding: 3px 0; align-items: baseline; }
 .sp-row-label { font-size: 11px; font-weight: 600; color: var(--sp-text-dim); min-width: 70px; flex-shrink: 0; text-align: right; }
 .sp-row-value { font-size: 12px; color: var(--sp-text); min-width: 0; word-break: break-word; }
+
+/* ═══ SCENE PANEL v6.9.5 ═══ */
+/* Tension-colored left border on the entire scene section */
+.sp-scene-section.sp-section { border-left: 3px solid var(--sp-scene-tension-color, var(--sp-border)); }
+
+/* sceneSummary: muted italic, slightly smaller */
+.sp-scene-summary { font-style: italic; color: var(--sp-text-dim); font-size: 11px; line-height: 1.5; }
+.sp-scene-summary-row { padding-bottom: 6px; margin-bottom: 2px; border-bottom: 1px dashed var(--sp-border); }
+
+/* Tension row: visual meter. Background gradient fills proportionally
+   to the tension level. The label stays right-aligned, the value sits
+   in a colored strip. */
+.sp-scene-tension-row .sp-row-value {
+    font-weight: 700; letter-spacing: 0.06em; font-size: 10px;
+    padding: 2px 8px; border-radius: 3px;
+}
+.sp-tension-calm .sp-row-value { color: #60a5fa; background: rgba(96,165,250,0.12); }
+.sp-tension-low .sp-row-value { color: #4ade80; background: rgba(74,222,128,0.12); }
+.sp-tension-moderate .sp-row-value { color: #facc15; background: rgba(250,204,21,0.12); }
+.sp-tension-high .sp-row-value { color: #fb923c; background: rgba(251,146,60,0.15); }
+.sp-tension-critical .sp-row-value { color: #ef4444; background: rgba(239,68,68,0.18); }
+
+/* Sound environment: italic + muted */
+.sp-scene-sounds-row .sp-row-value { font-style: italic; opacity: 0.75; }
+
+/* Changed-this-turn indicator: small dot before the label */
+.sp-scene-changed .sp-row-label::before {
+    content: '\25CF'; font-size: 6px; color: var(--sp-accent);
+    margin-right: 4px; vertical-align: middle;
+}
+
+/* charactersPresent: colored name chips */
+.sp-scene-present { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.sp-scene-chip {
+    font-size: 10px; font-weight: 600; padding: 1px 7px; border-radius: 9px;
+    border: 1px solid var(--chip-color, var(--sp-border));
+    color: var(--chip-color, var(--sp-text));
+    background: rgba(255,255,255,0.04);
+    white-space: nowrap; line-height: 1.4;
+}
+/* Witness chips: dimmed + dashed border */
+.sp-scene-chip-witness {
+    opacity: 0.55; border-style: dashed;
+}
+
+/* Solo scene indicator */
+.sp-scene-solo {
+    font-size: 10px; font-style: italic; color: var(--sp-text-dim);
+    opacity: 0.6;
+}
+
+/* Collapsed badge: tension dot */
+.sp-scene-badge-dot { font-size: 8px; vertical-align: middle; }
