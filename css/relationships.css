@@ -33,12 +33,10 @@
 .sp-rel-meta-label { font-weight: 600; color: var(--sp-text-dim); text-transform: uppercase; font-size: 9px; letter-spacing: 0.04em; min-width: 80px; }
 .sp-rel-milestone { color: var(--sp-amber); }
 
-/* v6.9.10: label uses auto-width so it never clips, value column
-   shrunk from 105→75px to give the bar more room. Gap raised to 6px.
-   The label column is content-sized (max-content) so longer labels
-   like AFFECTION (~60px at 9px uppercase) get exactly the space
-   they need instead of being clipped by a fixed column. */
-.sp-meter-row { display: grid; grid-template-columns: max-content 1fr 75px; align-items: center; gap: 6px; padding: 2px 0; }
+/* v6.9.10: label uses max-content so it never clips. Gap between
+   label and bar raised to 14px so the meter name doesn't touch the
+   bar's left edge. */
+.sp-meter-row { display: grid; grid-template-columns: max-content 1fr 75px; align-items: center; gap: 14px; padding: 2px 0; }
 .sp-meter-row.sp-meter-has-tag { grid-template-rows: auto auto; }
 .sp-meter-row.sp-meter-has-tag > .sp-meter-label { grid-row: 2; }
 .sp-meter-row.sp-meter-has-tag > .sp-meter-bar-wrap { grid-row: 2; }
