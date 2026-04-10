@@ -23,7 +23,24 @@ export function buildInlineTrackerPrompt(){
     // sending the previous state back to the LLM. Completed quests don't need
     // to re-enter the model's context, and activeTasks is a removed tier —
     // leaking old values of it would re-teach the model to produce them.
-    function _cleanSnap(s){if(!s)return null;const c={...s};for(const k of['mainQuests','sideQuests']){if(Array.isArray(c[k]))c[k]=c[k].filter(q=>q.urgency!=='resolved')}delete c.activeTasks;delete c._spMeta;return c}
+    function _cleanSnap(s){
+        if(!s)return null;
+        const c={...s};
+        for(const k of['mainQuests','sideQuests']){if(Array.isArray(c[k]))c[k]=c[k].filter(q=>q.urgency!=='resolved')}
+        delete c.activeTasks;delete c._spMeta;
+        // v6.9.1: prune characters and relationships to only those
+        // currently in charactersPresent (or with no presence data).
+        // This reduces prompt tokens for long-running chats with 10+
+        // historical characters, most of whom aren't in the current
+        // scene. The STORED snapshot retains everyone (wiki needs it);
+        // this pruning is prompt-only so the LLM sees a focused roster.
+        if(Array.isArray(c.charactersPresent)&&c.charactersPresent.length>0){
+            const presentSet=new Set(c.charactersPresent.map(n=>(n||'').toLowerCase().trim()));
+            if(Array.isArray(c.characters))c.characters=c.characters.filter(ch=>presentSet.has((ch.name||'').toLowerCase().trim()));
+            if(Array.isArray(c.relationships))c.relationships=c.relationships.filter(r=>presentSet.has((r.name||'').toLowerCase().trim()));
+        }
+        return c;
+    }
     const cleanedSnap=_cleanSnap(snap);
     // v6.8.48: anti-contamination framing. The previous state JSON is
     // wrapped in <scene_pulse_tracker_state> XML tags with a clear

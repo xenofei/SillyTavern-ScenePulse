@@ -229,7 +229,7 @@ export async function generateTracker(mesIdx,partKey,opts){
         const ctxText=recent.map(m=>`${m.is_user?'{{user}}':(m.name||'{{char}}')}: ${m.mes}`).join('\n\n');
         const lastSnap=getLatestSnapshot();
         // Filter resolved quests from snapshot before embedding in prompt
-        function _cleanSnapForPrompt(s){const c={...s};for(const k of['mainQuests','sideQuests']){if(Array.isArray(c[k]))c[k]=c[k].filter(q=>q.urgency!=='resolved')}delete c.activeTasks;delete c._spMeta;return c}
+        function _cleanSnapForPrompt(s){const c={...s};for(const k of['mainQuests','sideQuests']){if(Array.isArray(c[k]))c[k]=c[k].filter(q=>q.urgency!=='resolved')}delete c.activeTasks;delete c._spMeta;if(Array.isArray(c.charactersPresent)&&c.charactersPresent.length>0){const ps=new Set(c.charactersPresent.map(n=>(n||'').toLowerCase().trim()));if(Array.isArray(c.characters))c.characters=c.characters.filter(ch=>ps.has((ch.name||'').toLowerCase().trim()));if(Array.isArray(c.relationships))c.relationships=c.relationships.filter(r=>ps.has((r.name||'').toLowerCase().trim()))}return c}
         let snapCtx='';
         if(lastSnap){
             const allSnaps=getTrackerData().snapshots;
@@ -486,7 +486,7 @@ export async function continuationReprompt(narrativeText, opts){
     const lastSnap=getLatestSnapshot();
     let prevState='';
     if(lastSnap){
-        function _cleanSnap(s){const c={...s};for(const k of['mainQuests','sideQuests']){if(Array.isArray(c[k]))c[k]=c[k].filter(q=>q.urgency!=='resolved')}delete c.activeTasks;delete c._spMeta;return c}
+        function _cleanSnap(s){const c={...s};for(const k of['mainQuests','sideQuests']){if(Array.isArray(c[k]))c[k]=c[k].filter(q=>q.urgency!=='resolved')}delete c.activeTasks;delete c._spMeta;if(Array.isArray(c.charactersPresent)&&c.charactersPresent.length>0){const ps=new Set(c.charactersPresent.map(n=>(n||'').toLowerCase().trim()));if(Array.isArray(c.characters))c.characters=c.characters.filter(ch=>ps.has((ch.name||'').toLowerCase().trim()));if(Array.isArray(c.relationships))c.relationships=c.relationships.filter(r=>ps.has((r.name||'').toLowerCase().trim()))}return c}
         prevState=`\n\nPREVIOUS STATE (carry forward unchanged details, update only what changed):\n${JSON.stringify(_cleanSnap(lastSnap),null,2)}`;
     }
     const isDelta=settings.deltaMode&&lastSnap;

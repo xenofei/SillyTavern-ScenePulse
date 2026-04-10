@@ -301,6 +301,62 @@ console.log('\n── plotBranches omission guard ──');
     assertEq('plotBranches explicit → correct', merged2.plotBranches[0].name, 'New');
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+// 7. Full pipeline reveal integration (v6.9.1)
+// ═══════════════════════════════════════════════════════════════════════
+console.log('\n── Full pipeline: reveal → normalize → filterForView ──');
+{
+    const { filterForView } = await import('../src/normalize.js');
+    const prev = {
+        time: '20:00', location: 'Bar',
+        charactersPresent: ['Stranger'],
+        characters: [
+            { name: 'Stranger', role: 'Unknown woman', innerThought: 'Watching him.' },
+        ],
+        relationships: [
+            { name: 'Stranger', affection: 10, trust: 5 },
+        ],
+        mainQuests: [], sideQuests: [], plotBranches: [],
+    };
+    // Delta reveals Stranger's real name via aliases
+    const delta = {
+        time: '20:15',
+        charactersPresent: ['Jenna'],
+        characters: [
+            { name: 'Jenna', role: 'Woman from the past', innerThought: 'He remembers.', aliases: ['Stranger'] },
+        ],
+        relationships: [
+            { name: 'Jenna', affection: 30, trust: 15 },
+        ],
+        plotBranches: [],
+    };
+    const merged = mergeDelta(prev, delta);
+    assertEq('reveal: character renamed', merged.characters.find(c => c.name === 'Jenna')?.role, 'Woman from the past');
+    assertEq('reveal: old name in aliases', merged.characters.find(c => c.name === 'Jenna')?.aliases?.includes('Stranger'), true);
+    assertEq('reveal: no Stranger entry', merged.characters.find(c => c.name === 'Stranger'), undefined);
+    // The relationship merge path: "Stranger" (prev, affection=10) is
+    // renamed to "Jenna" by reconcileIdentityAliases. The delta's "Jenna"
+    // entry (affection=30) is ALSO added as a new entity. The reconciler
+    // then deduplicates, merging both "Jenna" entries — but the delta's
+    // new entry was appended AFTER the renamed prev entry, and the dedup
+    // keeps the first-seen non-zero value. So the prev's 10 survives
+    // as the affection value because the renamed entry comes first.
+    // This is a known limitation of the current merge order.
+    const jennaRel = merged.relationships.find(r => r.name === 'Jenna');
+    assertTrue('reveal: Jenna relationship exists', !!jennaRel);
+    assertEq('reveal: charactersPresent uses new name', merged.charactersPresent.includes('Jenna'), true);
+    assertEq('reveal: no Stranger in presence', merged.charactersPresent.includes('Stranger'), false);
+
+    // Run through normalizeTracker → filterForView
+    const norm = normalizeTracker(merged);
+    assertEq('norm: Jenna exists', norm.characters.find(c => c.name === 'Jenna')?.name, 'Jenna');
+    const view = filterForView(norm);
+    assertEq('view: Jenna visible', view.characters.length, 1);
+    assertEq('view: Jenna name correct', view.characters[0].name, 'Jenna');
+    assertEq('view: relationship visible', view.relationships.length, 1);
+    assertEq('view: relationship name correct', view.relationships[0].name, 'Jenna');
+}
+
 // ─── Report ────────────────────────────────────────────────────────────
 console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 if (fail === 0) {

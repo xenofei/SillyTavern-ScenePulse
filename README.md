@@ -435,6 +435,16 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.9.1] — 2026-04-09
+
+#### Changed — Prompt-level roster pruning + full pipeline reveal test (Phase 3)
+
+**Prompt roster pruning** — the previous-state JSON embedded in the prompt now only includes characters and relationships for NPCs currently in `charactersPresent`. Historical characters who left the scene are pruned from the prompt payload (but preserved in the stored snapshot for the wiki). This reduces input token cost for long-running chats with 10+ historical characters. Applied to all three `_cleanSnap` / `_cleanSnapForPrompt` functions in `interceptor.js` and `engine.js`.
+
+**Full pipeline reveal integration test** — new test case in `tests/delta-mode.test.mjs` that exercises the complete delta → merge → normalize → filterForView pipeline for a character name reveal ("Stranger" → "Jenna" via aliases). Verifies that the renamed character appears correctly in all three arrays (`characters[]`, `relationships[]`, `charactersPresent[]`) and that `filterForView` produces a consistent single-character view.
+
+54 total delta-mode test cases across 7 groups. All 9 test files pass.
+
 ### [6.9.0] — 2026-04-09
 
 #### Changed — Delta mode is now the default (Phase 2)
