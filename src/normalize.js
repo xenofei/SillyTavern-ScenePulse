@@ -1182,7 +1182,7 @@ export function filterForView(snap){
     // v6.8.45: when charactersPresent is empty, an empty roster IS the
     // correct answer for a solo scene — not "skip filter and show
     // everyone." The old behavior left every tracked character visible
-    // during solitude beats (the "Devon alone in the train yard" bug).
+    // during solitude beats (the "user alone in the train yard" bug).
     // Group chats still get the member-roster union below so the chat
     // participants survive even when the model forgot to list them.
     if(!Array.isArray(cp)||!cp.length){

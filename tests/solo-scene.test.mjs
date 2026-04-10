@@ -3,7 +3,7 @@
 // Run from project root: node tests/solo-scene.test.mjs
 // Not loaded by the extension — manifest.json only references index.js.
 //
-// Verifies the "Devon alone in the train yard" bug is fixed. The bug:
+// Verifies the "Alex alone in the train yard" bug is fixed. The bug:
 // when {{user}} was alone in a solitude beat, the wiki and relationships
 // panel still showed every character from the previous multi-character
 // scene as "In Scene". Four stacked failure modes defeated the empty
@@ -20,7 +20,7 @@
 //      (fixed: empty means solo, return empty arrays)
 
 // ─── Stubs (parallel to character-aliases.test.mjs) ────────────────────
-const USER_NAME = 'Devon';
+const USER_NAME = 'Alex';
 globalThis.SillyTavern = {
     getContext: () => ({
         name1: USER_NAME,
@@ -81,7 +81,7 @@ console.log('\n── delta-merge: omitted charactersPresent means empty ──'
     // delta-merge path treats this omission as an explicit empty roster.
     const delta = {
         time: '04:22',
-        sceneSummary: 'Devon sits alone against cold metal in a train yard at dawn.',
+        sceneSummary: 'Alex sits alone against cold metal in a train yard at dawn.',
     };
     const merged = mergeDelta(prev, delta);
     assertEq('omitted field → empty roster (not carry-forward)',
@@ -150,7 +150,7 @@ console.log('\n── normalize: empty charactersPresent stays empty ──');
         sceneTopic: 'Solitude',
         sceneMood: 'Quiet',
         sceneInteraction: 'Introspection',
-        sceneSummary: 'Devon alone at dawn.',
+        sceneSummary: 'Alex alone at dawn.',
         charactersPresent: [],
         characters: [
             { name: 'Buzzcut', role: 'Officer' },

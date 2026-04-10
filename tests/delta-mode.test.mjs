@@ -15,7 +15,7 @@
 //   6. plotBranches omission guard: omitted → empty (v6.8.50)
 
 // ─── Stubs ────────────────────────────────────────────────────────────
-const USER_NAME = 'Devon';
+const USER_NAME = 'Alex';
 globalThis.SillyTavern = {
     getContext: () => ({
         name1: USER_NAME,

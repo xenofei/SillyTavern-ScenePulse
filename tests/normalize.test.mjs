@@ -11,7 +11,7 @@
 //   7. {{user}} stripping from all arrays
 
 // ─── Stubs ────────────────────────────────────────────────────────────
-const USER_NAME = 'Devon';
+const USER_NAME = 'Alex';
 globalThis.SillyTavern = {
     getContext: () => ({
         name1: USER_NAME,
@@ -50,7 +50,7 @@ function _baseSnap(overrides = {}) {
         location: 'Precinct', weather: 'Cloudy', temperature: '62F',
         soundEnvironment: 'Radio chatter', sceneTopic: 'Interrogation',
         sceneMood: 'Tense', sceneInteraction: 'Professional',
-        sceneSummary: 'Devon is questioned.',
+        sceneSummary: 'Alex is questioned.',
         charactersPresent: ['Buzzcut', 'Reyes'],
         characters: [
             { name: 'Buzzcut', role: 'Officer', archetype: 'authority', innerThought: 'Suspicious.' },
@@ -82,7 +82,7 @@ console.log('\n── Basic field normalization ──');
     assertEq('location preserved', out.location, 'Precinct');
     assertEq('weather preserved', out.weather, 'Cloudy');
     assertEq('sceneMood preserved', out.sceneMood, 'Tense');
-    assertEq('sceneSummary preserved', out.sceneSummary, 'Devon is questioned.');
+    assertEq('sceneSummary preserved', out.sceneSummary, 'Alex is questioned.');
     assertTrue('characters is array', Array.isArray(out.characters));
     assertTrue('relationships is array', Array.isArray(out.relationships));
     assertTrue('mainQuests is array', Array.isArray(out.mainQuests));
@@ -212,13 +212,13 @@ console.log('\n── filterForView ──');
 console.log('\n── {{user}} stripping ──');
 {
     const snap = _baseSnap({
-        charactersPresent: ['Devon', 'Buzzcut'],
+        charactersPresent: ['Alex', 'Buzzcut'],
         characters: [
-            { name: 'Devon', role: 'Player' },
+            { name: 'Alex', role: 'Player' },
             { name: 'Buzzcut', role: 'Officer' },
         ],
         relationships: [
-            { name: 'Devon', affection: 100 },
+            { name: 'Alex', affection: 100 },
             { name: 'Buzzcut', affection: 20 },
         ],
     });

@@ -598,7 +598,7 @@ Adding preview support for a new avatar site is now a two-step opt-in: (1) place
 ### [6.8.45] — 2026-04-09
 
 #### Fixed — Solo scenes no longer populated with the previous beat's cast
-**Reported**: "I have a scene where the character is by himself, but a whole cast of crew appears in the scene. Determine why." User showed Devon walking alone through a train yard at dawn ("No voice in his head. No women. Just the dawn coming whether he wanted it to or not."), while the Characters and Relationships panels displayed 9 characters (Buzzcut, Detective Keene, Detective Orozco, Female Paramedic, Jack Browning, Mrs. Patterson, Officer Jane, Paramedic Chris, Reyes) all marked "In Scene".
+**Reported**: "I have a scene where the character is by himself, but a whole cast of crew appears in the scene. Determine why." User showed {{user}} walking alone through a train yard at dawn ("No voice in his head. No women. Just the dawn coming whether he wanted it to or not."), while the Characters and Relationships panels displayed 9 characters (Buzzcut, Detective Keene, Detective Orozco, Female Paramedic, Jack Browning, Mrs. Patterson, Officer Jane, Paramedic Chris, Reyes) all marked "In Scene".
 
 **Root cause**: four stacked failure modes, any one of which would defeat an empty `charactersPresent` signal from the LLM:
 
@@ -1082,9 +1082,9 @@ Nodes now render the character's portrait inside the circle when one is resolvab
 The user's persona avatar is also resolved via `SillyTavern.getContext().user_avatar` and rendered in the center node. Group chats work transparently \u2014 the web takes whatever characters are in the snapshot, so v6.8.15 group carry-forward already feeds it correctly.
 
 #### Fixed \u2014 Missing {{user}}\u2194pet edges in the relationship web
-**Reported**: "Vierge has a relation to Devon (it was his cat originally). yet the graph doesn't account for that." Full diagnosis:
+**Reported**: "Vierge has a relation to {{user}} (it was his cat originally). yet the graph doesn't account for that." Full diagnosis:
 
-The relationship web shows **two kinds of edges**: (a) {{user}}-facing edges from the top-level `relationships[]` array (pink/red meter edges to Devon), and (b) NPC\u2194NPC edges from the v6.8.27 batch inference. Vierge had neither:
+The relationship web shows **two kinds of edges**: (a) {{user}}-facing edges from the top-level `relationships[]` array (pink/red meter edges to {{user}}), and (b) NPC\u2194NPC edges from the v6.8.27 batch inference. Vierge had neither:
 - **NPC-NPC direction**: The batch prompt correctly excludes {{user}} from NPC-NPC edges \u2014 those connections belong in the user-facing tracker instead. Working as intended.
 - **User-facing direction**: The LLM never emitted a `relationships[]` entry for Vierge in the main tracker. Cats don't naturally fit the 5-meter shape (affection / trust / desire / stress / compatibility), so the model typically skips generating one. No entry \u2192 no `rel` object \u2192 no edge rendered. This was the actual bug.
 
