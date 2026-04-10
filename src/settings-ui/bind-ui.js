@@ -34,7 +34,7 @@ import { createSettings } from './create-settings.js';
 
 export function updateBadge(){const on=getSettings().enabled;const b=document.getElementById('sp-badge');if(b){b.className='sp-drawer-badge '+(on?'sp-on':'sp-off');b.innerHTML=`<span class="sp-drawer-badge-dot"></span>${on?t('Active'):t('Off')}`}}
 
-export function loadUI(){const s=getSettings();$('#sp-enabled').prop('checked',s.enabled);$('#sp-auto-gen').prop('checked',s.autoGenerate);$('#sp-show-thoughts').prop('checked',s.showThoughts!==false);$('#sp-show-weather').prop('checked',s.weatherOverlay!==false);$('#sp-show-timetint').prop('checked',s.timeTint!==false);$('#sp-show-devbtns').prop('checked',s.devButtons===true);$('#sp-delta-mode').prop('checked',s.deltaMode===true);$('#sp-function-tool').prop('checked',s.functionToolEnabled===true);$('#sp-font-scale').val(s.fontScale||1);$('#sp-font-scale-val').text((s.fontScale||1).toFixed(1)+'x');$('#sp-language').val(s.language||'');$('#sp-ctx').val(s.contextMessages);$('#sp-retries').val(s.maxRetries);$('#sp-mode').val(s.promptMode||'json');$('#sp-embed-n').val(s.embedSnapshots);$('#sp-embed-role').val(s.embedRole);$('#sp-lore-mode').val(s.lorebookMode||'character_attached');$('#sp-max-snapshots').val(s.maxSnapshots||0);
+export function loadUI(){const s=getSettings();$('#sp-enabled').prop('checked',s.enabled);$('#sp-auto-gen').prop('checked',s.autoGenerate);$('#sp-show-thoughts').prop('checked',s.showThoughts!==false);$('#sp-show-weather').prop('checked',s.weatherOverlay!==false);$('#sp-show-timetint').prop('checked',s.timeTint!==false);$('#sp-show-devbtns').prop('checked',s.devButtons===true);$('#sp-function-tool').prop('checked',s.functionToolEnabled===true);$('#sp-font-scale').val(s.fontScale||1);$('#sp-font-scale-val').text((s.fontScale||1).toFixed(1)+'x');$('#sp-language').val(s.language||'');$('#sp-ctx').val(s.contextMessages);$('#sp-retries').val(s.maxRetries);$('#sp-mode').val(s.promptMode||'json');$('#sp-embed-n').val(s.embedSnapshots);$('#sp-embed-role').val(s.embedRole);$('#sp-lore-mode').val(s.lorebookMode||'character_attached');$('#sp-max-snapshots').val(s.maxSnapshots||0);
     // Rebuild profile/preset dropdowns from current DOM (ST may load them late)
     const profiles=getConnectionProfiles();const presets=getChatPresets();
     // ── localStorage is the source of truth for config persistence ──
@@ -170,7 +170,11 @@ export function bindUI(){const s=getSettings();
     });
     $('#sp-enabled').on('change',function(){s.enabled=this.checked;saveSettings();updateBadge();$('#scenepulse-settings .inline-drawer-content').toggleClass('sp-disabled',!this.checked);if(!this.checked){hidePanel();const tp=document.getElementById('sp-thought-panel');if(tp)tp.classList.remove('sp-tp-visible')}else{renderExisting()}});
     $('#sp-auto-gen').on('change',function(){s.autoGenerate=this.checked;saveSettings()});
-    $('#sp-delta-mode').on('change',function(){s.deltaMode=this.checked;saveSettings();log('Delta mode:',this.checked)});
+    // v6.9.2: delta mode toggle removed from UI — delta is now always
+    // on (DEFAULTS.deltaMode: true since v6.9.0). The setting key still
+    // exists in the settings object for backward compat (users who
+    // explicitly set it to false before v6.9.0 keep their preference),
+    // but it's no longer user-facing.
     $('#sp-function-tool').on('change',function(){s.functionToolEnabled=this.checked;saveSettings();log('Function tool:',this.checked);
         import('../generation/function-tool.js').then(m=>m.refreshFunctionTool()).catch(e=>warn('Function tool refresh:',e));
     });
