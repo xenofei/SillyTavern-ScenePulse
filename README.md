@@ -435,6 +435,20 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.9.0] — 2026-04-09
+
+#### Changed — Delta mode is now the default (Phase 2)
+Delta mode is now enabled by default for all new installations (`DEFAULTS.deltaMode: true`). Existing users who already have delta mode explicitly set in their settings are unaffected — their saved preference takes priority over the new default.
+
+Delta mode saves ~66-77% of output tokens per generation by asking the LLM to return only changed fields, with the client merging the delta against the previous snapshot. The Phase 1 prerequisites (v6.8.50) ensured production-readiness:
+
+- **Periodic full-state refresh** prevents data drift over long conversations (every 15 delta turns, one full-state generation re-establishes ground truth)
+- **`/sp-refresh` recovery command** provides a manual escape hatch when data seems stale
+- **`plotBranches` and `charactersPresent` omission guards** prevent stale array carry-forward
+- **43 critical test cases** cover multi-turn chains, full-state-as-delta, empty deltas, meter stability, and more
+
+Users who experience issues can disable delta mode in ScenePulse settings (uncheck "Delta Mode") or use `/sp-refresh` to force a single full-state regeneration without disabling the feature.
+
 ### [6.8.50] — 2026-04-09
 
 #### Added — Delta mode production-readiness: periodic refresh, recovery, omission guards, critical tests
