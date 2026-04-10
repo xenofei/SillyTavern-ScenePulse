@@ -33,11 +33,12 @@
 .sp-rel-meta-label { font-weight: 600; color: var(--sp-text-dim); text-transform: uppercase; font-size: 9px; letter-spacing: 0.04em; min-width: 80px; }
 .sp-rel-milestone { color: var(--sp-amber); }
 
-/* v6.9.10: label uses max-content so it never clips. The grid gap
-   is kept small (4px) for the bar→value spacing; the label→bar
-   separation is handled by padding-right on .sp-meter-label so the
-   two spacings are independent and work at all panel widths. */
-.sp-meter-row { display: grid; grid-template-columns: max-content 1fr 75px; align-items: center; gap: 4px; padding: 2px 0; }
+/* The label column uses a fixed width sized for the longest label
+   (AFFECTION at each font size) + 10px right padding. Labels are
+   right-aligned so shorter ones (TRUST, COMPAT) sit flush-right
+   within the column, keeping all bars left-aligned. Each responsive
+   breakpoint overrides this width to match its font-size. */
+.sp-meter-row { display: grid; grid-template-columns: 72px 1fr 75px; align-items: center; gap: 4px; padding: 2px 0; }
 .sp-meter-row.sp-meter-has-tag { grid-template-rows: auto auto; }
 .sp-meter-row.sp-meter-has-tag > .sp-meter-label { grid-row: 2; }
 .sp-meter-row.sp-meter-has-tag > .sp-meter-bar-wrap { grid-row: 2; }

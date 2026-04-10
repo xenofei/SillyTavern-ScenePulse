@@ -21,7 +21,7 @@
     .sp-row-label { font-size: 10px; }
     .sp-row-value { font-size: 10px; }
 
-    .sp-meter-row { grid-template-columns: max-content 1fr 80px; gap: 2px; }
+    .sp-meter-row { grid-template-columns: 58px 1fr 80px; gap: 4px; }
     .sp-meter-label { font-size: 8px; }
     .sp-meter-bar-wrap { height: 7px; }
     .sp-meter-value { font-size: 8px; }
@@ -59,7 +59,7 @@
     .sp-dashboard .sp-dash-card { flex: 1 1 100%; min-height: 45px; }
     .sp-dash-day { font-size: 16px; }
     .sp-wx-svg { width: 26px; height: 26px; }
-    .sp-meter-row { grid-template-columns: max-content 1fr 55px; }
+    .sp-meter-row { grid-template-columns: 50px 1fr 55px; gap: 4px; }
     .sp-sparkline { display: none !important; }
     .sp-brand-title { display: none; }
     .sp-rel-phase-badge { display: none; }
@@ -81,7 +81,7 @@
     .sp-section-title { font-size: 10px; }
     .sp-row-label { font-size: 10px; }
     .sp-row-value { font-size: 11px; }
-    .sp-meter-row { grid-template-columns: max-content 1fr 85px; gap: 4px; }
+    .sp-meter-row { grid-template-columns: 66px 1fr 85px; gap: 4px; }
     .sp-sparkline { width: 40px !important; height: 16px !important; }
     .sp-meter-bar-wrap { height: 8px; }
     .sp-regen-overlay { min-height: 40vh; padding: 24px 16px; }
@@ -119,7 +119,7 @@
     .sp-plot-name { font-size: 13px; }
     .sp-quest-detail { font-size: 12px; }
     .sp-quest-star { font-size: 13px; }
-    .sp-meter-row { grid-template-columns: max-content 1fr 120px; gap: 4px; }
+    .sp-meter-row { grid-template-columns: 78px 1fr 120px; gap: 4px; }
     .sp-meter-label { font-size: 10px; }
     .sp-meter-bar-wrap { height: 10px; }
     .sp-meter-value { font-size: 10px; }
@@ -142,7 +142,7 @@
     .sp-dash-value { font-size: 14px; }
     .sp-wx-svg { width: 48px; height: 48px; }
     .sp-section-title { font-size: 13px; }
-    .sp-meter-row { grid-template-columns: max-content 1fr 140px; gap: 4px; }
+    .sp-meter-row { grid-template-columns: 90px 1fr 140px; gap: 4px; }
     .sp-meter-bar-wrap { height: 12px; }
     .sp-meter-label { font-size: 12px; }
     .sp-meter-tag { font-size: 10.5px; }
