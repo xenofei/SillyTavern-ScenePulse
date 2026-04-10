@@ -7,12 +7,14 @@ import { _cachedNormData } from '../state.js';
 import { buildDynamicSchema, buildDynamicPrompt } from '../schema.js';
 import { t } from '../i18n.js';
 
+// v6.9.12: refreshCustomSection mirrors the upgraded rendering from
+// update-panel.js so live-refresh during panel editing shows the same
+// visual treatment (threshold meters, enum pills, list chips, etc.)
 export function refreshCustomSection(cp,panelBody){
     if(!panelBody||!cp?.name)return;
     const cpKey='custom_'+cp.name.replace(/\s+/g,'_').toLowerCase();
     const existing=panelBody.querySelector(`.sp-section[data-key="${cpKey}"]`);
     if(!existing)return;
-    // Re-render just the content inside the section body
     const content=existing.querySelector('.sp-section-content');
     if(!content)return;
     const d=_cachedNormData||{};
@@ -21,13 +23,31 @@ export function refreshCustomSection(cp,panelBody){
         const r=document.createElement('div');r.className='sp-row';
         r.innerHTML=`<div class="sp-row-label">${esc(f.label||f.key)}</div>`;
         if(f.type==='meter'){
-            const num=parseInt(d[f.key])||0;
+            const num=clamp(parseInt(d[f.key])||0,0,100);
+            const invert=!!f.invert;
+            const effective=invert?(100-num):num;
+            const danger=effective<25?'low':effective<50?'mid':'ok';
             const wrap=document.createElement('div');wrap.className='sp-row-value sp-cp-meter-wrap';
-            wrap.innerHTML=`<div class="sp-cp-meter"><div class="sp-cp-meter-fill" style="width:${clamp(num,0,100)}%"></div></div><span class="sp-cp-meter-val">${num}</span>`;
+            wrap.innerHTML=`<div class="sp-cp-meter"><div class="sp-cp-meter-fill" data-danger="${danger}" style="width:${Math.max(num,3)}%"></div></div><span class="sp-cp-meter-val">${num}</span>`;
             r.appendChild(wrap);
-        } else if(f.type==='list'&&Array.isArray(d[f.key])){
-            const val=document.createElement('div');val.className='sp-row-value';val.textContent=d[f.key].join(', ')||'\u2014';
-            r.appendChild(val);
+        } else if(f.type==='enum'){
+            const val=str(d[f.key])||'';
+            const opts=Array.isArray(f.options)?f.options:[];
+            const idx=opts.findIndex(o=>o.toLowerCase()===val.toLowerCase());
+            const severity=opts.length>1&&idx>=0?Math.min(3,Math.floor((idx/(opts.length-1))*4)):0;
+            const chip=document.createElement('span');chip.className='sp-cp-enum-chip';chip.dataset.severity=severity;
+            chip.textContent=val||'\u2014';
+            const vd=document.createElement('div');vd.className='sp-row-value';vd.appendChild(chip);r.appendChild(vd);
+        } else if(f.type==='list'){
+            const arr=Array.isArray(d[f.key])?d[f.key]:[];
+            const vd=document.createElement('div');vd.className='sp-row-value sp-cp-list-chips';
+            if(!arr.length){vd.textContent='\u2014'}
+            else{for(const item of arr){const chip=document.createElement('span');chip.className='sp-cp-list-chip';chip.textContent=item;vd.appendChild(chip)}}
+            r.appendChild(vd);
+        } else if(f.type==='number'){
+            const vd=document.createElement('div');vd.className='sp-row-value';
+            const numSpan=document.createElement('span');numSpan.className='sp-cp-number-val';numSpan.textContent=str(d[f.key])||'0';
+            vd.appendChild(numSpan);r.appendChild(vd);
         } else {
             const val=document.createElement('div');val.className='sp-row-value';val.textContent=str(d[f.key])||'\u2014';
             r.appendChild(val);

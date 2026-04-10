@@ -294,22 +294,72 @@
 }
 .sp-cp-tmpl-item:hover { background: rgba(77,184,164,0.1); color: var(--sp-text-bright); }
 
-/* ── Custom Panel Meter (in main panel) ── */
+/* ═══ CUSTOM PANEL FIELD RENDERING v6.9.12 ═══ */
+
+/* ── Section differentiator: teal left border on custom panels ── */
+.sp-section.sp-section-custom { border-left: 2px solid rgba(77,184,164,0.25); }
+
+/* ── Meter: threshold-based colors with danger glow ── */
 .sp-cp-meter-wrap { display: flex; align-items: center; gap: 6px; }
 .sp-cp-meter {
-    flex: 1; height: 6px; border-radius: 3px;
+    flex: 1; height: 8px; border-radius: 4px;
     background: rgba(255,255,255,0.06);
     border: 1px solid rgba(255,255,255,0.04);
     overflow: hidden;
 }
 .sp-cp-meter-fill {
-    height: 100%; border-radius: 3px;
-    background: linear-gradient(90deg, var(--sp-accent), rgba(77,184,164,0.5));
-    transition: width 0.3s ease;
+    height: 100%; border-radius: 4px; min-width: 3px;
+    transition: width 0.4s cubic-bezier(0.4,0,0.2,1), background 0.4s ease, box-shadow 0.4s ease;
+}
+/* Healthy (≥50): green */
+.sp-cp-meter-fill[data-danger="ok"] {
+    background: linear-gradient(90deg, var(--sp-green, #5bc47a), rgba(91,196,122,0.5));
+}
+/* Caution (25-49): amber */
+.sp-cp-meter-fill[data-danger="mid"] {
+    background: linear-gradient(90deg, var(--sp-tension-moderate, #facc15), rgba(250,204,21,0.5));
+}
+/* Danger (<25): red with alarming glow */
+.sp-cp-meter-fill[data-danger="low"] {
+    background: linear-gradient(90deg, var(--sp-tension-critical, #ef4444), rgba(239,68,68,0.5));
+    box-shadow: 0 0 6px rgba(239,68,68,0.35);
 }
 .sp-cp-meter-val {
-    font-size: 9px; font-weight: 700; color: var(--sp-accent);
+    font-size: 9px; font-weight: 700;
     font-family: var(--sp-font-mono); min-width: 20px; text-align: right;
+}
+/* Color the number to match the bar */
+.sp-cp-meter-fill[data-danger="ok"] ~ .sp-cp-meter-val,
+.sp-cp-meter-wrap:has([data-danger="ok"]) .sp-cp-meter-val { color: var(--sp-green, #5bc47a); }
+.sp-cp-meter-wrap:has([data-danger="mid"]) .sp-cp-meter-val { color: var(--sp-tension-moderate, #facc15); }
+.sp-cp-meter-wrap:has([data-danger="low"]) .sp-cp-meter-val { color: var(--sp-tension-critical, #ef4444); }
+
+/* ── Enum: severity-colored badge pills ── */
+.sp-cp-enum-chip {
+    font-size: 10px; font-weight: 600; padding: 2px 10px; border-radius: 9px;
+    border: 1px solid; white-space: nowrap; line-height: 1.6;
+    display: inline-block; text-transform: capitalize;
+}
+.sp-cp-enum-chip[data-severity="0"] { color: var(--sp-accent); border-color: rgba(77,184,164,0.4); background: rgba(77,184,164,0.08); }
+.sp-cp-enum-chip[data-severity="1"] { color: var(--sp-tension-moderate, #facc15); border-color: rgba(250,204,21,0.4); background: rgba(250,204,21,0.07); }
+.sp-cp-enum-chip[data-severity="2"] { color: var(--sp-tension-high, #fb923c); border-color: rgba(251,146,60,0.4); background: rgba(251,146,60,0.07); }
+.sp-cp-enum-chip[data-severity="3"] { color: var(--sp-tension-critical, #ef4444); border-color: rgba(239,68,68,0.4); background: rgba(239,68,68,0.08); }
+
+/* ── List: chip tags ── */
+.sp-cp-list-chips { display: flex; flex-wrap: wrap; gap: 4px; padding: 2px 0; }
+.sp-cp-list-chip {
+    font-size: 10px; padding: 1px 7px; border-radius: 9px;
+    border: 1px solid var(--sp-border-strong);
+    color: var(--sp-text-dim); background: rgba(255,255,255,0.03);
+    white-space: nowrap; line-height: 1.4;
+}
+
+/* ── Number: monospace styled well ── */
+.sp-cp-number-val {
+    font-family: var(--sp-font-mono); font-size: 11px; font-weight: 700;
+    color: var(--sp-text); background: rgba(255,255,255,0.04);
+    padding: 1px 8px; border-radius: 3px; line-height: 1.6;
+    display: inline-block;
 }
 
 /* ── Confirm Dialog ── */

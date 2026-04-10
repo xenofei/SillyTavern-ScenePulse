@@ -1206,9 +1206,65 @@ export function updatePanel(d,_force=false){
         f.appendChild(c)}return f;
     },s);if(s.panels?.storyIdeas===false)_sec.classList.add('sp-panel-hidden');body.appendChild(_sec)}
 
-    // Custom Panels (v6.9.11: skip disabled panels)
+    // Custom Panels (v6.9.11: skip disabled, v6.9.12: full UI/UX upgrade)
     const customPanels=s.customPanels||[];
-    for(const cp of customPanels){if(!cp.fields?.length||cp.enabled===false)continue;const cpKey='custom_'+cp.name.replace(/\s+/g,'_').toLowerCase();let fieldCount=0;for(const f of cp.fields){if(d[f.key]!=null&&d[f.key]!=='')fieldCount++}body.appendChild(mkSection(cpKey,cp.name,fieldCount||null,()=>{const frag=document.createDocumentFragment();for(const f of cp.fields){const r=document.createElement('div');r.className='sp-row';r.innerHTML=`<div class="sp-row-label">${esc(f.label||f.key)}</div>`;if(f.type==='meter'){const num=parseInt(d[f.key])||0;const wrap=document.createElement('div');wrap.className='sp-row-value sp-cp-meter-wrap';wrap.innerHTML=`<div class="sp-cp-meter"><div class="sp-cp-meter-fill" style="width:${clamp(num,0,100)}%"></div></div><span class="sp-cp-meter-val">${num}</span>`;r.appendChild(wrap)}else if(f.type==='list'&&Array.isArray(d[f.key])){const val=document.createElement('div');val.className='sp-row-value';val.textContent=d[f.key].join(', ')||'\u2014';r.appendChild(val)}else{const val=document.createElement('div');val.className='sp-row-value';val.textContent=str(d[f.key])||'\u2014';mkEditable(val,()=>str(d[f.key])||'',v=>{d[f.key]=v;const snap=getLatestSnapshot();if(snap)snap[f.key]=v});r.appendChild(val)}frag.appendChild(r)}return frag},s))}
+    for(const cp of customPanels){
+        if(!cp.fields?.length||cp.enabled===false)continue;
+        const cpKey='custom_'+cp.name.replace(/\s+/g,'_').toLowerCase();
+        const _cpSec=mkSection(cpKey,cp.name,null,()=>{
+            const frag=document.createDocumentFragment();
+            for(const f of cp.fields){
+                const r=document.createElement('div');r.className='sp-row';
+                r.innerHTML=`<div class="sp-row-label">${esc(f.label||f.key)}</div>`;
+                if(f.type==='meter'){
+                    // v6.9.12: threshold-based meter with danger colors
+                    const num=clamp(parseInt(d[f.key])||0,0,100);
+                    const invert=!!f.invert; // high=bad (e.g. Radiation)
+                    const effective=invert?(100-num):num;
+                    const danger=effective<25?'low':effective<50?'mid':'ok';
+                    const wrap=document.createElement('div');wrap.className='sp-row-value sp-cp-meter-wrap';
+                    wrap.innerHTML=`<div class="sp-cp-meter"><div class="sp-cp-meter-fill" data-danger="${danger}" style="width:${Math.max(num,3)}%"></div></div><span class="sp-cp-meter-val">${num}</span>`;
+                    r.appendChild(wrap);
+                } else if(f.type==='enum'){
+                    // v6.9.12: severity-colored badge pill
+                    const val=str(d[f.key])||'';
+                    const opts=Array.isArray(f.options)?f.options:[];
+                    const idx=opts.findIndex(o=>o.toLowerCase()===val.toLowerCase());
+                    const severity=opts.length>1&&idx>=0?Math.min(3,Math.floor((idx/(opts.length-1))*4)):0;
+                    const chip=document.createElement('span');
+                    chip.className='sp-cp-enum-chip';chip.dataset.severity=severity;
+                    chip.textContent=val||'\u2014';
+                    const vd=document.createElement('div');vd.className='sp-row-value';
+                    vd.appendChild(chip);r.appendChild(vd);
+                } else if(f.type==='list'){
+                    // v6.9.12: chip tags instead of comma-separated text
+                    const arr=Array.isArray(d[f.key])?d[f.key]:[];
+                    const vd=document.createElement('div');vd.className='sp-row-value sp-cp-list-chips';
+                    if(arr.length===0){vd.textContent='\u2014'}
+                    else{for(const item of arr){const chip=document.createElement('span');chip.className='sp-cp-list-chip';chip.textContent=item;vd.appendChild(chip)}}
+                    r.appendChild(vd);
+                } else if(f.type==='number'){
+                    // v6.9.12: monospace styled well
+                    const val=document.createElement('div');val.className='sp-row-value';
+                    const numSpan=document.createElement('span');numSpan.className='sp-cp-number-val';
+                    numSpan.textContent=str(d[f.key])||'0';
+                    val.appendChild(numSpan);
+                    mkEditable(numSpan,()=>str(d[f.key])||'',v=>{d[f.key]=v;const snap=getLatestSnapshot();if(snap)snap[f.key]=v});
+                    r.appendChild(val);
+                } else {
+                    // text: plain editable
+                    const val=document.createElement('div');val.className='sp-row-value';val.textContent=str(d[f.key])||'\u2014';
+                    mkEditable(val,()=>str(d[f.key])||'',v=>{d[f.key]=v;const snap=getLatestSnapshot();if(snap)snap[f.key]=v});
+                    r.appendChild(val);
+                }
+                frag.appendChild(r);
+            }
+            return frag;
+        },s);
+        // v6.9.12: custom section left-border accent
+        _cpSec.classList.add('sp-section-custom');
+        body.appendChild(_cpSec);
+    }
 
     // Timeline (always render — footer must come after)
     renderTimeline();
