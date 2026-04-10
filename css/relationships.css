@@ -38,19 +38,22 @@
    right-aligned so shorter ones (TRUST, COMPAT) sit flush-right
    within the column, keeping all bars left-aligned. Each responsive
    breakpoint overrides this width to match its font-size. */
-.sp-meter-row { display: grid; grid-template-columns: 72px 1fr 75px; align-items: center; gap: 4px; padding: 2px 0; }
+.sp-meter-row { display: grid; grid-template-columns: clamp(50px, 10cqi, 90px) 1fr auto 44px; align-items: center; gap: 4px; padding: 2px 0; }
 .sp-meter-row.sp-meter-has-tag { grid-template-rows: auto auto; }
 .sp-meter-row.sp-meter-has-tag > .sp-meter-label { grid-row: 2; }
 .sp-meter-row.sp-meter-has-tag > .sp-meter-bar-wrap { grid-row: 2; }
 .sp-meter-row.sp-meter-has-tag > .sp-meter-bar-na { grid-row: 2; }
 .sp-meter-row.sp-meter-has-tag > .sp-meter-value,
 .sp-meter-row.sp-meter-has-tag > .sp-meter-value-na { grid-row: 2; }
+.sp-meter-row.sp-meter-has-tag > .sp-sparkline { grid-row: 2; }
+/* Sparkline occupies the 4th grid column — separated from value to prevent overlap */
+.sp-meter-row > .sp-sparkline { display: flex; align-items: center; justify-content: flex-end; }
 /* v6.9.10: padding-right on the label creates clear separation
    between the meter name and the bar's left edge. This is independent
    of the grid gap (which controls bar→value spacing) so both spacings
    work correctly at all panel widths and resolutions. */
-.sp-meter-label { font-size: 9px; font-weight: 600; text-align: right; color: var(--sp-text-dim); text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap; padding-right: 10px; }
-.sp-meter-bar-wrap { position: relative; height: 10px; background: rgba(100,110,130,0.12); border-radius: 5px; overflow: visible; }
+.sp-meter-label { font-size: clamp(7.5px, 1.2cqi, 10px); font-weight: 600; text-align: right; color: var(--sp-text-dim); text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap; padding-right: 10px; }
+.sp-meter-bar-wrap { position: relative; height: clamp(6px, 1.4cqi, 12px); background: rgba(100,110,130,0.12); border-radius: 5px; overflow: visible; }
 .sp-meter-bar-fill { height: 100%; border-radius: 5px; transition: width 0.6s cubic-bezier(0.4,0,0.2,1); position: relative; overflow: hidden; }
 .sp-meter-bar-fill::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(255,255,255,0.15) 0%, transparent 60%); border-radius: 5px; }
 .sp-meter-bar-track { position: absolute; inset: 0; border-radius: 5px; overflow: hidden; } /* clips the fill */
@@ -67,9 +70,9 @@
     margin-left: 2px; vertical-align: middle;
 }
 .sp-meter-face svg { width: 13px; height: 13px; flex-shrink: 0; animation: sp-delta-pop 0.4s ease-out; }
-.sp-meter-value { font-size: 9px; font-weight: 700; font-family: var(--sp-font-mono); color: var(--sp-text-dim); text-align: right; min-width: 22px; display: flex; align-items: center; justify-content: flex-end; gap: 2px; }
+.sp-meter-value { font-size: clamp(7.5px, 1.2cqi, 10px); font-weight: 700; font-family: var(--sp-font-mono); color: var(--sp-text-dim); text-align: right; min-width: 22px; display: flex; align-items: center; justify-content: flex-end; gap: 2px; white-space: nowrap; }
 .sp-meter-value-na { font-size: 9px; color: var(--sp-text-dim); font-style: italic; text-align: right; }
-.sp-meter-tag { grid-column: 2 / 3; grid-row: 1; font-size: 8.5px; font-style: italic; color: var(--sp-text-dim); opacity: 0.6; text-align: right; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 1px; margin-bottom: -1px; }
+.sp-meter-tag { grid-column: 2 / 4; grid-row: 1; font-size: clamp(7px, 1cqi, 9.5px); font-style: italic; color: var(--sp-text-dim); opacity: 0.6; text-align: right; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 1px; margin-bottom: -1px; }
 /* Delta indicators */
 .sp-meter-delta { font-size: 8px; font-weight: 700; font-family: var(--sp-font-mono); line-height: 1; white-space: nowrap; display: inline-flex; align-items: center; gap: 1px; animation: sp-delta-pop 0.4s ease-out; }
 .sp-meter-delta-up { color: #4ade80; text-shadow: 0 0 6px rgba(74,222,128,0.4); }

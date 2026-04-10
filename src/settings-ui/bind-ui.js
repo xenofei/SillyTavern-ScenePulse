@@ -14,7 +14,7 @@ import {
 } from '../settings.js';
 import { genNonce, genMeta, lastGenSource, setLastGenSource, lastRawResponse } from '../state.js';
 import { updatePanel } from '../ui/update-panel.js';
-import { hidePanel, _applyFontScale as _applyFontScaleFromUI } from '../ui/panel.js';
+import { hidePanel, _applyFontScale as _applyFontScaleFromUI, updateFeatBadge } from '../ui/panel.js';
 import { updateThoughts } from '../ui/thoughts.js';
 import { updateWeatherOverlay, clearWeatherOverlay } from '../ui/weather.js';
 import { updateTimeTint, clearTimeTint } from '../ui/time-tint.js';
@@ -34,6 +34,7 @@ import { createSettings } from './create-settings.js';
 
 export function updateBadge(){const on=getSettings().enabled;const b=document.getElementById('sp-badge');if(b){b.className='sp-drawer-badge '+(on?'sp-on':'sp-off');b.innerHTML=`<span class="sp-drawer-badge-dot"></span>${on?t('Active'):t('Off')}`}}
 
+function _syncFeatBadge(){try{updateFeatBadge()}catch(_){}}
 export function loadUI(){const s=getSettings();$('#sp-enabled').prop('checked',s.enabled);$('#sp-auto-gen').prop('checked',s.autoGenerate);$('#sp-show-thoughts').prop('checked',s.showThoughts!==false);$('#sp-show-weather').prop('checked',s.weatherOverlay!==false);$('#sp-show-timetint').prop('checked',s.timeTint!==false);$('#sp-show-devbtns').prop('checked',s.devButtons===true);$('#sp-function-tool').prop('checked',s.functionToolEnabled===true);$('#sp-font-scale').val(s.fontScale||1);$('#sp-font-scale-val').text((s.fontScale||1).toFixed(1)+'x');$('#sp-language').val(s.language||'');$('#sp-ctx').val(s.contextMessages);$('#sp-retries').val(s.maxRetries);$('#sp-mode').val(s.promptMode||'json');$('#sp-embed-n').val(s.embedSnapshots);$('#sp-embed-role').val(s.embedRole);$('#sp-lore-mode').val(s.lorebookMode||'character_attached');$('#sp-max-snapshots').val(s.maxSnapshots||0);
     // Rebuild profile/preset dropdowns from current DOM (ST may load them late)
     const profiles=getConnectionProfiles();const presets=getChatPresets();
@@ -211,8 +212,8 @@ export function bindUI(){const s=getSettings();
             import('../ui/relationship-graph.js').then(m=>m.clearCache?.()).catch(()=>{});
         }
     });
-    $('#sp-show-weather').on('change',function(){s.weatherOverlay=this.checked;saveSettings();_spSaveLS();const btn=document.getElementById('sp-tb-weather');if(btn)btn.classList.toggle('sp-tb-active',this.checked);if(!this.checked)clearWeatherOverlay();else{const snap=getLatestSnapshot();if(snap){const n=normalizeTracker(snap);updateWeatherOverlay(n.weather)}}});
-    $('#sp-show-timetint').on('change',function(){s.timeTint=this.checked;saveSettings();_spSaveLS();const btn=document.getElementById('sp-tb-timeTint');if(btn)btn.classList.toggle('sp-tb-active',this.checked);if(!this.checked)clearTimeTint();else{const snap=getLatestSnapshot();if(snap){const n=normalizeTracker(snap);updateTimeTint(n.time)}}});
+    $('#sp-show-weather').on('change',function(){s.weatherOverlay=this.checked;saveSettings();_spSaveLS();const cb=document.getElementById('sp-tb-weather');if(cb)cb.checked=this.checked;_syncFeatBadge();if(!this.checked)clearWeatherOverlay();else{const snap=getLatestSnapshot();if(snap){const n=normalizeTracker(snap);updateWeatherOverlay(n.weather)}}});
+    $('#sp-show-timetint').on('change',function(){s.timeTint=this.checked;saveSettings();_spSaveLS();const cb=document.getElementById('sp-tb-timeTint');if(cb)cb.checked=this.checked;_syncFeatBadge();if(!this.checked)clearTimeTint();else{const snap=getLatestSnapshot();if(snap){const n=normalizeTracker(snap);updateTimeTint(n.time)}}});
     $('#sp-show-devbtns').on('change',function(){s.devButtons=this.checked;saveSettings();const dv=this.checked?'':'none';const dw=document.getElementById('sp-dev-wx-wrap');if(dw)dw.style.display=dv;const dt=document.getElementById('sp-dev-time-wrap');if(dt)dt.style.display=dv});
     $('#sp-font-scale').on('input',function(){const v=+this.value;s.fontScale=v;$('#sp-font-scale-val').text(v.toFixed(1)+'x');_applyFontScaleFromUI(v);saveSettings()});
     $('#sp-font-scale-reset').on('click',function(){s.fontScale=1;$('#sp-font-scale').val(1);$('#sp-font-scale-val').text('1.0x');_applyFontScaleFromUI(1);saveSettings()});
@@ -221,7 +222,7 @@ export function bindUI(){const s=getSettings();
         const snap=getLatestSnapshot();
         if(snap){const norm=normalizeTracker(snap);updatePanel(norm,true);updateThoughts(norm)}
         // Update toolbar tooltips
-        const _tips={'sp-tb-regen':t('Regenerate all'),'sp-tb-panels':t('Panel Manager'),'sp-tb-toggle':t('Expand/Collapse sections'),'sp-tb-compact':t('Condense view'),'sp-tb-thoughts':t('Toggle thoughts'),'sp-tb-weather':t('Toggle weather overlay'),'sp-tb-timeTint':t('Toggle time-of-day ambience'),'sp-tb-edit':t('Toggle edit mode'),'sp-tb-empty':t('Show empty fields'),'sp-tb-minimize':t('Hide panel')};
+        const _tips={'sp-tb-regen':t('Regenerate all'),'sp-tb-panels':t('Panel Manager'),'sp-tb-toggle':t('Expand/Collapse sections'),'sp-tb-compact':t('Condense view'),'sp-tb-features':t('Feature toggles'),'sp-tb-edit':t('Toggle edit mode'),'sp-tb-empty':t('Show empty fields'),'sp-tb-minimize':t('Hide panel')};
         for(const[id,tip]of Object.entries(_tips)){const el=document.getElementById(id);if(el)el.title=tip}
         // Re-create settings panel with new language
         const old=document.getElementById('scenepulse-settings');if(old)old.remove();

@@ -222,6 +222,9 @@ export function updatePanel(d,_force=false){
     if(!_isTimelineScrub)updateThoughts(d);
     const body=document.getElementById('sp-panel-body');
     if(!body)return;
+    // Update contextual subtitle with live scene info
+    {const _sub=document.getElementById('sp-brand-subtitle');
+    if(_sub){const _nc=d?.characters?.length||0;const _nr=d?.relationships?.length||0;const _mi=currentSnapshotMesIdx;const parts=[];if(_nc)parts.push(_nc+' char'+((_nc!==1)?'s':''));if(_nr)parts.push(_nr+' rel'+((_nr!==1)?'s':''));if(typeof _mi==='number'&&_mi>=0)parts.push('Msg #'+_mi);_sub.textContent=parts.join(' \u00b7 ')}}
     // Snapshot previous content for error boundary recovery
     const _prevContent=body.innerHTML;
     // Preserve panel manager during rebuild
@@ -723,9 +726,9 @@ export function updatePanel(d,_force=false){
         else if(m.k==='desire'&&(v===-1||v===0||label==='N/A'||labelLow.includes('n/a'))){row.innerHTML=_tagHtml+`<div class="sp-meter-label">${esc(m.l)}</div>${_bar(0)}<div class="sp-meter-value">0${_deltaHtml}${_faceInline}</div>`;meterWrap.appendChild(row)}
         else if(v===-1||label==='N/A'){row.innerHTML=`<div class="sp-meter-label">${esc(m.l)}</div><div class="sp-meter-bar-na"></div><div class="sp-meter-value-na">N/A</div>`;meterWrap.appendChild(row)}
         else{const cv=clamp(v,0,100);row.innerHTML=_tagHtml+`<div class="sp-meter-label">${esc(m.l)}</div>${_bar(cv)}<div class="sp-meter-value">${cv}${_deltaHtml}${_faceInline}</div>`;meterWrap.appendChild(row)}
-        // Add sparkline to meter value cell
+        // Add sparkline as 4th grid column (separated from value to prevent overlap)
         const _sparkCanvas=createSparklineCanvas(displayName,m.k);
-        if(_sparkCanvas){const _valCell=row.querySelector('.sp-meter-value');if(_valCell)_valCell.appendChild(_sparkCanvas)}
+        if(_sparkCanvas){row.appendChild(_sparkCanvas)}
         _body.appendChild(meterWrap)}bl.appendChild(_body);f.appendChild(bl)}return f;
     },s);if(s.panels?.relationships===false)_sec.classList.add('sp-panel-hidden');body.appendChild(_sec)}
 

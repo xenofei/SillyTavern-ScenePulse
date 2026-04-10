@@ -23,6 +23,7 @@ import { mergeDelta } from './delta-merge.js';
 import { spSetGenerating, spPostGenShow } from '../ui/mobile.js';
 import { updatePanel } from '../ui/update-panel.js';
 import { cleanupGenUI } from '../ui/loading.js';
+import { setBrandState } from '../ui/panel.js';
 
 // Apply built-in preset values by temporarily adjusting ST's sampler sliders
 export function applyBuiltinPreset(){
@@ -87,7 +88,7 @@ export function cancelGeneration(){
     const oldNonce=genNonce;
     setGenNonce(genNonce+1); // invalidate in-flight generation
     setCancelRequested(true);
-    setGenerating(false);spSetGenerating(false); // unlock for next generation
+    setGenerating(false);spSetGenerating(false);setBrandState('idle'); // unlock for next generation
     // Defensive reset: the inline-generation timestamp gates extraction ownership.
     // If we cancel without clearing it, a subsequent CHARACTER_MESSAGE_RENDERED from
     // ANOTHER extension (MemoryBooks memory insertion, etc.) would be misattributed
@@ -199,7 +200,7 @@ function _selectSignificantSnapshots(allSnaps,sortedDesc,count){
 export async function generateTracker(mesIdx,partKey,opts){
     if(!getSettings().enabled){log('generateTracker: extension disabled, skipping');return null}
     if(generating){warn('Busy, nonce=',genNonce);return null}
-    setGenerating(true);setCancelRequested(false);spSetGenerating(true);
+    setGenerating(true);setCancelRequested(false);spSetGenerating(true);setBrandState('generating');
     const myNonce=genNonce+1;setGenNonce(myNonce);
     const genStartMs=Date.now();
     const settings=getSettings();const schema=getActiveSchema();const sysPr=getActivePrompt({ hasPrevState: !!getLatestSnapshot(), isDelta: shouldUseDelta() });
@@ -378,7 +379,7 @@ export async function generateTracker(mesIdx,partKey,opts){
         log('POST-GEN: stale nonce',myNonce,'(current',genNonce+') \u2014 result discarded, state untouched');
         return null; // Don't reset generating — the newer cancel/gen already did
     }
-    setGenerating(false);spSetGenerating(false);setCancelRequested(false);cleanupGenUI();
+    setGenerating(false);spSetGenerating(false);setCancelRequested(false);cleanupGenUI();setBrandState(result?'idle':'error');
     if(result){
         log('Raw output keys:',Object.keys(result).join(', '));
         log('Raw characters?',Array.isArray(result.characters)?'array('+result.characters.length+')':typeof result.characters);
@@ -483,7 +484,7 @@ export async function generateTracker(mesIdx,partKey,opts){
 export async function continuationReprompt(narrativeText, opts){
     if(!getSettings().enabled){log('continuationReprompt: extension disabled, skipping');return null}
     if(generating){warn('continuationReprompt: busy, nonce=',genNonce);return null}
-    setGenerating(true);setCancelRequested(false);spSetGenerating(true);
+    setGenerating(true);setCancelRequested(false);spSetGenerating(true);setBrandState('generating');
     const myNonce=genNonce+1;setGenNonce(myNonce);
     const startMs=Date.now();
     const settings=getSettings();
@@ -556,7 +557,7 @@ Output the JSON object now:`;
         log('CONTINUATION POST: stale nonce',myNonce,'(current',genNonce+') — discarded');
         return null;
     }
-    setGenerating(false);spSetGenerating(false);setCancelRequested(false);cleanupGenUI();
+    setGenerating(false);spSetGenerating(false);setCancelRequested(false);cleanupGenUI();setBrandState(result?'idle':'error');
     const elapsed=((Date.now()-startMs)/1000);
     if(result){
         log('=== CONTINUATION SUCCESS === elapsed=',elapsed.toFixed(1)+'s','keys=',Object.keys(result).length);

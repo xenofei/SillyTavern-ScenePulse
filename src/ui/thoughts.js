@@ -8,6 +8,7 @@ import { generating, genNonce, lastGenSource, setLastGenSource } from '../state.
 import { showThoughtLoading, showStopButton, hideStopButton, clearThoughtLoading } from './loading.js';
 import { generateTracker } from '../generation/engine.js';
 import { normalizeTracker, filterForView } from '../normalize.js';
+import { updateFeatBadge } from './panel.js';
 import { updatePanel } from './update-panel.js';
 import { syncThoughts } from './panel.js';
 import { getPortraitHtml, buildPortraitIndex } from './portraits.js';
@@ -114,7 +115,7 @@ export function createThoughtPanel(){
         tp.classList.remove('sp-tp-visible');
         const st=getSettings();st.showThoughts=false;saveSettings();
         // Sync toolbar button
-        const btn=document.getElementById('sp-tb-thoughts');if(btn)btn.classList.remove('sp-tb-active');
+        const btn=document.getElementById('sp-tb-thoughts');if(btn)btn.checked=false;updateFeatBadge();
         // Sync settings checkbox
         const cb=document.getElementById('sp-show-thoughts');if(cb)cb.checked=false;
     });

@@ -42,7 +42,13 @@
     width: 26px; height: 26px; color: var(--sp-accent); cursor: pointer;
     transition: transform 0.3s ease, filter 0.3s ease;
     flex-shrink: 0;
-    animation: sp-logo-glow 3s ease-in-out infinite;
+}
+/* State-driven icon animation — idle is static, generating pulses */
+.sp-brand-icon-wrap.sp-state-generating .sp-brand-icon { animation: sp-logo-glow 1.5s ease-in-out infinite; }
+.sp-brand-icon-wrap.sp-state-error .sp-brand-icon { animation: sp-logo-error 1.5s ease-in-out infinite; }
+@keyframes sp-logo-error {
+    0%, 100% { filter: drop-shadow(0 0 3px rgba(248,113,113,0.2)); color: var(--sp-accent); }
+    50% { filter: drop-shadow(0 0 10px rgba(248,113,113,0.6)); color: #f87171; }
 }
 .sp-brand-icon svg { width: 26px; height: 26px; }
 .sp-brand-icon:hover {
@@ -58,6 +64,14 @@
     color: var(--sp-text-bright); line-height: 1; white-space: nowrap;
 }
 .sp-brand-accent { color: var(--sp-accent); }
+.sp-brand-title-wrap { display: flex; flex-direction: column; min-width: 0; }
+.sp-brand-subtitle {
+    font-size: 9px; font-weight: 500; color: var(--sp-text-dim);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    line-height: 1.1; margin-top: 1px; letter-spacing: 0.01em;
+    opacity: 0.7; transition: opacity 0.2s;
+}
+.sp-brand-subtitle:empty { display: none; }
 /* Update notification dot on brand icon */
 /* Wrapper holds both icon and dot — dot stays fixed while icon rotates */
 .sp-brand-icon-wrap { position: relative; flex-shrink: 0; }
@@ -92,6 +106,45 @@
 .sp-toolbar-btn svg { display: block; }
 .sp-toolbar-btn:hover { background: var(--sp-surface-hover); color: var(--sp-text-bright); border-color: var(--sp-accent); }
 .sp-toolbar-btn.sp-tb-active { background: var(--sp-accent-dim); color: var(--sp-accent); border-color: rgba(77,184,164,0.3); }
+
+/* ═══ FEATURES DROPDOWN ═══ */
+.sp-feat-wrap { position: relative; display: inline-flex; }
+#sp-tb-features { position: relative; }
+.sp-feat-badge {
+    position: absolute; top: -4px; right: -6px;
+    font-size: 7px; font-weight: 700; font-family: var(--sp-font-mono);
+    background: var(--sp-accent-dim); color: var(--sp-accent);
+    padding: 1px 3px; border-radius: 6px; line-height: 1;
+    pointer-events: none; white-space: nowrap;
+}
+.sp-feat-dropdown {
+    display: none; position: absolute; top: calc(100% + 4px); right: 0; z-index: 100;
+    min-width: 180px; padding: 4px 0;
+    background: var(--sp-bg-solid); border: 1px solid var(--sp-border-strong);
+    border-radius: var(--sp-radius-lg); box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    animation: sp-dev-drop-in 0.15s ease-out;
+}
+.sp-feat-dropdown.sp-feat-open { display: block; }
+.sp-feat-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 12px; font-size: 11px; color: var(--sp-text);
+    cursor: pointer; transition: background 0.1s; white-space: nowrap;
+    user-select: none;
+}
+.sp-feat-item:hover { background: var(--sp-surface-hover); color: var(--sp-text-bright); }
+.sp-feat-item input[type="checkbox"] {
+    accent-color: var(--sp-accent); width: 14px; height: 14px;
+    margin: 0; cursor: pointer; flex-shrink: 0;
+}
+.sp-feat-item svg { flex-shrink: 0; color: var(--sp-text-dim); }
+.sp-feat-item.sp-feat-disabled { opacity: 0.3; pointer-events: none; }
+
+/* ═══ TOOLBAR BUTTON GROUPS ═══ */
+.sp-toolbar-group {
+    display: inline-flex; align-items: center; gap: 2px;
+    background: rgba(255,255,255,0.02); border-radius: 6px;
+    padding: 2px 3px;
+}
 
 /* ═══ DEV TOOLBAR BUTTONS & DROPDOWNS ═══ */
 .sp-dev-wrap { position: relative; display: inline-flex; }

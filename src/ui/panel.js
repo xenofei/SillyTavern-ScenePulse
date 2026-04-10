@@ -26,6 +26,23 @@ import { renderCustomPanelsMgr } from '../settings-ui/custom-panels.js';
 import { mkSection } from './section.js';
 import { injectStoryIdea } from '../story-ideas.js';
 
+// Feature badge sync — exported so external modules can update the badge
+export function updateFeatBadge(){
+    const s=getSettings();const active=[s.showThoughts!==false,s.weatherOverlay!==false,s.timeTint!==false,s.sceneTransitions!==false].filter(Boolean).length;
+    const badge=document.getElementById('sp-feat-badge');if(badge)badge.textContent=active+'/4';
+    const btn=document.getElementById('sp-tb-features');if(btn)btn.classList.toggle('sp-tb-active',active>0);
+}
+
+// Brand icon state — reflects generating/idle/error
+let _errorTimer=null;
+export function setBrandState(state){
+    const wrap=document.getElementById('sp-brand-icon-wrap');if(!wrap)return;
+    if(_errorTimer){clearTimeout(_errorTimer);_errorTimer=null}
+    wrap.classList.remove('sp-state-generating','sp-state-error');
+    if(state==='generating')wrap.classList.add('sp-state-generating');
+    else if(state==='error'){wrap.classList.add('sp-state-error');_errorTimer=setTimeout(()=>wrap.classList.remove('sp-state-error'),5000)}
+}
+
 // Font scale: injects a <style> element that scales only font-size on all panel text
 export function _applyFontScale(scale){
     const v=scale||1;
@@ -123,22 +140,29 @@ export function createPanel(){
     panel.innerHTML=`
     <div class="sp-toolbar">
         <div class="sp-brand-icon-wrap" id="sp-brand-icon-wrap"><div class="sp-brand-icon" id="sp-brand-icon" title="ScenePulse v${VERSION}">${MASCOT_SVG}</div></div>
-        <div class="sp-brand-title">Scene<span class="sp-brand-accent">Pulse</span></div>
+        <div class="sp-brand-title-wrap"><div class="sp-brand-title">Scene<span class="sp-brand-accent">Pulse</span></div><div class="sp-brand-subtitle" id="sp-brand-subtitle"></div></div>
         <span class="sp-toolbar-spacer"></span>
         <button class="sp-toolbar-btn" id="sp-tb-regen" title="${t('Regenerate all')}"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M13.5 8a5.5 5.5 0 1 1-1.3-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M13.5 3v2.5h-2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         <span class="sp-toolbar-sep"></span>
+        <div class="sp-toolbar-group">
         <button class="sp-toolbar-btn" id="sp-tb-panels" title="${t('Panel Manager')}"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><rect x="1" y="2" width="6" height="4" rx="1" stroke="currentColor" stroke-width="1.1" opacity="0.6"/><rect x="9" y="2" width="6" height="4" rx="1" stroke="currentColor" stroke-width="1.1" opacity="0.6"/><rect x="1" y="8" width="6" height="4" rx="1" stroke="currentColor" stroke-width="1.1" fill="currentColor" opacity="0.15"/><rect x="9" y="8" width="6" height="4" rx="1" stroke="currentColor" stroke-width="1.1"/><line x1="3" y1="14" x2="13" y2="14" stroke="currentColor" stroke-width="1" opacity="0.25" stroke-linecap="round"/></svg></button>
         <button class="sp-toolbar-btn" id="sp-tb-wiki" title="${t('Character Wiki')}"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M2 2.5A1.5 1.5 0 0 1 3.5 1h3A1.5 1.5 0 0 1 8 2.5v11A1.5 1.5 0 0 0 6.5 12h-3A1.5 1.5 0 0 1 2 10.5v-8z" stroke="currentColor" stroke-width="1.1"/><path d="M14 2.5A1.5 1.5 0 0 0 12.5 1h-3A1.5 1.5 0 0 0 8 2.5v11A1.5 1.5 0 0 1 9.5 12h3a1.5 1.5 0 0 0 1.5-1.5v-8z" stroke="currentColor" stroke-width="1.1"/><line x1="4.5" y1="4" x2="6" y2="4" stroke="currentColor" stroke-width="0.8" opacity="0.4"/><line x1="4.5" y1="6" x2="6" y2="6" stroke="currentColor" stroke-width="0.8" opacity="0.4"/><line x1="10" y1="4" x2="11.5" y2="4" stroke="currentColor" stroke-width="0.8" opacity="0.4"/><line x1="10" y1="6" x2="11.5" y2="6" stroke="currentColor" stroke-width="0.8" opacity="0.4"/></svg></button>
         <button class="sp-toolbar-btn" id="sp-tb-toggle" title="${t('Expand/Collapse sections')}"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><rect x="2" y="2" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="2" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="2" y="9" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="9" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/></svg></button>
         <button class="sp-toolbar-btn" id="sp-tb-compact" title="${t('Condense view')}"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><rect x="2" y="2" width="12" height="2.5" rx="1" fill="currentColor" opacity="0.3"/><rect x="2" y="6" width="9" height="2" rx="0.8" fill="currentColor" opacity="0.2"/><rect x="2" y="9.5" width="11" height="2" rx="0.8" fill="currentColor" opacity="0.15"/><rect x="2" y="13" width="7" height="1.5" rx="0.7" fill="currentColor" opacity="0.1"/><path d="M14 5.5L14 12" stroke="currentColor" stroke-width="1" stroke-linecap="round" opacity="0.3"/><path d="M12.5 7l1.5-1.5L15.5 7" stroke="currentColor" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round" opacity="0.4"/><path d="M12.5 10.5l1.5 1.5 1.5-1.5" stroke="currentColor" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round" opacity="0.4"/></svg></button>
-        <span class="sp-toolbar-sep"></span>
-        <button class="sp-toolbar-btn sp-tb-active" id="sp-tb-thoughts" title="${t('Toggle thoughts')}"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M2 9.5c0 1.5 1.5 3 4 3l2 2v-2c2.5 0 4-1.5 4-3V6c0-1.5-1.5-3-4-3H6C3.5 3 2 4.5 2 6v3.5z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" fill="currentColor" opacity="0.15"/><circle cx="5.5" cy="7.2" r="0.8" fill="currentColor" opacity="0.6"/><circle cx="8" cy="7.2" r="0.8" fill="currentColor" opacity="0.6"/><circle cx="10.5" cy="7.2" r="0.8" fill="currentColor" opacity="0.6"/></svg></button>
-        <button class="sp-toolbar-btn sp-tb-active" id="sp-tb-weather" title="${t('Toggle weather overlay')}"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M4.5 11.5c-2 0-3.5-1.2-3.5-3 0-1.4 1-2.6 2.4-3C4 2.8 6.2 1 9 1c2.6 0 4.8 1.8 5 4 1.5.3 2.5 1.4 2.5 2.8 0 1.7-1.5 3-3.2 3H4.5z" fill="currentColor" opacity="0.15" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><line x1="5" y1="13" x2="4" y2="15.5" stroke="currentColor" stroke-width="1" stroke-linecap="round" opacity="0.4"/><line x1="8.5" y1="13" x2="7.5" y2="15.5" stroke="currentColor" stroke-width="1" stroke-linecap="round" opacity="0.4"/><line x1="12" y1="13" x2="11" y2="15.5" stroke="currentColor" stroke-width="1" stroke-linecap="round" opacity="0.4"/></svg></button>
-        <button class="sp-toolbar-btn sp-tb-active" id="sp-tb-timeTint" title="${t('Toggle time-of-day ambience')}"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><circle cx="8" cy="8" r="3" fill="currentColor" opacity="0.25" stroke="currentColor" stroke-width="1.2"/><line x1="8" y1="1.5" x2="8" y2="3.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.5"/><line x1="8" y1="12.5" x2="8" y2="14.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.5"/><line x1="1.5" y1="8" x2="3.5" y2="8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.5"/><line x1="12.5" y1="8" x2="14.5" y2="8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.5"/><line x1="3.4" y1="3.4" x2="4.8" y2="4.8" stroke="currentColor" stroke-width="1" stroke-linecap="round" opacity="0.35"/><line x1="11.2" y1="11.2" x2="12.6" y2="12.6" stroke="currentColor" stroke-width="1" stroke-linecap="round" opacity="0.35"/><line x1="3.4" y1="12.6" x2="4.8" y2="11.2" stroke="currentColor" stroke-width="1" stroke-linecap="round" opacity="0.35"/><line x1="11.2" y1="4.8" x2="12.6" y2="3.4" stroke="currentColor" stroke-width="1" stroke-linecap="round" opacity="0.35"/></svg></button>
-        <button class="sp-toolbar-btn sp-tb-active" id="sp-tb-sceneTrans" title="${t('Toggle location change popups')}"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M2 12V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z" stroke="currentColor" stroke-width="1.1" fill="currentColor" opacity="0.08"/><path d="M5 8h6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.5"/><path d="M9.5 5.5L12 8l-2.5 2.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-        <span class="sp-toolbar-sep"></span>
+        </div>
+        <div class="sp-toolbar-group">
+        <div class="sp-feat-wrap" id="sp-feat-wrap">
+            <button class="sp-toolbar-btn sp-tb-active" id="sp-tb-features" title="${t('Feature toggles')}"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M8 1.5l1.1 2.3 2.5.4-1.8 1.8.4 2.5L8 7.2 5.8 8.5l.4-2.5L4.4 4.2l2.5-.4z" stroke="currentColor" stroke-width="1.1" fill="currentColor" opacity="0.15"/><path d="M3 11h10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.5"/><path d="M4 13.5h8" stroke="currentColor" stroke-width="1" stroke-linecap="round" opacity="0.3"/></svg><span class="sp-feat-badge" id="sp-feat-badge"></span></button>
+            <div class="sp-feat-dropdown" id="sp-feat-dropdown">
+                <label class="sp-feat-item" id="sp-feat-thoughts"><input type="checkbox" id="sp-tb-thoughts" checked><svg viewBox="0 0 16 16" width="14" height="14" fill="none"><path d="M2 9.5c0 1.5 1.5 3 4 3l2 2v-2c2.5 0 4-1.5 4-3V6c0-1.5-1.5-3-4-3H6C3.5 3 2 4.5 2 6v3.5z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" fill="currentColor" opacity="0.15"/><circle cx="5.5" cy="7.2" r="0.8" fill="currentColor" opacity="0.6"/><circle cx="8" cy="7.2" r="0.8" fill="currentColor" opacity="0.6"/><circle cx="10.5" cy="7.2" r="0.8" fill="currentColor" opacity="0.6"/></svg><span>${t('Thoughts')}</span></label>
+                <label class="sp-feat-item" id="sp-feat-weather"><input type="checkbox" id="sp-tb-weather" checked><svg viewBox="0 0 16 16" width="14" height="14" fill="none"><path d="M4.5 11.5c-2 0-3.5-1.2-3.5-3 0-1.4 1-2.6 2.4-3C4 2.8 6.2 1 9 1c2.6 0 4.8 1.8 5 4 1.5.3 2.5 1.4 2.5 2.8 0 1.7-1.5 3-3.2 3H4.5z" fill="currentColor" opacity="0.15" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg><span>${t('Weather')}</span></label>
+                <label class="sp-feat-item" id="sp-feat-timetint"><input type="checkbox" id="sp-tb-timeTint" checked><svg viewBox="0 0 16 16" width="14" height="14" fill="none"><circle cx="8" cy="8" r="3" fill="currentColor" opacity="0.25" stroke="currentColor" stroke-width="1.2"/><line x1="8" y1="1.5" x2="8" y2="3.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.5"/><line x1="8" y1="12.5" x2="8" y2="14.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.5"/><line x1="1.5" y1="8" x2="3.5" y2="8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.5"/><line x1="12.5" y1="8" x2="14.5" y2="8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.5"/></svg><span>${t('Time Tint')}</span></label>
+                <label class="sp-feat-item" id="sp-feat-scenetrans"><input type="checkbox" id="sp-tb-sceneTrans" checked><svg viewBox="0 0 16 16" width="14" height="14" fill="none"><path d="M2 12V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z" stroke="currentColor" stroke-width="1.1" fill="currentColor" opacity="0.08"/><path d="M5 8h6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.5"/><path d="M9.5 5.5L12 8l-2.5 2.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>${t('Scene Transitions')}</span></label>
+            </div>
+        </div>
         <button class="sp-toolbar-btn" id="sp-tb-edit" title="${t('Toggle edit mode')}"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M11.5 1.5l3 3-8.5 8.5H3v-3l8.5-8.5z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><line x1="9.5" y1="3.5" x2="12.5" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.4"/><line x1="3" y1="14.5" x2="13" y2="14.5" stroke="currentColor" stroke-width="1" opacity="0.3" stroke-linecap="round"/></svg></button>
         <button class="sp-toolbar-btn" id="sp-tb-empty" title="${t('Show empty fields')}"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><rect x="2" y="3" width="12" height="2" rx="0.8" stroke="currentColor" stroke-width="1" opacity="0.6"/><rect x="2" y="7" width="12" height="2" rx="0.8" stroke="currentColor" stroke-width="1" opacity="0.3" stroke-dasharray="2 1.5"/><rect x="2" y="11" width="12" height="2" rx="0.8" stroke="currentColor" stroke-width="1" opacity="0.6"/></svg></button>
+        </div>
         <div class="sp-dev-wrap" id="sp-dev-wx-wrap" style="display:none"><button class="sp-toolbar-btn sp-tb-dev" id="sp-tb-dev-wx" title="DEV: Weather overlays"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M4 12c-1.8 0-3-1-3-2.5S2 7.5 3.5 7C4 4.5 6 3 8.5 3c2.2 0 4 1.5 4.2 3.5C14 6.8 15 8 15 9.5S13.5 12 12 12z" stroke="currentColor" stroke-width="1.1" fill="currentColor" opacity="0.15"/><path d="M6 8l2-3 2 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/><line x1="8" y1="8" x2="8" y2="13" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/></svg></button><div class="sp-dev-dropdown" id="sp-dev-wx-menu"></div></div>
         <div class="sp-dev-wrap" id="sp-dev-time-wrap" style="display:none"><button class="sp-toolbar-btn sp-tb-dev" id="sp-tb-dev-time" title="DEV: Time-of-day tints"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><circle cx="8" cy="8" r="5.5" stroke="currentColor" stroke-width="1.2"/><line x1="8" y1="8" x2="8" y2="4.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><line x1="8" y1="8" x2="11" y2="9.5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/><circle cx="8" cy="8" r="0.8" fill="currentColor"/></svg></button><div class="sp-dev-dropdown" id="sp-dev-time-menu"></div></div>
         <button class="sp-toolbar-btn" id="sp-tb-minimize" title="${t('Hide panel')}" style="display:none"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><line x1="2" y1="13" x2="14" y2="13" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity="0.4"/></svg></button>
@@ -186,7 +210,7 @@ export function createPanel(){
         const st=getSettings();
         st.showThoughts=true;saveSettings();
         // Sync UI
-        const tbBtn=document.getElementById('sp-tb-thoughts');if(tbBtn)tbBtn.classList.add('sp-tb-active');
+        const tbBtn=document.getElementById('sp-tb-thoughts');if(tbBtn)tbBtn.checked=true;_updateFeatBadge();
         const cb=document.getElementById('sp-show-thoughts');if(cb)cb.checked=true;
         if(tp){
             tp.classList.add('sp-tp-visible');
@@ -214,13 +238,17 @@ export function createPanel(){
         });
         saveSettings();
     });
+    // Features dropdown toggle
+    const _featBtn=document.getElementById('sp-tb-features');
+    const _featDrop=document.getElementById('sp-feat-dropdown');
+    const _updateFeatBadge=()=>updateFeatBadge();
+    _featBtn.addEventListener('click',e=>{e.stopPropagation();_featDrop.classList.toggle('sp-feat-open')});
+    _featDrop.addEventListener('click',e=>e.stopPropagation());
+    document.addEventListener('click',()=>_featDrop.classList.remove('sp-feat-open'));
     // Thoughts toggle
-    document.getElementById('sp-tb-thoughts').addEventListener('click',()=>{
-        const s=getSettings();s.showThoughts=!s.showThoughts;saveSettings();
-        const btn=document.getElementById('sp-tb-thoughts');
-        btn.classList.toggle('sp-tb-active',s.showThoughts);
-        syncThoughts();
-        // Also update settings checkbox if it exists
+    document.getElementById('sp-tb-thoughts').addEventListener('change',(e)=>{
+        const s=getSettings();s.showThoughts=e.target.checked;saveSettings();
+        syncThoughts();_updateFeatBadge();
         const cb=document.getElementById('sp-show-thoughts');if(cb)cb.checked=s.showThoughts;
     });
     // Edit mode toggle
@@ -338,10 +366,10 @@ export function createPanel(){
                 if(schemaEl&&!s.schema)schemaEl.value=JSON.stringify(buildDynamicSchema(s),null,2);
                 // Sync toolbar icons: hide/dim when panel disabled
                 if(cb.dataset.panel==='dashboard'){
-                    const wxBtn=document.getElementById('sp-tb-weather');
-                    const ttBtn=document.getElementById('sp-tb-timeTint');
-                    if(wxBtn)wxBtn.style.opacity=cb.checked?'':'0.25';
-                    if(ttBtn)ttBtn.style.opacity=cb.checked?'':'0.25';
+                    const wxItem=document.getElementById('sp-feat-weather');
+                    const ttItem=document.getElementById('sp-feat-timetint');
+                    if(wxItem)wxItem.classList.toggle('sp-feat-disabled',!cb.checked);
+                    if(ttItem)ttItem.classList.toggle('sp-feat-disabled',!cb.checked);
                 }
                 log('Panel toggled:',cb.dataset.panel,'\u2192',cb.checked);
             });
@@ -366,22 +394,26 @@ export function createPanel(){
                             if(card)card.style.display=scb.checked?'':'none';
                             // Sync toolbar buttons
                             if(f.dashCard==='weather'){
-                                const wxBtn=document.getElementById('sp-tb-weather');
-                                if(wxBtn){wxBtn.style.opacity=scb.checked?'':'0.25';wxBtn.style.pointerEvents=scb.checked?'':'none'}
+                                const wxCb=document.getElementById('sp-tb-weather');
+                                const wxItem=document.getElementById('sp-feat-weather');
+                                if(wxItem)wxItem.classList.toggle('sp-feat-disabled',!scb.checked);
                                 if(scb.checked&&s.weatherOverlay===false){
-                                    s.weatherOverlay=true;if(wxBtn)wxBtn.classList.add('sp-tb-active');
+                                    s.weatherOverlay=true;if(wxCb)wxCb.checked=true;
                                     const snap=getLatestSnapshot();if(snap)updateWeatherOverlay(normalizeTracker(snap).weather);
                                 }
-                                if(!scb.checked){s.weatherOverlay=false;clearWeatherOverlay();if(wxBtn)wxBtn.classList.remove('sp-tb-active')}
+                                if(!scb.checked){s.weatherOverlay=false;clearWeatherOverlay();if(wxCb)wxCb.checked=false}
+                                _updateFeatBadge();
                             }
                             if(f.dashCard==='time'){
-                                const ttBtn=document.getElementById('sp-tb-timeTint');
-                                if(ttBtn){ttBtn.style.opacity=scb.checked?'':'0.25';ttBtn.style.pointerEvents=scb.checked?'':'none'}
+                                const ttCb=document.getElementById('sp-tb-timeTint');
+                                const ttItem=document.getElementById('sp-feat-timetint');
+                                if(ttItem)ttItem.classList.toggle('sp-feat-disabled',!scb.checked);
                                 if(scb.checked&&!s.timeTint){
-                                    s.timeTint=true;if(ttBtn)ttBtn.classList.add('sp-tb-active');
+                                    s.timeTint=true;if(ttCb)ttCb.checked=true;
                                     const snap=getLatestSnapshot();if(snap)updateTimeTint(normalizeTracker(snap).time);
                                 }
-                                if(!scb.checked){s.timeTint=false;clearTimeTint();if(ttBtn)ttBtn.classList.remove('sp-tb-active')}
+                                if(!scb.checked){s.timeTint=false;clearTimeTint();if(ttCb)ttCb.checked=false}
+                                _updateFeatBadge();
                             }
                         } else {
                             if(!s.fieldToggles)s.fieldToggles={};
@@ -392,15 +424,19 @@ export function createPanel(){
                             if(fKey==='char_innerThought'){
                                 s.showThoughts=scb.checked;
                                 const tp=document.getElementById('sp-thought-panel');
-                                const thBtn=document.getElementById('sp-tb-thoughts');
+                                const thCb=document.getElementById('sp-tb-thoughts');
+                                const thItem=document.getElementById('sp-feat-thoughts');
                                 if(!scb.checked){
                                     if(tp)tp.classList.remove('sp-tp-visible');
-                                    if(thBtn){thBtn.classList.remove('sp-tb-active');thBtn.style.opacity='0.25';thBtn.style.pointerEvents='none'}
+                                    if(thCb)thCb.checked=false;
+                                    if(thItem)thItem.classList.add('sp-feat-disabled');
                                 } else {
-                                    if(thBtn){thBtn.classList.add('sp-tb-active');thBtn.style.opacity='';thBtn.style.pointerEvents=''}
+                                    if(thCb)thCb.checked=true;
+                                    if(thItem)thItem.classList.remove('sp-feat-disabled');
                                     const snap=getLatestSnapshot();if(snap)updateThoughts(normalizeTracker(snap));
                                     if(tp)tp.classList.add('sp-tp-visible');
                                 }
+                                _updateFeatBadge();
                                 const settingsCb=document.getElementById('sp-show-thoughts');
                                 if(settingsCb)settingsCb.checked=scb.checked;
                             }
@@ -413,8 +449,8 @@ export function createPanel(){
                     subWrap.appendChild(sub);
                     if(f.dashCard==='weather'){
                         const wxHint=document.createElement('div');wxHint.className='sp-mgr-hint-tip';
-                        wxHint.dataset.hintTarget='sp-tb-weather';
-                        wxHint.textContent='\u2139 Weather overlay is off \u2014 enable it in the toolbar for visual effects.';
+                        wxHint.dataset.hintTarget='sp-tb-features';
+                        wxHint.textContent='\u2139 Weather overlay is off \u2014 enable it in Features for visual effects.';
                         const wxOn=()=>dc.weather!==false&&s.weatherOverlay===false;
                         wxHint.style.display=wxOn()?'':'none';
                         wxHint.addEventListener('mouseenter',()=>{const t=document.getElementById(wxHint.dataset.hintTarget);if(t)t.classList.add('sp-tb-glow')});
@@ -468,10 +504,13 @@ export function createPanel(){
             body.querySelectorAll('.sp-panel-hidden').forEach(el=>el.classList.remove('sp-panel-hidden'));
             body.querySelectorAll('[data-ft]').forEach(el=>{el.style.display=''});
             body.querySelectorAll('[data-card]').forEach(el=>{el.style.display=''});
-            for(const bid of['sp-tb-weather','sp-tb-timeTint','sp-tb-thoughts']){
-                const b=document.getElementById(bid);if(b){b.style.opacity='';b.style.pointerEvents='';b.classList.add('sp-tb-active')}
+            for(const bid of['sp-tb-weather','sp-tb-timeTint','sp-tb-thoughts','sp-tb-sceneTrans']){
+                const b=document.getElementById(bid);if(b)b.checked=true;
             }
-            s.weatherOverlay=true;s.timeTint=true;
+            for(const fid of['sp-feat-weather','sp-feat-timetint','sp-feat-thoughts','sp-feat-scenetrans']){
+                const fi=document.getElementById(fid);if(fi)fi.classList.remove('sp-feat-disabled');
+            }
+            s.weatherOverlay=true;s.timeTint=true;s.sceneTransitions=true;_updateFeatBadge();
             const snap=getLatestSnapshot();
             if(snap){const n=normalizeTracker(snap);updateWeatherOverlay(n.weather);updateTimeTint(n.time);updateThoughts(n);const tp=document.getElementById('sp-thought-panel');if(tp)tp.classList.add('sp-tp-visible')}
             builtinHeader.querySelector('.sp-mgr-collapse-count').textContent=Object.keys(BUILTIN_PANELS).length+'/'+Object.keys(BUILTIN_PANELS).length;
@@ -504,9 +543,13 @@ export function createPanel(){
             // Disable overlays + toolbar buttons
             clearWeatherOverlay();clearTimeTint();
             const tp=document.getElementById('sp-thought-panel');if(tp)tp.classList.remove('sp-tp-visible');
-            for(const bid of['sp-tb-weather','sp-tb-timeTint','sp-tb-thoughts']){
-                const b=document.getElementById(bid);if(b){b.style.opacity='0.25';b.style.pointerEvents='none';b.classList.remove('sp-tb-active')}
+            for(const bid of['sp-tb-weather','sp-tb-timeTint','sp-tb-thoughts','sp-tb-sceneTrans']){
+                const b=document.getElementById(bid);if(b)b.checked=false;
             }
+            for(const fid of['sp-feat-weather','sp-feat-timetint','sp-feat-thoughts','sp-feat-scenetrans']){
+                const fi=document.getElementById(fid);if(fi)fi.classList.add('sp-feat-disabled');
+            }
+            s.sceneTransitions=false;_updateFeatBadge();
             builtinHeader.querySelector('.sp-mgr-collapse-count').textContent='0/'+Object.keys(BUILTIN_PANELS).length;
             const schemaEl=document.getElementById('sp-schema');
             if(schemaEl&&!s.schema)schemaEl.value=JSON.stringify(buildDynamicSchema(s),null,2);
@@ -718,43 +761,38 @@ export function createPanel(){
 
         body.insertBefore(mgr,body.firstChild);
         } catch(e) { console.error('[ScenePulse] Panel Manager failed to open:', e); btn.classList.remove('sp-tb-active'); }
-        // Sync toolbar buttons with current dashCard/thoughts state
-        const _dc=s.dashCards||DEFAULTS.dashCards;
-        const wxBtn=document.getElementById('sp-tb-weather');
-        if(wxBtn&&_dc.weather===false){wxBtn.style.opacity='0.25';wxBtn.style.pointerEvents='none'}
-        const ttBtn=document.getElementById('sp-tb-timeTint');
-        if(ttBtn&&_dc.time===false){ttBtn.style.opacity='0.25';ttBtn.style.pointerEvents='none'}
-        const thBtn=document.getElementById('sp-tb-thoughts');
-        const _ft=s.fieldToggles||{};
-        if(thBtn&&(_ft.char_innerThought===false||s.showThoughts===false)){thBtn.style.opacity='0.25';thBtn.style.pointerEvents='none'}
+        // Sync feature dropdown with current dashCard/thoughts state
+        const _dc2=s.dashCards||DEFAULTS.dashCards;const _ft2=s.fieldToggles||{};
+        const wxItem=document.getElementById('sp-feat-weather');
+        if(wxItem&&_dc2.weather===false)wxItem.classList.add('sp-feat-disabled');
+        const ttItem=document.getElementById('sp-feat-timetint');
+        if(ttItem&&_dc2.time===false)ttItem.classList.add('sp-feat-disabled');
+        const thItem=document.getElementById('sp-feat-thoughts');
+        if(thItem&&(_ft2.char_innerThought===false||s.showThoughts===false))thItem.classList.add('sp-feat-disabled');
         // Trigger open transition: start from closing state, remove in next frame
         requestAnimationFrame(()=>requestAnimationFrame(()=>mgr.classList.remove('sp-mgr-closing')));
     });
     // Weather overlay toggle
-    document.getElementById('sp-tb-weather').addEventListener('click',()=>{
-        const s=getSettings();s.weatherOverlay=s.weatherOverlay===false?true:false;saveSettings();
-        const btn=document.getElementById('sp-tb-weather');
-        btn.classList.toggle('sp-tb-active',s.weatherOverlay!==false);
-        if(s.weatherOverlay===false){clearWeatherOverlay()}
+    document.getElementById('sp-tb-weather').addEventListener('change',(e)=>{
+        const s=getSettings();s.weatherOverlay=e.target.checked;saveSettings();
+        if(!e.target.checked){clearWeatherOverlay()}
         else{const snap=getLatestSnapshot();if(snap){const n=normalizeTracker(snap);updateWeatherOverlay(n.weather)}}
-        const cb=document.getElementById('sp-show-weather');if(cb)cb.checked=s.weatherOverlay!==false;
+        _updateFeatBadge();
+        const cb=document.getElementById('sp-show-weather');if(cb)cb.checked=e.target.checked;
     });
     // Time-of-day tint toggle
-    document.getElementById('sp-tb-timeTint').addEventListener('click',()=>{
-        const s=getSettings();s.timeTint=s.timeTint===false?true:false;saveSettings();
-        const btn=document.getElementById('sp-tb-timeTint');
-        btn.classList.toggle('sp-tb-active',s.timeTint!==false);
-        if(s.timeTint===false){clearTimeTint()}
+    document.getElementById('sp-tb-timeTint').addEventListener('change',(e)=>{
+        const s=getSettings();s.timeTint=e.target.checked;saveSettings();
+        if(!e.target.checked){clearTimeTint()}
         else{const snap=getLatestSnapshot();if(snap){const n=normalizeTracker(snap);updateTimeTint(n.time)}}
-        const cb=document.getElementById('sp-show-timetint');if(cb)cb.checked=s.timeTint!==false;
+        _updateFeatBadge();
+        const cb=document.getElementById('sp-show-timetint');if(cb)cb.checked=e.target.checked;
     });
     // Scene transition popup toggle
-    {const _stBtn=document.getElementById('sp-tb-sceneTrans');
-    const _stInit=getSettings();_stBtn.classList.toggle('sp-tb-active',_stInit.sceneTransitions!==false);
-    _stBtn.addEventListener('click',()=>{
-        const s=getSettings();s.sceneTransitions=s.sceneTransitions===false?true:false;saveSettings();
-        _stBtn.classList.toggle('sp-tb-active',s.sceneTransitions!==false);
-    });}
+    document.getElementById('sp-tb-sceneTrans').addEventListener('change',(e)=>{
+        const s=getSettings();s.sceneTransitions=e.target.checked;saveSettings();
+        _updateFeatBadge();
+    });
 
     // ── DEV: Weather overlay dropdown ──
     const _devWxTypes=[
@@ -769,7 +807,7 @@ export function createPanel(){
         item.addEventListener('click',()=>{
             if(wt.id==='off'){setCurrentWeatherType('');clearWeatherOverlay();log('[DEV] Weather cleared');_devWxMenu.classList.remove('sp-dev-open');_devWxMenu.querySelectorAll('.sp-dev-dropdown-item').forEach(i=>i.classList.remove('sp-dev-active'));item.classList.add('sp-dev-active');return}
             const s=getSettings();s.weatherOverlay=true;saveSettings();
-            const btn=document.getElementById('sp-tb-weather');if(btn)btn.classList.add('sp-tb-active');
+            const btn=document.getElementById('sp-tb-weather');if(btn)btn.checked=true;_updateFeatBadge();
             setCurrentWeatherType('');
             const fakeWx={rain:'rain',snow:'snow',hail:'hail storm',storm:'thunderstorm',fog:'fog',sandstorm:'sandstorm',ash:'volcanic ash',wind:'wind',aurora:'aurora'}[wt.id]||wt.id;
             updateWeatherOverlay(fakeWx);
@@ -781,6 +819,7 @@ export function createPanel(){
     document.getElementById('sp-tb-dev-wx').addEventListener('click',e=>{
         e.stopPropagation();
         document.getElementById('sp-dev-time-menu').classList.remove('sp-dev-open');
+        _featDrop.classList.remove('sp-feat-open');
         _devWxMenu.classList.toggle('sp-dev-open');
     });
 
@@ -797,7 +836,7 @@ export function createPanel(){
         item.addEventListener('click',()=>{
             if(tp.id==='off'){setCurrentTimePeriod('');clearTimeTint();log('[DEV] Time tint cleared');_devTimeMenu.classList.remove('sp-dev-open');_devTimeMenu.querySelectorAll('.sp-dev-dropdown-item').forEach(i=>i.classList.remove('sp-dev-active'));item.classList.add('sp-dev-active');return}
             const s=getSettings();s.timeTint=true;saveSettings();
-            const btn=document.getElementById('sp-tb-timeTint');if(btn)btn.classList.add('sp-tb-active');
+            const btn=document.getElementById('sp-tb-timeTint');if(btn)btn.checked=true;_updateFeatBadge();
             setCurrentTimePeriod('');
             updateTimeTint(tp.time);
             _devTimeMenu.querySelectorAll('.sp-dev-dropdown-item').forEach(i=>i.classList.remove('sp-dev-active'));item.classList.add('sp-dev-active');
@@ -808,6 +847,7 @@ export function createPanel(){
     document.getElementById('sp-tb-dev-time').addEventListener('click',e=>{
         e.stopPropagation();
         _devWxMenu.classList.remove('sp-dev-open');
+        _featDrop.classList.remove('sp-feat-open');
         _devTimeMenu.classList.toggle('sp-dev-open');
     });
 
@@ -821,11 +861,14 @@ export function createPanel(){
     // Initialize toolbar button states
     const s=getSettings();
     const tbThoughts=document.getElementById('sp-tb-thoughts');
-    if(tbThoughts)tbThoughts.classList.toggle('sp-tb-active',s.showThoughts!==false);
+    if(tbThoughts)tbThoughts.checked=s.showThoughts!==false;
     const tbWeather=document.getElementById('sp-tb-weather');
-    if(tbWeather)tbWeather.classList.toggle('sp-tb-active',s.weatherOverlay!==false);
+    if(tbWeather)tbWeather.checked=s.weatherOverlay!==false;
     const tbTimeTint=document.getElementById('sp-tb-timeTint');
-    if(tbTimeTint)tbTimeTint.classList.toggle('sp-tb-active',s.timeTint!==false);
+    if(tbTimeTint)tbTimeTint.checked=s.timeTint!==false;
+    const tbSceneTrans=document.getElementById('sp-tb-sceneTrans');
+    if(tbSceneTrans)tbSceneTrans.checked=s.sceneTransitions!==false;
+    _updateFeatBadge();
     const tbEmpty=document.getElementById('sp-tb-empty');
     if(tbEmpty)tbEmpty.classList.toggle('sp-tb-active',s.showEmptyFields===true);
     if(s.showEmptyFields){const p=document.getElementById('sp-panel');if(p)p.classList.add('sp-show-empty')}
