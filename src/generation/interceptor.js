@@ -2,7 +2,7 @@
 
 import { log } from '../logger.js';
 import { DEFAULTS } from '../constants.js';
-import { getSettings, getActiveSchema, getActivePrompt, getLatestSnapshot, getLanguage } from '../settings.js';
+import { getSettings, getActiveSchema, getActivePrompt, getLatestSnapshot, getLanguage, shouldUseDelta } from '../settings.js';
 import { anyPanelsActive } from '../settings.js';
 import { getGroupMemberNames } from '../normalize.js';
 import {
@@ -90,7 +90,12 @@ QUEST STATE RULES (all REQUIRED):
         if(!cp.fields?.length)continue;
         mandatoryHints+=`\n- ${cp.fields.map(f=>f.key).join(', ')}: ${cp.name} fields \u2014 populate from story context.`;
     }
-    const isDelta = s.deltaMode && snap;
+    // v6.8.50: use the shared shouldUseDelta() helper instead of
+    // checking deltaMode directly. This respects the periodic full-
+    // state refresh counter, so every N delta turns we automatically
+    // switch back to full-state for one generation to re-establish
+    // ground truth and flush stale data.
+    const isDelta = shouldUseDelta();
     const _lang=getLanguage();
     const _langBlock=_lang?`\nLANGUAGE: All narrative string values MUST be in ${_lang}. JSON keys and enum values remain in English.\n`:'';
 

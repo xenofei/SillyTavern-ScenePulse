@@ -15,7 +15,7 @@ import {
 import {
     getSettings, getActiveSchema, getActivePrompt, getTrackerData,
     getLatestSnapshot, saveSnapshot, getSnapshotFor, ensureChatSaved,
-    getConnectionProfiles, getChatPresets
+    getConnectionProfiles, getChatPresets, shouldUseDelta
 } from '../settings.js';
 import { normalizeTracker } from '../normalize.js';
 import { cleanJson } from './extraction.js';
@@ -341,8 +341,14 @@ export async function generateTracker(mesIdx,partKey,opts){
                 setGenMeta(meta);
                 addSessionTokens(meta.promptTokens + meta.completionTokens);
                 const parsed=cleanJson(raw);
-                // Delta merge: combine delta response with previous snapshot
-                if(settings.deltaMode && lastSnap){
+                // Delta merge: combine delta response with previous snapshot.
+                // v6.8.50: use the shared shouldUseDelta() helper which
+                // respects the periodic full-state refresh counter. When the
+                // counter exceeds the threshold, shouldUseDelta() returns
+                // false and the interceptor would have already sent a full-
+                // state prompt, so the parsed response is a complete snapshot
+                // — we should NOT merge it, just use it as-is.
+                if(shouldUseDelta() && lastSnap){
                     log('Delta mode: merging',Object.keys(parsed).length,'delta keys with previous');
                     setLastDeltaPayload(parsed);
                     // Estimate delta savings: compare output tokens to typical full output
@@ -419,7 +425,15 @@ export async function generateTracker(mesIdx,partKey,opts){
         if(result.relationships?.length){for(const r of result.relationships)log('  rel:',r.name,'aff=',r.affection,'trust=',r.trust,'desire=',r.desire,'compat=',r.compatibility)}
         setCurrentSnapshotMesIdx(mesIdx);
         // Embed generation metadata into snapshot for persistence
-        result._spMeta={promptTokens:genMeta.promptTokens,completionTokens:genMeta.completionTokens,elapsed:genMeta.elapsed,source:lastGenSource,injectionMethod:getSettings().injectionMethod||'inline'};
+        // v6.8.50: deltaTurnsSinceFull tracks how many consecutive delta
+        // turns have elapsed since the last full-state generation. When
+        // this turn was delta, increment; when it was full, reset to 0.
+        // The shouldUseDelta() helper reads this counter from the
+        // previous snapshot to decide whether the NEXT turn should be
+        // delta or forced-full.
+        const _wasDelta = shouldUseDelta();
+        const _prevCounter = (getLatestSnapshot()?._spMeta?.deltaTurnsSinceFull ?? 0);
+        result._spMeta={promptTokens:genMeta.promptTokens,completionTokens:genMeta.completionTokens,elapsed:genMeta.elapsed,source:lastGenSource,injectionMethod:getSettings().injectionMethod||'inline',deltaMode:_wasDelta,deltaTurnsSinceFull:_wasDelta?_prevCounter+1:0};
         saveSnapshot(mesIdx,result);log('Snapshot saved for mesIdx=',mesIdx,'keys=',Object.keys(result).length,'elapsed=',genMeta.elapsed.toFixed(1)+'s','~tokens:',genMeta.promptTokens+genMeta.completionTokens);
         updatePanel(result);
         spPostGenShow(); // mobile: banner instead of panel popup

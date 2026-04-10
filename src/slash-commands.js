@@ -4,7 +4,7 @@
 import { log, warn } from './logger.js';
 import { t } from './i18n.js';
 import { spConfirm } from './utils.js';
-import { getSettings, saveSettings, getLatestSnapshot, getTrackerData, anyPanelsActive } from './settings.js';
+import { getSettings, saveSettings, getLatestSnapshot, getTrackerData, anyPanelsActive, forceFullStateRefresh, clearForceFullState } from './settings.js';
 import { normalizeTracker, clearNormCache } from './normalize.js';
 import { generating } from './state.js';
 import { BUILTIN_PANELS, VERSION } from './constants.js';
@@ -100,7 +100,15 @@ export function registerSlashCommands() {
         returns: 'string',
     }));
 
-    log('Slash commands registered: /sp, /sp-regen, /sp-status, /sp-clear, /sp-toggle, /sp-export, /sp-debug, /sp-help');
+    // ── /sp-refresh — Force a full-state regeneration (bypass delta mode) ──
+    SCP.addCommandObject(SC.fromProps({
+        name: 'sp-refresh',
+        callback: _spRefresh,
+        helpString: 'Force a full-state tracker regeneration, bypassing delta mode. Use when data seems stale or incorrect after many delta turns.',
+        returns: 'string',
+    }));
+
+    log('Slash commands registered: /sp, /sp-regen, /sp-status, /sp-clear, /sp-toggle, /sp-export, /sp-debug, /sp-help, /sp-refresh');
 }
 
 // ── Main dispatcher for /sp <subcommand> ──
@@ -113,6 +121,7 @@ async function _spMain(args, value) {
         case 'status': return _spStatus();
         case 'regen':
         case 'regenerate': return _spRegen(args, rest);
+        case 'refresh': return _spRefresh();
         case 'clear': return _spClear();
         case 'toggle': return _spToggle(args, rest);
         case 'export': return _spExport();
@@ -121,7 +130,7 @@ async function _spMain(args, value) {
         case 'help':
             return _spHelp();
         default:
-            return `Unknown subcommand: ${sub}. Use: status, regen, clear, toggle, export, debug`;
+            return `Unknown subcommand: ${sub}. Use: status, regen, refresh, clear, toggle, export, debug`;
     }
 }
 
@@ -131,6 +140,7 @@ function _spHelp() {
         `ScenePulse v${VERSION} — Slash Commands:`,
         '  /sp status — Show tracker state summary',
         '  /sp regen [section] — Regenerate tracker (optional: dashboard, scene, quests, relationships, characters, branches)',
+        '  /sp refresh — Force full-state regeneration (bypass delta mode, reset drift counter)',
         '  /sp clear — Clear all tracker data for this chat',
         '  /sp toggle <panel> — Toggle panel on/off',
         '  /sp export — Export tracker history as JSON',
@@ -233,6 +243,59 @@ async function _spRegen(args, value) {
         return `Tracker ${partKey ? `(${partKey}) ` : ''}regenerated for message #${mesIdx}.`;
     }
     return 'Generation failed — check SP debug log.';
+}
+
+// ── /sp refresh — v6.8.50: force a full-state regeneration ──
+async function _spRefresh() {
+    if (!getSettings().enabled) return 'ScenePulse is disabled.';
+    if (generating) return 'Generation already in progress.';
+    if (!anyPanelsActive()) return 'No panels are active.';
+
+    const s = getSettings();
+    if (!s.deltaMode) return 'Delta mode is off — /sp-regen already produces a full-state output.';
+
+    log('Slash command: /sp refresh — forcing full-state regeneration');
+    forceFullStateRefresh();
+    try {
+        // Reuse the regen path — the forceFullState flag makes
+        // shouldUseDelta() return false for this one generation
+        // cycle, so the interceptor sends a full-state prompt
+        // and the engine/pipeline skips the delta merge.
+        const { generateTracker } = await import('./generation/engine.js');
+        const { addMesButton } = await import('./ui/message.js');
+        const { updatePanel } = await import('./ui/update-panel.js');
+        const { showPanel } = await import('./ui/panel.js');
+        const { setLastGenSource } = await import('./state.js');
+        const { showLoadingOverlay, clearLoadingOverlay, showStopButton, hideStopButton, startElapsedTimer, stopElapsedTimer, showThoughtLoading, clearThoughtLoading } = await import('./ui/loading.js');
+        const { spAutoShow } = await import('./ui/mobile.js');
+        setLastGenSource('slash:refresh');
+
+        const { chat } = SillyTavern.getContext();
+        let mesIdx = -1;
+        for (let i = chat.length - 1; i >= 0; i--) {
+            if (!chat[i].is_user) { mesIdx = i; break; }
+        }
+        if (mesIdx < 0) { clearForceFullState(); return 'No assistant message found to analyze.'; }
+
+        const panel = document.getElementById('sp-panel');
+        if (panel) { spAutoShow(); showLoadingOverlay(document.getElementById('sp-panel-body'), t('Full Refresh'), t('Re-establishing ground truth')); showStopButton(); startElapsedTimer(); }
+        showThoughtLoading(t('Full Refresh'), t('Re-establishing ground truth'));
+
+        const result = await generateTracker(mesIdx, null, {});
+
+        hideStopButton(); stopElapsedTimer();
+        clearLoadingOverlay(document.getElementById('sp-panel-body')); clearThoughtLoading();
+
+        if (result) {
+            showPanel();
+            const el = document.querySelector(`.mes[mesid="${mesIdx}"]`);
+            if (el) addMesButton(el);
+            return `Full-state refresh complete for message #${mesIdx}. Delta counter reset to 0.`;
+        }
+        return 'Full-state refresh failed — check SP debug log.';
+    } finally {
+        clearForceFullState();
+    }
 }
 
 // ── /sp clear ──

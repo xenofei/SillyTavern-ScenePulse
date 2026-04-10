@@ -7,7 +7,7 @@ import {
     setCurrentSnapshotMesIdx, setLastGenSource, setLastRawResponse, setLastDeltaPayload,
     addSessionTokens, setLastDeltaSavings, _lastDeltaSavings
 } from '../state.js';
-import { getSettings, getLatestSnapshot, saveSnapshot, ensureChatSaved } from '../settings.js';
+import { getSettings, getLatestSnapshot, saveSnapshot, ensureChatSaved, shouldUseDelta } from '../settings.js';
 import { normalizeTracker } from '../normalize.js';
 import { mergeDelta } from './delta-merge.js';
 import { updatePanel } from '../ui/update-panel.js';
@@ -39,9 +39,11 @@ export async function processExtraction(mesIdx, extracted, source, opts = {}) {
     setLastRawResponse(JSON.stringify(extracted, null, 2));
     addSessionTokens(promptTokens + completionTokens);
 
-    // Delta merge
+    // Delta merge — v6.8.50: use shouldUseDelta() which respects the
+    // periodic full-state refresh counter.
     const prevSnap = getLatestSnapshot();
-    if (s.deltaMode && prevSnap) {
+    const _useDelta = shouldUseDelta();
+    if (_useDelta && prevSnap) {
         setLastDeltaPayload(extracted);
         const fullEstimate = Math.round(JSON.stringify(prevSnap).length / 4);
         if (fullEstimate > 0) {
@@ -68,6 +70,8 @@ export async function processExtraction(mesIdx, extracted, source, opts = {}) {
     _logSummary(norm, source);
 
     // Attach metadata (persists per-snapshot for historical browsing)
+    // v6.8.50: track deltaTurnsSinceFull for the periodic refresh counter.
+    const _prevCounter = (prevSnap?._spMeta?.deltaTurnsSinceFull ?? 0);
     extracted._spMeta = {
         promptTokens,
         completionTokens,
@@ -75,7 +79,8 @@ export async function processExtraction(mesIdx, extracted, source, opts = {}) {
         source,
         injectionMethod: s.injectionMethod || 'inline',
         deltaSavings: _lastDeltaSavings || 0,
-        deltaMode: !!s.deltaMode
+        deltaMode: _useDelta,
+        deltaTurnsSinceFull: _useDelta ? _prevCounter + 1 : 0,
     };
 
     // Save snapshot

@@ -435,6 +435,27 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.8.50] — 2026-04-09
+
+#### Added — Delta mode production-readiness: periodic refresh, recovery, omission guards, critical tests
+Prerequisite work for promoting delta mode from experimental to default-on. Five independent reviewers (code audit, architecture, data integrity, test coverage, performance) identified two blocking items and one non-blocking data integrity issue. All three are resolved in this version.
+
+**Periodic full-state refresh** — after `deltaRefreshInterval` consecutive delta turns (default 15), the system automatically forces one full-state generation to re-establish ground truth and flush stale scalars, phantom entities, and fossilized relationship meters. The counter is tracked in `_spMeta.deltaTurnsSinceFull` on each snapshot. A new shared `shouldUseDelta()` helper in `settings.js` is the single decision point used by the interceptor (prompt building), engine (delta merge gating), and pipeline (delta merge gating), ensuring all three agree on whether this turn is delta or forced-full. The counter resets to 0 on every full-state generation (including the first turn of a new chat, which is always full).
+
+**Full-state recovery command** — `/sp-refresh` (or `/sp refresh`) forces a full-state regeneration regardless of the delta counter, bypassing delta mode for one generation cycle. The `forceFullStateRefresh()` flag auto-clears after the generation completes (success or failure) via a `finally` block, so subsequent turns resume delta mode normally. Useful when data seems stale or incorrect after many delta turns, or after importing a snapshot from an external source.
+
+**`plotBranches` omission guard** — plot branches should be fresh every turn (5 new story suggestions per the prompt contract). If the LLM omits `plotBranches` from the delta, the delta-merge layer now treats the omission as an explicit empty array (same pattern as the v6.8.45 `charactersPresent` fix), preventing stale suggestions from persisting indefinitely. The normalize-layer carry-forward that previously re-filled empty plotBranches from the prior snapshot has been removed.
+
+**Critical test coverage** — new test file `tests/delta-mode.test.mjs` with 43 test cases covering the six critical/important gaps identified in the test coverage audit:
+1. Multi-turn chain (4 sequential deltas): scalar carry-forward, roster stability, quest cap enforcement through `normalizeTracker`
+2. Full-state-as-delta: LLM ignores delta instructions and returns complete snapshot — entities are merged by name, not doubled
+3. Empty object delta: `{}` produces a clean clone of prev minus resolved quests, with `charactersPresent: []` and `plotBranches: []`
+4. Resolved quest eviction: resolved quests are stripped from carry-forward data
+5. Meter stability: delta updates only `innerThought`, all five relationship meters remain unchanged
+6. plotBranches omission guard: omitted → empty, explicit → replaced
+
+All 9 test files pass (43 new delta-mode cases + 11 solo-scene + 25 delta-merge-fuzzy + 13 character-aliases + 20 group-chat + 46 no-user-as-character + paren-aliases + classify-quest + extraction-cleanjson).
+
 ### [6.8.49] — 2026-04-09
 
 #### Changed — Quest journal quality: actionability gate, consolidation, urgency calibration

@@ -208,15 +208,12 @@ export function normalizeTracker(d){
         }
         return{type:t,name:rawName,hook:rawHook}
     }).filter(b=>b.name||b.hook):[];
-    // Carry forward: if model returned empty plotBranches, preserve previous snapshot's ideas
-    if(!o.plotBranches.length){
-        try{const prev=getLatestSnapshot();
-            if(prev?.plotBranches?.length){
-                log('plotBranches empty \u2014 carrying forward',prev.plotBranches.length,'ideas from previous snapshot');
-                o.plotBranches=prev.plotBranches;
-            }
-        }catch{}
-    }
+    // v6.8.50: REMOVED "carry forward plotBranches if empty". Plot
+    // branches should be fresh every turn (5 new story suggestions).
+    // The delta-merge layer now treats omitted plotBranches as an
+    // explicit empty array (same pattern as charactersPresent), and
+    // carrying forward stale suggestions from prior turns defeats
+    // the "fresh each turn" contract.
     // Carry forward: smart quest completion detection
     {try{const prev=getLatestSnapshot();if(prev){
         for(const _qk of['mainQuests','sideQuests']){

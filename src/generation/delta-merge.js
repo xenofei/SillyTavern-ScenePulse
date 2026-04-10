@@ -202,6 +202,13 @@ export function mergeDelta(prev, delta) {
     if (!('charactersPresent' in delta)) {
         merged.charactersPresent = [];
     }
+    // v6.8.50: plotBranches is "ALWAYS include" per delta-mode rule 6.
+    // Branches should be fresh every turn (5 new suggestions). If the
+    // LLM omits them, stale branches from a prior turn would persist
+    // indefinitely. Same pattern as the charactersPresent guard above.
+    if (!('plotBranches' in delta)) {
+        merged.plotBranches = [];
+    }
 
     // v6.8.18: reconcile relationships and charactersPresent against the
     // merged character roster's alias map. If a character was renamed this

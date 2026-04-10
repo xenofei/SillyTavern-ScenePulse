@@ -519,6 +519,58 @@ export function mergeCharactersAcrossSnapshots(srcName, tgtName) {
 
 export function getLatestSnapshot(){const d=getTrackerData();const k=Object.keys(d.snapshots).sort((a,b)=>Number(b)-Number(a));return k.length?d.snapshots[k[0]]:null}
 
+/**
+ * v6.8.50: determine whether THIS turn should use delta mode or force
+ * a full-state refresh. Called by both the interceptor (prompt building)
+ * and the engine/pipeline (delta merge gating) to ensure they agree.
+ *
+ * Returns `true` for delta, `false` for forced-full. The decision is:
+ *   1. deltaMode must be enabled in settings.
+ *   2. A previous snapshot must exist (first turn is always full).
+ *   3. The counter `_spMeta.deltaTurnsSinceFull` must be BELOW the
+ *      configured `deltaRefreshInterval`. If >= threshold, this turn
+ *      is forced-full to re-establish ground truth.
+ *   4. If `deltaRefreshInterval` is 0, periodic refresh is disabled
+ *      and delta mode is always used (no forced full).
+ *
+ * The counter is NOT incremented here — it's incremented when the
+ * snapshot is saved (in engine.js / pipeline.js), so repeated calls
+ * within the same turn return the same answer.
+ */
+let _forceFullNextTurn = false;
+
+export function shouldUseDelta() {
+    const s = getSettings();
+    if (!s.deltaMode) return false;
+    if (_forceFullNextTurn) return false;
+    const snap = getLatestSnapshot();
+    if (!snap) return false;
+    const interval = typeof s.deltaRefreshInterval === 'number' ? s.deltaRefreshInterval : 15;
+    if (interval <= 0) return true; // periodic refresh disabled
+    const turnsSinceFull = (snap._spMeta?.deltaTurnsSinceFull ?? 0);
+    return turnsSinceFull < interval;
+}
+
+/**
+ * v6.8.50: force the next generation to use full-state mode regardless
+ * of the delta mode setting. Called by /sp-refresh and the "Refresh
+ * Full State" UI button. The flag auto-clears after one generation
+ * cycle because shouldUseDelta() returns false, the snapshot gets
+ * deltaTurnsSinceFull=0, and subsequent turns resume delta mode
+ * normally.
+ */
+export function forceFullStateRefresh() {
+    _forceFullNextTurn = true;
+}
+
+/**
+ * Clear the force-full flag. Called after the generation completes
+ * (success or failure) so the flag doesn't persist across user actions.
+ */
+export function clearForceFullState() {
+    _forceFullNextTurn = false;
+}
+
 export function saveSnapshot(id,j){
     const data=getTrackerData();
     data.snapshots[String(id)]=j;
