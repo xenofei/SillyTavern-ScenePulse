@@ -9,6 +9,7 @@
     display: flex; align-items: center; gap: 8px; padding: 7px 12px;
     cursor: pointer; user-select: none; transition: background var(--sp-transition);
     pointer-events: auto; position: relative; z-index: 1;
+    background: var(--sp-bg-solid);
 }
 .sp-section-header:hover { background: var(--sp-surface); }
 .sp-section-spacer { flex: 1; }
@@ -32,7 +33,7 @@
 /* v6.9.6: removed max-height: 40vh which caused a nested scroll trap
    (scrollable sub-region inside the already-scrollable panel). The
    panel's own overflow handles all scrolling now. */
-.sp-section-content { padding: 4px 12px 8px 12px; overflow: hidden; }
+.sp-section-content { padding: 4px 12px 8px 12px; overflow-x: hidden; }
 .sp-section-content::-webkit-scrollbar { width: 3px; }
 .sp-section-content::-webkit-scrollbar-thumb { background: rgba(100,110,130,0.3); border-radius: 2px; }
 
