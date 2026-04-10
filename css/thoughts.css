@@ -79,6 +79,15 @@
 }
 .sp-tp-ghost:hover { background: var(--sp-surface-hover); color: var(--sp-text-bright); border-color: var(--sp-accent); }
 .sp-tp-ghost.sp-tb-active { background: var(--sp-accent-dim); color: var(--sp-accent); border-color: rgba(77,184,164,0.3); }
+/* v6.9.6: auto-fit button — was missing entirely, rendered as unstyled
+   white default. Now matches the other toolbar buttons exactly. */
+.sp-tp-fit {
+    background: var(--sp-surface); border: 1px solid var(--sp-border); color: var(--sp-text-dim); cursor: pointer;
+    width: 26px; height: 26px; padding: 0; border-radius: 5px;
+    transition: all var(--sp-transition); display: inline-flex; align-items: center; justify-content: center;
+}
+.sp-tp-fit:hover { background: var(--sp-surface-hover); color: var(--sp-text-bright); border-color: var(--sp-accent); }
+.sp-tp-fit.sp-tb-active { background: var(--sp-accent-dim); color: var(--sp-accent); border-color: rgba(77,184,164,0.3); }
 
 /* Ghost mode — panel chrome hidden, thought cards float freely */
 #sp-thought-panel.sp-tp-ghost-mode {

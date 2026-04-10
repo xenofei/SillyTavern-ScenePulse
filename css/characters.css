@@ -27,7 +27,8 @@
    color. Click the portrait to upload a replacement (wired in JS). */
 .sp-char-portrait { width: 26px; height: 26px; border-radius: 50%; overflow: hidden; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--sp-border); background: var(--sp-surface); position: relative; }
 .sp-char-portrait img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.sp-char-portrait-monogram { color: #fff; font-weight: 700; font-size: 13px; letter-spacing: 0; text-shadow: 0 1px 2px rgba(0,0,0,0.45); }
+/* v6.9.6: #fff → var(--sp-text-bright) for theme compliance */
+.sp-char-portrait-monogram { color: var(--sp-text-bright); font-weight: 700; font-size: 13px; letter-spacing: 0; text-shadow: 0 1px 2px rgba(0,0,0,0.45); }
 .sp-char-portrait-monogram .sp-char-portrait-letter { display: inline-block; line-height: 1; }
 .sp-char-portrait-errored { background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)); }
 .sp-char-portrait { cursor: pointer; transition: transform 120ms ease, border-color 120ms ease; }
@@ -178,23 +179,21 @@
    any field value that differs from the previous snapshot. The dot is
    tinted in the character's accent color and sits after the value text
    as a ::after pseudo-element, so there's no extra DOM per field. */
+/* v6.9.6: unified changed-this-turn indicator across all sections.
+   Previously characters used ::after on the value, scene used ::before
+   on the label — now all use a ::before dot on the label/key element
+   for consistent LTR reading (indicator → label → value). */
 .sp-char-val-changed { position: relative; }
-.sp-char-val-changed::after {
-    content: '';
-    display: inline-block;
-    width: 5px; height: 5px; border-radius: 50%;
-    background: var(--char-accent, var(--sp-accent));
-    margin-left: 5px;
-    vertical-align: middle;
-    box-shadow: 0 0 4px var(--char-accent, var(--sp-accent));
-    flex-shrink: 0;
+.sp-char-val-changed::before {
+    content: '\25CF'; font-size: 6px; color: var(--sp-accent);
+    margin-right: 4px; vertical-align: middle;
 }
 /* Inner thought block gets a slightly brighter background when changed
    so the "new thought" signal is unmissable. */
 .sp-char-thought-block.sp-char-val-changed { background: rgba(255,255,255,0.045); }
-.sp-char-thought-block.sp-char-val-changed::after { display: none; }
+/* v6.9.6: thought block's ::before is now the unified teal dot, so
+   override with a positioned version for the block context. */
 .sp-char-thought-block.sp-char-val-changed::before {
-    content: '';
     position: absolute;
     top: 3px; right: 3px;
     width: 5px; height: 5px; border-radius: 50%;

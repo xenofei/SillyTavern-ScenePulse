@@ -24,7 +24,8 @@
 .sp-idea-inject, .sp-idea-paste {
     display: inline-flex; align-items: center; justify-content: center;
     width: 22px; height: 22px; border-radius: 50%;
-    color: var(--idea-color); opacity: 0;
+    /* v6.9.6: raised from 0 to 0.25 for discoverability */
+    color: var(--idea-color); opacity: 0.25;
     cursor: pointer; transition: all 0.15s ease;
     background: transparent; border: 1px solid transparent;
     flex-shrink: 0;

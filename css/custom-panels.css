@@ -296,7 +296,7 @@
     background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.15);
     color: var(--sp-text, #ddd);
 }
-.sp-confirm-cancel:hover { background: rgba(255,255,255,0.14); color: #fff; }
+.sp-confirm-cancel:hover { background: rgba(255,255,255,0.14); color: var(--sp-text-bright); }
 .sp-confirm-ok {
     background: rgba(212,80,80,0.2); border-color: rgba(212,80,80,0.4);
     color: #f07070;

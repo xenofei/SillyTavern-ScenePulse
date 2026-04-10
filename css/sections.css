@@ -25,7 +25,10 @@
     display: none;
 }
 .sp-section.sp-open .sp-section-body { display: block; }
-.sp-section-content { padding: 4px 12px 8px 12px; max-height: 40vh; overflow-y: auto; overflow-x: hidden; }
+/* v6.9.6: removed max-height: 40vh which caused a nested scroll trap
+   (scrollable sub-region inside the already-scrollable panel). The
+   panel's own overflow handles all scrolling now. */
+.sp-section-content { padding: 4px 12px 8px 12px; overflow-x: hidden; }
 .sp-section-content::-webkit-scrollbar { width: 3px; }
 .sp-section-content::-webkit-scrollbar-thumb { background: rgba(100,110,130,0.3); border-radius: 2px; }
 
@@ -55,11 +58,12 @@
     font-weight: 700; letter-spacing: 0.06em; font-size: 10px;
     padding: 2px 8px; border-radius: 3px;
 }
-.sp-tension-calm .sp-row-value { color: #60a5fa; background: rgba(96,165,250,0.12); }
-.sp-tension-low .sp-row-value { color: #4ade80; background: rgba(74,222,128,0.12); }
-.sp-tension-moderate .sp-row-value { color: #facc15; background: rgba(250,204,21,0.12); }
-.sp-tension-high .sp-row-value { color: #fb923c; background: rgba(251,146,60,0.15); }
-.sp-tension-critical .sp-row-value { color: #ef4444; background: rgba(239,68,68,0.18); }
+/* v6.9.6: tension colors use CSS variables for theme overriding */
+.sp-tension-calm .sp-row-value { color: var(--sp-tension-calm); background: color-mix(in srgb, var(--sp-tension-calm) 12%, transparent); }
+.sp-tension-low .sp-row-value { color: var(--sp-tension-low); background: color-mix(in srgb, var(--sp-tension-low) 12%, transparent); }
+.sp-tension-moderate .sp-row-value { color: var(--sp-tension-moderate); background: color-mix(in srgb, var(--sp-tension-moderate) 12%, transparent); }
+.sp-tension-high .sp-row-value { color: var(--sp-tension-high); background: color-mix(in srgb, var(--sp-tension-high) 15%, transparent); }
+.sp-tension-critical .sp-row-value { color: var(--sp-tension-critical); background: color-mix(in srgb, var(--sp-tension-critical) 18%, transparent); }
 
 /* Sound environment: italic + muted */
 .sp-scene-sounds-row .sp-row-value { font-style: italic; opacity: 0.75; }
@@ -76,7 +80,7 @@
     font-size: 10px; font-weight: 600; padding: 1px 7px; border-radius: 9px;
     border: 1px solid var(--chip-color, var(--sp-border));
     color: var(--chip-color, var(--sp-text));
-    background: rgba(255,255,255,0.04);
+    background: var(--sp-surface, rgba(255,255,255,0.04));
     white-space: nowrap; line-height: 1.4;
 }
 /* Witness chips: dimmed + dashed border */

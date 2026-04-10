@@ -48,8 +48,9 @@
 .sp-meter-bar-prev { position: absolute; top: 0; bottom: 0; width: 2px; background: rgba(255,255,255,0.5); border-radius: 1px; z-index: 2; box-shadow: 0 0 4px rgba(255,255,255,0.3); }
 /* Delta gain/loss bar segments */
 .sp-meter-bar-delta { position: absolute; top: 0; height: 100%; z-index: 1; border-radius: 5px; animation: sp-delta-bar-in 0.5s ease-out; }
-.sp-meter-bar-gain { background: #2d8a4e; }
-.sp-meter-bar-loss { background: #a83a3a; }
+/* v6.9.6: use theme variables for gain/loss colors */
+.sp-meter-bar-gain { background: var(--sp-green, #2d8a4e); }
+.sp-meter-bar-loss { background: var(--sp-red, #a83a3a); }
 @keyframes sp-delta-bar-in { from { opacity: 0; } to { opacity: 1; } }
 .sp-meter-bar-na { height: 10px; background: repeating-linear-gradient(90deg,rgba(100,110,130,0.08) 0,rgba(100,110,130,0.08) 4px,transparent 4px,transparent 8px); border-radius: 5px; }
 .sp-meter-face {
