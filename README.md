@@ -435,6 +435,19 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.9.2] — 2026-04-09
+
+#### Fixed — Integration sweep: 2 critical stale deltaMode checks
+Post-promotion integration sweep by the bug-hunter agent found two critical code paths that still used raw `settings.deltaMode` instead of the shared `shouldUseDelta()` helper, which could cause snapshot corruption on periodic-refresh or `/sp-refresh` turns.
+
+**engine.js continuation re-prompt** (line 492) — when the LLM's response omitted the tracker JSON block, the continuation re-prompt path used `settings.deltaMode && lastSnap` to decide whether to inject delta instructions. This bypassed both the periodic refresh counter AND the `forceFullNextTurn` flag. On a forced-full turn, the continuation would inject delta instructions while the engine expected full-state output, producing a partial snapshot saved as if it were complete. Fixed to use `shouldUseDelta()`.
+
+**schema.js buildDynamicPrompt** (line 315) — used `s.deltaMode && opts.hasPrevState` to decide whether to append the "DELTA MODE" instruction block. On periodic-refresh turns, the interceptor correctly sent a full-state injection prompt, but the schema prompt would still say "DELTA MODE." The LLM would follow the schema's delta instructions and return a partial response, which the engine would save as a full snapshot (because `shouldUseDelta()` was false on the merge side). Fixed to accept `opts.isDelta` from callers and fall back to the raw check only for UI preview callers.
+
+**extraction.js minimum-key threshold** (line 161) — read-only threshold check that would accept both delta (3+ keys) and full (5+ keys) in either direction. Not a data corruption risk (full > 5 > 3 always passes), but inconsistent with the migrated codebase. Updated to use `shouldUseDelta()`.
+
+All engine.js `getActivePrompt()` callers now pass `isDelta: shouldUseDelta()` so the schema prompt and the engine's merge decision are always in agreement.
+
 ### [6.9.1] — 2026-04-09
 
 #### Changed — Prompt-level roster pruning + full pipeline reveal test (Phase 3)

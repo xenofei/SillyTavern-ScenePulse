@@ -202,7 +202,7 @@ export async function generateTracker(mesIdx,partKey,opts){
     setGenerating(true);setCancelRequested(false);spSetGenerating(true);
     const myNonce=genNonce+1;setGenNonce(myNonce);
     const genStartMs=Date.now();
-    const settings=getSettings();const schema=getActiveSchema();const sysPr=getActivePrompt({ hasPrevState: !!getLatestSnapshot() });
+    const settings=getSettings();const schema=getActiveSchema();const sysPr=getActivePrompt({ hasPrevState: !!getLatestSnapshot(), isDelta: shouldUseDelta() });
     let profileOverride=opts?.profile||settings.connectionProfile;
     let presetOverride=opts?.preset||settings.chatPreset;
     log('=== GENERATION START === mesIdx=',mesIdx,'partKey=',partKey||'(full)','nonce=',myNonce,'source=',lastGenSource||'unknown','profile=',profileOverride||'(current)');
@@ -482,14 +482,16 @@ export async function continuationReprompt(narrativeText, opts){
     // Build the continuation prompt — just the narrative + a focused JSON-only instruction.
     // We deliberately do NOT inject the full schema again; the model already saw it on
     // the original turn. Asking only for the missing piece is what makes this cheap.
-    const sysPr=getActivePrompt({hasPrevState:!!getLatestSnapshot()});
+    const sysPr=getActivePrompt({hasPrevState:!!getLatestSnapshot(),isDelta:shouldUseDelta()});
     const lastSnap=getLatestSnapshot();
     let prevState='';
     if(lastSnap){
         function _cleanSnap(s){const c={...s};for(const k of['mainQuests','sideQuests']){if(Array.isArray(c[k]))c[k]=c[k].filter(q=>q.urgency!=='resolved')}delete c.activeTasks;delete c._spMeta;if(Array.isArray(c.charactersPresent)&&c.charactersPresent.length>0){const ps=new Set(c.charactersPresent.map(n=>(n||'').toLowerCase().trim()));if(Array.isArray(c.characters))c.characters=c.characters.filter(ch=>ps.has((ch.name||'').toLowerCase().trim()));if(Array.isArray(c.relationships))c.relationships=c.relationships.filter(r=>ps.has((r.name||'').toLowerCase().trim()))}return c}
         prevState=`\n\nPREVIOUS STATE (carry forward unchanged details, update only what changed):\n${JSON.stringify(_cleanSnap(lastSnap),null,2)}`;
     }
-    const isDelta=settings.deltaMode&&lastSnap;
+    // v6.9.1: use the shared shouldUseDelta() helper to respect the
+    // periodic refresh counter and the forceFullNextTurn flag.
+    const isDelta=shouldUseDelta()&&!!lastSnap;
     const deltaInstruction=isDelta
         ?'\n\nDELTA MODE: Include ONLY fields that changed since the previous state. Always include time, date, elapsed, and plotBranches. Omit unchanged fields.'
         :'';

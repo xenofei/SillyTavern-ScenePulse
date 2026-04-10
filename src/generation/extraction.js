@@ -1,7 +1,7 @@
 // ── extraction.js — Inline/Together Mode: Extract tracker JSON from AI response ──
 
 import { log, warn, err } from '../logger.js';
-import { ensureChatSaved, getSettings } from '../settings.js';
+import { ensureChatSaved, getSettings, shouldUseDelta } from '../settings.js';
 import { jsonrepair } from '../vendor/jsonrepair.mjs';
 
 export const SP_MARKER_START='<!--SP_TRACKER_START-->';
@@ -158,7 +158,7 @@ export function extractInlineTracker(mesIdx){
         }
         if(strippedCount)log('extractInlineTracker: stripped',strippedCount,'schema metadata keys');
         const keys=Object.keys(parsed);
-        const _isDelta=getSettings().deltaMode;
+        const _isDelta=shouldUseDelta();
         const _minKeys=_isDelta?3:5; // Delta mode: 3+ keys (time + date + at least one changed field)
         if(keys.length<_minKeys){
             warn('extractInlineTracker: parsed object too small after stripping ('+keys.length+' keys:',keys.join(',')+') min='+_minKeys);

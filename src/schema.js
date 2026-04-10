@@ -311,8 +311,13 @@ You are a precise scene analysis engine. Read the story context and output a sin
             }
         }
     }
-    // Delta mode instructions (only when previous state exists)
-    if(s.deltaMode && opts.hasPrevState){
+    // Delta mode instructions (only when previous state exists).
+    // v6.9.1: use opts.isDelta if provided (passed by callers who
+    // already called shouldUseDelta()), otherwise fall back to the
+    // raw settings check for backward compat with callers that don't
+    // pass the flag (settings UI preview, etc).
+    const _isDeltaPrompt = opts.isDelta != null ? opts.isDelta : (s.deltaMode && opts.hasPrevState);
+    if(_isDeltaPrompt){
         prompt+=`
 
 ## DELTA MODE — RETURN ONLY CHANGES
