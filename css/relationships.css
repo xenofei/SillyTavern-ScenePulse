@@ -33,16 +33,21 @@
 .sp-rel-meta-label { font-weight: 600; color: var(--sp-text-dim); text-transform: uppercase; font-size: 9px; letter-spacing: 0.04em; min-width: 80px; }
 .sp-rel-milestone { color: var(--sp-amber); }
 
-/* v6.9.10: widened label column 50→58px and gap 3→8px to prevent
-   meter bars from overlapping label text (AFFECTION, DESIRE etc.) */
-.sp-meter-row { display: grid; grid-template-columns: 58px 1fr 105px; align-items: center; gap: 8px; padding: 2px 0; }
+/* v6.9.10: label uses auto-width so it never clips, value column
+   shrunk from 105→75px to give the bar more room. Gap raised to 6px.
+   The label column is content-sized (max-content) so longer labels
+   like AFFECTION (~60px at 9px uppercase) get exactly the space
+   they need instead of being clipped by a fixed column. */
+.sp-meter-row { display: grid; grid-template-columns: max-content 1fr 75px; align-items: center; gap: 6px; padding: 2px 0; }
 .sp-meter-row.sp-meter-has-tag { grid-template-rows: auto auto; }
 .sp-meter-row.sp-meter-has-tag > .sp-meter-label { grid-row: 2; }
 .sp-meter-row.sp-meter-has-tag > .sp-meter-bar-wrap { grid-row: 2; }
 .sp-meter-row.sp-meter-has-tag > .sp-meter-bar-na { grid-row: 2; }
 .sp-meter-row.sp-meter-has-tag > .sp-meter-value,
 .sp-meter-row.sp-meter-has-tag > .sp-meter-value-na { grid-row: 2; }
-.sp-meter-label { font-size: 9px; font-weight: 600; text-align: right; color: var(--sp-text-dim); text-transform: uppercase; letter-spacing: 0.03em; }
+/* v6.9.10: added white-space: nowrap so the label never wraps or
+   gets clipped — the max-content column sizing guarantees full fit */
+.sp-meter-label { font-size: 9px; font-weight: 600; text-align: right; color: var(--sp-text-dim); text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap; }
 .sp-meter-bar-wrap { position: relative; height: 10px; background: rgba(100,110,130,0.12); border-radius: 5px; overflow: visible; }
 .sp-meter-bar-fill { height: 100%; border-radius: 5px; transition: width 0.6s cubic-bezier(0.4,0,0.2,1); position: relative; overflow: hidden; }
 .sp-meter-bar-fill::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(255,255,255,0.15) 0%, transparent 60%); border-radius: 5px; }
