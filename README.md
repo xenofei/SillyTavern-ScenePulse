@@ -435,6 +435,28 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.8.49] — 2026-04-09
+
+#### Changed — Quest journal quality: actionability gate, consolidation, urgency calibration
+**Reported**: (1) "Side quests don't really feel like side quests/side objectives/side tasks" — all 6 side quests were NPC activity logs ("Elly's Tracking Ability", "Jack Browning's Research") instead of player-actionable objectives. (2) "Do you see an issue as to how main quests are handled?" — 5 main quests (exceeding MAX 3), three of them fragments of one investigation, and 4 of 5 marked CRITICAL.
+
+**Root cause (prompt)**: The existing quest rules said "from {{user}}'s perspective" and "consolidate duplicates" but never defined what a quest IS. The model had no actionability gate to reject NPC activity logs, no concept-consolidation rule to merge investigation fragments, and no urgency threshold to prevent CRITICAL inflation. The WRONG/RIGHT example pattern (which worked for NAME AWARENESS) was absent.
+
+**Root cause (code)**: The MAX 3/MAX 4 caps were prompt-only — no code enforcement. The view caps in `filterForView` were set to 5/6 (deliberately above the prompt limit), and the normalize pipeline's carry-forward logic preserved all non-resolved quests without truncation. The previous-state JSON sent back to the LLM contained 5+ quests, so the model saw the over-cap data as valid and perpetuated it.
+
+**Prompt fix** — added a `QUEST VALIDATION` checklist to `src/schema.js` (same structure as the NAME AWARENESS checklist), with four tests every quest must pass before emission:
+
+1. **PLAYER ACTION TEST** — can {{user}} take a concrete action to advance this? NPC abilities, backstory, and independent activity are character notes, not quests. Genre-spanning WRONG/RIGHT examples: "The Ship's Warp Core Status" → "Repair the warp core before the fleet arrives"; "Sir Aldric's Oath of Fealty" → "Earn Sir Aldric's loyalty"; "The Sheriff's Bounty List" → "Collect the bounty on Black Bart".
+2. **CONSOLIDATION TEST** — does an existing quest already cover this objective? Three clues about the same mystery = one quest, not three. Examples span modern investigation, sci-fi escape planning, and medieval crafting.
+3. **URGENCY CALIBRATION** — urgency reflects timing, not emotional weight. Concrete thresholds: CRITICAL = irreversible harm THIS scene or NEXT, MAX 1 critical at a time; HIGH = deadline within days; MODERATE = active, no deadline (most quests); LOW = background aspiration.
+4. **TIER + CAP TEST** — main (MAX 3) = failure reshapes the story; side (MAX 4) = enriching but optional. Single-scene events are never quests.
+
+**Code fix** — two changes in `src/normalize.js`:
+- Hard quest cap enforcement after carry-forward: drops resolved quests first, then trims by urgency rank to 3 main / 4 side. The previous-state JSON sent back to the LLM now never exceeds the stated cap, closing the "model sees 5, emits 5" feedback loop.
+- Lowered `_QUEST_VIEW_CAPS` from `{mainQuests: 5, sideQuests: 6}` to `{mainQuests: 3, sideQuests: 4}` to match the prompt-stated limits.
+
+**Interceptor hint** — updated the mandatory quest hint in `src/generation/interceptor.js` to reinforce the actionability rule and MAX 1 critical constraint.
+
 ### [6.8.48] — 2026-04-09
 
 #### Fixed — Tracker placeholder names no longer contaminate narrative prose

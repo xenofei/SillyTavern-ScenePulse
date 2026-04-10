@@ -227,7 +227,51 @@ You are a precise scene analysis engine. Read the story context and output a sin
         if(ft.sideQuests!==false)qFields.push('- sideQuests: MAX 4. Optional life paths {{user}} is pursuing in parallel. Also persist across multiple scenes. NOT "things to do this scene".');
         if(qFields.length){
             prompt+='\n### Quest Journal (from {{user}}\'s perspective)\n'+qFields.join('\n');
-            if(ft.mainQuests!==false||ft.sideQuests!==false)prompt+='\n- All quests: name + urgency (critical/high/moderate/low/resolved) + detail.\n- ALWAYS from {{user}}\'s perspective. If hostile: oppose their goal. If ally: support them as {{user}}\'s action.\n- VELOCITY LIMIT: Introduce AT MOST 1 new quest per turn. Scene-level actions belong in sceneSummary, NOT as new quests. Prefer updating existing quests over creating new ones.\n- DURATION TEST: If the task would not still matter 5 scenes from now, it is NOT a quest.\n- Carry forward unresolved quests. You may consolidate duplicates. When a quest is completed in the story, set its urgency to "resolved" instead of removing it.\n';
+            if(ft.mainQuests!==false||ft.sideQuests!==false){
+                prompt+='\n- All quests: name + urgency (critical/high/moderate/low/resolved) + detail.\n- ALWAYS from {{user}}\'s perspective. If hostile: oppose their goal. If ally: support them as {{user}}\'s action.\n- VELOCITY LIMIT: Introduce AT MOST 1 new quest per turn. Scene-level actions belong in sceneSummary, NOT as new quests. Prefer updating existing quests over creating new ones.\n- DURATION TEST: If the task would not still matter 5 scenes from now, it is NOT a quest.\n- Carry forward unresolved quests. You may consolidate duplicates. When a quest is completed in the story, set its urgency to "resolved" instead of removing it.\n';
+                // v6.8.49: QUEST VALIDATION checklist. The existing rules
+                // ("from {{user}}'s perspective", "consolidate duplicates",
+                // "MAX 3/4") were too abstract — the LLM was generating NPC
+                // activity logs, fragmenting one investigation into 3+
+                // quest entries, and marking 4/5 quests CRITICAL. This
+                // checklist uses the same structure as the NAME AWARENESS
+                // block that successfully fixed character name promotion:
+                // numbered tests, concrete WRONG/RIGHT examples spanning
+                // multiple genres, and explicit failure descriptions.
+                prompt+='\n#### QUEST VALIDATION \u2014 apply ALL tests to every quest before emitting it\n';
+                prompt+='1. PLAYER ACTION TEST: Can {{user}} take a concrete action to advance this in the next few scenes? If it describes an NPC\'s ability, backstory, independent activity, or a world fact that {{user}} cannot influence, it is NOT a quest \u2014 write it into that character\'s goals, the sceneSummary, or a character\'s innerThought instead.\n';
+                prompt+='   WRONG (NPC activity \u2014 not player-actionable, any genre):\n';
+                prompt+='   - "Elly\'s Tracking Ability" (character trait)\n';
+                prompt+='   - "Jack\'s Research" (what an NPC is doing on their own)\n';
+                prompt+='   - "The Ship\'s Warp Core Status" (system state, not player objective)\n';
+                prompt+='   - "Sir Aldric\'s Oath of Fealty" (NPC backstory)\n';
+                prompt+='   - "The Sheriff\'s Bounty List" (world fact)\n';
+                prompt+='   RIGHT (player-actionable \u2014 same content, reframed):\n';
+                prompt+='   - "Understand Elly\'s connection to the haunting" (player can investigate)\n';
+                prompt+='   - "Help Jack uncover the truth" (player can actively assist)\n';
+                prompt+='   - "Repair the warp core before the fleet arrives" (player can act)\n';
+                prompt+='   - "Earn Sir Aldric\'s loyalty" (player can pursue)\n';
+                prompt+='   - "Collect the bounty on Black Bart" (player can undertake)\n';
+                prompt+='\n';
+                prompt+='2. CONSOLIDATION TEST: Does an existing quest already cover this objective? If two or more quests share the same investigation, relationship, goal, or resolution condition, MERGE them into ONE quest with a combined detail field. New clues or developments UPDATE an existing quest\'s detail \u2014 they do not spawn new entries. A quest journal with more entries than the tier cap is almost always a sign of fragmentation.\n';
+                prompt+='   WRONG (fragmented \u2014 one objective split into many):\n';
+                prompt+='   - "Eleanor\'s Timeline" + "Eleanor\'s Description" + "Understanding the Origin" (3 entries, 1 investigation)\n';
+                prompt+='   - "Find the nav charts" + "Decrypt the nav charts" + "Plot the escape route" (3 steps, 1 escape plan)\n';
+                prompt+='   - "Speak to the blacksmith" + "Gather ore" + "Forge the blade" (3 steps, 1 crafting goal)\n';
+                prompt+='   RIGHT (consolidated):\n';
+                prompt+='   - "Investigate Eleanor Cole\'s connection to the Entity" (1 entry, all clues in the detail)\n';
+                prompt+='   - "Chart an escape route through the nebula" (1 entry, steps tracked in the detail)\n';
+                prompt+='   - "Commission a legendary blade" (1 entry, progress in the detail)\n';
+                prompt+='\n';
+                prompt+='3. URGENCY CALIBRATION: Urgency reflects TIMING and CONSEQUENCE, not emotional weight. Use the lowest level that honestly fits.\n';
+                prompt+='   - critical: Irreversible consequences (death, permanent loss, destruction, betrayal with no second chance) happen THIS scene or NEXT if {{user}} does nothing. MAX 1 critical quest at a time across both tiers. If you have 2+ critical, demote all but the most immediate to high.\n';
+                prompt+='   - high: Serious consequences within days of in-story time. Deadline pressure but not instant catastrophe. Examples: a trial date approaching, a ship running low on fuel, a lord\'s patience wearing thin, a posse closing in.\n';
+                prompt+='   - moderate: Active goal {{user}} is working toward. No immediate deadline. Most quests should be moderate.\n';
+                prompt+='   - low: Background aspiration or opportunity. Would be nice but no pressure.\n';
+                prompt+='   - resolved: Goal achieved, abandoned, or superseded. Stays one turn, then auto-dropped.\n';
+                prompt+='\n';
+                prompt+='4. TIER + CAP TEST: Main quests (MAX 3) = arcs where failure or abandonment reshapes the entire story. Side quests (MAX 4) = enriching but optional. If you have more entries than the cap, CONSOLIDATE or DEMOTE \u2014 never exceed. Count your entries before emitting. A single-scene event (one meeting, one fight, one conversation) is NEVER a quest \u2014 it belongs in sceneSummary.\n';
+            }
         }
     }
     // Relationships

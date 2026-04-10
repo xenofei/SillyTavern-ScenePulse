@@ -242,6 +242,32 @@ export function normalizeTracker(d){
         }
         if(!o.northStar&&prev.northStar)o.northStar=prev.northStar;
     }}catch{}}
+    // v6.8.49: hard quest cap enforcement. The prompt says MAX 3 main /
+    // MAX 4 side, but the LLM routinely exceeds the cap and the delta-
+    // merge / carry-forward pipeline never truncated. This meant the
+    // previous-state JSON sent back to the LLM contained 5+ quests,
+    // which the model then perpetuated ("I see 5 in the data, so I
+    // should emit 5"). The hard trim ensures the data fed back never
+    // exceeds the stated limit, closing the feedback loop. Resolved
+    // quests are dropped first (they were only kept for the grace-
+    // period display), then the remaining are capped by urgency rank.
+    for(const _qk of['mainQuests','sideQuests']){
+        const _cap=_qk==='mainQuests'?3:4;
+        if(Array.isArray(o[_qk])&&o[_qk].length>_cap){
+            // Drop resolved first (they already had their grace turn)
+            const active=o[_qk].filter(q=>q.urgency!=='resolved');
+            if(active.length<=_cap){o[_qk]=active}
+            else{
+                // Still over cap after dropping resolved — keep the
+                // highest-urgency entries. Score: critical=4 high=3
+                // moderate=2 low=1 (ties broken by original order).
+                const _us={critical:4,high:3,moderate:2,low:1};
+                o[_qk]=active.map((q,i)=>({q,s:(_us[q.urgency]||2)*100+(active.length-i)}))
+                    .sort((a,b)=>b.s-a.s).slice(0,_cap).map(e=>e.q);
+            }
+            if(_verbose)log('Quest cap:',_qk,'trimmed to',o[_qk].length);
+        }
+    }
     // northStar from current data (only set if model actually returned one, otherwise keep carry-forward)
     const ns=g(['northstar','north_star','lifeobjective','life_objective','dream','purpose','drivingpurpose'])||d.northStar||d.lifeObjective||'';
     if(ns)o.northStar=ns;
@@ -994,7 +1020,11 @@ export function normalizeChar(ch){
 // plus a small buffer so one extra from model drift doesn't get dropped from
 // the panel without warning. The prompt does the primary throttling; these
 // caps are the display safety net.
-const _QUEST_VIEW_CAPS = { mainQuests: 5, sideQuests: 6 };
+// v6.8.49: lowered from 5/6 to match the prompt-stated MAX 3/4.
+// The old generous buffer (5/6) defeated the cap's purpose — the user
+// saw more quests than the prompt allowed, and the feedback loop
+// (LLM sees 5 → emits 5) was never broken by the view layer.
+const _QUEST_VIEW_CAPS = { mainQuests: 3, sideQuests: 4 };
 
 // Urgency ordering — higher = more urgent = higher score when tier is over cap
 const _URGENCY_SCORE = { critical: 5, high: 4, moderate: 3, low: 2, resolved: 1 };
