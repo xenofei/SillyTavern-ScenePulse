@@ -21,7 +21,8 @@ import {
 import {
     getSettings, anyPanelsActive,
     getLatestSnapshot,
-    ensureChatSaved, invalidateSettingsCache
+    ensureChatSaved, invalidateSettingsCache,
+    isPanelEnabledForChat
 } from './src/settings.js';
 import { normalizeTracker, clearNormCache } from './src/normalize.js';
 import { resetColorMap } from './src/color.js';
@@ -236,10 +237,39 @@ eventSource.on(event_types.CHAT_CHANGED, async () => {
     invalidateSettingsCache();
     resetSessionTokens();
     setPrevLocation(''); setPrevTimePeriod('');
-    setTimeout(() => {
+    // v6.9.13: close the Panel Manager on chat switch so it doesn't
+    // show stale toggle states from the previous chat's per-chat
+    // overrides. When the user reopens it, the toggles will read
+    // from the new chat's chatMetadata.
+    const _mgr = document.querySelector('.sp-panel-mgr');
+    if (_mgr) _mgr.remove();
+    // Force a full-state generation on the next turn since the
+    // effective panel set may have changed between chats (different
+    // per-chat overrides → different schema → delta would be wrong).
+    try { const { forceFullStateRefresh } = await import('./src/settings.js'); forceFullStateRefresh(); } catch {}
+    setTimeout(async () => {
         renderExisting();
         const msgs = document.querySelectorAll('.mes');
         if (msgs.length === 0) setTimeout(renderExisting, 500);
+        // v6.9.13: force-refresh custom panel section visibility to
+        // match the new chat's per-chat overrides. renderExisting calls
+        // updatePanel which rebuilds the DOM, but we explicitly re-check
+        // each custom panel section after a short delay to ensure the
+        // new chat's overrides are applied even if the DOM rebuilt from
+        // cached state.
+        setTimeout(() => {
+            try {
+                const _s = getSettings();
+                for (const cp of (_s.customPanels || [])) {
+                    const cpKey = 'custom_' + (cp.name || 'untitled').replace(/\s+/g, '_').toLowerCase();
+                    const sec = document.querySelector(`.sp-section[data-key="${cpKey}"]`);
+                    if (sec) {
+                        const enabled = isPanelEnabledForChat(cp);
+                        sec.classList.toggle('sp-panel-hidden', !enabled);
+                    }
+                }
+            } catch {}
+        }, 100);
     }, 200);
 });
 

@@ -146,10 +146,40 @@
     border-radius: 4px; cursor: pointer; transition: all 0.15s;
 }
 .sp-cp-dup:hover { color: var(--sp-accent) !important; border-color: var(--sp-accent) !important; background: var(--sp-surface-hover) !important; }
-/* v6.9.13: per-field toggle */
-.sp-cp-field-toggle { width: 12px; height: 12px; accent-color: var(--sp-accent); cursor: pointer; flex-shrink: 0; margin-right: -2px; }
+/* v6.9.13: per-field toggle — smaller than the panel-level toggle,
+   centered in its 22px grid column between handle and key */
+.sp-cp-field-toggle { width: 9px; height: 9px; accent-color: var(--sp-accent); cursor: pointer; justify-self: center; margin: 0; padding: 0; vertical-align: middle; }
 .sp-cp-field-disabled { opacity: 0.35; }
 .sp-cp-field-disabled input, .sp-cp-field-disabled select { pointer-events: none; }
+/* v6.9.13: per-chat override indicator */
+.sp-cp-overridden { border-color: rgba(77,184,164,0.3) !important; }
+.sp-cp-overridden .sp-cp-header::after {
+    content: 'chat override'; font-size: 7px; color: var(--sp-accent);
+    text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.7;
+    margin-left: auto; padding-right: 4px; white-space: nowrap;
+}
+/* Per-panel reset-to-global button */
+.sp-cp-reset {
+    background: var(--sp-surface) !important; color: var(--sp-text-dim) !important;
+    border: 1px solid var(--sp-border) !important; font-size: 11px !important;
+    padding: 1px 5px !important; border-radius: 4px; cursor: pointer; transition: all 0.15s;
+}
+.sp-cp-reset:hover { color: var(--sp-accent) !important; border-color: var(--sp-accent) !important; }
+/* Scope indicator row — always visible when custom panels exist */
+.sp-cp-scope-row {
+    display: flex; align-items: center; gap: 6px; margin-bottom: 8px;
+    padding: 5px 8px; border-radius: 4px;
+    background: rgba(77,184,164,0.04); border: 1px solid rgba(77,184,164,0.12);
+}
+.sp-cp-scope-icon { font-size: 11px; color: var(--sp-accent); opacity: 0.6; flex-shrink: 0; }
+.sp-cp-scope-text { font-size: 9px; color: var(--sp-text-dim); flex: 1; line-height: 1.4; }
+.sp-cp-reset-all {
+    background: var(--sp-surface) !important; color: var(--sp-text-dim) !important;
+    border: 1px solid var(--sp-border) !important; font-size: 9px !important;
+    white-space: nowrap; cursor: pointer; padding: 3px 8px !important;
+    border-radius: 4px; transition: all 0.15s; flex-shrink: 0;
+}
+.sp-cp-reset-all:hover { color: var(--sp-accent) !important; border-color: var(--sp-accent) !important; }
 /* v6.9.11: key collision warning */
 .sp-cp-warn-collision { border-color: rgba(239,68,68,0.2); background: rgba(239,68,68,0.05); }
 .sp-cp-warn-collision span { color: var(--sp-red); }
@@ -161,9 +191,10 @@
 }
 .sp-cp-del:hover { color: #f07070 !important; border-color: rgba(212,80,80,0.5) !important; background: rgba(212,80,80,0.2) !important; }
 .sp-cp-fields { display: flex; flex-direction: column; gap: 0; }
+/* 7 columns — handle, toggle, key, label, type, desc, remove */
 .sp-cp-field-row {
-    display: grid; grid-template-columns: 16px 62px 72px 56px 1fr 24px;
-    gap: 4px; align-items: center;
+    display: grid; grid-template-columns: 10px 16px 62px 68px 56px 1fr 24px;
+    gap: 3px; align-items: center;
     padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.02);
 }
 .sp-cp-field-row:last-child { border-bottom: none; }
@@ -215,9 +246,10 @@
 }
 .sp-cp-field-opt-row input::placeholder { color: var(--sp-text-dim); opacity: 0.3; }
 .sp-cp-field-opt-row input:focus { outline: none; border-color: var(--sp-accent); background: rgba(77,184,164,0.05); }
+/* Match the 7-column grid of .sp-cp-field-row */
 .sp-cp-field-labels {
-    display: grid; grid-template-columns: 16px 62px 72px 56px 1fr 24px;
-    gap: 4px; padding: 0 0 3px; margin-bottom: 2px;
+    display: grid; grid-template-columns: 10px 16px 62px 68px 56px 1fr 24px;
+    gap: 3px; padding: 0 0 3px; margin-bottom: 2px;
 }
 .sp-cp-field-labels span {
     font-size: 8px; color: var(--sp-text-dim); opacity: 0.5;

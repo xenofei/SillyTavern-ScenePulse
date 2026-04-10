@@ -1,7 +1,7 @@
 // ScenePulse — Custom Panels Module
 // Extracted from index.js lines 4969-5130
 
-import { getSettings, saveSettings, isPanelEnabledForChat, setPanelChatOverride } from '../settings.js';
+import { getSettings, saveSettings, isPanelEnabledForChat, setPanelChatOverride, clearPanelChatOverrides } from '../settings.js';
 import { esc, str, clamp, spConfirm } from '../utils.js';
 import { _cachedNormData } from '../state.js';
 import { buildDynamicSchema, buildDynamicPrompt } from '../schema.js';
@@ -72,6 +72,34 @@ export function renderCustomPanelsMgr(s,container,panelBody){
     const infoLabel=document.createElement('span');infoLabel.style.cssText='font-size:9px;color:var(--sp-text-dim);opacity:0.6';infoLabel.textContent='How custom panels work';
     infoRow.appendChild(infoLabel);
     container.appendChild(infoRow);container.appendChild(infoPopup);
+    // Per-chat scope indicator — always visible when panels exist so
+    // the user knows toggles write to the current chat, not globally.
+    if (panels.length) {
+        let _hasAnyOverride = false;
+        try { const _ov = SillyTavern.getContext().chatMetadata?.scenepulse?.activePanelOverrides; _hasAnyOverride = _ov && Object.keys(_ov).length > 0; } catch {}
+        const scopeRow = document.createElement('div');
+        scopeRow.className = 'sp-cp-scope-row';
+        if (_hasAnyOverride) {
+            scopeRow.innerHTML = `<span class="sp-cp-scope-icon">\u26C1</span><span class="sp-cp-scope-text">${t('Toggles apply to this chat only. Some panels have per-chat overrides.')}</span>`;
+            const resetAllBtn = document.createElement('button');
+            resetAllBtn.className = 'sp-btn sp-btn-sm sp-cp-reset-all';
+            resetAllBtn.textContent = '\u21BA ' + t('Reset all to global');
+            resetAllBtn.addEventListener('click', () => {
+                clearPanelChatOverrides();
+                renderCustomPanelsMgr(s, container, panelBody);
+                for (const cp of panels) {
+                    const cpKey = 'custom_' + (cp.name || 'untitled').replace(/\s+/g, '_').toLowerCase();
+                    const sec = panelBody?.querySelector(`.sp-section[data-key="${cpKey}"]`);
+                    if (sec) sec.classList.toggle('sp-panel-hidden', cp.enabled === false);
+                }
+                toastr.info('All panels reset to global defaults');
+            });
+            scopeRow.appendChild(resetAllBtn);
+        } else {
+            scopeRow.innerHTML = `<span class="sp-cp-scope-icon">\u26C1</span><span class="sp-cp-scope-text">${t('Toggles apply to this chat only. Other chats keep their own settings.')}</span>`;
+        }
+        container.appendChild(scopeRow);
+    }
     if(!panels.length){
         container.appendChild(Object.assign(document.createElement('div'),{className:'sp-cp-empty',textContent:t('No custom panels yet')+'.'}));
         return;
@@ -92,18 +120,27 @@ export function renderCustomPanelsMgr(s,container,panelBody){
         const toggle=document.createElement('input');toggle.type='checkbox';toggle.className='sp-cp-toggle';
         // v6.9.13: toggle reflects per-chat state (if override exists)
         // and writes to per-chat override when toggled, not global.
-        toggle.checked=isPanelEnabledForChat(cp);toggle.title=t('Enable/disable this panel for this chat');
-        toggle.addEventListener('click',e=>e.stopPropagation());
-        toggle.addEventListener('change',()=>{
-            // Write to per-chat override (preserves global default)
-            if(cp.id)setPanelChatOverride(cp.id,toggle.checked);
-            else{cp.enabled=toggle.checked;saveSettings()}
+        const _globalDefault = cp.enabled !== false;
+        const _chatEnabled = isPanelEnabledForChat(cp);
+        const _hasOverride = (() => { try { const ov = SillyTavern.getContext().chatMetadata?.scenepulse?.activePanelOverrides; return ov && cp.id && cp.id in ov; } catch { return false; } })();
+        toggle.checked = _chatEnabled;
+        toggle.title = _hasOverride ? t('This chat overrides the global default. Click to toggle.') : t('Enable/disable this panel for this chat');
+        toggle.addEventListener('click', e => e.stopPropagation());
+        toggle.addEventListener('change', () => {
+            if (cp.id) setPanelChatOverride(cp.id, toggle.checked);
+            else { cp.enabled = toggle.checked; saveSettings(); }
             liveRefresh();
-            const cpKey='custom_'+(cp.name||'untitled').replace(/\s+/g,'_').toLowerCase();
-            const sec=panelBody?.querySelector(`.sp-section[data-key="${cpKey}"]`);
-            if(sec)sec.classList.toggle('sp-panel-hidden',!toggle.checked);
-            card.classList.toggle('sp-cp-disabled',!toggle.checked);
+            const cpKey = 'custom_' + (cp.name || 'untitled').replace(/\s+/g, '_').toLowerCase();
+            const sec = panelBody?.querySelector(`.sp-section[data-key="${cpKey}"]`);
+            if (sec) sec.classList.toggle('sp-panel-hidden', !toggle.checked);
+            card.classList.toggle('sp-cp-disabled', !toggle.checked);
+            // Refresh to show/hide override indicator
+            renderCustomPanelsMgr(s, container, panelBody);
         });
+        // Override indicator + per-panel reset button
+        if (_hasOverride) {
+            card.classList.add('sp-cp-overridden');
+        }
         const nameInput=document.createElement('input');nameInput.className='sp-cp-name';nameInput.type='text';nameInput.value=cp.name||'';nameInput.placeholder=t('Panel name');nameInput.spellcheck=false;
         nameInput.addEventListener('click',e=>e.stopPropagation());
         nameInput.addEventListener('change',()=>{
@@ -137,7 +174,26 @@ export function renderCustomPanelsMgr(s,container,panelBody){
             if(sec){sec.classList.add('sp-panel-hidden');setTimeout(()=>sec.remove(),350)}
             toastr.info('Panel deleted');
         });
-        header.appendChild(chevron);header.appendChild(toggle);header.appendChild(nameInput);header.appendChild(dupBtn);header.appendChild(delBtn);
+        // Per-panel reset-to-global button (only when override exists)
+        let resetBtn = null;
+        if (_hasOverride) {
+            resetBtn = document.createElement('button');
+            resetBtn.className = 'sp-btn sp-btn-sm sp-cp-reset';
+            resetBtn.textContent = '\u21BA';
+            resetBtn.title = t('Reset to global default');
+            resetBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                try {
+                    const ov = SillyTavern.getContext().chatMetadata?.scenepulse?.activePanelOverrides;
+                    if (ov && cp.id) { delete ov[cp.id]; SillyTavern.getContext().saveMetadata(); }
+                } catch {}
+                renderCustomPanelsMgr(s, container, panelBody); liveRefresh();
+                toastr.info('Reset to global default');
+            });
+        }
+        header.appendChild(chevron);header.appendChild(toggle);header.appendChild(nameInput);header.appendChild(dupBtn);
+        if (resetBtn) header.appendChild(resetBtn);
+        header.appendChild(delBtn);
         header.addEventListener('click',(e)=>{if(e.target===nameInput||e.target===toggle)return;card.classList.toggle('sp-cp-open')});
         if(!isPanelEnabledForChat(cp))card.classList.add('sp-cp-disabled');
         card.appendChild(header);
@@ -146,7 +202,7 @@ export function renderCustomPanelsMgr(s,container,panelBody){
         // Column headers
         if(cp.fields?.length){
             const labels=document.createElement('div');labels.className='sp-cp-field-labels';
-            labels.innerHTML=`<span></span><span>${t('Key')}</span><span>${t('Label')}</span><span>${t('Type')}</span><span>${t('LLM Hint')}</span><span></span>`;
+            labels.innerHTML=`<span></span><span></span><span>${t('Key')}</span><span>${t('Label')}</span><span>${t('Type')}</span><span>${t('LLM Hint')}</span><span></span>`;
             body.appendChild(labels);
         }
         // Fields with drag/drop
