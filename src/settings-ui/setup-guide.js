@@ -37,11 +37,11 @@ export function showSetupGuide(){
                     ${_setupMobile?'<p style="color:var(--sp-text-dim);font-size:12px"><em>Note: On mobile, some desktop features (weather overlay, time-of-day tint, inner thoughts panel, condense view) are hidden to optimize the experience. They\'ll be available when you switch to desktop.</em></p>':''}
                     <p>This guide helps you configure the fallback so you never lose scene data.</p>
                     <div class="sp-setup-compat">
-                        <div class="sp-setup-compat-title">Model Compatibility</div>
-                        <div class="sp-setup-compat-tier"><span style="color:var(--sp-green)">Recommended:</span> Claude Sonnet/Opus, GPT-4o/4.1, Gemini 2.0/2.5 Pro, Qwen3 32B+, Llama 4 Maverick</div>
-                        <div class="sp-setup-compat-tier"><span style="color:var(--sp-amber)">Compatible:</span> DeepSeek V3, Mistral Large, Llama 3.1/3.3 70B, Qwen3 14B, Mistral Small 24B</div>
+                        <div class="sp-setup-compat-title">Model Compatibility (April 2026)</div>
+                        <div class="sp-setup-compat-tier"><span style="color:var(--sp-green)">Recommended:</span> Claude Opus 4.6 / Sonnet 4.6, GPT-5.4, Gemini 3.1 Pro / 3 Flash, Grok 4, GLM-5.1</div>
+                        <div class="sp-setup-compat-tier"><span style="color:var(--sp-amber)">Compatible:</span> DeepSeek V3.2, Mistral Large 3, Qwen 3 32B+, Llama 4 Maverick/Scout, Gemini 3.1 Flash-Lite, GPT-4.1 mini</div>
                         <div class="sp-setup-compat-tier"><span style="color:var(--sp-red)">Not recommended:</span> Models under 14B parameters, heavily quantized (Q3/Q2)</div>
-                        <div class="sp-setup-compat-note">Local models: use Q5_K_M or higher quantization. Consider Separate mode for models under 32B.</div>
+                        <div class="sp-setup-compat-note">Local models: GLM-5.1 (MIT), Qwen 3 32B, DeepSeek V3.2, Mistral Large 3 are top picks. Use Q5_K_M+ quantization. Consider Separate mode for models under 32B.</div>
                     </div>
                     <div class="sp-setup-nav"><button class="sp-setup-btn sp-setup-btn-primary" data-goto="2">Next →</button><button class="sp-setup-btn sp-setup-btn-skip" data-dismiss="true">Skip setup</button></div>
                 </div>
