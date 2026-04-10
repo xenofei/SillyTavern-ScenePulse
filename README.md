@@ -1,11 +1,3 @@
-<!-- ⚠️ WORK IN PROGRESS ⚠️ -->
-
-> **⚠️ EARLY ACCESS — WORK IN PROGRESS**
->
-> ScenePulse is under active development. Expect rough edges, visual glitches, and frequent updates. Some AI models may not reliably produce tracker data in Together mode. Mobile support is functional but still being refined. If something breaks, please [open an issue](https://github.com/xenofei/SillyTavern-ScenePulse/issues) — your feedback shapes what gets fixed next.
-
----
-
 <div align="center">
 
 <img src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fxenofei%2FSillyTavern-ScenePulse%2Fmain%2Fmanifest.json&query=%24.version&label=version&style=flat-square&labelColor=1a1c24&color=4db8a4" alt="Version">
@@ -308,7 +300,7 @@ src/
   schema.js                 ← Dynamic schema/prompt builders with language injection
   color.js                  ← Character color assignment with fuzzy matching
   normalize.js              ← Data normalization with WeakMap caching
-  i18n.js                   ← Internationalization (29 languages, 344 keys)
+  i18n.js                   ← Internationalization loader (29 languages in locales/*.json)
   update-check.js           ← Update check + one-click updater via ST's extension API
   story-ideas.js            ← Story idea injection
   slash-commands.js          ← Slash command registration (/sp)
@@ -380,7 +372,7 @@ Access settings via **Extensions** → **ScenePulse** in SillyTavern's settings 
 | Setting | Description |
 |---------|-------------|
 | **Enable ScenePulse** | Master toggle |
-| **Delta mode** | Return only changed fields — saves tokens (experimental) |
+| **Delta mode** | Enabled by default — LLM returns only changed fields, saving 66-77% output tokens. Auto-refreshes every 15 turns. Use `/sp-refresh` if data seems stale |
 | **Function tool calling** | Use structured tool calling in Separate mode (experimental) |
 | **Auto-generate** | Update tracker on every AI message |
 | **Language** | UI + LLM output language (29 options, auto-detect) |
@@ -426,14 +418,39 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 ## Known Issues
 
 - **Model compliance** — Some models intermittently skip the tracker block or output mangled markers; the fallback system handles this with a separate API call, and extraction supports multiple marker variants
-- **Delta mode** — Experimental. Some models may not reliably return only changed fields, leading to missing data. Disable delta mode if you see incomplete snapshots
+- **Delta mode** — Enabled by default since v6.9.0. If you see incomplete or stale data after many turns, use `/sp-refresh` to force a full-state regeneration. The system auto-refreshes every 15 delta turns
 - **Payload visibility** — The regex filter and streaming hider work together to hide tracker JSON during streaming. In rare cases with very fast token rates, a brief flash may occur before the hider locks
 - **Function tool calling** — Experimental, Separate mode only. GLM-5.1 tool calling is inconsistent; some generations may miss the tool call and fall back to text prompt
 - **Slash commands / macros** — Experimental, need further testing ([#7](https://github.com/xenofei/SillyTavern-ScenePulse/issues/7), [#8](https://github.com/xenofei/SillyTavern-ScenePulse/issues/8))
 - **Mobile** — Weather effects, time-of-day tint, inner thoughts panel, and condense view are disabled on mobile to optimize performance
-- **Translations** — While all 29 languages have full translation coverage, some translations may be imperfect. Community corrections welcome in [`src/i18n.js`](https://github.com/xenofei/SillyTavern-ScenePulse/blob/main/src/i18n.js)
+- **Translations** — While all 29 languages have full translation coverage, some translations may be imperfect. Community corrections welcome — edit the JSON files in [`locales/`](https://github.com/xenofei/SillyTavern-ScenePulse/tree/main/locales)
 
 ## Changelog
+
+### [6.9.10] — 2026-04-10
+
+#### Fixed — Quality check: 9 issues resolved
+Post-ship quality audit by 4 independent agents found and fixed: meter label-bar overlap at all resolutions (responsive grid columns sized for longest label), `charactersPresent` row removed from scene panel (redundant with Characters section), `witnesses` added to dynamic prompt + normalizer filter (strips names matching `characters[]`), incorrect feature hint corrected, `initI18n()` now awaited before first render (fixes English flash for non-English users), JS tension colors read from CSS variables via `getComputedStyle`, and corrected test assertions + comments.
+
+### [6.9.9] — 2026-04-09
+
+#### Added — Customer experience: model compatibility, feature hints, first-run toast
+Model compatibility guide in setup step 1 (Recommended: Claude Opus 4.6, GPT-5.4, Gemini 3.1 Pro, Grok 4, GLM-5.1 | Compatible: DeepSeek V3.2, Mistral Large 3, Qwen 3 32B+ | Not recommended: under 14B). Tips & Hidden Features section in setup step 4. First-run success toast on first extraction.
+
+### [6.9.8] — 2026-04-09
+
+#### Changed — state.js consolidation + normalize.js test coverage
+state.js: 37 let+setter pairs consolidated into a single internal state object with backward-compat wrappers. tests/normalize.test.mjs: 33 test cases covering the core normalization pipeline (previously zero dedicated coverage).
+
+### [6.9.7] — 2026-04-09
+
+#### Changed — i18n translations extracted to JSON locale files
+Moved 8,350 lines of translation dictionaries from inline JS to 29 JSON files in `locales/`. The JS codebase dropped by ~35%. `i18n.js` is now an 89-line async loader that fetches the appropriate locale on startup.
+
+### [6.9.6] — 2026-04-09
+
+#### Fixed — UI/UX polish + WCAG contrast + theme compliance
+Auto-fit button styled (was rendering white), `--sp-text-dim` raised for WCAG AA (4.1:1 → ~5.5:1), changed-this-turn indicators unified, section scroll trap removed, Story Ideas buttons discoverable at rest, dashboard sub-label legibility improved. Theme compliance: tension CSS variables, panel bg, monogram text, confirm buttons, meter gain/loss all migrated from hardcoded values to CSS custom properties.
 
 ### [6.9.5] — 2026-04-09
 
@@ -485,7 +502,7 @@ Delta mode saves ~66-77% of output tokens per generation by asking the LLM to re
 - **`plotBranches` and `charactersPresent` omission guards** prevent stale array carry-forward
 - **43 critical test cases** cover multi-turn chains, full-state-as-delta, empty deltas, meter stability, and more
 
-Users who experience issues can disable delta mode in ScenePulse settings (uncheck "Delta Mode") or use `/sp-refresh` to force a single full-state regeneration without disabling the feature.
+Users who experience issues can use `/sp-refresh` to force a single full-state regeneration. The system also auto-refreshes every 15 delta turns to prevent data drift.
 
 ### [6.8.50] — 2026-04-09
 
