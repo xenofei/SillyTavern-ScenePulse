@@ -146,6 +146,10 @@
     border-radius: 4px; cursor: pointer; transition: all 0.15s;
 }
 .sp-cp-dup:hover { color: var(--sp-accent) !important; border-color: var(--sp-accent) !important; background: var(--sp-surface-hover) !important; }
+/* v6.9.13: per-field toggle */
+.sp-cp-field-toggle { width: 12px; height: 12px; accent-color: var(--sp-accent); cursor: pointer; flex-shrink: 0; margin-right: -2px; }
+.sp-cp-field-disabled { opacity: 0.35; }
+.sp-cp-field-disabled input, .sp-cp-field-disabled select { pointer-events: none; }
 /* v6.9.11: key collision warning */
 .sp-cp-warn-collision { border-color: rgba(239,68,68,0.2); background: rgba(239,68,68,0.05); }
 .sp-cp-warn-collision span { color: var(--sp-red); }

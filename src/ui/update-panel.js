@@ -4,7 +4,7 @@ import { esc, clamp, str, spConfirm } from '../utils.js';
 import { t } from '../i18n.js';
 import { DEFAULTS } from '../constants.js';
 import { getSettings, saveSettings } from '../settings.js';
-import { getLatestSnapshot, getPrevSnapshot, getTrackerData } from '../settings.js';
+import { getLatestSnapshot, getPrevSnapshot, getTrackerData, isPanelEnabledForChat } from '../settings.js';
 import { normalizeTracker, filterForView } from '../normalize.js';
 import { charColor } from '../color.js';
 import {
@@ -1209,11 +1209,12 @@ export function updatePanel(d,_force=false){
     // Custom Panels (v6.9.11: skip disabled, v6.9.12: full UI/UX upgrade)
     const customPanels=s.customPanels||[];
     for(const cp of customPanels){
-        if(!cp.fields?.length||cp.enabled===false)continue;
+        if(!cp.fields?.length||!isPanelEnabledForChat(cp))continue;
         const cpKey='custom_'+cp.name.replace(/\s+/g,'_').toLowerCase();
         const _cpSec=mkSection(cpKey,cp.name,null,()=>{
             const frag=document.createDocumentFragment();
             for(const f of cp.fields){
+                if(f.enabled===false)continue; // v6.9.13: per-field toggle
                 const r=document.createElement('div');r.className='sp-row';
                 r.innerHTML=`<div class="sp-row-label">${esc(f.label||f.key)}</div>`;
                 if(f.type==='meter'){

@@ -1,7 +1,7 @@
 // ScenePulse — Custom Panels Module
 // Extracted from index.js lines 4969-5130
 
-import { getSettings, saveSettings } from '../settings.js';
+import { getSettings, saveSettings, isPanelEnabledForChat, setPanelChatOverride } from '../settings.js';
 import { esc, str, clamp, spConfirm } from '../utils.js';
 import { _cachedNormData } from '../state.js';
 import { buildDynamicSchema, buildDynamicPrompt } from '../schema.js';
@@ -20,6 +20,7 @@ export function refreshCustomSection(cp,panelBody){
     const d=_cachedNormData||{};
     content.innerHTML='';
     for(const f of(cp.fields||[])){
+        if(f.enabled===false)continue; // v6.9.13: per-field toggle
         const r=document.createElement('div');r.className='sp-row';
         r.innerHTML=`<div class="sp-row-label">${esc(f.label||f.key)}</div>`;
         if(f.type==='meter'){
@@ -89,11 +90,15 @@ export function renderCustomPanelsMgr(s,container,panelBody){
         const chevron=document.createElement('span');chevron.className='sp-cp-chevron';chevron.textContent='\u25B6';
         // v6.9.11: enable/disable toggle per panel
         const toggle=document.createElement('input');toggle.type='checkbox';toggle.className='sp-cp-toggle';
-        toggle.checked=cp.enabled!==false;toggle.title=t('Enable/disable this panel');
+        // v6.9.13: toggle reflects per-chat state (if override exists)
+        // and writes to per-chat override when toggled, not global.
+        toggle.checked=isPanelEnabledForChat(cp);toggle.title=t('Enable/disable this panel for this chat');
         toggle.addEventListener('click',e=>e.stopPropagation());
         toggle.addEventListener('change',()=>{
-            cp.enabled=toggle.checked;saveSettings();liveRefresh();
-            // Show/hide the section in the main panel
+            // Write to per-chat override (preserves global default)
+            if(cp.id)setPanelChatOverride(cp.id,toggle.checked);
+            else{cp.enabled=toggle.checked;saveSettings()}
+            liveRefresh();
             const cpKey='custom_'+(cp.name||'untitled').replace(/\s+/g,'_').toLowerCase();
             const sec=panelBody?.querySelector(`.sp-section[data-key="${cpKey}"]`);
             if(sec)sec.classList.toggle('sp-panel-hidden',!toggle.checked);
@@ -134,7 +139,7 @@ export function renderCustomPanelsMgr(s,container,panelBody){
         });
         header.appendChild(chevron);header.appendChild(toggle);header.appendChild(nameInput);header.appendChild(dupBtn);header.appendChild(delBtn);
         header.addEventListener('click',(e)=>{if(e.target===nameInput||e.target===toggle)return;card.classList.toggle('sp-cp-open')});
-        if(cp.enabled===false)card.classList.add('sp-cp-disabled');
+        if(!isPanelEnabledForChat(cp))card.classList.add('sp-cp-disabled');
         card.appendChild(header);
         // Collapsible body
         const body=document.createElement('div');body.className='sp-cp-body';
@@ -170,6 +175,12 @@ export function renderCustomPanelsMgr(s,container,panelBody){
                 saveSettings();renderCustomPanelsMgr(s,container,panelBody);liveRefresh();
             });
             // Key: enforce lowercase_snake_case
+            // v6.9.13: per-field enable/disable toggle
+            const fToggle=document.createElement('input');fToggle.type='checkbox';fToggle.className='sp-cp-field-toggle';
+            fToggle.checked=f.enabled!==false;fToggle.title=t('Enable/disable this field');
+            fToggle.addEventListener('change',()=>{f.enabled=fToggle.checked;saveSettings();liveRefresh();
+                row.classList.toggle('sp-cp-field-disabled',!fToggle.checked)});
+            if(f.enabled===false)row.classList.add('sp-cp-field-disabled');
             const keyIn=document.createElement('input');keyIn.className='sp-cp-field-key';keyIn.placeholder='key';keyIn.value=f.key||'';keyIn.spellcheck=false;keyIn.title='JSON key \u2014 lowercase_snake_case only.\nExamples: health, mana_pool, reputation';
             keyIn.addEventListener('change',()=>{f.key=keyIn.value.toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'').replace(/^[0-9]/,'_$&').replace(/_+/g,'_');keyIn.value=f.key;saveSettings();liveRefresh()});
             const labelIn=document.createElement('input');labelIn.className='sp-cp-field-label';labelIn.placeholder='Label';labelIn.value=f.label||'';
@@ -184,7 +195,7 @@ export function renderCustomPanelsMgr(s,container,panelBody){
             descIn.addEventListener('change',()=>{f.desc=descIn.value;saveSettings()});
             const rmBtn=document.createElement('button');rmBtn.className='sp-btn sp-btn-sm sp-cp-field-rm';rmBtn.textContent='\u2212';rmBtn.title=t('Remove this field');
             rmBtn.addEventListener('click',()=>{cp.fields.splice(fIdx,1);saveSettings();renderCustomPanelsMgr(s,container,panelBody);liveRefresh()});
-            row.appendChild(handle);row.appendChild(keyIn);row.appendChild(labelIn);row.appendChild(typeSel);row.appendChild(descIn);row.appendChild(rmBtn);
+            row.appendChild(handle);row.appendChild(fToggle);row.appendChild(keyIn);row.appendChild(labelIn);row.appendChild(typeSel);row.appendChild(descIn);row.appendChild(rmBtn);
             if(f.type==='enum'){
                 const optRow=document.createElement('div');optRow.className='sp-cp-field-opt-row';
                 const optIn=document.createElement('input');optIn.placeholder='Enum options (comma-separated)';optIn.value=(f.options||[]).join(', ');optIn.spellcheck=false;

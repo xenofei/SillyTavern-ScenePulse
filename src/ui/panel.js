@@ -532,7 +532,7 @@ export function createPanel(){
         const addBtn=document.createElement('button');addBtn.className='sp-btn sp-mgr-add-panel';addBtn.textContent=t('+ Add Custom Panel');
         addBtn.addEventListener('click',()=>{
             if(!s.customPanels)s.customPanels=[];
-            const newPanel={name:'',fields:[{key:'',label:'',type:'text',desc:''}]};
+            const newPanel={id:'cp_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),name:'',fields:[{key:'',label:'',type:'text',desc:''}]};
             s.customPanels.push(newPanel);
             saveSettings();renderCustomPanelsMgr(s,cpList,body);
             // Insert just the new section -- no full rebuild
@@ -690,7 +690,7 @@ export function createPanel(){
                 const item=document.createElement('div');item.className='sp-cp-tmpl-item';item.textContent=name;
                 item.addEventListener('click',()=>{
                     if(!s.customPanels)s.customPanels=[];
-                    s.customPanels.push({name,enabled:true,fields:JSON.parse(JSON.stringify(fields))});
+                    s.customPanels.push({id:'cp_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),name,enabled:true,fields:JSON.parse(JSON.stringify(fields))});
                     saveSettings();renderCustomPanelsMgr(s,cpList,body);
                     menu.remove();toastr.success(name+' template added');
                 });

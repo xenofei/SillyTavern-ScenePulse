@@ -33,7 +33,11 @@ const{extensionSettings}=SillyTavern.getContext();if(!extensionSettings[MODULE_N
 // where both name AND all keys were empty, which deleted panels mid-
 // edit when the user changed a field type before filling in the key.
 // Now only strips panels with zero fields (truly abandoned stubs).
-if(s.customPanels?.length){s.customPanels=s.customPanels.filter(cp=>cp.fields?.length>0||cp.name?.trim())}
+if(s.customPanels?.length){s.customPanels=s.customPanels.filter(cp=>cp.fields?.length>0||cp.name?.trim());
+// v6.9.13: assign stable IDs to panels missing them (migration for
+// pre-v6.9.13 panels + defensive fallback for future creation bugs)
+for(const cp of s.customPanels){if(!cp.id)cp.id='cp_'+Date.now()+'_'+Math.random().toString(36).slice(2,6)}
+}
 // Overlay localStorage profile selections (these bypass ST's save pipeline)
 try{const ls=JSON.parse(localStorage.getItem('sp_profiles')||'{}');
 if(ls.connectionProfile!==undefined)s.connectionProfile=ls.connectionProfile;
@@ -48,8 +52,49 @@ export function saveSettings(){_settingsCache=null;SillyTavern.getContext().save
 
 export function invalidateSettingsCache(){_settingsCache=null;}
 
-// v6.9.11: only count enabled custom panels
-export function anyPanelsActive(){const s=getSettings();const p=s.panels||DEFAULTS.panels;return Object.values(p).some(v=>v!==false)||(s.customPanels||[]).some(cp=>cp.enabled!==false&&cp.fields?.length>0)}
+/**
+ * v6.9.13: resolve whether a custom panel is enabled for the CURRENT
+ * chat. Per-chat overrides (stored in chatMetadata) take precedence
+ * over the global panel.enabled flag.
+ *
+ * Override storage: chatMetadata.scenepulse.activePanelOverrides
+ *   = { [panelId]: true/false }
+ * Missing panelId → falls through to cp.enabled (global default).
+ */
+export function isPanelEnabledForChat(cp) {
+    if (!cp) return false;
+    try {
+        const overrides = SillyTavern.getContext().chatMetadata?.scenepulse?.activePanelOverrides;
+        if (overrides && cp.id && cp.id in overrides) return !!overrides[cp.id];
+    } catch { /* no chat context available */ }
+    return cp.enabled !== false;
+}
+
+/** Set a per-chat override for a custom panel. */
+export function setPanelChatOverride(panelId, enabled) {
+    try {
+        const ctx = SillyTavern.getContext();
+        if (!ctx.chatMetadata) return;
+        if (!ctx.chatMetadata.scenepulse) ctx.chatMetadata.scenepulse = {};
+        if (!ctx.chatMetadata.scenepulse.activePanelOverrides) ctx.chatMetadata.scenepulse.activePanelOverrides = {};
+        ctx.chatMetadata.scenepulse.activePanelOverrides[panelId] = enabled;
+        ctx.saveMetadata();
+    } catch { /* no chat context */ }
+}
+
+/** Clear all per-chat panel overrides (revert to global defaults). */
+export function clearPanelChatOverrides() {
+    try {
+        const ctx = SillyTavern.getContext();
+        if (ctx.chatMetadata?.scenepulse?.activePanelOverrides) {
+            delete ctx.chatMetadata.scenepulse.activePanelOverrides;
+            ctx.saveMetadata();
+        }
+    } catch {}
+}
+
+// v6.9.13: use isPanelEnabledForChat for per-chat awareness
+export function anyPanelsActive(){const s=getSettings();const p=s.panels||DEFAULTS.panels;return Object.values(p).some(v=>v!==false)||(s.customPanels||[]).some(cp=>isPanelEnabledForChat(cp)&&cp.fields?.length>0)}
 
 export function getTrackerData(){
     const m=SillyTavern.getContext().chatMetadata;if(!m)return{snapshots:{}};

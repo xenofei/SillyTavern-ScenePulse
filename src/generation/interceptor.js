@@ -2,7 +2,7 @@
 
 import { log } from '../logger.js';
 import { DEFAULTS } from '../constants.js';
-import { getSettings, getActiveSchema, getActivePrompt, getLatestSnapshot, getLanguage, shouldUseDelta } from '../settings.js';
+import { getSettings, getActiveSchema, getActivePrompt, getLatestSnapshot, getLanguage, shouldUseDelta, isPanelEnabledForChat } from '../settings.js';
 import { anyPanelsActive } from '../settings.js';
 import { getGroupMemberNames } from '../normalize.js';
 import {
@@ -104,8 +104,10 @@ QUEST STATE RULES (all REQUIRED):
     // Custom panel hints (v6.9.11: skip disabled panels)
     const customPanels=s.customPanels||[];
     for(const cp of customPanels){
-        if(!cp.fields?.length||cp.enabled===false)continue;
-        mandatoryHints+=`\n- ${cp.fields.map(f=>f.key).join(', ')}: ${cp.name} fields \u2014 populate from story context.`;
+        if(!cp.fields?.length||!isPanelEnabledForChat(cp))continue;
+        // v6.9.13: filter out disabled fields from hints
+        const _activeFields=cp.fields.filter(f=>f.enabled!==false);
+        if(_activeFields.length)mandatoryHints+=`\n- ${_activeFields.map(f=>f.key).join(', ')}: ${cp.name} fields \u2014 populate from story context.`;
     }
     // v6.8.50: use the shared shouldUseDelta() helper instead of
     // checking deltaMode directly. This respects the periodic full-
