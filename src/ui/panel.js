@@ -3,7 +3,7 @@ import { log, warn } from '../logger.js';
 import { esc, clamp, str } from '../utils.js';
 import { t } from '../i18n.js';
 import { MASCOT_SVG, DEFAULTS, VERSION } from '../constants.js';
-import { getSettings, saveSettings } from '../settings.js';
+import { getSettings, saveSettings, ensureChatPanels, saveChatPanels, getActivePanels } from '../settings.js';
 import { BUILTIN_PANELS } from '../constants.js';
 import { buildDynamicSchema } from '../schema.js';
 import { getLatestSnapshot } from '../settings.js';
@@ -279,6 +279,7 @@ export function createPanel(){
         };
         if(mgr){closeMgr();return}
         btn.classList.add('sp-tb-active');
+        try {
         mgr=document.createElement('div');mgr.id='sp-panel-mgr';mgr.className='sp-panel-mgr sp-mgr-closing';
         const s=getSettings();
         mgr.innerHTML=`<div class="sp-mgr-header"><span class="sp-mgr-title">${t('Panel Manager')}</span><button class="sp-mgr-close" title="${t('Close')}">\u2715</button></div><div class="sp-mgr-hint">Toggle panels on/off. Disabled panels are excluded from the LLM prompt.</div>`;
@@ -531,10 +532,10 @@ export function createPanel(){
         renderCustomPanelsMgr(s,cpList,body);
         const addBtn=document.createElement('button');addBtn.className='sp-btn sp-mgr-add-panel';addBtn.textContent=t('+ Add Custom Panel');
         addBtn.addEventListener('click',()=>{
-            if(!s.customPanels)s.customPanels=[];
+            const _chatPanels=ensureChatPanels();
             const newPanel={id:'cp_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),name:'',fields:[{key:'',label:'',type:'text',desc:''}]};
-            s.customPanels.push(newPanel);
-            saveSettings();renderCustomPanelsMgr(s,cpList,body);
+            _chatPanels.push(newPanel);
+            saveChatPanels();renderCustomPanelsMgr(s,cpList,body);
             // Insert just the new section -- no full rebuild
             const d=_cachedNormData||{};
             const cpKey='custom_'+(newPanel.name||'untitled').replace(/\s+/g,'_').toLowerCase();
@@ -564,7 +565,7 @@ export function createPanel(){
         // Export panels
         const exportBtn=document.createElement('button');exportBtn.className='sp-btn sp-btn-sm';exportBtn.textContent='\u2913 '+t('Export Panels');
         exportBtn.addEventListener('click',()=>{
-            const data=JSON.stringify(s.customPanels||[],null,2);
+            const data=JSON.stringify(getActivePanels(s),null,2);
             const blob=new Blob([data],{type:'application/json'});
             const a=document.createElement('a');a.href=URL.createObjectURL(blob);
             a.download='scenepulse-panels.json';a.click();URL.revokeObjectURL(a.href);
@@ -582,15 +583,15 @@ export function createPanel(){
                     const text=await file.text();
                     const imported=JSON.parse(text);
                     if(!Array.isArray(imported)){toastr.error('Invalid format — expected array of panels');return}
-                    if(!s.customPanels)s.customPanels=[];
+                    const _chatPanels=ensureChatPanels();
                     for(const p of imported){
                         if(!p||typeof p!=='object')continue;
-                        // Avoid exact-name duplicates — suffix with (imported)
-                        const existing=(s.customPanels||[]).find(e=>e.name===p.name);
+                        const existing=_chatPanels.find(e=>e.name===p.name);
                         if(existing)p.name=(p.name||'Untitled')+' (imported)';
-                        s.customPanels.push(p);
+                        if(!p.id)p.id='cp_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
+                        _chatPanels.push(p);
                     }
-                    saveSettings();renderCustomPanelsMgr(s,cpList,body);
+                    saveChatPanels();renderCustomPanelsMgr(s,cpList,body);
                     toastr.success(imported.length+' panel(s) imported');
                 }catch(e){toastr.error('Import failed: '+e.message)}
             });
@@ -689,9 +690,9 @@ export function createPanel(){
             for(const[name,fields]of Object.entries(_TEMPLATES)){
                 const item=document.createElement('div');item.className='sp-cp-tmpl-item';item.textContent=name;
                 item.addEventListener('click',()=>{
-                    if(!s.customPanels)s.customPanels=[];
-                    s.customPanels.push({id:'cp_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),name,enabled:true,fields:JSON.parse(JSON.stringify(fields))});
-                    saveSettings();renderCustomPanelsMgr(s,cpList,body);
+                    const _chatPanels=ensureChatPanels();
+                    _chatPanels.push({id:'cp_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),name,enabled:true,fields:JSON.parse(JSON.stringify(fields))});
+                    saveChatPanels();renderCustomPanelsMgr(s,cpList,body);
                     menu.remove();toastr.success(name+' template added');
                 });
                 menu.appendChild(item);
@@ -716,6 +717,7 @@ export function createPanel(){
         mgr.appendChild(cpActions);
 
         body.insertBefore(mgr,body.firstChild);
+        } catch(e) { console.error('[ScenePulse] Panel Manager failed to open:', e); btn.classList.remove('sp-tb-active'); }
         // Sync toolbar buttons with current dashCard/thoughts state
         const _dc=s.dashCards||DEFAULTS.dashCards;
         const wxBtn=document.getElementById('sp-tb-weather');

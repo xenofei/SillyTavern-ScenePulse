@@ -1,7 +1,7 @@
 // ScenePulse — Custom Panels Module
 // Extracted from index.js lines 4969-5130
 
-import { getSettings, saveSettings, isPanelEnabledForChat, setPanelChatOverride, clearPanelChatOverrides } from '../settings.js';
+import { getSettings, saveSettings, ensureChatPanels, saveChatPanels, getActivePanels } from '../settings.js';
 import { esc, str, clamp, spConfirm } from '../utils.js';
 import { _cachedNormData } from '../state.js';
 import { buildDynamicSchema, buildDynamicPrompt } from '../schema.js';
@@ -58,7 +58,8 @@ export function refreshCustomSection(cp,panelBody){
 }
 
 export function renderCustomPanelsMgr(s,container,panelBody){
-    const panels=s.customPanels||[];
+    // v6.9.14: read from per-chat panels (auto-cloned from global on first access)
+    const panels=ensureChatPanels();
 
     const _openState={};container.querySelectorAll('.sp-custom-panel-card').forEach((c,i)=>{_openState[i]=c.classList.contains('sp-cp-open')});
     container.innerHTML='';
@@ -72,32 +73,11 @@ export function renderCustomPanelsMgr(s,container,panelBody){
     const infoLabel=document.createElement('span');infoLabel.style.cssText='font-size:9px;color:var(--sp-text-dim);opacity:0.6';infoLabel.textContent='How custom panels work';
     infoRow.appendChild(infoLabel);
     container.appendChild(infoRow);container.appendChild(infoPopup);
-    // Per-chat scope indicator — always visible when panels exist so
-    // the user knows toggles write to the current chat, not globally.
-    if (panels.length) {
-        let _hasAnyOverride = false;
-        try { const _ov = SillyTavern.getContext().chatMetadata?.scenepulse?.activePanelOverrides; _hasAnyOverride = _ov && Object.keys(_ov).length > 0; } catch {}
+    // v6.9.14: scope indicator — always visible when panels exist
+    if (panels.length || true) {
         const scopeRow = document.createElement('div');
         scopeRow.className = 'sp-cp-scope-row';
-        if (_hasAnyOverride) {
-            scopeRow.innerHTML = `<span class="sp-cp-scope-icon">\u26C1</span><span class="sp-cp-scope-text">${t('Toggles apply to this chat only. Some panels have per-chat overrides.')}</span>`;
-            const resetAllBtn = document.createElement('button');
-            resetAllBtn.className = 'sp-btn sp-btn-sm sp-cp-reset-all';
-            resetAllBtn.textContent = '\u21BA ' + t('Reset all to global');
-            resetAllBtn.addEventListener('click', () => {
-                clearPanelChatOverrides();
-                renderCustomPanelsMgr(s, container, panelBody);
-                for (const cp of panels) {
-                    const cpKey = 'custom_' + (cp.name || 'untitled').replace(/\s+/g, '_').toLowerCase();
-                    const sec = panelBody?.querySelector(`.sp-section[data-key="${cpKey}"]`);
-                    if (sec) sec.classList.toggle('sp-panel-hidden', cp.enabled === false);
-                }
-                toastr.info('All panels reset to global defaults');
-            });
-            scopeRow.appendChild(resetAllBtn);
-        } else {
-            scopeRow.innerHTML = `<span class="sp-cp-scope-icon">\u26C1</span><span class="sp-cp-scope-text">${t('Toggles apply to this chat only. Other chats keep their own settings.')}</span>`;
-        }
+        scopeRow.innerHTML = `<span class="sp-cp-scope-icon">\u26C1</span><span class="sp-cp-scope-text">${t('Panels for this chat. Changes here only affect this chat.')}</span>`;
         container.appendChild(scopeRow);
     }
     if(!panels.length){
@@ -118,34 +98,24 @@ export function renderCustomPanelsMgr(s,container,panelBody){
         const chevron=document.createElement('span');chevron.className='sp-cp-chevron';chevron.textContent='\u25B6';
         // v6.9.11: enable/disable toggle per panel
         const toggle=document.createElement('input');toggle.type='checkbox';toggle.className='sp-cp-toggle';
-        // v6.9.13: toggle reflects per-chat state (if override exists)
-        // and writes to per-chat override when toggled, not global.
-        const _globalDefault = cp.enabled !== false;
-        const _chatEnabled = isPanelEnabledForChat(cp);
-        const _hasOverride = (() => { try { const ov = SillyTavern.getContext().chatMetadata?.scenepulse?.activePanelOverrides; return ov && cp.id && cp.id in ov; } catch { return false; } })();
-        toggle.checked = _chatEnabled;
-        toggle.title = _hasOverride ? t('This chat overrides the global default. Click to toggle.') : t('Enable/disable this panel for this chat');
+        // v6.9.14: toggle writes directly to the chat-local panel copy
+        toggle.checked = cp.enabled !== false;
+        toggle.title = t('Enable/disable this panel for this chat');
         toggle.addEventListener('click', e => e.stopPropagation());
         toggle.addEventListener('change', () => {
-            if (cp.id) setPanelChatOverride(cp.id, toggle.checked);
-            else { cp.enabled = toggle.checked; saveSettings(); }
+            cp.enabled = toggle.checked;
+            saveChatPanels();
             liveRefresh();
             const cpKey = 'custom_' + (cp.name || 'untitled').replace(/\s+/g, '_').toLowerCase();
             const sec = panelBody?.querySelector(`.sp-section[data-key="${cpKey}"]`);
             if (sec) sec.classList.toggle('sp-panel-hidden', !toggle.checked);
             card.classList.toggle('sp-cp-disabled', !toggle.checked);
-            // Refresh to show/hide override indicator
-            renderCustomPanelsMgr(s, container, panelBody);
         });
-        // Override indicator + per-panel reset button
-        if (_hasOverride) {
-            card.classList.add('sp-cp-overridden');
-        }
         const nameInput=document.createElement('input');nameInput.className='sp-cp-name';nameInput.type='text';nameInput.value=cp.name||'';nameInput.placeholder=t('Panel name');nameInput.spellcheck=false;
         nameInput.addEventListener('click',e=>e.stopPropagation());
         nameInput.addEventListener('change',()=>{
             const oldKey='custom_'+cp.name.replace(/\s+/g,'_').toLowerCase();
-            cp.name=nameInput.value.trim()||'Untitled';saveSettings();
+            cp.name=nameInput.value.trim()||'Untitled';saveChatPanels();
             const sec=panelBody?.querySelector(`.sp-section[data-key="${oldKey}"]`);
             if(sec){
                 const newKey='custom_'+cp.name.replace(/\s+/g,'_').toLowerCase();
@@ -159,43 +129,24 @@ export function renderCustomPanelsMgr(s,container,panelBody){
             e.stopPropagation();
             const clone=JSON.parse(JSON.stringify(cp));
             clone.name=(cp.name||'Untitled')+' (copy)';
-            s.customPanels.splice(cpIdx+1,0,clone);
-            saveSettings();renderCustomPanelsMgr(s,container,panelBody);liveRefresh();
+            panels.splice(cpIdx+1,0,clone);
+            saveChatPanels();renderCustomPanelsMgr(s,container,panelBody);liveRefresh();
             toastr.info('Panel duplicated');
         });
         const delBtn=document.createElement('button');delBtn.className='sp-btn sp-btn-sm sp-cp-del';delBtn.textContent='\u2715';delBtn.title=t('Delete panel');
         delBtn.addEventListener('click',async(e)=>{
             e.stopPropagation();
             if(!await spConfirm('Delete Panel',`Remove "${cp.name||'Untitled'}" and all its fields? This cannot be undone.`))return;
-            s.customPanels.splice(cpIdx,1);saveSettings();
+            panels.splice(cpIdx,1);saveChatPanels();
             renderCustomPanelsMgr(s,container,panelBody);
             const cpKey='custom_'+cp.name.replace(/\s+/g,'_').toLowerCase();
             const sec=panelBody?.querySelector(`.sp-section[data-key="${cpKey}"]`);
             if(sec){sec.classList.add('sp-panel-hidden');setTimeout(()=>sec.remove(),350)}
             toastr.info('Panel deleted');
         });
-        // Per-panel reset-to-global button (only when override exists)
-        let resetBtn = null;
-        if (_hasOverride) {
-            resetBtn = document.createElement('button');
-            resetBtn.className = 'sp-btn sp-btn-sm sp-cp-reset';
-            resetBtn.textContent = '\u21BA';
-            resetBtn.title = t('Reset to global default');
-            resetBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                try {
-                    const ov = SillyTavern.getContext().chatMetadata?.scenepulse?.activePanelOverrides;
-                    if (ov && cp.id) { delete ov[cp.id]; SillyTavern.getContext().saveMetadata(); }
-                } catch {}
-                renderCustomPanelsMgr(s, container, panelBody); liveRefresh();
-                toastr.info('Reset to global default');
-            });
-        }
-        header.appendChild(chevron);header.appendChild(toggle);header.appendChild(nameInput);header.appendChild(dupBtn);
-        if (resetBtn) header.appendChild(resetBtn);
-        header.appendChild(delBtn);
+        header.appendChild(chevron);header.appendChild(toggle);header.appendChild(nameInput);header.appendChild(dupBtn);header.appendChild(delBtn);
         header.addEventListener('click',(e)=>{if(e.target===nameInput||e.target===toggle)return;card.classList.toggle('sp-cp-open')});
-        if(!isPanelEnabledForChat(cp))card.classList.add('sp-cp-disabled');
+        if(cp.enabled===false)card.classList.add('sp-cp-disabled');
         card.appendChild(header);
         // Collapsible body
         const body=document.createElement('div');body.className='sp-cp-body';
@@ -224,39 +175,39 @@ export function renderCustomPanelsMgr(s,container,panelBody){
                 const srcCp=parseInt(data[0]),srcF=parseInt(data[1]);
                 const dstCp=cpIdx,dstF=fIdx;
                 if(srcCp===dstCp&&srcF===dstF)return;
-                const srcPanel=s.customPanels[srcCp];const dstPanel=s.customPanels[dstCp];
+                const srcPanel=panels[srcCp];const dstPanel=panels[dstCp];
                 if(!srcPanel||!dstPanel)return;
                 const [moved]=srcPanel.fields.splice(srcF,1);
                 dstPanel.fields.splice(dstF,0,moved);
-                saveSettings();renderCustomPanelsMgr(s,container,panelBody);liveRefresh();
+                saveChatPanels();renderCustomPanelsMgr(s,container,panelBody);liveRefresh();
             });
             // Key: enforce lowercase_snake_case
             // v6.9.13: per-field enable/disable toggle
             const fToggle=document.createElement('input');fToggle.type='checkbox';fToggle.className='sp-cp-field-toggle';
             fToggle.checked=f.enabled!==false;fToggle.title=t('Enable/disable this field');
-            fToggle.addEventListener('change',()=>{f.enabled=fToggle.checked;saveSettings();liveRefresh();
+            fToggle.addEventListener('change',()=>{f.enabled=fToggle.checked;saveChatPanels();liveRefresh();
                 row.classList.toggle('sp-cp-field-disabled',!fToggle.checked)});
             if(f.enabled===false)row.classList.add('sp-cp-field-disabled');
             const keyIn=document.createElement('input');keyIn.className='sp-cp-field-key';keyIn.placeholder='key';keyIn.value=f.key||'';keyIn.spellcheck=false;keyIn.title='JSON key \u2014 lowercase_snake_case only.\nExamples: health, mana_pool, reputation';
-            keyIn.addEventListener('change',()=>{f.key=keyIn.value.toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'').replace(/^[0-9]/,'_$&').replace(/_+/g,'_');keyIn.value=f.key;saveSettings();liveRefresh()});
+            keyIn.addEventListener('change',()=>{f.key=keyIn.value.toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'').replace(/^[0-9]/,'_$&').replace(/_+/g,'_');keyIn.value=f.key;saveChatPanels();liveRefresh()});
             const labelIn=document.createElement('input');labelIn.className='sp-cp-field-label';labelIn.placeholder='Label';labelIn.value=f.label||'';
             labelIn.title='Display name shown in the panel.\nExamples: Health, Mana Pool, Street Rep';
-            labelIn.addEventListener('change',()=>{f.label=labelIn.value;saveSettings();liveRefresh()});
+            labelIn.addEventListener('change',()=>{f.label=labelIn.value;saveChatPanels();liveRefresh()});
             const typeSel=document.createElement('select');typeSel.className='sp-cp-field-type';
             typeSel.title='Field type:\n\u2022 text \u2014 free-form string\n\u2022 number \u2014 integer\n\u2022 meter \u2014 0-100 bar\n\u2022 list \u2014 array of strings\n\u2022 enum \u2014 pick from options';
             for(const ft of['text','number','meter','list','enum']){const o=document.createElement('option');o.value=ft;o.textContent=ft;o.selected=f.type===ft;typeSel.appendChild(o)}
-            typeSel.addEventListener('change',()=>{f.type=typeSel.value;saveSettings();renderCustomPanelsMgr(s,container,panelBody);liveRefresh()});
+            typeSel.addEventListener('change',()=>{f.type=typeSel.value;saveChatPanels();renderCustomPanelsMgr(s,container,panelBody);liveRefresh()});
             const descIn=document.createElement('input');descIn.className='sp-cp-field-desc';descIn.placeholder='Describe for AI...';descIn.value=f.desc||'';
             descIn.title='Instructions for the LLM.\n\u2022 "{{user}}\'s health 0-100, reduced by damage"\n\u2022 "Mana remaining after spellcasting"\n\u2022 "Items the character carries"';
-            descIn.addEventListener('change',()=>{f.desc=descIn.value;saveSettings()});
+            descIn.addEventListener('change',()=>{f.desc=descIn.value;saveChatPanels()});
             const rmBtn=document.createElement('button');rmBtn.className='sp-btn sp-btn-sm sp-cp-field-rm';rmBtn.textContent='\u2212';rmBtn.title=t('Remove this field');
-            rmBtn.addEventListener('click',()=>{cp.fields.splice(fIdx,1);saveSettings();renderCustomPanelsMgr(s,container,panelBody);liveRefresh()});
+            rmBtn.addEventListener('click',()=>{cp.fields.splice(fIdx,1);saveChatPanels();renderCustomPanelsMgr(s,container,panelBody);liveRefresh()});
             row.appendChild(handle);row.appendChild(fToggle);row.appendChild(keyIn);row.appendChild(labelIn);row.appendChild(typeSel);row.appendChild(descIn);row.appendChild(rmBtn);
             if(f.type==='enum'){
                 const optRow=document.createElement('div');optRow.className='sp-cp-field-opt-row';
                 const optIn=document.createElement('input');optIn.placeholder='Enum options (comma-separated)';optIn.value=(f.options||[]).join(', ');optIn.spellcheck=false;
                 optIn.title='Comma-separated list of allowed values.\nExamples: low, medium, high, critical';
-                optIn.addEventListener('change',()=>{f.options=optIn.value.split(',').map(s=>s.trim()).filter(Boolean);saveSettings()});
+                optIn.addEventListener('change',()=>{f.options=optIn.value.split(',').map(s=>s.trim()).filter(Boolean);saveChatPanels()});
                 optRow.appendChild(optIn);
                 const wrapper=document.createElement('div');wrapper.appendChild(row);wrapper.appendChild(optRow);
                 fieldsList.appendChild(wrapper);
@@ -291,7 +242,7 @@ export function renderCustomPanelsMgr(s,container,panelBody){
         addFieldBtn.addEventListener('click',()=>{
             if(!cp.fields)cp.fields=[];
             cp.fields.push({key:'',label:'',type:'text',desc:''});
-            saveSettings();renderCustomPanelsMgr(s,container,panelBody);liveRefresh();
+            saveChatPanels();renderCustomPanelsMgr(s,container,panelBody);liveRefresh();
         });
         body.appendChild(addFieldBtn);card.appendChild(body);container.appendChild(card);
     });

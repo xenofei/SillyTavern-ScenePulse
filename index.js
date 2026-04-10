@@ -21,8 +21,7 @@ import {
 import {
     getSettings, anyPanelsActive,
     getLatestSnapshot,
-    ensureChatSaved, invalidateSettingsCache,
-    isPanelEnabledForChat
+    ensureChatSaved, invalidateSettingsCache
 } from './src/settings.js';
 import { normalizeTracker, clearNormCache } from './src/normalize.js';
 import { resetColorMap } from './src/color.js';
@@ -247,29 +246,13 @@ eventSource.on(event_types.CHAT_CHANGED, async () => {
     // effective panel set may have changed between chats (different
     // per-chat overrides → different schema → delta would be wrong).
     try { const { forceFullStateRefresh } = await import('./src/settings.js'); forceFullStateRefresh(); } catch {}
-    setTimeout(async () => {
+    // v6.9.14: renderExisting → updatePanel now reads getActivePanels()
+    // which returns the new chat's chatPanels automatically. No manual
+    // per-panel visibility sync needed.
+    setTimeout(() => {
         renderExisting();
         const msgs = document.querySelectorAll('.mes');
         if (msgs.length === 0) setTimeout(renderExisting, 500);
-        // v6.9.13: force-refresh custom panel section visibility to
-        // match the new chat's per-chat overrides. renderExisting calls
-        // updatePanel which rebuilds the DOM, but we explicitly re-check
-        // each custom panel section after a short delay to ensure the
-        // new chat's overrides are applied even if the DOM rebuilt from
-        // cached state.
-        setTimeout(() => {
-            try {
-                const _s = getSettings();
-                for (const cp of (_s.customPanels || [])) {
-                    const cpKey = 'custom_' + (cp.name || 'untitled').replace(/\s+/g, '_').toLowerCase();
-                    const sec = document.querySelector(`.sp-section[data-key="${cpKey}"]`);
-                    if (sec) {
-                        const enabled = isPanelEnabledForChat(cp);
-                        sec.classList.toggle('sp-panel-hidden', !enabled);
-                    }
-                }
-            } catch {}
-        }, 100);
     }, 200);
 });
 

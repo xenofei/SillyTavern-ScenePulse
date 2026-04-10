@@ -4,7 +4,7 @@ import { esc, clamp, str, spConfirm } from '../utils.js';
 import { t } from '../i18n.js';
 import { DEFAULTS } from '../constants.js';
 import { getSettings, saveSettings } from '../settings.js';
-import { getLatestSnapshot, getPrevSnapshot, getTrackerData, isPanelEnabledForChat } from '../settings.js';
+import { getLatestSnapshot, getPrevSnapshot, getTrackerData, getActivePanels } from '../settings.js';
 import { normalizeTracker, filterForView } from '../normalize.js';
 import { charColor } from '../color.js';
 import {
@@ -1206,10 +1206,10 @@ export function updatePanel(d,_force=false){
         f.appendChild(c)}return f;
     },s);if(s.panels?.storyIdeas===false)_sec.classList.add('sp-panel-hidden');body.appendChild(_sec)}
 
-    // Custom Panels (v6.9.11: skip disabled, v6.9.12: full UI/UX upgrade)
-    const customPanels=s.customPanels||[];
+    // Custom Panels (v6.9.14: per-chat definitions)
+    const customPanels=getActivePanels(s);
     for(const cp of customPanels){
-        if(!cp.fields?.length||!isPanelEnabledForChat(cp))continue;
+        if(!cp.fields?.length||cp.enabled===false)continue;
         const cpKey='custom_'+cp.name.replace(/\s+/g,'_').toLowerCase();
         const _cpSec=mkSection(cpKey,cp.name,null,()=>{
             const frag=document.createDocumentFragment();

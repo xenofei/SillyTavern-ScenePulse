@@ -2,7 +2,7 @@
 
 import { log } from '../logger.js';
 import { DEFAULTS } from '../constants.js';
-import { getSettings, getActiveSchema, getActivePrompt, getLatestSnapshot, getLanguage, shouldUseDelta, isPanelEnabledForChat } from '../settings.js';
+import { getSettings, getActiveSchema, getActivePrompt, getLatestSnapshot, getLanguage, shouldUseDelta, getActivePanels } from '../settings.js';
 import { anyPanelsActive } from '../settings.js';
 import { getGroupMemberNames } from '../normalize.js';
 import {
@@ -101,10 +101,10 @@ QUEST STATE RULES (all REQUIRED):
         }
     }
     if(panels.relationships!==false)mandatoryHints+='\n- relationships: All characters\' views of {{user}} with numeric meters (0-100) and labels. desire=0 for strangers/family.';
-    // Custom panel hints (v6.9.11: skip disabled panels)
-    const customPanels=s.customPanels||[];
+    // Custom panel hints (v6.9.14: per-chat definitions)
+    const customPanels=getActivePanels(s);
     for(const cp of customPanels){
-        if(!cp.fields?.length||!isPanelEnabledForChat(cp))continue;
+        if(!cp.fields?.length||cp.enabled===false)continue;
         // v6.9.13: filter out disabled fields from hints
         const _activeFields=cp.fields.filter(f=>f.enabled!==false);
         if(_activeFields.length)mandatoryHints+=`\n- ${_activeFields.map(f=>f.key).join(', ')}: ${cp.name} fields \u2014 populate from story context.`;

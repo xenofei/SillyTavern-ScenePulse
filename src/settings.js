@@ -53,48 +53,65 @@ export function saveSettings(){_settingsCache=null;SillyTavern.getContext().save
 export function invalidateSettingsCache(){_settingsCache=null;}
 
 /**
- * v6.9.13: resolve whether a custom panel is enabled for the CURRENT
- * chat. Per-chat overrides (stored in chatMetadata) take precedence
- * over the global panel.enabled flag.
+ * v6.9.14: get the active custom panels for the CURRENT chat.
  *
- * Override storage: chatMetadata.scenepulse.activePanelOverrides
- *   = { [panelId]: true/false }
- * Missing panelId → falls through to cp.enabled (global default).
+ * Each chat owns its own copy of panel definitions in
+ * chatMetadata.scenepulse.chatPanels[]. This is the per-chat
+ * editing surface — adding/removing/toggling fields here only
+ * affects this chat.
+ *
+ * Fallback: if chatPanels doesn't exist (new chat, legacy chat),
+ * returns the global s.customPanels as a read-only fallback.
+ * Any edit triggers a migration: deep-clone global into chatPanels.
+ *
+ * @param {object} [s] - settings object (optional, auto-fetched if omitted)
+ * @returns {Array} the active panel array for this chat
  */
-export function isPanelEnabledForChat(cp) {
-    if (!cp) return false;
+export function getActivePanels(s) {
+    if (!s) s = getSettings();
     try {
-        const overrides = SillyTavern.getContext().chatMetadata?.scenepulse?.activePanelOverrides;
-        if (overrides && cp.id && cp.id in overrides) return !!overrides[cp.id];
-    } catch { /* no chat context available */ }
-    return cp.enabled !== false;
+        const cp = SillyTavern.getContext().chatMetadata?.scenepulse?.chatPanels;
+        if (Array.isArray(cp)) return cp;
+    } catch {}
+    // No chat context or no chatPanels — return empty. Each chat
+    // manages its own panels independently. Global customPanels is
+    // only used as a template library, never auto-applied.
+    return [];
 }
 
-/** Set a per-chat override for a custom panel. */
-export function setPanelChatOverride(panelId, enabled) {
+/**
+ * Ensure the current chat has its own chatPanels copy.
+ * If chatPanels doesn't exist, deep-clone from global customPanels.
+ * Returns the chat-local array (safe to mutate).
+ */
+export function ensureChatPanels() {
+    const s = getSettings();
+    const fallback = s.customPanels || [];
     try {
         const ctx = SillyTavern.getContext();
-        if (!ctx.chatMetadata) return;
-        if (!ctx.chatMetadata.scenepulse) ctx.chatMetadata.scenepulse = {};
-        if (!ctx.chatMetadata.scenepulse.activePanelOverrides) ctx.chatMetadata.scenepulse.activePanelOverrides = {};
-        ctx.chatMetadata.scenepulse.activePanelOverrides[panelId] = enabled;
-        ctx.saveMetadata();
-    } catch { /* no chat context */ }
-}
-
-/** Clear all per-chat panel overrides (revert to global defaults). */
-export function clearPanelChatOverrides() {
-    try {
-        const ctx = SillyTavern.getContext();
-        if (ctx.chatMetadata?.scenepulse?.activePanelOverrides) {
-            delete ctx.chatMetadata.scenepulse.activePanelOverrides;
-            ctx.saveMetadata();
+        if (!ctx || !ctx.chatMetadata) return fallback;
+        if (!ctx.chatMetadata.scenepulse) ctx.chatMetadata.scenepulse = { snapshots: {} };
+        if (!Array.isArray(ctx.chatMetadata.scenepulse.chatPanels)) {
+            // New chat starts with empty panels. The user adds panels
+            // to each chat explicitly via templates, import, or manual
+            // creation. No auto-cloning from global — that caused every
+            // new chat to inherit panels from other chats.
+            ctx.chatMetadata.scenepulse.chatPanels = [];
+            try { ctx.saveMetadata(); } catch {}
         }
+        return ctx.chatMetadata.scenepulse.chatPanels;
+    } catch { return fallback; }
+}
+
+/** Save per-chat panel changes to metadata. No-op if no chat is active. */
+export function saveChatPanels() {
+    try {
+        const ctx = SillyTavern.getContext();
+        if (ctx && ctx.chatMetadata) ctx.saveMetadata();
     } catch {}
 }
 
-// v6.9.13: use isPanelEnabledForChat for per-chat awareness
-export function anyPanelsActive(){const s=getSettings();const p=s.panels||DEFAULTS.panels;return Object.values(p).some(v=>v!==false)||(s.customPanels||[]).some(cp=>isPanelEnabledForChat(cp)&&cp.fields?.length>0)}
+export function anyPanelsActive(){const s=getSettings();const p=s.panels||DEFAULTS.panels;const panels=getActivePanels(s);return Object.values(p).some(v=>v!==false)||panels.some(cp=>cp.enabled!==false&&cp.fields?.length>0)}
 
 export function getTrackerData(){
     const m=SillyTavern.getContext().chatMetadata;if(!m)return{snapshots:{}};

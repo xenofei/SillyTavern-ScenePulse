@@ -1,7 +1,7 @@
 // ScenePulse — Dynamic Schema & Prompt Builder Module
 
 import { DEFAULTS, BUILTIN_PANELS, BUILTIN_SCHEMA } from './constants.js';
-import { getLanguage, isPanelEnabledForChat } from './settings.js';
+import { getLanguage, getActivePanels } from './settings.js';
 
 // ── Sub-field toggle → schema property mappings ──
 // v6.8.15: schema trim dropped 6 fertility sub-fields (reason/phase/day/window/
@@ -92,10 +92,10 @@ export function buildDynamicSchema(s){
             required.push(f.key);
         }
     }
-    // Custom panels: add their fields (v6.9.11: skip disabled panels)
-    const customPanels=s.customPanels||[];
+    // Custom panels: add their fields (v6.9.14: per-chat definitions)
+    const customPanels=getActivePanels(s);
     for(const cp of customPanels){
-        if(!cp.fields?.length||!isPanelEnabledForChat(cp))continue;
+        if(!cp.fields?.length||cp.enabled===false)continue;
         for(const f of cp.fields){
             if(f.enabled===false)continue; // v6.9.13: per-field toggle
             const k=f.key;
@@ -300,7 +300,8 @@ You are a precise scene analysis engine. Read the story context and output a sin
         if(enabledTypes.length)prompt+=`\n### Plot Branches (EXACTLY ${enabledTypes.length} suggestions)\nOne per category: ${enabledTypes.join(', ')}. Each must be SPECIFIC to the current scene \u2014 name characters, reference established details. Each needs type, name (2-5 words), hook (1-2 sentences explaining what happens and why it matters).\n`;
     }
     // Custom panels (v6.9.11: skip disabled panels)
-    const customPanels=(s.customPanels||[]).filter(cp=>isPanelEnabledForChat(cp)&&cp.fields?.length);
+    // v6.9.14: per-chat panel definitions
+    const customPanels=getActivePanels(s).filter(cp=>cp.enabled!==false&&cp.fields?.length);
     if(customPanels.length){
         prompt+=`\n### Custom Tracked Fields\n`;
         for(const cp of customPanels){
