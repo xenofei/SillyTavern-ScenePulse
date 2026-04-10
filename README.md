@@ -429,7 +429,7 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
-**Latest: v6.9.10** — Delta mode default-on, scene panel overhaul, quality hardening, i18n extraction, 200+ test assertions.
+**Latest: v6.9.14** — Per-chat custom panels, per-field toggles, 13 genre templates, visual field overhaul, export/import.
 
 ## Contributing
 

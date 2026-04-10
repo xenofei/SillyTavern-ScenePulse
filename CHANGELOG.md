@@ -2,6 +2,29 @@
 
 All notable changes to ScenePulse are documented in this file.
 
+### [6.9.14] — 2026-04-10
+
+#### Changed — Per-chat custom panel definitions
+Each chat now owns its own set of custom panel definitions stored in `chatMetadata.scenepulse.chatPanels[]`. Switching between chats shows that chat's panels in the Panel Manager for editing. New chats start with zero custom panels — add via templates, import, or manual creation. Global `customPanels` is now a template library only, never auto-applied.
+
+#### Fixed — Panel Manager crash
+Two `ReferenceError` crashes (`_hasOverride`, `isPanelEnabledForChat`) from leftover references to the old per-chat override system. Added try/catch around Panel Manager creation so errors log to console instead of silently failing with a stuck green button.
+
+### [6.9.13] — 2026-04-10
+
+#### Added — Per-field toggles + stable panel IDs
+Per-field enable/disable checkbox on every custom panel field (gated at 5 code sites). Stable panel IDs (`cp_timestamp_random`) assigned at creation.
+
+### [6.9.12] — 2026-04-10
+
+#### Changed — Custom panel UI/UX overhaul
+Meter fields: threshold-based color bars (green ≥50, amber 25-49, red <25 with glow). Enum fields: severity-colored badge pills. List fields: chip tags. Number fields: monospace styled well. Custom sections get a 2px teal left border. Meter bar height 6→8px.
+
+### [6.9.11] — 2026-04-10
+
+#### Added — Custom panel toggle, collision detection, export/import, templates, duplicate (resolves #9)
+Enable/disable toggle per panel. Key collision detection. Export/import as JSON. 13 genre templates. Duplicate panel button. Bug fix: type change no longer deletes panel.
+
 ### [6.9.10] — 2026-04-10
 
 #### Fixed — Quality check: 9 issues resolved
