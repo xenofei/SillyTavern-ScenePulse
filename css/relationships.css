@@ -33,19 +33,22 @@
 .sp-rel-meta-label { font-weight: 600; color: var(--sp-text-dim); text-transform: uppercase; font-size: 9px; letter-spacing: 0.04em; min-width: 80px; }
 .sp-rel-milestone { color: var(--sp-amber); }
 
-/* v6.9.10: label uses max-content so it never clips. Gap between
-   label and bar raised to 14px so the meter name doesn't touch the
-   bar's left edge. */
-.sp-meter-row { display: grid; grid-template-columns: max-content 1fr 75px; align-items: center; gap: 14px; padding: 2px 0; }
+/* v6.9.10: label uses max-content so it never clips. The grid gap
+   is kept small (4px) for the bar→value spacing; the label→bar
+   separation is handled by padding-right on .sp-meter-label so the
+   two spacings are independent and work at all panel widths. */
+.sp-meter-row { display: grid; grid-template-columns: max-content 1fr 75px; align-items: center; gap: 4px; padding: 2px 0; }
 .sp-meter-row.sp-meter-has-tag { grid-template-rows: auto auto; }
 .sp-meter-row.sp-meter-has-tag > .sp-meter-label { grid-row: 2; }
 .sp-meter-row.sp-meter-has-tag > .sp-meter-bar-wrap { grid-row: 2; }
 .sp-meter-row.sp-meter-has-tag > .sp-meter-bar-na { grid-row: 2; }
 .sp-meter-row.sp-meter-has-tag > .sp-meter-value,
 .sp-meter-row.sp-meter-has-tag > .sp-meter-value-na { grid-row: 2; }
-/* v6.9.10: added white-space: nowrap so the label never wraps or
-   gets clipped — the max-content column sizing guarantees full fit */
-.sp-meter-label { font-size: 9px; font-weight: 600; text-align: right; color: var(--sp-text-dim); text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap; }
+/* v6.9.10: padding-right on the label creates clear separation
+   between the meter name and the bar's left edge. This is independent
+   of the grid gap (which controls bar→value spacing) so both spacings
+   work correctly at all panel widths and resolutions. */
+.sp-meter-label { font-size: 9px; font-weight: 600; text-align: right; color: var(--sp-text-dim); text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap; padding-right: 10px; }
 .sp-meter-bar-wrap { position: relative; height: 10px; background: rgba(100,110,130,0.12); border-radius: 5px; overflow: visible; }
 .sp-meter-bar-fill { height: 100%; border-radius: 5px; transition: width 0.6s cubic-bezier(0.4,0,0.2,1); position: relative; overflow: hidden; }
 .sp-meter-bar-fill::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(255,255,255,0.15) 0%, transparent 60%); border-radius: 5px; }
