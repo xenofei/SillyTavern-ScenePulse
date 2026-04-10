@@ -583,9 +583,11 @@ export function updatePanel(d,_force=false){
     const _tierStatusCounts={};let _totalQNew=0,_totalQUpdated=0,_totalQDone=0;
     for(const _tk of['mainQuests','sideQuests']){let _nc=0,_uc=0,_dc=0;if(Array.isArray(d[_tk]))for(const _q of d[_tk]){const _s=_classifyQuest(_q,_tk);if(_s==='new')_nc++;else if(_s==='updated')_uc++;else if(_s==='resolved')_dc++}_tierStatusCounts[_tk]={n:_nc,u:_uc,d:_dc};_totalQNew+=_nc;_totalQUpdated+=_uc;_totalQDone+=_dc}
 
-    // Quest Journal section
-    const pc=[d.mainQuests,d.sideQuests].reduce((n,a)=>n+(Array.isArray(a)?a.length:0),0)+(d.northStar?1:0);
-    {const _sec=mkSection('quests',t('Quest Journal'),pc,()=>{
+    // Quest Journal section — badge shows M main / S side breakdown
+    const _mq=Array.isArray(d.mainQuests)?d.mainQuests.length:0;
+    const _sq=Array.isArray(d.sideQuests)?d.sideQuests.length:0;
+    const _qBadge=(_mq||_sq)?`${_mq}M \u00B7 ${_sq}S`:0;
+    {const _sec=mkSection('quests',t('Quest Journal'),_qBadge,()=>{
         const f=document.createDocumentFragment();
         // North Star
         {const ns=d.northStar||'';

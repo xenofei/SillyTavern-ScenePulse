@@ -6,10 +6,20 @@ import { generating, setLastGenSource } from '../state.js';
 import { generateTracker } from '../generation/engine.js';
 import { showLoadingOverlay, clearLoadingOverlay, showStopButton, hideStopButton } from './loading.js';
 
+// Section icons keyed by section key — compact SVGs for visual scanability
+const SECTION_ICONS={
+    scene:'<svg viewBox="0 0 16 16" width="14" height="14" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.1" opacity="0.5"/><path d="M8 2.5v5.5l4 2" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/><circle cx="8" cy="8" r="1.2" fill="currentColor" opacity="0.4"/></svg>',
+    quests:'<svg viewBox="0 0 16 16" width="14" height="14" fill="none"><path d="M3 14V3a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v11l-5-2.5L3 14z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round" fill="currentColor" opacity="0.15"/><line x1="6" y1="5" x2="10" y2="5" stroke="currentColor" stroke-width="0.8" opacity="0.5" stroke-linecap="round"/><line x1="6" y1="7.5" x2="9" y2="7.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" stroke-linecap="round"/></svg>',
+    relationships:'<svg viewBox="0 0 16 16" width="14" height="14" fill="none"><circle cx="5" cy="6" r="2.5" stroke="currentColor" stroke-width="1.1" opacity="0.5"/><circle cx="11" cy="6" r="2.5" stroke="currentColor" stroke-width="1.1" opacity="0.5"/><path d="M3 13c0-2 1.5-3.5 4-3.5h2c2.5 0 4 1.5 4 3.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" opacity="0.4"/></svg>',
+    characters:'<svg viewBox="0 0 16 16" width="14" height="14" fill="none"><circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.1" opacity="0.5"/><path d="M3 14c0-2.5 2-4.5 5-4.5s5 2 5 4.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" opacity="0.4"/></svg>',
+    branches:'<svg viewBox="0 0 16 16" width="14" height="14" fill="none"><path d="M8 2v4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/><circle cx="8" cy="7.5" r="2.5" stroke="currentColor" stroke-width="1.1" fill="currentColor" opacity="0.12"/><path d="M5.5 7.5L3 11M10.5 7.5L13 11M8 10v3" stroke="currentColor" stroke-width="1" stroke-linecap="round" opacity="0.4"/></svg>',
+};
+
 export function mkSection(key,title,badge,fn,s){
     const sec=document.createElement('div');sec.className='sp-section'+((s.openSections?.[key])?' sp-open':'');sec.dataset.key=key;
     const h=document.createElement('div');h.className='sp-section-header';
-    h.innerHTML=`<span class="sp-section-chevron">\u25B6</span><span class="sp-section-title">${esc(title)}</span>${badge!=null?`<span class="sp-section-badge">${esc(String(badge))}</span>`:''}<span class="sp-section-spacer"></span><button class="sp-section-refresh" title="Refresh ${title}"><svg viewBox="0 0 16 16" width="12" height="12" fill="none"><path d="M13.5 8a5.5 5.5 0 1 1-1.3-3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M13.5 3v2h-2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`;
+    const _icon=SECTION_ICONS[key]?`<span class="sp-section-icon">${SECTION_ICONS[key]}</span>`:'';
+    h.innerHTML=`<span class="sp-section-chevron">\u25B8</span>${_icon}<span class="sp-section-title">${esc(title)}</span>${badge!=null?`<span class="sp-section-badge">${esc(String(badge))}</span>`:''}<span class="sp-section-spacer"></span><button class="sp-section-refresh" title="Refresh ${title}"><svg viewBox="0 0 16 16" width="12" height="12" fill="none"><path d="M13.5 8a5.5 5.5 0 1 1-1.3-3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M13.5 3v2h-2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`;
     const chevronArea=h.querySelector('.sp-section-chevron');
     // Click anywhere on header toggles, except refresh button (debounced)
     let _secDebounce=false;
