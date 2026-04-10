@@ -101,10 +101,10 @@ QUEST STATE RULES (all REQUIRED):
         }
     }
     if(panels.relationships!==false)mandatoryHints+='\n- relationships: All characters\' views of {{user}} with numeric meters (0-100) and labels. desire=0 for strangers/family.';
-    // Custom panel hints
+    // Custom panel hints (v6.9.11: skip disabled panels)
     const customPanels=s.customPanels||[];
     for(const cp of customPanels){
-        if(!cp.fields?.length)continue;
+        if(!cp.fields?.length||cp.enabled===false)continue;
         mandatoryHints+=`\n- ${cp.fields.map(f=>f.key).join(', ')}: ${cp.name} fields \u2014 populate from story context.`;
     }
     // v6.8.50: use the shared shouldUseDelta() helper instead of

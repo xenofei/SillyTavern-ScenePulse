@@ -29,7 +29,11 @@ let _settingsCache = null;
 
 export function getSettings(){
 if(_settingsCache) return _settingsCache;
-const{extensionSettings}=SillyTavern.getContext();if(!extensionSettings[MODULE_NAME])extensionSettings[MODULE_NAME]=structuredClone(DEFAULTS);const s=extensionSettings[MODULE_NAME];for(const k of Object.keys(DEFAULTS))if(!Object.hasOwn(s,k))s[k]=DEFAULTS[k];if(s.customPanels?.length){s.customPanels=s.customPanels.filter(cp=>cp.name?.trim()||cp.fields?.some(f=>f.key?.trim()))}
+const{extensionSettings}=SillyTavern.getContext();if(!extensionSettings[MODULE_NAME])extensionSettings[MODULE_NAME]=structuredClone(DEFAULTS);const s=extensionSettings[MODULE_NAME];for(const k of Object.keys(DEFAULTS))if(!Object.hasOwn(s,k))s[k]=DEFAULTS[k];// v6.9.10: relaxed custom panel filter. Previously stripped panels
+// where both name AND all keys were empty, which deleted panels mid-
+// edit when the user changed a field type before filling in the key.
+// Now only strips panels with zero fields (truly abandoned stubs).
+if(s.customPanels?.length){s.customPanels=s.customPanels.filter(cp=>cp.fields?.length>0||cp.name?.trim())}
 // Overlay localStorage profile selections (these bypass ST's save pipeline)
 try{const ls=JSON.parse(localStorage.getItem('sp_profiles')||'{}');
 if(ls.connectionProfile!==undefined)s.connectionProfile=ls.connectionProfile;
@@ -44,7 +48,8 @@ export function saveSettings(){_settingsCache=null;SillyTavern.getContext().save
 
 export function invalidateSettingsCache(){_settingsCache=null;}
 
-export function anyPanelsActive(){const s=getSettings();const p=s.panels||DEFAULTS.panels;return Object.values(p).some(v=>v!==false)||(s.customPanels||[]).some(cp=>cp.fields?.length>0)}
+// v6.9.11: only count enabled custom panels
+export function anyPanelsActive(){const s=getSettings();const p=s.panels||DEFAULTS.panels;return Object.values(p).some(v=>v!==false)||(s.customPanels||[]).some(cp=>cp.enabled!==false&&cp.fields?.length>0)}
 
 export function getTrackerData(){
     const m=SillyTavern.getContext().chatMetadata;if(!m)return{snapshots:{}};

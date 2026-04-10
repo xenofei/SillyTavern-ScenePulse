@@ -19,14 +19,18 @@
     border: 1px solid var(--sp-border-strong);
     border-radius: var(--sp-radius);
     padding: 10px; margin: 4px 4px 8px;
-    overflow: hidden;
-    /* Transition-based open/close — symmetric and smooth */
-    max-height: 800px; opacity: 1; transform: translateY(0);
+    /* Scrollable when many custom panels exist. max-height uses
+       calc to fill available panel space; overflow-y auto activates
+       the scrollbar only when content exceeds the height. */
+    max-height: calc(100vh - 140px); overflow-y: auto; overflow-x: hidden;
+    opacity: 1; transform: translateY(0);
     transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1),
                 opacity 0.25s ease,
                 transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
                 padding 0.3s ease, margin 0.3s ease;
 }
+.sp-panel-mgr::-webkit-scrollbar { width: 4px; }
+.sp-panel-mgr::-webkit-scrollbar-thumb { background: rgba(100,110,130,0.3); border-radius: 2px; }
 .sp-panel-mgr.sp-mgr-closing {
     max-height: 0 !important; opacity: 0 !important;
     transform: translateY(-6px); padding-top: 0; padding-bottom: 0;
@@ -130,6 +134,21 @@
     transition: background 0.2s ease; border-radius: 3px;
 }
 .sp-cp-name:focus { outline: none; background: rgba(77,184,164,0.08); }
+/* v6.9.11: enable/disable toggle */
+.sp-cp-toggle { width: 14px; height: 14px; accent-color: var(--sp-accent); cursor: pointer; flex-shrink: 0; }
+.sp-cp-disabled { opacity: 0.4; }
+.sp-cp-disabled .sp-cp-body { display: none !important; }
+/* v6.9.11: duplicate button — matches delete button styling */
+.sp-cp-dup {
+    background: var(--sp-surface) !important;
+    color: var(--sp-text-dim) !important; border: 1px solid var(--sp-border) !important;
+    font-size: 11px !important; padding: 1px 5px !important;
+    border-radius: 4px; cursor: pointer; transition: all 0.15s;
+}
+.sp-cp-dup:hover { color: var(--sp-accent) !important; border-color: var(--sp-accent) !important; background: var(--sp-surface-hover) !important; }
+/* v6.9.11: key collision warning */
+.sp-cp-warn-collision { border-color: rgba(239,68,68,0.2); background: rgba(239,68,68,0.05); }
+.sp-cp-warn-collision span { color: var(--sp-red); }
 .sp-cp-del {
     color: var(--sp-text-dim) !important; border-color: var(--sp-border) !important;
     font-size: 10px !important; padding: 2px 6px !important;
@@ -241,6 +260,39 @@
     transition: all 0.15s ease;
 }
 .sp-mgr-add-panel:hover { background: rgba(77,184,164,0.12) !important; border-color: rgba(77,184,164,0.35) !important; }
+
+/* v6.9.11: action buttons row (export, import, template) */
+.sp-cp-actions {
+    display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap;
+    position: relative; /* anchor for the template dropdown */
+}
+.sp-cp-actions .sp-btn {
+    font-size: 10px; flex: 1; min-width: 80px; text-align: center;
+    background: var(--sp-surface); border: 1px solid var(--sp-border);
+    color: var(--sp-text-dim); cursor: pointer; border-radius: 4px;
+    padding: 5px 8px; transition: all 0.15s;
+}
+.sp-cp-actions .sp-btn:hover { color: var(--sp-text-bright); border-color: var(--sp-accent); background: var(--sp-surface-hover); }
+
+/* v6.9.11: genre template dropdown menu — positioned absolutely
+   relative to .sp-cp-actions (which has position: relative) so it
+   floats above the buttons instead of flowing inline as a flex child */
+/* Position is set dynamically by JS (top or bottom depending on
+   available space). Defaults to below the button row. */
+.sp-cp-tmpl-menu {
+    position: fixed; z-index: 100010;
+    background: var(--sp-bg-solid, #12141a); border: 1px solid var(--sp-border);
+    border-radius: 6px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    min-width: 200px; max-height: 320px; overflow-y: auto;
+    animation: sp-glass-in 0.12s ease-out;
+}
+.sp-cp-tmpl-menu::-webkit-scrollbar { width: 4px; }
+.sp-cp-tmpl-menu::-webkit-scrollbar-thumb { background: rgba(100,110,130,0.4); border-radius: 2px; }
+.sp-cp-tmpl-item {
+    padding: 8px 12px; font-size: 11px; color: var(--sp-text);
+    cursor: pointer; transition: background 0.1s;
+}
+.sp-cp-tmpl-item:hover { background: rgba(77,184,164,0.1); color: var(--sp-text-bright); }
 
 /* ── Custom Panel Meter (in main panel) ── */
 .sp-cp-meter-wrap { display: flex; align-items: center; gap: 6px; }

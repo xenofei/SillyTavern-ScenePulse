@@ -64,9 +64,21 @@ export function renderCustomPanelsMgr(s,container,panelBody){
             if(schemaEl&&!s.schema)schemaEl.value=JSON.stringify(buildDynamicSchema(s),null,2);
             if(promptEl&&!s.systemPrompt)promptEl.value=buildDynamicPrompt(s);
         };
-        // Header: chevron + name + delete
+        // Header: chevron + toggle + name + duplicate + delete
         const header=document.createElement('div');header.className='sp-cp-header';
         const chevron=document.createElement('span');chevron.className='sp-cp-chevron';chevron.textContent='\u25B6';
+        // v6.9.11: enable/disable toggle per panel
+        const toggle=document.createElement('input');toggle.type='checkbox';toggle.className='sp-cp-toggle';
+        toggle.checked=cp.enabled!==false;toggle.title=t('Enable/disable this panel');
+        toggle.addEventListener('click',e=>e.stopPropagation());
+        toggle.addEventListener('change',()=>{
+            cp.enabled=toggle.checked;saveSettings();liveRefresh();
+            // Show/hide the section in the main panel
+            const cpKey='custom_'+(cp.name||'untitled').replace(/\s+/g,'_').toLowerCase();
+            const sec=panelBody?.querySelector(`.sp-section[data-key="${cpKey}"]`);
+            if(sec)sec.classList.toggle('sp-panel-hidden',!toggle.checked);
+            card.classList.toggle('sp-cp-disabled',!toggle.checked);
+        });
         const nameInput=document.createElement('input');nameInput.className='sp-cp-name';nameInput.type='text';nameInput.value=cp.name||'';nameInput.placeholder=t('Panel name');nameInput.spellcheck=false;
         nameInput.addEventListener('click',e=>e.stopPropagation());
         nameInput.addEventListener('change',()=>{
@@ -79,6 +91,16 @@ export function renderCustomPanelsMgr(s,container,panelBody){
                 const titleEl=sec.querySelector('.sp-section-title');if(titleEl)titleEl.textContent=cp.name;
             }
         });
+        // v6.9.11: duplicate panel button
+        const dupBtn=document.createElement('button');dupBtn.className='sp-btn sp-btn-sm sp-cp-dup';dupBtn.textContent='\u2398';dupBtn.title=t('Duplicate panel');
+        dupBtn.addEventListener('click',(e)=>{
+            e.stopPropagation();
+            const clone=JSON.parse(JSON.stringify(cp));
+            clone.name=(cp.name||'Untitled')+' (copy)';
+            s.customPanels.splice(cpIdx+1,0,clone);
+            saveSettings();renderCustomPanelsMgr(s,container,panelBody);liveRefresh();
+            toastr.info('Panel duplicated');
+        });
         const delBtn=document.createElement('button');delBtn.className='sp-btn sp-btn-sm sp-cp-del';delBtn.textContent='\u2715';delBtn.title=t('Delete panel');
         delBtn.addEventListener('click',async(e)=>{
             e.stopPropagation();
@@ -90,8 +112,9 @@ export function renderCustomPanelsMgr(s,container,panelBody){
             if(sec){sec.classList.add('sp-panel-hidden');setTimeout(()=>sec.remove(),350)}
             toastr.info('Panel deleted');
         });
-        header.appendChild(chevron);header.appendChild(nameInput);header.appendChild(delBtn);
-        header.addEventListener('click',(e)=>{if(e.target===nameInput)return;card.classList.toggle('sp-cp-open')});
+        header.appendChild(chevron);header.appendChild(toggle);header.appendChild(nameInput);header.appendChild(dupBtn);header.appendChild(delBtn);
+        header.addEventListener('click',(e)=>{if(e.target===nameInput||e.target===toggle)return;card.classList.toggle('sp-cp-open')});
+        if(cp.enabled===false)card.classList.add('sp-cp-disabled');
         card.appendChild(header);
         // Collapsible body
         const body=document.createElement('div');body.className='sp-cp-body';
@@ -158,6 +181,23 @@ export function renderCustomPanelsMgr(s,container,panelBody){
         if(hasIncomplete&&cp.fields?.length){
             const warn=document.createElement('div');warn.className='sp-cp-warn';
             warn.innerHTML='<svg viewBox="0 0 16 16" width="11" height="11" fill="none" style="flex-shrink:0"><path d="M8 1L1 14h14L8 1z" stroke="#f59e0b" stroke-width="1.2" fill="none"/><line x1="8" y1="6" x2="8" y2="9.5" stroke="#f59e0b" stroke-width="1.4" stroke-linecap="round"/><circle cx="8" cy="11.5" r="0.8" fill="#f59e0b"/></svg><span>Fill in keys and LLM hints so the AI knows what to track.</span>';
+            body.appendChild(warn);
+        }
+        // v6.9.11: key collision detection — warn if any field key
+        // in this panel duplicates a key in another panel
+        const _allKeys=new Map();
+        for(let pi=0;pi<panels.length;pi++){
+            for(const pf of(panels[pi].fields||[])){
+                const k=(pf.key||'').toLowerCase().trim();
+                if(!k)continue;
+                if(!_allKeys.has(k))_allKeys.set(k,[]);
+                _allKeys.get(k).push(panels[pi].name||'Untitled');
+            }
+        }
+        const _dupeKeys=(cp.fields||[]).filter(f=>{const k=(f.key||'').toLowerCase().trim();return k&&(_allKeys.get(k)||[]).length>1}).map(f=>f.key);
+        if(_dupeKeys.length){
+            const warn=document.createElement('div');warn.className='sp-cp-warn sp-cp-warn-collision';
+            warn.innerHTML=`<svg viewBox="0 0 16 16" width="11" height="11" fill="none" style="flex-shrink:0"><path d="M8 1L1 14h14L8 1z" stroke="#ef4444" stroke-width="1.2" fill="none"/><line x1="8" y1="6" x2="8" y2="9.5" stroke="#ef4444" stroke-width="1.4" stroke-linecap="round"/><circle cx="8" cy="11.5" r="0.8" fill="#ef4444"/></svg><span>Key collision: <b>${_dupeKeys.join(', ')}</b> used in multiple panels. Values will overwrite each other.</span>`;
             body.appendChild(warn);
         }
         const addFieldBtn=document.createElement('button');addFieldBtn.className='sp-btn sp-btn-sm sp-cp-add-field';addFieldBtn.textContent='+ '+t('Add Field');

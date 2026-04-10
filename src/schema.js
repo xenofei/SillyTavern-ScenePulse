@@ -92,10 +92,10 @@ export function buildDynamicSchema(s){
             required.push(f.key);
         }
     }
-    // Custom panels: add their fields
+    // Custom panels: add their fields (v6.9.11: skip disabled panels)
     const customPanels=s.customPanels||[];
     for(const cp of customPanels){
-        if(!cp.fields?.length)continue;
+        if(!cp.fields?.length||cp.enabled===false)continue;
         for(const f of cp.fields){
             const k=f.key;
             if(f.type==='text'){
@@ -298,12 +298,11 @@ You are a precise scene analysis engine. Read the story context and output a sin
         const enabledTypes=BRANCH_TYPES.filter(t=>ft['branch_'+t]!==false);
         if(enabledTypes.length)prompt+=`\n### Plot Branches (EXACTLY ${enabledTypes.length} suggestions)\nOne per category: ${enabledTypes.join(', ')}. Each must be SPECIFIC to the current scene \u2014 name characters, reference established details. Each needs type, name (2-5 words), hook (1-2 sentences explaining what happens and why it matters).\n`;
     }
-    // Custom panels
-    const customPanels=s.customPanels||[];
+    // Custom panels (v6.9.11: skip disabled panels)
+    const customPanels=(s.customPanels||[]).filter(cp=>cp.enabled!==false&&cp.fields?.length);
     if(customPanels.length){
         prompt+=`\n### Custom Tracked Fields\n`;
         for(const cp of customPanels){
-            if(!cp.fields?.length)continue;
             prompt+=`\n#### ${cp.name}\n`;
             for(const f of cp.fields){
                 const typeHint=f.type==='meter'?'(integer 0-100)':f.type==='number'?'(integer)':f.type==='list'?'(array of strings)':f.type==='enum'?`(one of: ${(f.options||[]).join(', ')})`:('(string)');

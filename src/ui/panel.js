@@ -557,6 +557,164 @@ export function createPanel(){
             toastr.success('Panel created');
         });
         mgr.appendChild(addBtn);
+
+        // v6.9.11: export/import + genre template buttons
+        const cpActions=document.createElement('div');cpActions.className='sp-cp-actions';
+
+        // Export panels
+        const exportBtn=document.createElement('button');exportBtn.className='sp-btn sp-btn-sm';exportBtn.textContent='\u2913 '+t('Export Panels');
+        exportBtn.addEventListener('click',()=>{
+            const data=JSON.stringify(s.customPanels||[],null,2);
+            const blob=new Blob([data],{type:'application/json'});
+            const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+            a.download='scenepulse-panels.json';a.click();URL.revokeObjectURL(a.href);
+            toastr.info('Panels exported');
+        });
+        cpActions.appendChild(exportBtn);
+
+        // Import panels
+        const importBtn=document.createElement('button');importBtn.className='sp-btn sp-btn-sm';importBtn.textContent='\u2912 '+t('Import Panels');
+        importBtn.addEventListener('click',()=>{
+            const input=document.createElement('input');input.type='file';input.accept='.json';
+            input.addEventListener('change',async()=>{
+                const file=input.files?.[0];if(!file)return;
+                try{
+                    const text=await file.text();
+                    const imported=JSON.parse(text);
+                    if(!Array.isArray(imported)){toastr.error('Invalid format — expected array of panels');return}
+                    if(!s.customPanels)s.customPanels=[];
+                    for(const p of imported){
+                        if(!p||typeof p!=='object')continue;
+                        // Avoid exact-name duplicates — suffix with (imported)
+                        const existing=(s.customPanels||[]).find(e=>e.name===p.name);
+                        if(existing)p.name=(p.name||'Untitled')+' (imported)';
+                        s.customPanels.push(p);
+                    }
+                    saveSettings();renderCustomPanelsMgr(s,cpList,body);
+                    toastr.success(imported.length+' panel(s) imported');
+                }catch(e){toastr.error('Import failed: '+e.message)}
+            });
+            input.click();
+        });
+        cpActions.appendChild(importBtn);
+
+        // Genre template dropdown
+        const tmplBtn=document.createElement('button');tmplBtn.className='sp-btn sp-btn-sm';tmplBtn.textContent='\u2606 '+t('From Template');
+        const _TEMPLATES={
+            'Fantasy RPG':[
+                {key:'health',label:'Health',type:'meter',desc:"{{user}}'s hit points 0-100, reduced by damage"},
+                {key:'mana',label:'Mana',type:'meter',desc:'Mana remaining after spellcasting, starts at 100'},
+                {key:'stamina',label:'Stamina',type:'meter',desc:'Physical energy 0-100, reduced by exertion, restored by rest'},
+                {key:'inventory',label:'Inventory',type:'list',desc:'Items {{user}} is carrying'},
+            ],
+            'Sci-Fi / Space Opera':[
+                {key:'shield_integrity',label:'Shields',type:'meter',desc:'Shield strength 0-100, reduced by damage'},
+                {key:'power_reserves',label:'Power',type:'meter',desc:'Ship/suit power 0-100, consumed by systems'},
+                {key:'hull_status',label:'Hull',type:'meter',desc:'Structural integrity 0-100'},
+                {key:'alert_level',label:'Alert',type:'enum',desc:'Ship or station alert level',options:['green','yellow','orange','red','critical']},
+                {key:'systems',label:'Systems',type:'list',desc:'Active ship/suit systems and their status'},
+            ],
+            'Horror / Survival':[
+                {key:'sanity',label:'Sanity',type:'meter',desc:"{{user}}'s mental stability 0-100, reduced by supernatural encounters"},
+                {key:'dread',label:'Dread',type:'meter',desc:'Ambient fear level 0-100, raised by threats and the unknown'},
+                {key:'condition',label:'Condition',type:'enum',desc:'Physical state',options:['healthy','bruised','wounded','critical','dying']},
+                {key:'evidence',label:'Evidence',type:'list',desc:'Clues, evidence, and supernatural artifacts collected'},
+            ],
+            'Social / Modern Drama':[
+                {key:'reputation',label:'Reputation',type:'meter',desc:"{{user}}'s social standing 0-100"},
+                {key:'wealth',label:'Wealth',type:'enum',desc:'Financial status',options:['broke','poor','stable','comfortable','wealthy','rich']},
+                {key:'influence',label:'Influence',type:'meter',desc:'Political/social power 0-100'},
+                {key:'contacts',label:'Contacts',type:'list',desc:'Key contacts and allies {{user}} can call on'},
+            ],
+            'Superhero / Powers':[
+                {key:'energy',label:'Energy',type:'meter',desc:'Power reserves 0-100, consumed by ability use'},
+                {key:'secret_identity',label:'Cover',type:'meter',desc:'How intact {{user}}\'s secret identity is, 0=blown 100=secure'},
+                {key:'powers',label:'Powers',type:'list',desc:'Active superpowers and their current state'},
+                {key:'threat_level',label:'Threat',type:'enum',desc:'Current threat classification',options:['none','street','city','national','global','cosmic']},
+            ],
+            'Western / Frontier':[
+                {key:'grit',label:'Grit',type:'meter',desc:'Toughness and determination 0-100'},
+                {key:'notoriety',label:'Notoriety',type:'meter',desc:'How well-known {{user}} is, 0=unknown 100=legendary'},
+                {key:'bounty',label:'Bounty',type:'number',desc:'Price on {{user}}\'s head in dollars, 0 if clean'},
+                {key:'provisions',label:'Provisions',type:'list',desc:'Supplies, ammunition, and gear carried'},
+            ],
+            'Cyberpunk / Noir':[
+                {key:'street_cred',label:'Street Cred',type:'meter',desc:'Underground reputation 0-100'},
+                {key:'cyberware',label:'Cyberware',type:'list',desc:'Installed cybernetic augmentations'},
+                {key:'heat',label:'Heat',type:'meter',desc:'Law enforcement attention 0-100, raised by crimes'},
+                {key:'cash',label:'Cash',type:'number',desc:'Current liquid funds in credits/eddies'},
+            ],
+            'Medieval / Political':[
+                {key:'honor',label:'Honor',type:'meter',desc:'Noble standing and personal honor 0-100'},
+                {key:'loyalty',label:'Loyalty',type:'meter',desc:'Loyalty of vassals and allies 0-100'},
+                {key:'treasury',label:'Treasury',type:'enum',desc:'State of coffers',options:['bankrupt','depleted','modest','comfortable','overflowing']},
+                {key:'titles',label:'Titles',type:'list',desc:'Titles, lands, and offices held'},
+            ],
+            'Post-Apocalyptic':[
+                {key:'radiation',label:'Radiation',type:'meter',desc:'Radiation exposure 0-100, higher is worse'},
+                {key:'hunger',label:'Hunger',type:'meter',desc:'Starvation level 0-100, higher is more desperate'},
+                {key:'shelter_status',label:'Shelter',type:'enum',desc:'Current shelter quality',options:['exposed','makeshift','scavenged','fortified','bunker']},
+                {key:'salvage',label:'Salvage',type:'list',desc:'Scavenged materials, parts, and tradeable goods'},
+            ],
+            'School / Academy':[
+                {key:'grades',label:'Grades',type:'enum',desc:'Academic performance',options:['failing','poor','average','good','honors','valedictorian']},
+                {key:'popularity',label:'Popularity',type:'meter',desc:'Social standing among peers 0-100'},
+                {key:'energy',label:'Energy',type:'meter',desc:'Mental/physical energy 0-100, reduced by study and activities'},
+                {key:'clubs',label:'Clubs',type:'list',desc:'Clubs, teams, and extracurricular activities'},
+            ],
+            'Pirate / Nautical':[
+                {key:'ship_condition',label:'Ship',type:'meter',desc:'Ship hull and rigging condition 0-100'},
+                {key:'crew_morale',label:'Morale',type:'meter',desc:'Crew loyalty and morale 0-100'},
+                {key:'plunder',label:'Plunder',type:'number',desc:'Total treasure in gold doubloons'},
+                {key:'wanted_level',label:'Wanted',type:'enum',desc:'Bounty status with the Crown',options:['unknown','petty','wanted','hunted','kill_on_sight']},
+            ],
+            'Wuxia / Martial Arts':[
+                {key:'qi',label:'Qi',type:'meter',desc:'Internal energy reserves 0-100, consumed by techniques'},
+                {key:'cultivation',label:'Cultivation',type:'enum',desc:'Cultivation realm',options:['mortal','qi_condensation','foundation','core_formation','nascent_soul','transcendent']},
+                {key:'techniques',label:'Techniques',type:'list',desc:'Martial arts and cultivation techniques known'},
+                {key:'karma',label:'Karma',type:'meter',desc:'Karmic balance 0-100, 50=neutral, lower=darker path'},
+            ],
+            'Romance / Slice of Life':[
+                {key:'mood',label:'Mood',type:'enum',desc:"{{user}}'s current emotional state",options:['calm','happy','anxious','angry','sad','lovestruck','embarrassed','determined']},
+                {key:'energy',label:'Energy',type:'meter',desc:'Social/emotional energy 0-100'},
+                {key:'diary',label:'Diary',type:'list',desc:'Key moments and memories from recent events'},
+            ],
+        };
+        tmplBtn.addEventListener('click',()=>{
+            // Toggle: if menu already open, close it
+            const existing=document.querySelector('.sp-cp-tmpl-menu');
+            if(existing){existing.remove();return}
+            // Build dropdown
+            const menu=document.createElement('div');menu.className='sp-cp-tmpl-menu';
+            for(const[name,fields]of Object.entries(_TEMPLATES)){
+                const item=document.createElement('div');item.className='sp-cp-tmpl-item';item.textContent=name;
+                item.addEventListener('click',()=>{
+                    if(!s.customPanels)s.customPanels=[];
+                    s.customPanels.push({name,enabled:true,fields:JSON.parse(JSON.stringify(fields))});
+                    saveSettings();renderCustomPanelsMgr(s,cpList,body);
+                    menu.remove();toastr.success(name+' template added');
+                });
+                menu.appendChild(item);
+            }
+            // Position the menu using fixed positioning so it's never
+            // clipped by the Panel Manager's overflow. Place above the
+            // button if there's room, otherwise below.
+            document.body.appendChild(menu);
+            const _btnRect=tmplBtn.getBoundingClientRect();
+            const _menuH=Math.min(320, Object.keys(_TEMPLATES).length*36+8);
+            if(_btnRect.top-_menuH-4>8){
+                menu.style.bottom=(window.innerHeight-_btnRect.top+4)+'px';
+                menu.style.right=(window.innerWidth-_btnRect.right)+'px';
+            }else{
+                menu.style.top=(_btnRect.bottom+4)+'px';
+                menu.style.right=(window.innerWidth-_btnRect.right)+'px';
+            }
+            const dismiss=e=>{if(!menu.contains(e.target)&&e.target!==tmplBtn){menu.remove();document.removeEventListener('click',dismiss)}};
+            setTimeout(()=>document.addEventListener('click',dismiss),0);
+        });
+        cpActions.appendChild(tmplBtn);
+        mgr.appendChild(cpActions);
+
         body.insertBefore(mgr,body.firstChild);
         // Sync toolbar buttons with current dashCard/thoughts state
         const _dc=s.dashCards||DEFAULTS.dashCards;
