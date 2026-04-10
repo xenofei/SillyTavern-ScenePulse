@@ -434,7 +434,18 @@ export async function generateTracker(mesIdx,partKey,opts){
         const _wasDelta = shouldUseDelta();
         const _prevCounter = (getLatestSnapshot()?._spMeta?.deltaTurnsSinceFull ?? 0);
         result._spMeta={promptTokens:genMeta.promptTokens,completionTokens:genMeta.completionTokens,elapsed:genMeta.elapsed,source:lastGenSource,injectionMethod:getSettings().injectionMethod||'inline',deltaMode:_wasDelta,deltaTurnsSinceFull:_wasDelta?_prevCounter+1:0};
+        // v6.9.8: first-run success confirmation — if this is the very
+        // first snapshot in the chat, show a welcome toast so the user
+        // knows ScenePulse is working.
+        const _isFirstSnap = Object.keys(getTrackerData().snapshots || {}).length === 0;
         saveSnapshot(mesIdx,result);log('Snapshot saved for mesIdx=',mesIdx,'keys=',Object.keys(result).length,'elapsed=',genMeta.elapsed.toFixed(1)+'s','~tokens:',genMeta.promptTokens+genMeta.completionTokens);
+        if (_isFirstSnap) {
+            const _charCount = (result.characters || []).length;
+            toastr.success(
+                `Scene tracked: ${_charCount} character${_charCount !== 1 ? 's' : ''} detected. The panel is live.`,
+                'ScenePulse Active'
+            );
+        }
         updatePanel(result);
         spPostGenShow(); // mobile: banner instead of panel popup
     }else{

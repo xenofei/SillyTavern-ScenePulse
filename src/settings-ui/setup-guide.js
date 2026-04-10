@@ -36,6 +36,13 @@ export function showSetupGuide(){
                     <p>However, some models occasionally skip the tracker payload. When this happens, ScenePulse can <strong>automatically fall back</strong> to a separate API call to generate the tracker data.</p>
                     ${_setupMobile?'<p style="color:var(--sp-text-dim);font-size:12px"><em>Note: On mobile, some desktop features (weather overlay, time-of-day tint, inner thoughts panel, condense view) are hidden to optimize the experience. They\'ll be available when you switch to desktop.</em></p>':''}
                     <p>This guide helps you configure the fallback so you never lose scene data.</p>
+                    <div class="sp-setup-compat">
+                        <div class="sp-setup-compat-title">Model Compatibility</div>
+                        <div class="sp-setup-compat-tier"><span style="color:var(--sp-green)">Recommended:</span> Claude Sonnet/Opus, GPT-4o/4.1, Gemini 2.0/2.5 Pro, Qwen3 32B+, Llama 4 Maverick</div>
+                        <div class="sp-setup-compat-tier"><span style="color:var(--sp-amber)">Compatible:</span> DeepSeek V3, Mistral Large, Llama 3.1/3.3 70B, Qwen3 14B, Mistral Small 24B</div>
+                        <div class="sp-setup-compat-tier"><span style="color:var(--sp-red)">Not recommended:</span> Models under 14B parameters, heavily quantized (Q3/Q2)</div>
+                        <div class="sp-setup-compat-note">Local models: use Q5_K_M or higher quantization. Consider Separate mode for models under 32B.</div>
+                    </div>
                     <div class="sp-setup-nav"><button class="sp-setup-btn sp-setup-btn-primary" data-goto="2">Next →</button><button class="sp-setup-btn sp-setup-btn-skip" data-dismiss="true">Skip setup</button></div>
                 </div>
             </div>
@@ -86,6 +93,14 @@ export function showSetupGuide(){
                     <label class="sp-setup-radio"><input type="radio" name="sp-setup-fb-enable" value="yes" ${s.fallbackEnabled!==false?'checked':''}> <strong>Yes</strong> — automatically recover missing tracker data <span style="color:var(--sp-text-dim)">(recommended)</span></label>
                     <label class="sp-setup-radio"><input type="radio" name="sp-setup-fb-enable" value="no" ${s.fallbackEnabled===false?'checked':''}> <strong>No</strong> — skip it, I'll regenerate manually if needed</label>
                     <div class="sp-setup-note" id="sp-setup-no-warn" style="display:${s.fallbackEnabled===false?'block':'none'};color:var(--sp-amber)">With fallback disabled, you may occasionally see empty scene data when the AI omits the tracker. Use the ⟳ button in the panel to regenerate manually.</div>
+                    <div class="sp-setup-tips">
+                        <div class="sp-setup-tips-title">Tips & Hidden Features</div>
+                        <div class="sp-setup-tip">Type <strong>/sp help</strong> for all slash commands (/sp regen, /sp refresh, /sp export, /sp debug)</div>
+                        <div class="sp-setup-tip">Click the <strong>book icon</strong> in the toolbar to browse the <strong>Character Wiki</strong> — every character who ever appeared</div>
+                        <div class="sp-setup-tip">Click the <strong>pencil icon</strong> to enable <strong>Edit mode</strong> — click any field to manually correct it</div>
+                        <div class="sp-setup-tip">Click the <strong>web icon</strong> on a character card to see the <strong>Relationship Web</strong> — force-directed NPC graph</div>
+                        <div class="sp-setup-tip">Use <strong>Custom Panels</strong> (Panel Manager → +) to track anything: health, mana, reputation, inventory</div>
+                    </div>
                     <div class="sp-setup-nav"><button class="sp-setup-btn" data-goto="3">← Back</button><button class="sp-setup-btn sp-setup-btn-primary sp-setup-btn-finish" data-finish="true">✓ Finish Setup</button></div>
                     <div style="text-align:center;margin-top:8px"><button class="sp-setup-btn sp-setup-btn-tour" data-tour="true">✦ Take a Guided Tour</button></div>
                 </div>

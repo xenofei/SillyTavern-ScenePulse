@@ -119,3 +119,36 @@
 }
 .sp-setup-dot:hover { background: var(--sp-text-dim); }
 .sp-dot-active { background: var(--sp-accent); box-shadow: 0 0 6px var(--sp-accent-glow); }
+
+/* v6.9.8: model compatibility section in step 1 */
+.sp-setup-compat {
+    margin: 10px 0; padding: 10px 12px; border-radius: 8px;
+    background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);
+    font-size: 11px; line-height: 1.5;
+}
+.sp-setup-compat-title {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--sp-text-dim); margin-bottom: 6px;
+}
+.sp-setup-compat-tier { margin: 3px 0; }
+.sp-setup-compat-note {
+    margin-top: 6px; font-size: 10px; color: var(--sp-text-dim);
+    font-style: italic;
+}
+
+/* v6.9.8: tips & features section in step 4 */
+.sp-setup-tips {
+    margin: 10px 0; padding: 10px 12px; border-radius: 8px;
+    background: rgba(77,184,164,0.04); border: 1px solid rgba(77,184,164,0.12);
+    font-size: 11px;
+}
+.sp-setup-tips-title {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--sp-accent); margin-bottom: 6px;
+}
+.sp-setup-tip {
+    padding: 3px 0; color: var(--sp-text); line-height: 1.4;
+}
+.sp-setup-tip::before {
+    content: '\2022'; color: var(--sp-accent); margin-right: 6px;
+}
