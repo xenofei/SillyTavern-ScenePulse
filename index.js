@@ -25,6 +25,7 @@ import {
 } from './src/settings.js';
 import { normalizeTracker, clearNormCache } from './src/normalize.js';
 import { resetColorMap } from './src/color.js';
+import { initI18n } from './src/i18n.js';
 
 // ── Generation ──
 import { extractInlineTracker } from './src/generation/extraction.js';
@@ -66,6 +67,9 @@ try { createPanel(); log('Panel created at load'); } catch (e) { warn('Early pan
 
 eventSource.on(event_types.APP_READY, () => { try {
     log('APP_READY: start');
+    // v6.9.7: warm the i18n cache before creating UI so t() calls
+    // during panel/settings construction have translations ready.
+    initI18n().then(() => log('APP_READY: i18n ok')).catch(() => {});
     createPanel(); log('APP_READY: panel ok');
     createSettings(); log('APP_READY: settings ok');
     // Register slash commands & macros
