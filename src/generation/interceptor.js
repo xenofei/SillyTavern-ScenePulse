@@ -25,7 +25,35 @@ export function buildInlineTrackerPrompt(){
     // leaking old values of it would re-teach the model to produce them.
     function _cleanSnap(s){if(!s)return null;const c={...s};for(const k of['mainQuests','sideQuests']){if(Array.isArray(c[k]))c[k]=c[k].filter(q=>q.urgency!=='resolved')}delete c.activeTasks;delete c._spMeta;return c}
     const cleanedSnap=_cleanSnap(snap);
-    const prevState=cleanedSnap?`\nPREVIOUS STATE (carry forward unchanged details, update only what changed):\n${JSON.stringify(cleanedSnap,null,2)}\n\nCRITICAL \u2014 {{user}} IS NOT A CHARACTER:\n{{user}} is the player \u2014 the human reader \u2014 not an NPC. NEVER create a character entry for {{user}} (by any name \u2014 not the persona name, not "User", not "You", not the literal "{{user}}" token). {{user}} has no innerThought, no role, no appearance fields, no fertility fields. The characters array is exclusively for NPCs. NEVER create a self-relationship entry for {{user}} \u2014 relationships always express how OTHERS perceive {{user}}, never {{user}}'s view of themselves. NEVER include {{user}} in charactersPresent \u2014 that array lists NPCs in the scene alongside {{user}}, not {{user}} themselves.\n\nQUEST STATE RULES (all REQUIRED):\n1. Carry forward active quests from the previous state \u2014 don't silently drop them.\n2. When a quest's goal is achieved in the story, when the situation it was about becomes moot, when {{user}} abandons it, or when a later quest has superseded it, you MUST set urgency="resolved" on that quest this turn. Do not leave completed quests active. Do not silently delete them \u2014 transition through "resolved" first. The resolved quest stays visible for one more turn so the user sees the completion.\n3. NO COSMETIC QUEST EDITS. Do NOT modify an existing quest's name, detail, or urgency unless ONE of these specifically happened in the turn you are writing: (a) the story actually shifted its urgency, (b) you have concrete new information to record that did not exist last turn (cite the scene beat), or (c) you are marking it resolved. If none of those apply, emit the quest UNCHANGED \u2014 same name, same detail, same urgency \u2014 or omit it from the delta entirely. Rephrasing, synonym swaps, or "refreshing" a detail for its own sake is forbidden. A quest that did not meaningfully advance must look byte-identical to last turn.\n4. Consolidate duplicates or near-duplicates into a single clearer entry. Prefer consolidation over duplication.\n5. Never list the same quest in both mainQuests and sideQuests. A quest belongs in ONE tier.\n6. All quests from {{user}}'s perspective \u2014 if hostile, oppose their goal; if ally, support them as {{user}}'s action.`:'';
+    // v6.8.48: anti-contamination framing. The previous state JSON is
+    // wrapped in <scene_pulse_tracker_state> XML tags with a clear
+    // instruction that the character names inside are internal tracker
+    // labels, NOT terms the model should use in its narrative prose.
+    // Without this, the model treats compound placeholder names like
+    // "Ponytail Nurse" as proper nouns and writes them into dialogue
+    // and narration, breaking the story flow. The instruction uses
+    // positive framing ("refer to characters naturally") rather than
+    // prohibition ("NEVER use X") because research shows positive
+    // framing outperforms negative constraints for LLM compliance.
+    const prevState=cleanedSnap?`
+<scene_pulse_tracker_state>
+NARRATIVE SEPARATION RULE — read this BEFORE the data below:
+The character names in this tracker state (e.g. "Ponytail Nurse", "Buzzcut", "Hooded Figure") are INTERNAL TRACKING LABELS, not prose vocabulary. In your narrative text, refer to characters naturally — by appearance, role, pronoun, title, or whatever the story has established. Compound placeholder labels must never appear as proper nouns in your prose or dialogue. In the tracker JSON you append at the end, use these exact label names as-is for continuity — the separation is between PROSE (natural descriptions) and JSON (tracker labels).
+
+PREVIOUS STATE (carry forward unchanged details, update only what changed):
+${JSON.stringify(cleanedSnap,null,2)}
+</scene_pulse_tracker_state>
+
+CRITICAL \u2014 {{user}} IS NOT A CHARACTER:
+{{user}} is the player \u2014 the human reader \u2014 not an NPC. NEVER create a character entry for {{user}} (by any name \u2014 not the persona name, not "User", not "You", not the literal "{{user}}" token). {{user}} has no innerThought, no role, no appearance fields, no fertility fields. The characters array is exclusively for NPCs. NEVER create a self-relationship entry for {{user}} \u2014 relationships always express how OTHERS perceive {{user}}, never {{user}}'s view of themselves. NEVER include {{user}} in charactersPresent \u2014 that array lists NPCs in the scene alongside {{user}}, not {{user}} themselves.
+
+QUEST STATE RULES (all REQUIRED):
+1. Carry forward active quests from the previous state \u2014 don't silently drop them.
+2. When a quest's goal is achieved in the story, when the situation it was about becomes moot, when {{user}} abandons it, or when a later quest has superseded it, you MUST set urgency="resolved" on that quest this turn. Do not leave completed quests active. Do not silently delete them \u2014 transition through "resolved" first. The resolved quest stays visible for one more turn so the user sees the completion.
+3. NO COSMETIC QUEST EDITS. Do NOT modify an existing quest's name, detail, or urgency unless ONE of these specifically happened in the turn you are writing: (a) the story actually shifted its urgency, (b) you have concrete new information to record that did not exist last turn (cite the scene beat), or (c) you are marking it resolved. If none of those apply, emit the quest UNCHANGED \u2014 same name, same detail, same urgency \u2014 or omit it from the delta entirely. Rephrasing, synonym swaps, or "refreshing" a detail for its own sake is forbidden. A quest that did not meaningfully advance must look byte-identical to last turn.
+4. Consolidate duplicates or near-duplicates into a single clearer entry. Prefer consolidation over duplication.
+5. Never list the same quest in both mainQuests and sideQuests. A quest belongs in ONE tier.
+6. All quests from {{user}}'s perspective \u2014 if hostile, oppose their goal; if ally, support them as {{user}}'s action.`:'';
     // Strip the "JSON OUTPUT ONLY" header from the prompt
     let fieldSpecs=sysPr;
     const headerEnd=sysPr.indexOf('## FIELD SPECIFICATIONS');

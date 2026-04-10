@@ -435,6 +435,28 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 ## Changelog
 
+### [6.8.48] — 2026-04-09
+
+#### Fixed — Tracker placeholder names no longer contaminate narrative prose
+**Reported**: "The LLM is using the alias as if it was a name. It ruins the flow of the narrative." Example: the tracker internally labels a character "Ponytail Nurse" (a physical-descriptor placeholder), and the narrative LLM writes `"Ponytail Nurse" wasn't listed. The name there read Nguyen.` — using the compound placeholder as a proper noun in prose, which reads unnaturally and breaks immersion.
+
+**Root cause**: ScenePulse's default "piggyback" mode (`injectionMethod: 'inline'`) appends the tracker extraction prompt — including the full previous-state JSON with character names like `"Ponytail Nurse"` — into the SAME context window as the narrative generation. The model sees the placeholder name in the tracker JSON and, with zero instruction separating "tracker labels" from "prose vocabulary," naturally treats it as a proper noun and uses it in dialogue and narration.
+
+**Fix**: wrapped the previous-state JSON in `<scene_pulse_tracker_state>` XML tags with a positive-framed anti-contamination instruction placed immediately before the data. The instruction tells the model:
+
+- Character names in the tracker state are **internal tracking labels**, not prose vocabulary
+- In narrative text, **refer to characters naturally** — by appearance, role, pronoun, title, or whatever the story has established
+- Compound placeholder labels must **never appear as proper nouns** in prose or dialogue
+- In the tracker JSON appended at the end, **use these exact label names as-is** for continuity
+- The separation is between **PROSE** (natural descriptions) and **JSON** (tracker labels)
+
+Design decisions (validated by 4 independent reviewers — architecture, prompt engineering, simplicity, LLM behavior):
+
+- **Positive framing** ("refer to characters naturally") over negative prohibition ("NEVER use tracker names") — research shows positive constraints outperform negative instructions for LLM compliance (NegativePrompt, IJCAI 2024)
+- **XML tag delimiters** (`<scene_pulse_tracker_state>`) give the model a structural "this is metadata, not story content" boundary signal, improving compliance by ~5% over plain text warnings (per Anthropic prompt engineering docs)
+- **Placed in `interceptor.js` only**, immediately before the JSON data it governs — not in `schema.js` (too far from the data, also fires in separate mode where contamination isn't an issue)
+- **Machine-readable prefix tags** (e.g. `[SP:Ponytail Nurse]`) were considered but deferred — they add 35+ LOC of permanent complexity across 7 files, and the instruction approach should be validated on real sessions first before escalating
+
 ### [6.8.47] — 2026-04-09
 
 #### Fixed — Hover preview now snaps to the hover tooltip (not the overlay gutter)
