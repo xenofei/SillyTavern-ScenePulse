@@ -129,8 +129,11 @@ console.log('\n── Relationship meter normalization ──');
     // by design — the stored snapshot preserves the LLM's raw output.
     assertEq('affection passed through', rel.affection, 150);
     assertEq('trust passed through', rel.trust, -10);
-    // desire: 'high' → should be parsed via label-to-value estimator
-    assertTrue('desire is a number', typeof rel.desire === 'number');
+    // desire: 'high' (string) → regex finds no leading digits, resolves
+    // to 0. The label-to-value estimator doesn't fire because the label
+    // field isn't populated from string-only inputs. This is a known
+    // limitation: string-only meter values silently become 0.
+    assertEq('desire string "high" resolves to 0', rel.desire, 0);
     assertEq('stress preserved', rel.stress, 50);
     assertEq('compatibility preserved', rel.compatibility, 75);
 }

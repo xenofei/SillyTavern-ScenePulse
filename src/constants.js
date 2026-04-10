@@ -2,7 +2,7 @@
 // Extracted from index.js lines 1-365, plus TOUR_EXAMPLE_DATA (~4720-4747)
 
 export const MODULE_NAME='scenepulse';
-export const VERSION = '6.9.9';
+export const VERSION = '6.9.10';
 
 // v6.8.19: canonical list of character archetype enum values.
 // Shared between schema validation, normalize, prompt builder, UI filter,
@@ -65,7 +65,8 @@ export const BUILTIN_PANELS={
             {key:'sceneTension',type:'enum',options:['calm','low','moderate','high','critical'],desc:'Current tension level.',label:'Tension'},
             {key:'sceneSummary',type:'string',desc:'Brief scene summary.',label:'Summary'},
             {key:'soundEnvironment',type:'string',desc:'Audible sounds right now.',label:'Sounds'},
-            {key:'charactersPresent',type:'array',itemType:'string',desc:'Names of all characters in the scene.',label:'Present'}
+            {key:'charactersPresent',type:'array',itemType:'string',desc:'Names of all characters in the scene.',label:'Present'},
+            {key:'witnesses',type:'array',itemType:'string',desc:'Background observers without a character card \u2014 bystanders, unnamed staff, security cameras, crowd members who saw or heard what happened. Do NOT include anyone already in characters[]. Empty array [] if the scene is private or unobserved.',label:'Witnesses'}
         ]
     },
     quests:{

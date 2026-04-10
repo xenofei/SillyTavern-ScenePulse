@@ -483,7 +483,18 @@ export function updatePanel(d,_force=false){
     // changed-this-turn indicators, solo scene label, and richer badge.
     const _scenePrev = getPrevSnapshot(currentSnapshotMesIdx);
     const _tension = (d.sceneTension || '').toLowerCase();
-    const _tensionColors = { calm: '#60a5fa', low: '#4ade80', moderate: '#facc15', high: '#fb923c', critical: '#ef4444' };
+    // v6.9.10: read tension colors from CSS variables so themes can
+    // override them. Falls back to hardcoded defaults if the variable
+    // isn't set (e.g., during SSR or before stylesheet loads).
+    const _cs = typeof getComputedStyle === 'function' ? getComputedStyle(document.documentElement) : null;
+    function _tv(level, fallback) { return _cs?.getPropertyValue('--sp-tension-' + level)?.trim() || fallback; }
+    const _tensionColors = {
+        calm: _tv('calm', '#60a5fa'),
+        low: _tv('low', '#4ade80'),
+        moderate: _tv('moderate', '#facc15'),
+        high: _tv('high', '#fb923c'),
+        critical: _tv('critical', '#ef4444'),
+    };
     const _tensionColor = _tensionColors[_tension] || '#9a9a9a';
     // Collapsed badge: tension dot + topic + character count
     const _cpLen = (d.charactersPresent || []).length;
@@ -523,24 +534,12 @@ export function updatePanel(d,_force=false){
             mkEditable(val,()=>d[key]||'',v=>{d[key]=v;const snap=getLatestSnapshot();if(snap)snap[key]=v});
             r.appendChild(val);f.appendChild(r);
         }
-        // v6.9.5: charactersPresent as colored name chips
-        {const pr=document.createElement('div');pr.className='sp-row';pr.dataset.ft='charactersPresent';
-            pr.innerHTML=`<div class="sp-row-label">${esc(t('Present'))}</div>`;
-            const pv=document.createElement('div');pv.className='sp-row-value sp-scene-present';
-            const cpArr=d.charactersPresent||[];
-            if(cpArr.length===0){
-                // v6.9.5: solo scene indicator
-                const solo=document.createElement('span');solo.className='sp-scene-solo';solo.textContent=t('Solo scene');pv.appendChild(solo);
-            } else {
-                for(const name of cpArr){
-                    const chip=document.createElement('span');chip.className='sp-scene-chip';
-                    const cc=charColor(name);chip.style.setProperty('--chip-color',cc.accent);
-                    chip.textContent=name;pv.appendChild(chip);
-                }
-            }
-            pr.appendChild(pv);f.appendChild(pr);
-        }
-        // v6.9.5: witnesses (dimmed chips below present)
+        // v6.9.10: charactersPresent row REMOVED from scene panel.
+        // It was redundant with the Characters section which already
+        // shows exactly who's present (filterForView filters to only
+        // charactersPresent). The solo scene indicator is retained in
+        // the collapsed badge logic above.
+        // v6.9.5: witnesses (dimmed chips below charactersPresent)
         {const wArr=d.witnesses||[];
             if(wArr.length>0){
                 const wr=document.createElement('div');wr.className='sp-row';wr.dataset.ft='witnesses';

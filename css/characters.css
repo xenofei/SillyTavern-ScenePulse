@@ -179,10 +179,11 @@
    any field value that differs from the previous snapshot. The dot is
    tinted in the character's accent color and sits after the value text
    as a ::after pseudo-element, so there's no extra DOM per field. */
-/* v6.9.6: unified changed-this-turn indicator across all sections.
-   Previously characters used ::after on the value, scene used ::before
-   on the label — now all use a ::before dot on the label/key element
-   for consistent LTR reading (indicator → label → value). */
+/* v6.9.10: changed-this-turn indicator. The class is added to the
+   VALUE element by update-panel.js. The ::before dot renders at the
+   start of the value text. Scene panel uses a matching ::before dot
+   on the ROW element (sections.css .sp-scene-changed). Both produce
+   a visible teal dot near the changed content. */
 .sp-char-val-changed { position: relative; }
 .sp-char-val-changed::before {
     content: '\25CF'; font-size: 6px; color: var(--sp-accent);

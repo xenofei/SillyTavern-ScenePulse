@@ -65,11 +65,13 @@ const { eventSource, event_types } = SillyTavern.getContext();
 // Create panel immediately — DOM is ready when ST loads extensions
 try { createPanel(); log('Panel created at load'); } catch (e) { warn('Early panel:', e); }
 
-eventSource.on(event_types.APP_READY, () => { try {
+eventSource.on(event_types.APP_READY, async () => { try {
     log('APP_READY: start');
-    // v6.9.7: warm the i18n cache before creating UI so t() calls
-    // during panel/settings construction have translations ready.
-    initI18n().then(() => log('APP_READY: i18n ok')).catch(() => {});
+    // v6.9.10: AWAIT initI18n so t() calls during panel/settings
+    // construction have translations ready. Without await, non-English
+    // users saw an English flash on every page load because the async
+    // fetch hadn't completed before createPanel()/createSettings() ran.
+    try { await initI18n(); log('APP_READY: i18n ok'); } catch { /* degrade to English */ }
     createPanel(); log('APP_READY: panel ok');
     createSettings(); log('APP_READY: settings ok');
     // Register slash commands & macros

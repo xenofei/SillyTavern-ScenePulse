@@ -179,6 +179,14 @@ export function normalizeTracker(d){
     o.sceneTension=g(['scenetension','tension','tensionlevel','intensity','stakes']);
     o.sceneSummary=g(['scenesummary','summary','description','currentsummary','overview']);
     const wit=flat['witnesses'];o.witnesses=Array.isArray(wit)?wit:[];
+    // v6.9.10: strip witness names that match any tracked character.
+    // Witnesses should be background observers WITHOUT character cards.
+    // If a witness shares a name with a character in characters[],
+    // they're already tracked and don't belong in witnesses.
+    if(o.witnesses.length>0&&Array.isArray(d.characters)&&d.characters.length>0){
+        const charNames=new Set(d.characters.filter(c=>c&&c.name).map(c=>c.name.toLowerCase().trim()));
+        o.witnesses=o.witnesses.filter(w=>{const wl=(w||'').toLowerCase().trim();return wl&&!charNames.has(wl)});
+    }
     const cp=flat['characterspresent']||flat['present'];
     o.charactersPresent=Array.isArray(cp)?cp.filter(n=>!isUserName(n)):[];
 

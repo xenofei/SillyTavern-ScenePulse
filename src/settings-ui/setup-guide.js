@@ -98,7 +98,7 @@ export function showSetupGuide(){
                         <div class="sp-setup-tip">Type <strong>/sp help</strong> for all slash commands (/sp regen, /sp refresh, /sp export, /sp debug)</div>
                         <div class="sp-setup-tip">Click the <strong>book icon</strong> in the toolbar to browse the <strong>Character Wiki</strong> — every character who ever appeared</div>
                         <div class="sp-setup-tip">Click the <strong>pencil icon</strong> to enable <strong>Edit mode</strong> — click any field to manually correct it</div>
-                        <div class="sp-setup-tip">Click the <strong>web icon</strong> on a character card to see the <strong>Relationship Web</strong> — force-directed NPC graph</div>
+                        <div class="sp-setup-tip">Open the <strong>Character Wiki</strong> (book icon) and click the <strong>web graph button</strong> to see the <strong>Relationship Web</strong> — force-directed NPC graph</div>
                         <div class="sp-setup-tip">Use <strong>Custom Panels</strong> (Panel Manager → +) to track anything: health, mana, reputation, inventory</div>
                     </div>
                     <div class="sp-setup-nav"><button class="sp-setup-btn" data-goto="3">← Back</button><button class="sp-setup-btn sp-setup-btn-primary sp-setup-btn-finish" data-finish="true">✓ Finish Setup</button></div>

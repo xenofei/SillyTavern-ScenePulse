@@ -33,7 +33,9 @@
 .sp-rel-meta-label { font-weight: 600; color: var(--sp-text-dim); text-transform: uppercase; font-size: 9px; letter-spacing: 0.04em; min-width: 80px; }
 .sp-rel-milestone { color: var(--sp-amber); }
 
-.sp-meter-row { display: grid; grid-template-columns: 50px 1fr 105px; align-items: center; gap: 3px; padding: 2px 0; }
+/* v6.9.10: widened label column 50→58px and gap 3→8px to prevent
+   meter bars from overlapping label text (AFFECTION, DESIRE etc.) */
+.sp-meter-row { display: grid; grid-template-columns: 58px 1fr 105px; align-items: center; gap: 8px; padding: 2px 0; }
 .sp-meter-row.sp-meter-has-tag { grid-template-rows: auto auto; }
 .sp-meter-row.sp-meter-has-tag > .sp-meter-label { grid-row: 2; }
 .sp-meter-row.sp-meter-has-tag > .sp-meter-bar-wrap { grid-row: 2; }

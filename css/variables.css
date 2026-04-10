@@ -5,7 +5,7 @@
     --sp-surface-hover: rgba(38,43,56,0.95); --sp-border: rgba(255,255,255,0.06);
     --sp-border-strong: rgba(255,255,255,0.12); --sp-text: #c8ccd4;
     /* v6.9.6: raised from #6b7280 (4.1:1 contrast on #12141a) to
-       #8490a0 (4.7:1) for WCAG AA compliance at 9-11px text sizes */
+       #8490a0 (~5.5:1) for WCAG AA compliance at 9-11px text sizes */
     --sp-text-dim: #8490a0;
     --sp-text-bright: #e8ecf4; --sp-accent: #4db8a4; --sp-accent-dim: rgba(77,184,164,0.15);
     --sp-accent-glow: rgba(77,184,164,0.4); --sp-amber: #d4915e; --sp-amber-dim: rgba(212,145,94,0.15);
