@@ -499,10 +499,10 @@ export function updatePanel(d,_force=false){
         critical: _tv('critical', '#ef4444'),
     };
     const _tensionColor = _tensionColors[_tension] || '#9a9a9a';
-    // Collapsed badge: tension dot + topic + character count
+    // Collapsed badge: tension label + character count
     const _cpLen = (d.charactersPresent || []).length;
-    const _badgeText = (d.sceneTopic || d.sceneMood || '').split(/[,;]/)[0].trim().substring(0, 18) || null;
-    const _sceneBadge = _badgeText ? `\u25CF ${_badgeText}${_cpLen ? ' \u00B7 ' + _cpLen : ''}` : (_cpLen ? String(_cpLen) : null);
+    const _tensionLabel = _tension ? _tension.charAt(0).toUpperCase() + _tension.slice(1) : null;
+    const _sceneBadge = _tensionLabel || _cpLen ? 'badge' : null; // placeholder — overridden below via innerHTML
     {const _sec=mkSection('scene',t('Scene Details'),_sceneBadge,()=>{
         const f=document.createDocumentFragment();
         // Helper: check if a scene field changed since previous snapshot
@@ -561,9 +561,14 @@ export function updatePanel(d,_force=false){
     // v6.9.5: tension-colored left border on the section
     if (_tensionColor) _sec.style.setProperty('--sp-scene-tension-color', _tensionColor);
     _sec.classList.add('sp-scene-section');
-    // v6.9.5: override the badge with tension-colored dot via innerHTML
+    // Scene badge: colored dot + tension label + character count
     const _badgeEl = _sec.querySelector('.sp-section-badge');
-    if (_badgeEl && _sceneBadge) _badgeEl.innerHTML = `<span class="sp-scene-badge-dot" style="color:${esc(_tensionColor)}">\u25CF</span> ${esc(_badgeText || '')}${_cpLen ? ' \u00B7 ' + _cpLen : ''}`;
+    if (_badgeEl && _sceneBadge) {
+        let _bHtml = `<span class="sp-scene-badge-dot" style="color:${esc(_tensionColor)}"></span>`;
+        if (_tensionLabel) _bHtml += esc(_tensionLabel);
+        if (_cpLen) _bHtml += ` \u00B7 ${_cpLen}`;
+        _badgeEl.innerHTML = _bHtml;
+    }
     if(s.panels?.scene===false)_sec.classList.add('sp-panel-hidden');body.appendChild(_sec)}
 
     // ── Quest diff: classify quests as new/updated/stale/resolved ──
@@ -583,10 +588,10 @@ export function updatePanel(d,_force=false){
     const _tierStatusCounts={};let _totalQNew=0,_totalQUpdated=0,_totalQDone=0;
     for(const _tk of['mainQuests','sideQuests']){let _nc=0,_uc=0,_dc=0;if(Array.isArray(d[_tk]))for(const _q of d[_tk]){const _s=_classifyQuest(_q,_tk);if(_s==='new')_nc++;else if(_s==='updated')_uc++;else if(_s==='resolved')_dc++}_tierStatusCounts[_tk]={n:_nc,u:_uc,d:_dc};_totalQNew+=_nc;_totalQUpdated+=_uc;_totalQDone+=_dc}
 
-    // Quest Journal section — badge shows M main / S side breakdown
+    // Quest Journal section — badge shows "x Main · x Side"
     const _mq=Array.isArray(d.mainQuests)?d.mainQuests.length:0;
     const _sq=Array.isArray(d.sideQuests)?d.sideQuests.length:0;
-    const _qBadge=(_mq||_sq)?`${_mq}M \u00B7 ${_sq}S`:0;
+    const _qBadge=(_mq||_sq)?`${_mq} Main \u00B7 ${_sq} Side`:0;
     {const _sec=mkSection('quests',t('Quest Journal'),_qBadge,()=>{
         const f=document.createDocumentFragment();
         // North Star

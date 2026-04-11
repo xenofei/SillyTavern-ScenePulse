@@ -216,6 +216,20 @@ export function normalizeTracker(d){
         }
         return{type:t,name:rawName,hook:rawHook}
     }).filter(b=>b.name||b.hook):[];
+    // Enforce type uniqueness: if the LLM duplicated a type and missed
+    // another (e.g. 2 exploratory, 0 comedic), reassign the duplicate
+    // to the missing type so users always see all 5 categories.
+    if(o.plotBranches.length>=2){
+        const seen=new Set();const dupes=[];
+        for(const b of o.plotBranches){if(seen.has(b.type))dupes.push(b);else seen.add(b.type)}
+        if(dupes.length>0){
+            const missing=validTypes.filter(t=>!seen.has(t));
+            for(let i=0;i<dupes.length&&i<missing.length;i++){
+                log('plotBranches: reassign duplicate',dupes[i].type,'→',missing[i]);
+                dupes[i].type=missing[i];
+            }
+        }
+    }
     // v6.8.50: REMOVED "carry forward plotBranches if empty". Plot
     // branches should be fresh every turn (5 new story suggestions).
     // The delta-merge layer now treats omitted plotBranches as an
