@@ -110,6 +110,22 @@ export function showPanel(){
     spInjectTopBar(mode);
     syncThoughts();
     spUpdateFab();
+    // CRITICAL: CSS overflow does not work inside SillyTavern's 3D
+    // transform/perspective context (html has transform+perspective).
+    // Force-constrain the body height via JS and set overflow directly
+    // on the DOM element style (highest specificity possible).
+    const body=document.getElementById('sp-panel-body');
+    if(body&&anchor){
+        const toolbar=p.querySelector('.sp-toolbar');
+        const tbHeight=toolbar?toolbar.offsetHeight:45;
+        const panelH=parseInt(anchor.style.height)||trueH;
+        const bodyH=panelH-tbHeight;
+        body.style.maxHeight=bodyH+'px';
+        body.style.height=bodyH+'px';
+        body.style.overflowY='scroll';
+        body.style.overflowX='hidden';
+        log('Body constrained:',bodyH+'px','toolbar:',tbHeight);
+    }
     log('Panel shown, anchorH:',anchor?.style.height,'trueH:',trueH,'mode:',mode);
 }
 export function hidePanel(){
