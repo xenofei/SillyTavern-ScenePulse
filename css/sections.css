@@ -10,8 +10,10 @@
     min-height: 0; flex: 0 0 auto;
 }
 .sp-section:last-child { border-bottom: 1px solid var(--sp-border); }
-/* Open sections grow to fill available space equally */
-.sp-section.sp-open { flex: 1 1 0; min-height: 0; }
+/* Open sections get a fixed viewport height — same size regardless
+   of how many are open. Panel body scrolls to accommodate them all.
+   70vh gives each section ~70% of the viewport as its content area. */
+.sp-section.sp-open { flex: 0 0 auto; min-height: 70vh; }
 .sp-section-header {
     display: flex; align-items: center; gap: 8px; padding: 7px 12px;
     cursor: pointer; user-select: none; transition: background var(--sp-transition);

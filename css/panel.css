@@ -22,11 +22,17 @@
     display: none; flex-direction: column;
 }
 #sp-panel.sp-visible { display: flex; }
+/* Panel body scrolls when total open sections exceed panel height.
+   Each section has a fixed min-height, so multiple open sections
+   make the body taller than the panel — body scrolls to reach them. */
 #sp-panel-body {
     flex: 1; min-height: 0;
     display: flex; flex-direction: column;
-    overflow: hidden;
+    overflow-y: auto; overflow-x: hidden;
+    scrollbar-color: rgba(100,110,130,0.3) transparent;
 }
+#sp-panel-body::-webkit-scrollbar { width: 4px; }
+#sp-panel-body::-webkit-scrollbar-thumb { background: rgba(100,110,130,0.3); border-radius: 2px; }
 #sp-panel * { pointer-events: auto; }
 
 #sp-panel-toggle { display: none; }
