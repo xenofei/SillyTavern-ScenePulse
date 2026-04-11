@@ -68,26 +68,20 @@ export function showPanel(){
     // Measure ST's top bar for all modes
     const topBar=document.getElementById('top-bar')||document.getElementById('top-settings-holder')||document.querySelector('.header,.nav-bar,header');
     const tbH=topBar?topBar.getBoundingClientRect().bottom:0;
-    // SillyTavern's layout triggers resize events that report a HALVED
-    // viewport height (e.g. 526px instead of 1065px). We capture the
-    // maximum observed viewport height and never shrink below it.
-    // This prevents the panel from collapsing to half-height on resize.
-    const _rawVH=window.visualViewport?.height||document.documentElement.clientHeight||window.innerHeight;
-    if(!showPanel._maxVH||_rawVH>showPanel._maxVH)showPanel._maxVH=_rawVH;
-    const _trueVH=showPanel._maxVH;
-    // Set both height AND max-height in px. max-height is the hard constraint
-    // that enforces clipping even when position:fixed is broken by ST's
-    // html{transform:translateZ(0)} which makes fixed == absolute-to-html.
+    // Use top + bottom:0 pattern (from Dooms-Enhancement-Suite).
+    // SillyTavern's html{transform:translateZ(0)} makes position:fixed
+    // relative to html. top+bottom lets the browser compute height from
+    // html's bounds (which stretches to viewport). No height/maxHeight
+    // needed — the browser handles it. No vh units, no JS height calc.
     if(mode==='mobile'){
-        const spTopH=44;const h=(_trueVH-spTopH)+'px';
-        p.style.top=spTopH+'px';p.style.height=h;p.style.maxHeight=h;p.style.width='100vw';p.style.right='0';
+        const spTopH=44;
+        p.style.top=spTopH+'px';p.style.bottom='0';p.style.height='';p.style.maxHeight='';p.style.width='100vw';p.style.right='0';
     }else if(mode==='tablet'){
-        const spTopH=44;const h=(_trueVH-spTopH)+'px';
-        p.style.top=spTopH+'px';p.style.height=h;p.style.maxHeight=h;p.style.width='100vw';p.style.right='0';
+        const spTopH=44;
+        p.style.top=spTopH+'px';p.style.bottom='0';p.style.height='';p.style.maxHeight='';p.style.width='100vw';p.style.right='0';
     }else{
-        const h=(_trueVH-tbH)+'px';
         p.style.top=tbH+'px';
-        p.style.height=h;p.style.maxHeight=h;
+        p.style.bottom='0';p.style.height='';p.style.maxHeight='';
         const sheld=document.getElementById('sheld');
         const sheldRight=sheld?sheld.getBoundingClientRect().right:window.innerWidth*0.5;
         const availW=window.innerWidth-sheldRight;
@@ -115,7 +109,7 @@ export function showPanel(){
     spInjectTopBar(mode);
     syncThoughts();
     spUpdateFab();
-    log('Panel shown, width:',p.style.width,'top:',p.style.top,'h:',p.style.height,'mode:',mode,'trueVH:',_trueVH);
+    log('Panel shown, width:',p.style.width,'top:',p.style.top,'bottom:',p.style.bottom,'mode:',mode);
 }
 export function hidePanel(){
     const p=document.getElementById('sp-panel');if(!p)return;

@@ -5,31 +5,37 @@
 /* ═══ RIGHT SIDE PANEL ═══ */
 /* Uses position:fixed + --trackerUI-panel-width to integrate with ST layout */
 
-/* ROOT CAUSE: SillyTavern sets html{-webkit-transform:translateZ(0)}
-   which breaks position:fixed — fixed elements become contained by
-   html instead of the viewport. Our panel must use position:fixed
-   BUT we counteract this by:
-   1. Removing our own transform:translateZ(0) (was GPU hack, no longer needed)
-   2. Setting height via JS using visualViewport (not CSS vh units)
-   3. Using max-height as a hard constraint to enforce clipping */
+/* Pattern from Dooms-Enhancement-Suite (confirmed working in ST).
+   SillyTavern sets html{-webkit-transform:translateZ(0)} which makes
+   position:fixed relative to html instead of viewport. The fix:
+   - Use top + bottom:0 (NOT height:calc) — lets browser compute height
+     from html's bounds, which stretches to viewport despite the transform
+   - display:flex + flex-direction:column — toolbar stays at top
+   - overflow:visible on panel, overflow-y:auto on #sp-panel-body
+   - flex:1 + min-height:0 on body to constrain and enable scroll */
 #sp-panel {
-    position: fixed; top: 45px; right: 0; height: calc(100vh - 45px);
+    position: fixed; top: 45px; right: 0; bottom: 0;
     background: var(--sp-bg-solid, #181a20);
     border-left: 2px solid rgba(77,184,164,0.25);
-    overflow-y: auto; overflow-x: hidden;
-    z-index: 1000; display: none;
+    overflow: visible;
+    z-index: 1000;
     font-family: var(--sp-font); font-size: 13px; color: var(--sp-text);
     pointer-events: auto;
-    scrollbar-color: rgba(100,110,130,0.3) transparent;
     transition: width 0.3s ease-out;
     box-sizing: border-box;
     container-type: inline-size;
     container-name: sp-panel;
+    display: none; flex-direction: column;
 }
-#sp-panel.sp-visible { display: block; }
-#sp-panel::-webkit-scrollbar { width: 4px; }
-#sp-panel::-webkit-scrollbar-thumb { background: rgba(100,110,130,0.3); border-radius: 2px; }
-#sp-panel-body { pointer-events: auto; position: relative; min-height: 200px; }
+#sp-panel.sp-visible { display: flex; }
+#sp-panel-body {
+    flex: 1; min-height: 0;
+    overflow-y: auto; overflow-x: hidden;
+    pointer-events: auto; position: relative;
+    scrollbar-color: rgba(100,110,130,0.3) transparent;
+}
+#sp-panel-body::-webkit-scrollbar { width: 4px; }
+#sp-panel-body::-webkit-scrollbar-thumb { background: rgba(100,110,130,0.3); border-radius: 2px; }
 #sp-panel * { pointer-events: auto; }
 
 #sp-panel-toggle { display: none; }
@@ -37,7 +43,7 @@
 /* Panel header */
 /* ═══ UNIFIED TOOLBAR ═══ */
 .sp-toolbar {
-    position: sticky; top: 0; z-index: 10;
+    flex-shrink: 0; z-index: 10;
     display: flex; align-items: center; gap: 4px 8px; padding: 7px 10px;
     background: var(--sp-bg-solid); border-bottom: 1px solid var(--sp-border);
     flex-wrap: wrap;
