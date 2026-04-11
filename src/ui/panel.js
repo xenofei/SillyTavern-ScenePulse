@@ -65,44 +65,33 @@ export function showPanel(){
     const p=document.getElementById('sp-panel');if(!p)return;
     if(!getSettings().enabled){p.classList.remove('sp-visible');return}
     const mode=spApplyMode();
-    const anchor=document.getElementById('sp-panel-anchor');
     const topBar=document.getElementById('top-bar')||document.getElementById('top-settings-holder')||document.querySelector('.header,.nav-bar,header');
     const tbH=topBar?topBar.getBoundingClientRect().bottom:0;
-    // SillyTavern's html{transform:translateZ(0)} breaks position:fixed.
-    // bottom:0 resolves to html's content height, not viewport bottom.
-    // ST also triggers resize events with halved viewport values.
-    // FIX: use screen.availHeight (physical screen minus OS chrome) which
-    // is IMMUNE to both html transform and ST resize manipulation.
-    // Fall back to max of all viewport measurements.
+    // Simple height calc — use screen.availHeight locked to max observed
     const _screenH=window.screen?.availHeight||window.screen?.height||window.outerHeight||window.innerHeight;
     const _vpH=Math.max(window.innerHeight,document.documentElement.clientHeight,_screenH);
-    // Lock to the largest observed value (first render is always correct)
     if(!showPanel._lockedH||_vpH>showPanel._lockedH)showPanel._lockedH=_vpH;
     const trueH=showPanel._lockedH;
-    if(anchor){
-        if(mode==='mobile'||mode==='tablet'){
-            const spTopH=44;
-            anchor.style.top=spTopH+'px';
-            anchor.style.bottom='';anchor.style.height=(trueH-spTopH)+'px';
-            anchor.style.width='100vw';anchor.style.right='0';anchor.style.left='0';
+    if(mode==='mobile'||mode==='tablet'){
+        const spTopH=44;
+        p.style.top=spTopH+'px';p.style.height=(trueH-spTopH)+'px';p.style.width='100vw';p.style.right='0';
+    }else{
+        p.style.top=tbH+'px';
+        p.style.height=(trueH-tbH)+'px';
+        const sheld=document.getElementById('sheld');
+        const sheldRight=sheld?sheld.getBoundingClientRect().right:window.innerWidth*0.5;
+        const availW=window.innerWidth-sheldRight;
+        const _userCompact=p.dataset.spUserCompact==='true';
+        if(availW<360&&!_userCompact){
+            p.classList.add('sp-compact');p.dataset.spAutoCompact='true';
+            p.style.width=Math.max(240,Math.min(Math.round(window.innerWidth*0.22),280))+'px';
+        }else if(p.dataset.spAutoCompact==='true'&&availW>=360){
+            p.classList.remove('sp-compact');delete p.dataset.spAutoCompact;
+            p.style.width=Math.max(300,availW)+'px';
+        }else if(p.classList.contains('sp-compact')){
+            p.style.width=Math.max(240,Math.min(Math.round(window.innerWidth*0.22),280))+'px';
         }else{
-            anchor.style.top=tbH+'px';anchor.style.left='';
-            anchor.style.bottom='';anchor.style.height=(trueH-tbH)+'px';
-            const sheld=document.getElementById('sheld');
-            const sheldRight=sheld?sheld.getBoundingClientRect().right:window.innerWidth*0.5;
-            const availW=window.innerWidth-sheldRight;
-            const _userCompact=p.dataset.spUserCompact==='true';
-            if(availW<360&&!_userCompact){
-                p.classList.add('sp-compact');p.dataset.spAutoCompact='true';
-                anchor.style.width=Math.max(240,Math.min(Math.round(window.innerWidth*0.22),280))+'px';
-            }else if(p.dataset.spAutoCompact==='true'&&availW>=360){
-                p.classList.remove('sp-compact');delete p.dataset.spAutoCompact;
-                anchor.style.width=Math.max(300,availW)+'px';
-            }else if(p.classList.contains('sp-compact')){
-                anchor.style.width=Math.max(240,Math.min(Math.round(window.innerWidth*0.22),280))+'px';
-            }else{
-                anchor.style.width=Math.max(300,availW)+'px';
-            }
+            p.style.width=Math.max(300,availW)+'px';
         }
     }
     p.classList.add('sp-visible');
@@ -110,40 +99,7 @@ export function showPanel(){
     spInjectTopBar(mode);
     syncThoughts();
     spUpdateFab();
-    // CRITICAL: CSS overflow does not work inside SillyTavern's 3D
-    // transform/perspective context (html has transform+perspective).
-    // Force-constrain the body height via JS and set overflow directly
-    // on the DOM element style (highest specificity possible).
-    const body=document.getElementById('sp-panel-body');
-    if(body&&anchor){
-        const toolbar=p.querySelector('.sp-toolbar');
-        const tbHeight=toolbar?toolbar.offsetHeight:45;
-        const panelH=parseInt(anchor.style.height)||trueH;
-        const bodyH=panelH-tbHeight;
-        body.style.maxHeight=bodyH+'px';
-        body.style.height=bodyH+'px';
-        body.style.overflowY='scroll';
-        body.style.overflowX='hidden';
-        log('Body constrained:',bodyH+'px','toolbar:',tbHeight);
-    }
-    log('Panel shown, anchorH:',anchor?.style.height,'trueH:',trueH,'mode:',mode);
-    // Verify position:fixed is actually applied
-    requestAnimationFrame(()=>{
-        const a=document.getElementById('sp-panel-anchor');
-        if(a){
-            const cs=getComputedStyle(a);
-            log('POSITION-CHECK anchor: position='+cs.position+' top='+cs.top+' height='+cs.height+' overflow='+cs.overflow+' display='+cs.display);
-            log('POSITION-CHECK panel: position='+getComputedStyle(p).position+' height='+getComputedStyle(p).height+' display='+getComputedStyle(p).display+' overflow='+getComputedStyle(p).overflow);
-        }
-    });
-    // Nuclear diagnostic: dump the actual inline style and verify it stuck
-    requestAnimationFrame(()=>{
-        const b=document.getElementById('sp-panel-body');
-        if(b){
-            const cs=getComputedStyle(b);
-            log('NUCLEAR body.style.height='+b.style.height+' .overflowY='+b.style.overflowY+' computed.height='+cs.height+' computed.overflowY='+cs.overflowY+' scrollH='+b.scrollHeight+' clientH='+b.clientHeight+' children='+b.children.length+' parent='+b.parentElement?.id+' parentParent='+b.parentElement?.parentElement?.id);
-        }
-    });
+    log('Panel shown, width:',p.style.width,'top:',p.style.top,'h:',p.style.height,'mode:',mode);
 }
 export function hidePanel(){
     const p=document.getElementById('sp-panel');if(!p)return;
@@ -206,14 +162,8 @@ export function createPanel(){
         <button class="sp-toolbar-btn" id="sp-tb-minimize" title="${t('Hide panel')}" style="display:none"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><line x1="2" y1="13" x2="14" y2="13" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity="0.4"/></svg></button>
     </div>
     <div id="sp-panel-body"><div class="sp-empty-state"><div class="sp-empty-icon">\uD83D\uDCE1</div><div class="sp-empty-title">${t('No scene data yet')}</div><div class="sp-empty-sub">${t('Send a message or click ⟳ to generate.')}</div></div></div>`;
-    // Wrap panel in a fixed-position anchor div. The anchor handles
-    // viewport positioning; the panel fills it with height:100%.
-    // This avoids the html{transform:translateZ(0)} containment bug
-    // where position:fixed on the panel itself doesn't clip properly.
-    let anchor=document.getElementById('sp-panel-anchor');
-    if(!anchor){anchor=document.createElement('div');anchor.id='sp-panel-anchor';document.body.appendChild(anchor)}
-    anchor.appendChild(panel);
-    log('Panel appended inside anchor');
+    document.body.appendChild(panel);
+    log('Panel appended to body');
     // ── Manual scroll handling ──
     // SillyTavern's html{transform+perspective} breaks native overflow
     // scrolling inside fixed-position panels. Wheel events go to the
@@ -348,15 +298,12 @@ export function createPanel(){
         // Track user-initiated compact so auto-condense doesn't override
         p.dataset.spUserCompact=isCompact?'true':'false';
         delete p.dataset.spAutoCompact;
-        // Recalculate width on anchor -- compact uses less space
-        const anchor=document.getElementById('sp-panel-anchor');
-        if(anchor){
-            if(isCompact){
-                anchor.style.width=Math.max(240,Math.min(Math.round(window.innerWidth*0.22),280))+'px';
-            }else{
-                const sheld=document.getElementById('sheld');
-                if(sheld)anchor.style.width=Math.max(300,window.innerWidth-sheld.getBoundingClientRect().right)+'px';
-            }
+        // Recalculate width -- compact uses less space
+        if(isCompact){
+            p.style.width=Math.max(240,Math.min(Math.round(window.innerWidth*0.22),280))+'px';
+        }else{
+            const sheld=document.getElementById('sheld');
+            if(sheld)p.style.width=Math.max(300,window.innerWidth-sheld.getBoundingClientRect().right)+'px';
         }
         log('Compact:',isCompact);
     });

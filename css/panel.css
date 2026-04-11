@@ -14,33 +14,30 @@
 /* Height set by JS in pixels (screen.availHeight - topBar).
    Do NOT use bottom:0 — html{transform} makes it resolve to
    html content height, not viewport bottom. */
-#sp-panel-anchor {
-    position: fixed; top: 45px; right: 0;
-    z-index: 1000;
-    /* clip-path is immune to 3D transform/perspective context —
-       it clips at the GPU compositing level, not the CSS layout level.
-       overflow:hidden fails in ST's 3D context, but clip-path always works. */
-    clip-path: inset(0);
-    overflow: hidden;
-}
+/* Anchor removed — panel is direct child of body again */
+/* DEBUG: red border on panel, blue border on body */
 #sp-panel {
-    width: 100%; height: 100%;
+    position: fixed; top: 45px; right: 0;
     background: var(--sp-bg-solid, #181a20);
-    border-left: 2px solid rgba(77,184,164,0.25);
+    border: 3px solid red;
     font-family: var(--sp-font); font-size: 13px; color: var(--sp-text);
     pointer-events: auto;
-    transform-style: flat; -webkit-transform-style: flat;
+    overflow-y: auto; overflow-x: hidden;
+    z-index: 1000;
+    scrollbar-color: rgba(100,110,130,0.3) transparent;
     transition: width 0.3s ease-out;
     box-sizing: border-box;
     container-type: inline-size;
     container-name: sp-panel;
-    display: none; flex-direction: column;
-    overflow: hidden;
+    display: none;
 }
-#sp-panel.sp-visible { display: flex; }
+#sp-panel.sp-visible { display: block; }
+#sp-panel::-webkit-scrollbar { width: 4px; }
+#sp-panel::-webkit-scrollbar-thumb { background: rgba(100,110,130,0.3); border-radius: 2px; }
 #sp-panel-body {
-    flex: 1; min-height: 0;
-    overflow-y: auto; overflow-x: hidden;
+    position: relative; min-height: 200px;
+    border: 3px solid blue;
+    overflow-x: hidden;
     pointer-events: auto; position: relative;
     /* Firefox scrollbar */
     scrollbar-width: thin !important;
