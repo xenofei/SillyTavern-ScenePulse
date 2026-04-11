@@ -70,11 +70,19 @@ export function showPanel(){
     // CSS has bottom:0, just set top and width. No height calc needed —
     // per-section scrolling (max-height on .sp-section-content) handles
     // content overflow within each section independently.
+    // Reset ALL positioning inline styles before applying mode-specific ones.
+    // This prevents stale styles from a previous mode (e.g. left:'0' from
+    // mobile) persisting when switching back to desktop.
+    p.style.top='';p.style.bottom='';p.style.left='';p.style.right='';p.style.width='';p.style.height='';
     if(mode==='mobile'||mode==='tablet'){
         const spTopH=44;
-        p.style.top=spTopH+'px';p.style.bottom='0';p.style.height='';p.style.width='100vw';p.style.left='0';p.style.right='0';
+        // Use explicit pixel height for mobile — bottom:0 is unreliable
+        // due to html{transform:translateZ(0)} containment. Desktop works
+        // with bottom:0 because per-section scrolling handles overflow.
+        const mobileH=Math.max(window.innerHeight,window.screen?.availHeight||0)-spTopH;
+        p.style.top=spTopH+'px';p.style.height=mobileH+'px';p.style.left='0';p.style.right='0';p.style.width='100vw';
     }else{
-        p.style.top=tbH+'px';p.style.height='';
+        p.style.top=tbH+'px';p.style.right='0';
         const sheld=document.getElementById('sheld');
         const sheldRight=sheld?sheld.getBoundingClientRect().right:window.innerWidth*0.5;
         const availW=window.innerWidth-sheldRight;
