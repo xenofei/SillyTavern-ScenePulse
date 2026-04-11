@@ -31,22 +31,16 @@ export function resizeSectionContent(){
         if(header)fixedH+=header.offsetHeight;
         if(sec.classList.contains('sp-open'))openCount++;
     });
-    // Each open section gets the full remaining height — users view
-    // one section at a time and scroll within it. The panel itself
-    // scrolls to reach different sections.
-    const perSection=Math.max(panelH-fixedH,200);
-    // Apply to each open section's content AND body
+    // Each section gets 70% of panel height — large enough to show
+    // substantial content, small enough to prevent bleed into the
+    // next section. The panel scrolls to reach different sections.
+    const perSection=Math.max(Math.round(panelH*0.7),300);
+    // Apply to each open section's content only (NOT body — overflow
+    // on body blocks scrolling in ST's 3D context)
     sections.forEach(sec=>{
         const ct=sec.querySelector('.sp-section-content');
-        const bd=sec.querySelector('.sp-section-body');
         if(!ct)return;
-        if(sec.classList.contains('sp-open')){
-            ct.style.maxHeight=perSection+'px';
-            if(bd)bd.style.maxHeight=perSection+'px';
-        }else{
-            ct.style.maxHeight='';
-            if(bd)bd.style.maxHeight='';
-        }
+        ct.style.maxHeight=sec.classList.contains('sp-open')?perSection+'px':'';
     });
 }
 

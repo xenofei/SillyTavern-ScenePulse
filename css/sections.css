@@ -36,9 +36,6 @@
 .sp-section-body {
     display: none;
     background: var(--sp-bg-solid);
-    /* Clip any visual overflow from section content. The section-content
-       inside handles scrolling; this outer wrapper just clips bleed. */
-    overflow: hidden;
 }
 .sp-section.sp-open .sp-section-body { display: block; }
 /* Each section is independently scrollable with a max height.
