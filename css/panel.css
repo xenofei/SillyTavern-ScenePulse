@@ -11,13 +11,13 @@
    This avoids the html{transform:translateZ(0)} containment problem
    because the anchor is zero-content (nothing to overflow) and the
    panel uses the anchor's constrained dimensions via height:100%. */
-/* Height set by JS in pixels (screen.availHeight - topBar).
-   Do NOT use bottom:0 — html{transform} makes it resolve to
-   html content height, not viewport bottom. */
-/* Anchor removed — panel is direct child of body again */
+/* Panel extends from top bar to bottom of viewport.
+   Individual sections handle their own scrolling via max-height
+   on .sp-section-content, so the panel itself just needs to be
+   tall enough to show all collapsed section headers. */
 /* DEBUG: red border on panel, blue border on body */
 #sp-panel {
-    position: fixed; top: 45px; right: 0;
+    position: fixed; top: 45px; right: 0; bottom: 0;
     background: var(--sp-bg-solid, #181a20);
     border: 3px solid red;
     font-family: var(--sp-font); font-size: 13px; color: var(--sp-text);

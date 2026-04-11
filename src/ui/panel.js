@@ -67,17 +67,14 @@ export function showPanel(){
     const mode=spApplyMode();
     const topBar=document.getElementById('top-bar')||document.getElementById('top-settings-holder')||document.querySelector('.header,.nav-bar,header');
     const tbH=topBar?topBar.getBoundingClientRect().bottom:0;
-    // Simple height calc — use screen.availHeight locked to max observed
-    const _screenH=window.screen?.availHeight||window.screen?.height||window.outerHeight||window.innerHeight;
-    const _vpH=Math.max(window.innerHeight,document.documentElement.clientHeight,_screenH);
-    if(!showPanel._lockedH||_vpH>showPanel._lockedH)showPanel._lockedH=_vpH;
-    const trueH=showPanel._lockedH;
+    // CSS has bottom:0, just set top and width. No height calc needed —
+    // per-section scrolling (max-height on .sp-section-content) handles
+    // content overflow within each section independently.
     if(mode==='mobile'||mode==='tablet'){
         const spTopH=44;
-        p.style.top=spTopH+'px';p.style.height=(trueH-spTopH)+'px';p.style.width='100vw';p.style.right='0';
+        p.style.top=spTopH+'px';p.style.height='';p.style.width='100vw';p.style.right='0';
     }else{
-        p.style.top=tbH+'px';
-        p.style.height=(trueH-tbH)+'px';
+        p.style.top=tbH+'px';p.style.height='';
         const sheld=document.getElementById('sheld');
         const sheldRight=sheld?sheld.getBoundingClientRect().right:window.innerWidth*0.5;
         const availW=window.innerWidth-sheldRight;
@@ -99,7 +96,7 @@ export function showPanel(){
     spInjectTopBar(mode);
     syncThoughts();
     spUpdateFab();
-    log('Panel shown, width:',p.style.width,'top:',p.style.top,'h:',p.style.height,'mode:',mode);
+    log('Panel shown, width:',p.style.width,'top:',p.style.top,'mode:',mode);
 }
 export function hidePanel(){
     const p=document.getElementById('sp-panel');if(!p)return;
