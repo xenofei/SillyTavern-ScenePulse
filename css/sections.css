@@ -1,12 +1,9 @@
 /* ═══ SECTIONS (shared) ═══ */
-/* No position/isolation/z-index on sections — these break #sp-panel's
-   overflow-y scroll. Bleed-through prevention uses opaque backgrounds
-   on section-header and section-body instead of stacking contexts. */
 .sp-section { border-top: 1px solid var(--sp-border); transition: margin 0.3s ease-out; }
 .sp-section:last-child { border-bottom: 1px solid var(--sp-border); margin-bottom: 8px; }
-/* Section headers: opaque background prevents bleed from earlier
-   sections (which have lower z-index). Hover uses layered background
-   to stay fully opaque (sp-surface is semi-transparent rgba). */
+/* Opaque background prevents content from earlier sections showing
+   through. Hover layers sp-surface (semi-transparent) over sp-bg-solid
+   to stay fully opaque. */
 .sp-section-header {
     display: flex; align-items: center; gap: 8px; padding: 7px 12px;
     cursor: pointer; user-select: none; transition: background var(--sp-transition);

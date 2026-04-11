@@ -3,25 +3,15 @@
 #sp-panel, #sp-thought-panel { isolation: isolate; }
 
 /* ═══ RIGHT SIDE PANEL ═══ */
-/* Uses position:fixed + --trackerUI-panel-width to integrate with ST layout */
-
-/* Two-layer approach: #sp-panel-anchor is a position:fixed viewport
-   anchor with NO content (just a positioning frame). #sp-panel sits
-   inside it as a normal-flow child, inheriting the anchor's height.
-   This avoids the html{transform:translateZ(0)} containment problem
-   because the anchor is zero-content (nothing to overflow) and the
-   panel uses the anchor's constrained dimensions via height:100%. */
-/* Panel extends from top bar to bottom of viewport.
-   Individual sections handle their own scrolling via max-height
-   on .sp-section-content, so the panel itself just needs to be
-   tall enough to show all collapsed section headers. */
-/* DEBUG: red border on panel, blue border on body */
+/* Panel extends from top bar to bottom of viewport. Individual
+   sections handle their own scrolling via max-height on
+   .sp-section-content. The panel itself scrolls if total section
+   headers + content exceed the viewport. */
 #sp-panel {
     position: fixed; top: 45px; right: 0; bottom: 0;
     background: var(--sp-bg-solid, #181a20);
-    border: 3px solid red;
+    border-left: 2px solid rgba(77,184,164,0.25);
     font-family: var(--sp-font); font-size: 13px; color: var(--sp-text);
-    pointer-events: auto;
     overflow-y: auto; overflow-x: hidden;
     z-index: 1000;
     scrollbar-color: rgba(100,110,130,0.3) transparent;
@@ -34,42 +24,7 @@
 #sp-panel.sp-visible { display: block; }
 #sp-panel::-webkit-scrollbar { width: 4px; }
 #sp-panel::-webkit-scrollbar-thumb { background: rgba(100,110,130,0.3); border-radius: 2px; }
-#sp-panel-body {
-    position: relative; min-height: 200px;
-    border: 3px solid blue;
-    overflow-x: hidden;
-    pointer-events: auto; position: relative;
-    /* Firefox scrollbar */
-    scrollbar-width: thin !important;
-    scrollbar-color: #6b7280 #1e222c !important;
-}
-/* Beat SillyTavern's global ::-webkit-scrollbar rules which use
-   var(--grey7070a) that doesn't resolve in our panel = invisible thumb.
-   Triple-ID specificity + !important to guarantee override. */
-#sp-panel-anchor #sp-panel #sp-panel-body::-webkit-scrollbar {
-    width: 10px !important;
-    background: #1e222c !important;
-}
-#sp-panel-anchor #sp-panel #sp-panel-body::-webkit-scrollbar-track {
-    background: #1e222c !important;
-}
-#sp-panel-anchor #sp-panel #sp-panel-body::-webkit-scrollbar-thumb {
-    background: #6b7280 !important;
-    border-radius: 5px !important;
-    border: 2px solid #1e222c !important;
-    min-height: 40px !important;
-}
-#sp-panel-anchor #sp-panel #sp-panel-body::-webkit-scrollbar-thumb:vertical {
-    background: #6b7280 !important;
-    border-radius: 5px !important;
-    border: 2px solid #1e222c !important;
-    box-shadow: none !important;
-    background-clip: padding-box !important;
-    min-height: 40px !important;
-}
-#sp-panel-anchor #sp-panel #sp-panel-body::-webkit-scrollbar-thumb:hover {
-    background: #9ca3af !important;
-}
+#sp-panel-body { position: relative; min-height: 200px; }
 #sp-panel * { pointer-events: auto; }
 
 #sp-panel-toggle { display: none; }
@@ -77,7 +32,7 @@
 /* Panel header */
 /* ═══ UNIFIED TOOLBAR ═══ */
 .sp-toolbar {
-    flex-shrink: 0; z-index: 10;
+    position: sticky; top: 0; z-index: 10;
     display: flex; align-items: center; gap: 4px 8px; padding: 7px 10px;
     background: var(--sp-bg-solid); border-bottom: 1px solid var(--sp-border);
     flex-wrap: wrap;
