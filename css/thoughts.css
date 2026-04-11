@@ -45,7 +45,7 @@
 .sp-tp-header:active { cursor: grabbing; }
 .sp-tp-drag-grip { flex-shrink: 0; }
 .sp-tp-title {
-    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    font-size: var(--sp-fs-xs); font-weight: 700; text-transform: uppercase;
     letter-spacing: 0.1em; color: var(--sp-text-dim); opacity: 0.5;
     white-space: nowrap;
 }
@@ -110,7 +110,7 @@
     background: rgba(22,24,32,0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
     border-radius: 10px; border-bottom: none; margin: 0 6px 6px;
     box-shadow: 0 4px 16px rgba(0,0,0,0.35);
-    font-size: 10px; padding: 5px 10px; gap: 6px;
+    font-size: var(--sp-fs-xs); padding: 5px 10px; gap: 6px;
 }
 
 /* Character thought cards — v6.8.33: pattern layered over --char-bg
@@ -184,10 +184,10 @@
 
 /* Goals */
 .sp-tp-goal {
-    font-size: 10px; color: rgba(200,204,212,0.8); line-height: 1.4;
+    font-size: var(--sp-fs-xs); color: rgba(200,204,212,0.8); line-height: 1.4;
     padding: 2px 0 2px 0; display: flex; align-items: baseline; gap: 5px;
 }
-.sp-tp-goal-icon { font-size: 8px; flex-shrink: 0; opacity: 0.5; }
+.sp-tp-goal-icon { font-size: var(--sp-fs-xs); flex-shrink: 0; opacity: 0.5; }
 .sp-tp-goals { padding-top: 4px; border-top: 1px solid rgba(255,255,255,0.03); margin-top: 6px; }
 
 /* ═══ CHARACTER GOALS SECTION ═══ */
@@ -215,7 +215,7 @@
     border-radius: 50%; animation: sp-spin 1.6s linear infinite reverse;
 }
 .sp-tp-loading-text {
-    font-size: 13px; font-weight: 600; color: var(--sp-accent);
+    font-size: var(--sp-fs-sm); font-weight: 600; color: var(--sp-accent);
     letter-spacing: 0.04em;
     animation: sp-pulse-glow 2s ease-in-out infinite;
 }

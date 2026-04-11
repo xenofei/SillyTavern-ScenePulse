@@ -3,7 +3,7 @@
 
 #sp-panel.sp-mode-tablet {
     width: 100vw !important; right: 0 !important; left: 0 !important;
-    border-left: none; border-radius: 0; font-size: 14px;
+    border-left: none; border-radius: 0; font-size: var(--sp-fs-md);
     /* top: 45px inherited from base #sp-panel — mobile top bar sits above at top:0 */
 }
 
@@ -29,7 +29,7 @@
 
 /* Touch-friendly targets */
 #sp-panel.sp-mode-tablet .sp-section-header { padding: 10px 12px; min-height: 44px; }
-#sp-panel.sp-mode-tablet .sp-section-title { font-size: 12px; }
+#sp-panel.sp-mode-tablet .sp-section-title { font-size: var(--sp-fs-base); }
 #sp-panel.sp-mode-tablet .sp-meter-bar-wrap { height: 12px; }
 #sp-panel.sp-mode-tablet .sp-rel-header, #sp-panel.sp-mode-tablet .sp-char-header,
 #sp-panel.sp-mode-tablet .sp-idea-header { min-height: 44px; }

@@ -43,22 +43,16 @@ export function setBrandState(state){
     else if(state==='error'){wrap.classList.add('sp-state-error');_errorTimer=setTimeout(()=>wrap.classList.remove('sp-state-error'),5000)}
 }
 
-// Font scale: injects a <style> element that scales only font-size on all panel text
+// Font scale: overrides --sp-fs-base to scale all text proportionally.
+// Since all font-sizes use variables derived from --sp-fs-base, changing
+// the base value scales everything automatically.
 export function _applyFontScale(scale){
     const v=scale||1;
     let el=document.getElementById('sp-font-scale-style');
     if(v===1){if(el)el.remove();return}
     if(!el){el=document.createElement('style');el.id='sp-font-scale-style';document.head.appendChild(el)}
-    // Scale the base font-size on both panels. Child elements with px font-sizes
-    // don't inherit, so we use a broad selector to multiply each element's font-size.
-    // CSS doesn't support "multiply current computed value", so we set a custom property
-    // and use it as a multiplier on the panel root. Elements with hardcoded px sizes
-    // are overridden via the * selector with font-size: calc(inherit * var) which doesn't
-    // work in CSS. Instead, use the -webkit-text-size-adjust approach or simply scale
-    // the panel's base and let inheritance handle what it can, plus set font-size on
-    // the panel body which contains all content text.
-    // Scale text elements only — excludes dashboard (date/time/temp/location/weather)
-    el.textContent=`#sp-panel .sp-section-header{font-size:${(12*v).toFixed(1)}px}#sp-panel .sp-plot-name{font-size:${(13*v).toFixed(1)}px}#sp-panel .sp-quest-detail{font-size:${(12*v).toFixed(1)}px}#sp-panel .sp-char-val{font-size:${(12*v).toFixed(1)}px}#sp-panel .sp-char-field{font-size:${(10*v).toFixed(1)}px}#sp-panel .sp-meter-label{font-size:${(10*v).toFixed(1)}px}#sp-panel .sp-meter-value,#sp-panel .sp-meter-value-na{font-size:${(12*v).toFixed(1)}px}#sp-panel .sp-meter-tag{font-size:${(9*v).toFixed(1)}px}#sp-panel .sp-rel-meta-item{font-size:${(11*v).toFixed(1)}px}#sp-panel .sp-row-label{font-size:${(10*v).toFixed(1)}px}#sp-panel .sp-row-value{font-size:${(13*v).toFixed(1)}px}#sp-panel .sp-plot-status{font-size:${(9*v).toFixed(1)}px}#sp-panel .sp-quest-status{font-size:${(8*v).toFixed(1)}px}#sp-panel .sp-tier-status{font-size:${(8*v).toFixed(1)}px}#sp-panel .sp-idea-name{font-size:${(12*v).toFixed(1)}px}#sp-panel .sp-idea-hook{font-size:${(12*v).toFixed(1)}px}#sp-panel .sp-idea-type{font-size:${(9*v).toFixed(1)}px}#sp-panel .sp-gen-footer{font-size:${(10*v).toFixed(1)}px}#sp-panel .sp-plot-tier-title{font-size:${(11*v).toFixed(1)}px}#sp-panel .sp-quest-star{font-size:${(13*v).toFixed(1)}px}#sp-panel .sp-tl-label{font-size:${(9*v).toFixed(1)}px}#sp-panel .sp-fert-section{font-size:${(11*v).toFixed(1)}px}#sp-thought-panel .sp-tp-card{font-size:${(12*v).toFixed(1)}px}#sp-thought-panel .sp-tp-title{font-size:${(12*v).toFixed(1)}px}#sp-thought-panel .sp-tp-name{font-size:${(13*v).toFixed(1)}px}`;
+    const base=Math.round(12*v);
+    el.textContent=`#sp-panel,#sp-thought-panel{--sp-fs-base:${base}px}`;
 }
 
 export function showPanel(){

@@ -266,7 +266,7 @@
 .sp-cp-warn {
     display: flex; align-items: flex-start; gap: 5px; margin-top: 6px; padding: 5px 8px;
     background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.15); border-radius: 4px;
-    font-size: 8.5px; color: rgba(245,158,11,0.8); line-height: 1.4;
+    font-size: var(--sp-fs-xs); color: rgba(245,158,11,0.8); line-height: 1.4;
 }
 .sp-cp-warn code { font-family: var(--sp-font-mono); background: rgba(245,158,11,0.1); padding: 0 3px; border-radius: 2px; font-size: var(--sp-fs-xs); }
 .sp-cp-info-btn {
@@ -282,7 +282,7 @@
     font-size: var(--sp-fs-xs); color: var(--sp-text); line-height: 1.6;
 }
 .sp-cp-info-popup.sp-visible { display: block; }
-.sp-cp-info-popup code { background: rgba(77,184,164,0.1); color: var(--sp-accent); padding: 1px 4px; border-radius: 3px; font-family: var(--sp-font-mono); font-size: 8.5px; }
+.sp-cp-info-popup code { background: rgba(77,184,164,0.1); color: var(--sp-accent); padding: 1px 4px; border-radius: 3px; font-family: var(--sp-font-mono); font-size: var(--sp-fs-xs); }
 .sp-cp-empty {
     text-align: center; padding: 12px 0; font-size: var(--sp-fs-xs);
     color: var(--sp-text-dim); opacity: 0.4;

@@ -15,13 +15,13 @@
     display: flex; align-items: center; gap: 10px; padding: 10px 16px;
     border-bottom: 1px solid var(--sp-border);
 }
-.sp-web-title { font-size: 14px; font-weight: 700; color: var(--sp-text-bright); flex: 1; }
+.sp-web-title { font-size: var(--sp-fs-md); font-weight: 700; color: var(--sp-text-bright); flex: 1; }
 /* v6.8.28: two-column body layout — SVG on the left, legend panel on the right. */
 .sp-web-body { flex: 1; display: flex; flex-direction: row; min-height: 0; }
 .sp-web-toolbar { display: flex; align-items: center; gap: 6px; }
 .sp-web-close {
     background: none; border: 1px solid var(--sp-border); color: var(--sp-text-dim); cursor: pointer;
-    border-radius: 4px; padding: 4px 10px; font-size: 13px; transition: all 0.15s;
+    border-radius: 4px; padding: 4px 10px; font-size: var(--sp-fs-sm); transition: all 0.15s;
     min-width: 32px; min-height: 32px;
 }
 .sp-web-close:hover { color: var(--sp-text); background: var(--sp-surface); }
@@ -32,7 +32,7 @@
 .sp-web-labels-toggle,
 .sp-web-reset-btn {
     background: var(--sp-surface); border: 1px solid var(--sp-border); color: var(--sp-text-dim);
-    cursor: pointer; border-radius: 4px; padding: 4px 10px; font-size: 11px;
+    cursor: pointer; border-radius: 4px; padding: 4px 10px; font-size: var(--sp-fs-xs);
     transition: all 0.15s; min-height: 28px;
 }
 .sp-web-layout-toggle:hover,
@@ -65,11 +65,11 @@
 .sp-web-legend-panel {
     flex: 0 0 200px; display: flex; flex-direction: column; gap: 2px;
     padding: 8px 10px; border-left: 1px solid var(--sp-border);
-    overflow-y: auto; max-height: 72vh; font-size: 11px;
+    overflow-y: auto; max-height: 72vh; font-size: var(--sp-fs-xs);
     background: rgba(0,0,0,0.12);
 }
 .sp-web-legend-header {
-    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    font-size: var(--sp-fs-xs); font-weight: 700; text-transform: uppercase;
     letter-spacing: 0.08em; color: var(--sp-text-dim);
     padding: 4px 2px; border-bottom: 1px solid var(--sp-border);
     margin-bottom: 4px;
@@ -81,7 +81,7 @@
 }
 .sp-web-legend-row:hover { background: rgba(255,255,255,0.06); }
 .sp-web-legend-all {
-    font-size: 10px; font-weight: 700; color: var(--sp-text-dim);
+    font-size: var(--sp-fs-xs); font-weight: 700; color: var(--sp-text-dim);
     text-transform: uppercase; letter-spacing: 0.06em;
     padding: 4px 6px; margin-bottom: 4px;
     border: 1px dashed var(--sp-border);
@@ -92,14 +92,14 @@
     flex-shrink: 0; box-shadow: 0 0 4px currentColor;
 }
 .sp-web-legend-glyph {
-    font-size: 12px; min-width: 14px; text-align: center; flex-shrink: 0;
+    font-size: var(--sp-fs-base); min-width: 14px; text-align: center; flex-shrink: 0;
 }
 .sp-web-legend-label {
-    flex: 1; color: var(--sp-text); font-size: 11px;
+    flex: 1; color: var(--sp-text); font-size: var(--sp-fs-xs);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .sp-web-legend-count {
-    font-size: 9px; font-weight: 600; color: var(--sp-text-dim);
+    font-size: var(--sp-fs-xs); font-weight: 600; color: var(--sp-text-dim);
     background: var(--sp-surface); padding: 1px 5px; border-radius: 8px;
     min-width: 14px; text-align: center;
 }
@@ -117,7 +117,7 @@
     display: flex; flex-direction: column; gap: 4px;
 }
 .sp-web-legend-subheader {
-    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    font-size: var(--sp-fs-xs); font-weight: 700; text-transform: uppercase;
     letter-spacing: 0.08em; color: var(--sp-text-dim);
     padding: 2px 2px 4px;
 }
@@ -127,7 +127,7 @@
 .sp-web-org-chip {
     display: flex; align-items: center; gap: 6px;
     padding: 4px 6px; border-radius: 4px; cursor: pointer;
-    font-size: 10px; color: var(--sp-text);
+    font-size: var(--sp-fs-xs); color: var(--sp-text);
     border: 1px solid transparent;
     background: rgba(255,255,255,0.03);
     transition: all 0.12s ease; user-select: none;
@@ -151,7 +151,7 @@
     font-weight: 600;
 }
 .sp-web-org-chip-count {
-    font-size: 9px; font-weight: 600; color: var(--sp-text-dim);
+    font-size: var(--sp-fs-xs); font-weight: 600; color: var(--sp-text-dim);
     background: var(--sp-surface); padding: 1px 5px; border-radius: 8px;
     min-width: 14px; text-align: center;
 }
@@ -172,7 +172,7 @@
 /* Footer */
 .sp-web-footer {
     padding: 6px 16px; border-top: 1px solid var(--sp-border);
-    font-size: 9px; color: var(--sp-text-dim); text-align: center;
+    font-size: var(--sp-fs-xs); color: var(--sp-text-dim); text-align: center;
 }
 
 /* Tooltip */
@@ -183,19 +183,19 @@
     box-shadow: 0 8px 24px rgba(0,0,0,0.5); pointer-events: none;
     animation: sp-glass-in 0.15s ease-out;
 }
-.sp-web-tip-name { font-size: 13px; font-weight: 700; margin-bottom: 2px; }
-.sp-web-tip-role { font-size: 10px; color: var(--sp-text-dim); margin-bottom: 4px; }
-.sp-web-tip-type { font-size: 9px; color: var(--sp-accent); background: var(--sp-accent-dim); border-radius: 3px; padding: 1px 6px; display: inline-block; margin-bottom: 4px; }
+.sp-web-tip-name { font-size: var(--sp-fs-sm); font-weight: 700; margin-bottom: 2px; }
+.sp-web-tip-role { font-size: var(--sp-fs-xs); color: var(--sp-text-dim); margin-bottom: 4px; }
+.sp-web-tip-type { font-size: var(--sp-fs-xs); color: var(--sp-accent); background: var(--sp-accent-dim); border-radius: 3px; padding: 1px 6px; display: inline-block; margin-bottom: 4px; }
 .sp-web-tip-meters { display: flex; flex-direction: column; gap: 2px; }
-.sp-web-tip-meter { display: flex; justify-content: space-between; font-size: 10px; color: var(--sp-text-dim); }
-.sp-web-tip-absent { font-size: 9px; color: var(--sp-text-dim); font-style: italic; margin-top: 4px; opacity: 0.6; }
+.sp-web-tip-meter { display: flex; justify-content: space-between; font-size: var(--sp-fs-xs); color: var(--sp-text-dim); }
+.sp-web-tip-absent { font-size: var(--sp-fs-xs); color: var(--sp-text-dim); font-style: italic; margin-top: 4px; opacity: 0.6; }
 
 /* v6.8.27: NPC edge list inside the tooltip — compact rows with glyph
    + direction arrow + other-character name + label */
 .sp-web-tip-npc-list { margin-top: 6px; padding-top: 4px; border-top: 1px dashed var(--sp-border); display: flex; flex-direction: column; gap: 3px; max-height: 160px; overflow-y: auto; }
-.sp-web-tip-npc-row { display: flex; align-items: center; gap: 5px; font-size: 10px; }
-.sp-web-tip-glyph { font-size: 11px; min-width: 12px; text-align: center; }
-.sp-web-tip-dir { color: var(--sp-text-dim); font-size: 10px; min-width: 14px; text-align: center; }
+.sp-web-tip-npc-row { display: flex; align-items: center; gap: 5px; font-size: var(--sp-fs-xs); }
+.sp-web-tip-glyph { font-size: var(--sp-fs-xs); min-width: 12px; text-align: center; }
+.sp-web-tip-dir { color: var(--sp-text-dim); font-size: var(--sp-fs-xs); min-width: 14px; text-align: center; }
 .sp-web-tip-other { font-weight: 600; }
 .sp-web-tip-label { color: var(--sp-text-dim); font-style: italic; margin-left: 4px; }
 
@@ -217,7 +217,7 @@
         gap: 4px; overflow-x: auto; overflow-y: auto;
     }
     .sp-web-legend-header { display: none; }
-    .sp-web-legend-row { flex: 0 0 auto; padding: 4px 8px; font-size: 10px; }
+    .sp-web-legend-row { flex: 0 0 auto; padding: 4px 8px; font-size: var(--sp-fs-xs); }
     .sp-web-legend-all { flex-basis: 100%; }
     .sp-web-legend-org-section {
         flex-basis: 100%; margin-top: 6px; padding-top: 4px;
@@ -231,5 +231,5 @@
     .sp-web-container { max-width: calc(100vw - 16px); max-height: calc(100vh - 24px); }
     .sp-web-svg-wrap { min-height: 250px; }
     .sp-web-close { min-width: 44px; min-height: 44px; }
-    .sp-web-toolbar button { padding: 4px 6px; font-size: 10px; }
+    .sp-web-toolbar button { padding: 4px 6px; font-size: var(--sp-fs-xs); }
 }

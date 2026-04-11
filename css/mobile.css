@@ -53,7 +53,7 @@
 }
 .sp-banner-icon { width: 22px; height: 22px; color: #4db8a4; flex-shrink: 0; animation: sp-logo-glow 3s ease-in-out infinite; }
 .sp-banner-icon svg { width: 22px; height: 22px; }
-.sp-banner-text { font-size: 13px; font-weight: 600; }
+.sp-banner-text { font-size: var(--sp-fs-sm); font-weight: 600; }
 .sp-banner-out { animation: sp-banner-out 0.4s ease-in forwards; }
 @keyframes sp-banner-in { from { opacity: 0; transform: translateX(-50%) translateY(-20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
 @keyframes sp-banner-out { from { opacity: 1; transform: translateX(-50%) translateY(0); } to { opacity: 0; transform: translateX(-50%) translateY(-20px); } }
@@ -121,7 +121,7 @@ body:has(#sp-panel.sp-mode-mobile.sp-visible) #top-settings-holder { display: no
 
 #sp-panel.sp-mode-mobile {
     width: 100vw !important; right: 0 !important; left: 0 !important;
-    border-left: none; border-radius: 0; font-size: 14px;
+    border-left: none; border-radius: 0; font-size: var(--sp-fs-md);
 }
 #sp-panel.sp-mode-mobile .sp-toolbar {
     padding: 8px 12px; gap: 0; flex-wrap: nowrap;
@@ -139,71 +139,71 @@ body:has(#sp-panel.sp-mode-mobile.sp-visible) #top-settings-holder { display: no
 #sp-panel.sp-mode-mobile .sp-dashboard { gap: 6px; padding: 8px; }
 #sp-panel.sp-mode-mobile .sp-dashboard .sp-dash-card { flex: 1 1 calc(50% - 4px); min-height: 80px; padding: 10px 8px; border-radius: 12px; }
 #sp-panel.sp-mode-mobile .sp-dash-day { font-size: 26px; }
-#sp-panel.sp-mode-mobile .sp-dash-value { font-size: 12px; }
-#sp-panel.sp-mode-mobile .sp-dash-sub { font-size: 10px; }
+#sp-panel.sp-mode-mobile .sp-dash-value { font-size: var(--sp-fs-base); }
+#sp-panel.sp-mode-mobile .sp-dash-sub { font-size: var(--sp-fs-xs); }
 #sp-panel.sp-mode-mobile .sp-wx-svg { width: 44px; height: 44px; }
 #sp-panel.sp-mode-mobile .sp-dash-location { padding: 10px 12px; gap: 10px; }
 #sp-panel.sp-mode-mobile .sp-dash-loc-icon { width: 32px; height: 32px; }
 #sp-panel.sp-mode-mobile .sp-dash-loc-icon svg { width: 32px; height: 32px; }
-#sp-panel.sp-mode-mobile .sp-dash-loc-text { font-size: 14px; }
-#sp-panel.sp-mode-mobile .sp-temp-bar-label { font-size: 11px; }
+#sp-panel.sp-mode-mobile .sp-dash-loc-text { font-size: var(--sp-fs-md); }
+#sp-panel.sp-mode-mobile .sp-temp-bar-label { font-size: var(--sp-fs-xs); }
 /* Sections — 48px tap targets */
 #sp-panel.sp-mode-mobile .sp-section-header { padding: 12px 14px; min-height: 48px; }
-#sp-panel.sp-mode-mobile .sp-section-title { font-size: 13px; }
-#sp-panel.sp-mode-mobile .sp-section-badge { font-size: 9px; padding: 2px 7px; min-width: 18px; }
-#sp-panel.sp-mode-mobile .sp-section-chevron { font-size: 11px; }
+#sp-panel.sp-mode-mobile .sp-section-title { font-size: var(--sp-fs-sm); }
+#sp-panel.sp-mode-mobile .sp-section-badge { font-size: var(--sp-fs-xs); padding: 2px 7px; min-width: 18px; }
+#sp-panel.sp-mode-mobile .sp-section-chevron { font-size: var(--sp-fs-xs); }
 /* Scene Details */
 #sp-panel.sp-mode-mobile .sp-row { padding: 6px 12px; }
-#sp-panel.sp-mode-mobile .sp-row-label { font-size: 12px; min-width: 60px; }
-#sp-panel.sp-mode-mobile .sp-row-value { font-size: 13px; }
+#sp-panel.sp-mode-mobile .sp-row-label { font-size: var(--sp-fs-base); min-width: 60px; }
+#sp-panel.sp-mode-mobile .sp-row-value { font-size: var(--sp-fs-sm); }
 /* Quest Journal */
-#sp-panel.sp-mode-mobile .sp-plot-tier-title { font-size: 12px; padding: 10px 10px; min-height: 44px; }
-#sp-panel.sp-mode-mobile .sp-plot-name { font-size: 13px; }
+#sp-panel.sp-mode-mobile .sp-plot-tier-title { font-size: var(--sp-fs-base); padding: 10px 10px; min-height: 44px; }
+#sp-panel.sp-mode-mobile .sp-plot-name { font-size: var(--sp-fs-sm); }
 #sp-panel.sp-mode-mobile .sp-quest-header { padding: 10px 6px 10px 10px; min-height: 44px; }
-#sp-panel.sp-mode-mobile .sp-quest-detail { font-size: 12px; padding: 4px 0 8px 22px; }
-#sp-panel.sp-mode-mobile .sp-quest-star { font-size: 14px; padding: 8px 10px; }
+#sp-panel.sp-mode-mobile .sp-quest-detail { font-size: var(--sp-fs-base); padding: 4px 0 8px 22px; }
+#sp-panel.sp-mode-mobile .sp-quest-star { font-size: var(--sp-fs-md); padding: 8px 10px; }
 /* Relationships */
 #sp-panel.sp-mode-mobile .sp-rel-header { padding: 10px 12px; min-height: 48px; }
-#sp-panel.sp-mode-mobile .sp-rel-name { font-size: 15px; }
-#sp-panel.sp-mode-mobile .sp-rel-type-badge, #sp-panel.sp-mode-mobile .sp-rel-phase-badge { font-size: 10px; padding: 3px 8px; }
-#sp-panel.sp-mode-mobile .sp-rel-meta-label { font-size: 11px; min-width: 70px; }
-#sp-panel.sp-mode-mobile .sp-rel-meta-value { font-size: 12px; }
+#sp-panel.sp-mode-mobile .sp-rel-name { font-size: var(--sp-fs-lg); }
+#sp-panel.sp-mode-mobile .sp-rel-type-badge, #sp-panel.sp-mode-mobile .sp-rel-phase-badge { font-size: var(--sp-fs-xs); padding: 3px 8px; }
+#sp-panel.sp-mode-mobile .sp-rel-meta-label { font-size: var(--sp-fs-xs); min-width: 70px; }
+#sp-panel.sp-mode-mobile .sp-rel-meta-value { font-size: var(--sp-fs-base); }
 #sp-panel.sp-mode-mobile .sp-meter-row { grid-template-columns: 72px 1fr auto 44px; gap: 4px; padding: 3px 0; }
 #sp-panel.sp-mode-mobile .sp-sparkline { width: 40px !important; height: 16px !important; }
-#sp-panel.sp-mode-mobile .sp-meter-label { font-size: 10px; }
+#sp-panel.sp-mode-mobile .sp-meter-label { font-size: var(--sp-fs-xs); }
 #sp-panel.sp-mode-mobile .sp-meter-bar-wrap { height: 14px; border-radius: 7px; }
-#sp-panel.sp-mode-mobile .sp-meter-value { font-size: 10px; }
-#sp-panel.sp-mode-mobile .sp-meter-tag { font-size: 10px; }
+#sp-panel.sp-mode-mobile .sp-meter-value { font-size: var(--sp-fs-xs); }
+#sp-panel.sp-mode-mobile .sp-meter-tag { font-size: var(--sp-fs-xs); }
 /* Characters */
 #sp-panel.sp-mode-mobile .sp-char-header { padding: 10px 12px; min-height: 48px; }
-#sp-panel.sp-mode-mobile .sp-char-name { font-size: 15px; }
-#sp-panel.sp-mode-mobile .sp-char-role-badge { font-size: 10px; max-width: 200px; }
-#sp-panel.sp-mode-mobile .sp-char-val { font-size: 12px; }
+#sp-panel.sp-mode-mobile .sp-char-name { font-size: var(--sp-fs-lg); }
+#sp-panel.sp-mode-mobile .sp-char-role-badge { font-size: var(--sp-fs-xs); max-width: 200px; }
+#sp-panel.sp-mode-mobile .sp-char-val { font-size: var(--sp-fs-base); }
 /* Story Ideas */
 #sp-panel.sp-mode-mobile .sp-idea-header { padding: 10px 12px; min-height: 48px; }
-#sp-panel.sp-mode-mobile .sp-idea-name { font-size: 14px; }
-#sp-panel.sp-mode-mobile .sp-idea-hook { font-size: 12px; padding: 8px 12px; }
+#sp-panel.sp-mode-mobile .sp-idea-name { font-size: var(--sp-fs-md); }
+#sp-panel.sp-mode-mobile .sp-idea-hook { font-size: var(--sp-fs-base); padding: 8px 12px; }
 #sp-panel.sp-mode-mobile .sp-idea-paste, #sp-panel.sp-mode-mobile .sp-idea-inject { width: 32px; height: 32px; }
 /* Timeline */
 #sp-panel.sp-mode-mobile .sp-timeline { padding: 16px 10px; display: flex; flex-direction: column; align-items: center; }
 #sp-panel.sp-mode-mobile .sp-tl-bar { width: 90%; }
 #sp-panel.sp-mode-mobile .sp-tl-dot { width: 14px; height: 14px; }
-#sp-panel.sp-mode-mobile .sp-tl-label { font-size: 9px; }
-#sp-panel.sp-mode-mobile .sp-tl-disc-btn { padding: 6px 12px; font-size: 11px; }
+#sp-panel.sp-mode-mobile .sp-tl-label { font-size: var(--sp-fs-xs); }
+#sp-panel.sp-mode-mobile .sp-tl-disc-btn { padding: 6px 12px; font-size: var(--sp-fs-xs); }
 /* Timeline disclaimer text bigger on mobile */
-#sp-panel.sp-mode-mobile .sp-tl-disclaimer { font-size: 12px; line-height: 1.5; padding: 10px 12px; text-align: center; width: 90%; }
-#sp-panel.sp-mode-mobile .sp-tl-disc-icon { font-size: 14px; }
+#sp-panel.sp-mode-mobile .sp-tl-disclaimer { font-size: var(--sp-fs-base); line-height: 1.5; padding: 10px 12px; text-align: center; width: 90%; }
+#sp-panel.sp-mode-mobile .sp-tl-disc-icon { font-size: var(--sp-fs-md); }
 /* Footer */
-#sp-panel.sp-mode-mobile .sp-gen-footer { font-size: 10px; padding: 8px 12px; flex-wrap: wrap; justify-content: center; }
+#sp-panel.sp-mode-mobile .sp-gen-footer { font-size: var(--sp-fs-xs); padding: 8px 12px; flex-wrap: wrap; justify-content: center; }
 /* Partial regen buttons — always visible on mobile */
 #sp-panel.sp-mode-mobile .sp-section-refresh { opacity: 0.7 !important; width: 32px; height: 32px; }
 #sp-panel.sp-mode-mobile .sp-section-refresh svg { width: 16px; height: 16px; }
 /* Section loading overlay text — bigger on mobile */
-#sp-panel.sp-mode-mobile .sp-regen-text { font-size: 14px; font-weight: 700; }
-#sp-panel.sp-mode-mobile .sp-regen-inline .sp-regen-text { font-size: 13px; }
+#sp-panel.sp-mode-mobile .sp-regen-text { font-size: var(--sp-fs-md); font-weight: 700; }
+#sp-panel.sp-mode-mobile .sp-regen-inline .sp-regen-text { font-size: var(--sp-fs-sm); }
 #sp-panel.sp-mode-mobile .sp-regen-inline .sp-regen-spinner { width: 28px; height: 28px; }
-#sp-panel.sp-mode-mobile .sp-overlay-label { font-size: 13px; }
-#sp-panel.sp-mode-mobile .sp-inline-wait { font-size: 12px; padding: 10px 14px; }
+#sp-panel.sp-mode-mobile .sp-overlay-label { font-size: var(--sp-fs-sm); }
+#sp-panel.sp-mode-mobile .sp-inline-wait { font-size: var(--sp-fs-base); padding: 10px 14px; }
 #sp-panel.sp-mode-mobile .sp-inline-wait-spinner { width: 14px; height: 14px; }
 /* Top-right bleed prevention */
 #sp-panel:not(.sp-visible) { display: none !important; }
@@ -219,21 +219,21 @@ body:has(#sp-panel.sp-mode-mobile.sp-visible) #top-settings-holder { display: no
 #sp-panel.sp-mode-mobile { scrollbar-width: none; }
 /* Custom Panels */
 #sp-panel.sp-mode-mobile .sp-cp-field-key, #sp-panel.sp-mode-mobile .sp-cp-field-label,
-#sp-panel.sp-mode-mobile .sp-cp-field-desc { font-size: 12px; height: 36px; }
-#sp-panel.sp-mode-mobile .sp-cp-field-type { height: 36px; font-size: 12px; }
+#sp-panel.sp-mode-mobile .sp-cp-field-desc { font-size: var(--sp-fs-base); height: 36px; }
+#sp-panel.sp-mode-mobile .sp-cp-field-type { height: 36px; font-size: var(--sp-fs-base); }
 #sp-panel.sp-mode-mobile .sp-cp-field-rm { width: 36px; height: 36px; }
 #sp-panel.sp-mode-mobile .sp-cp-add-field { padding: 10px 14px; min-height: 44px; }
 #sp-panel.sp-mode-mobile .sp-cp-drag-handle { font-size: 18px; width: 28px; }
 /* Settings */
-#sp-panel.sp-mode-mobile .sp-btn { padding: 8px 14px; font-size: 12px; min-height: 44px; }
-#sp-panel.sp-mode-mobile .sp-ck { padding: 10px 0; font-size: 13px; min-height: 44px; }
-#sp-panel.sp-mode-mobile .sp-fs select, #sp-panel.sp-mode-mobile .sp-fi input { font-size: 13px; padding: 8px 10px; min-height: 44px; }
+#sp-panel.sp-mode-mobile .sp-btn { padding: 8px 14px; font-size: var(--sp-fs-base); min-height: 44px; }
+#sp-panel.sp-mode-mobile .sp-ck { padding: 10px 0; font-size: var(--sp-fs-sm); min-height: 44px; }
+#sp-panel.sp-mode-mobile .sp-fs select, #sp-panel.sp-mode-mobile .sp-fi input { font-size: var(--sp-fs-sm); padding: 8px 10px; min-height: 44px; }
 /* Scene Transition */
 #sp-panel.sp-mode-mobile ~ #sp-scene-transition, .sp-mode-mobile #sp-scene-transition { font-size: 28px; padding: 30px 20px; -webkit-mask-image: radial-gradient(ellipse 90% 85% at center, black 25%, transparent 70%); mask-image: radial-gradient(ellipse 90% 85% at center, black 25%, transparent 70%); }
 @media (max-width: 600px) { #sp-scene-transition { font-size: 28px !important; padding: 30px 20px !important; -webkit-mask-image: radial-gradient(ellipse 90% 85% at center, black 25%, transparent 70%) !important; mask-image: radial-gradient(ellipse 90% 85% at center, black 25%, transparent 70%) !important; } }
 /* Fertility inline on mobile */
-#sp-panel.sp-mode-mobile .sp-fert-inline-label { font-size: 9px; }
-#sp-panel.sp-mode-mobile .sp-fert-inline-val { font-size: 11px; }
+#sp-panel.sp-mode-mobile .sp-fert-inline-label { font-size: var(--sp-fs-xs); }
+#sp-panel.sp-mode-mobile .sp-fert-inline-val { font-size: var(--sp-fs-xs); }
 /* Thought Panel on mobile */
 .sp-mode-mobile ~ #sp-thought-panel, #sp-panel.sp-mode-mobile ~ #sp-thought-panel {
     width: 100vw !important; left: 0 !important; right: 0 !important;
@@ -249,7 +249,7 @@ body:has(#sp-panel.sp-mode-mobile) .sp-tour-card { z-index: 100004; }
 body:has(#sp-panel.sp-mode-mobile) .sp-tour-spotlight { z-index: 100003; }
 /* Confirm dialog */
 .sp-mode-mobile .sp-confirm-dialog { min-width: 280px; max-width: 94vw; }
-.sp-mode-mobile .sp-confirm-ok, .sp-mode-mobile .sp-confirm-cancel { min-height: 44px; font-size: 13px; }
+.sp-mode-mobile .sp-confirm-ok, .sp-mode-mobile .sp-confirm-cancel { min-height: 44px; font-size: var(--sp-fs-sm); }
 
 /* ═══ SMALL PHONES (≤390px) — single-column stacking ═══ */
 @media (max-width: 390px) {

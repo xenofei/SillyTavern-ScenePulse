@@ -66,7 +66,7 @@
 }
 .sp-dash-card-date::before { background: radial-gradient(ellipse at 50% 50%, rgba(8,12,22,0.5) 0%, transparent 70%); opacity: 0.9; }
 .sp-dash-card-date .sp-dash-day { font-size: 22px; font-weight: 800; color: var(--sp-text-bright); line-height: 1; letter-spacing: -0.02em; }
-.sp-dash-card-date .sp-dash-sub { color: rgba(140,175,220,0.85); font-size: 13px !important; font-weight: 700; letter-spacing: 0.04em; }
+.sp-dash-card-date .sp-dash-sub { color: rgba(140,175,220,0.85); font-size: var(--sp-fs-sm) !important; font-weight: 700; letter-spacing: 0.04em; }
 
 .sp-dash-card-weather {
     background: linear-gradient(135deg, rgba(120,130,160,0.12) 0%, rgba(100,110,130,0.04) 100%);
@@ -189,7 +189,7 @@
 .sp-temp-bar-wrap { width: 100%; }
 .sp-temp-bar-svg { width: 100%; height: 18px; display: block; }
 .sp-temp-bar-label {
-    font-size: 10px; font-weight: 700; color: var(--sp-text-bright);
+    font-size: var(--sp-fs-xs); font-weight: 700; color: var(--sp-text-bright);
     text-align: center; margin-top: 1px; line-height: 1.2;
     letter-spacing: 0.02em;
 }
@@ -246,14 +246,14 @@
 }
 .sp-dash-card-time .sp-dash-clock { margin-bottom: 3px; margin-top: 2px; }
 .sp-dash-card-time .sp-dash-clock svg { width: 60px; height: 60px; filter: drop-shadow(0 0 6px rgba(77,184,164,0.25)); }
-.sp-time-value { font-size: 14px !important; font-weight: 700; letter-spacing: 0.08em; font-family: var(--sp-font-mono); text-shadow: 0 0 8px rgba(5,8,15,0.95), 0 0 16px rgba(5,8,15,0.8), 0 1px 3px rgba(0,0,0,0.9); }
+.sp-time-value { font-size: var(--sp-fs-md) !important; font-weight: 700; letter-spacing: 0.08em; font-family: var(--sp-font-mono); text-shadow: 0 0 8px rgba(5,8,15,0.95), 0 0 16px rgba(5,8,15,0.8), 0 1px 3px rgba(0,0,0,0.9); }
 
 .sp-dash-clock { margin-bottom: 3px; line-height: 0; }
 .sp-dash-clock svg { width: 60px; height: 60px; filter: drop-shadow(0 0 6px rgba(77,184,164,0.25)); }
 .sp-dash-icon { font-size: 20px; margin-bottom: 3px; line-height: 1; }
-.sp-dash-value { font-size: 11px; font-weight: 700; color: var(--sp-text-bright); line-height: 1.2; }
+.sp-dash-value { font-size: var(--sp-fs-xs); font-weight: 700; color: var(--sp-text-bright); line-height: 1.2; }
 /* v6.9.6: raised from 8px (below practical legibility minimum) to 10px */
-.sp-dash-sub { font-size: 10px; color: var(--sp-text-dim); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+.sp-dash-sub { font-size: var(--sp-fs-xs); color: var(--sp-text-dim); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
 
 .sp-dash-location {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -264,4 +264,4 @@
 .sp-dash-loc-icon { width: 28px; height: 28px; flex-shrink: 0; color: var(--sp-accent); opacity: 0.7; cursor: pointer; transition: all 0.2s ease; }
 .sp-dash-loc-icon:hover { opacity: 1; transform: scale(1.1); filter: drop-shadow(0 0 6px rgba(77,184,164,0.4)); }
 .sp-dash-loc-icon svg { width: 28px; height: 28px; }
-.sp-dash-loc-text { font-size: 12px; color: var(--sp-text-bright); line-height: 1.35; font-weight: 600; }
+.sp-dash-loc-text { font-size: var(--sp-fs-base); color: var(--sp-text-bright); line-height: 1.35; font-weight: 600; }

@@ -7,47 +7,47 @@
     .sp-dashboard { gap: 3px; }
     .sp-dashboard .sp-dash-card { flex: 1 1 calc(50% - 3px); min-width: 70px; min-height: 55px; padding: 5px 3px; }
     .sp-dash-day { font-size: 18px; }
-    .sp-dash-card-date .sp-dash-sub { font-size: 10px !important; }
-    .sp-dash-value { font-size: 9px; }
-    .sp-dash-sub { font-size: 8px; }
+    .sp-dash-card-date .sp-dash-sub { font-size: var(--sp-fs-xs) !important; }
+    .sp-dash-value { font-size: var(--sp-fs-xs); }
+    .sp-dash-sub { font-size: var(--sp-fs-xs); }
     .sp-wx-svg { width: 30px; height: 30px; }
-    .sp-temp-bar-label { font-size: 9px; }
-    .sp-dash-location { font-size: 9px; }
-    .sp-dash-loc-text { font-size: 9px; }
+    .sp-temp-bar-label { font-size: var(--sp-fs-xs); }
+    .sp-dash-location { font-size: var(--sp-fs-xs); }
+    .sp-dash-loc-text { font-size: var(--sp-fs-xs); }
 
     .sp-section-header { padding: 5px 8px; }
-    .sp-section-title { font-size: 10px; }
-    .sp-section-badge { font-size: 9px; padding: 1px 5px; }
-    .sp-row-label { font-size: 10px; }
-    .sp-row-value { font-size: 10px; }
+    .sp-section-title { font-size: var(--sp-fs-xs); }
+    .sp-section-badge { font-size: var(--sp-fs-xs); padding: 1px 5px; }
+    .sp-row-label { font-size: var(--sp-fs-xs); }
+    .sp-row-value { font-size: var(--sp-fs-xs); }
 
     .sp-meter-row { grid-template-columns: clamp(44px, 10cqi, 58px) 1fr auto 36px; gap: 4px; }
     .sp-sparkline { width: 36px !important; height: 14px !important; }
 
-    .sp-rel-name { font-size: 11px; }
-    .sp-rel-type-badge { font-size: 8px; padding: 1px 4px; }
-    .sp-rel-phase-badge { font-size: 7.5px; padding: 1px 3px; }
-    .sp-rel-meta { font-size: 9px; }
+    .sp-rel-name { font-size: var(--sp-fs-xs); }
+    .sp-rel-type-badge { font-size: var(--sp-fs-xs); padding: 1px 4px; }
+    .sp-rel-phase-badge { font-size: var(--sp-fs-xs); padding: 1px 3px; }
+    .sp-rel-meta { font-size: var(--sp-fs-xs); }
 
-    .sp-char-name { font-size: 12px; }
-    .sp-char-role-badge { font-size: 8px; }
-    .sp-char-grid { font-size: 10px; }
-    .sp-char-field { font-size: 9px; }
-    .sp-char-val { font-size: 10px; }
+    .sp-char-name { font-size: var(--sp-fs-base); }
+    .sp-char-role-badge { font-size: var(--sp-fs-xs); }
+    .sp-char-grid { font-size: var(--sp-fs-xs); }
+    .sp-char-field { font-size: var(--sp-fs-xs); }
+    .sp-char-val { font-size: var(--sp-fs-xs); }
 
-    .sp-idea-name { font-size: 10px; }
-    .sp-idea-hook { font-size: 9px; }
+    .sp-idea-name { font-size: var(--sp-fs-xs); }
+    .sp-idea-hook { font-size: var(--sp-fs-xs); }
     .sp-idea-card { padding: 5px 7px; }
 
-    .sp-quest-name { font-size: 10px; }
-    .sp-quest-detail { font-size: 9px; }
+    .sp-quest-name { font-size: var(--sp-fs-xs); }
+    .sp-quest-detail { font-size: var(--sp-fs-xs); }
 
-    .sp-gen-footer { font-size: 9px; flex-wrap: wrap; gap: 3px 6px; }
+    .sp-gen-footer { font-size: var(--sp-fs-xs); flex-wrap: wrap; gap: 3px 6px; }
 
     .sp-toolbar-btn { padding: 3px; }
     .sp-toolbar-btn svg { width: 13px; height: 13px; }
     .sp-toolbar-sep { margin: 0 1px; }
-    .sp-brand-title { font-size: 12px; }
+    .sp-brand-title { font-size: var(--sp-fs-base); }
     .sp-brand-subtitle { display: none; }
 }
 
@@ -65,19 +65,19 @@
 
 /* 1366x768 laptops — tighter everything (viewport height concern) */
 @media (max-height: 800px) {
-    #sp-panel { font-size: 12px; }
+    #sp-panel { font-size: var(--sp-fs-base); }
     .sp-dashboard { gap: 3px; }
     .sp-dash-card { min-height: 60px; padding: 6px 4px; }
     .sp-dash-day { font-size: 20px; }
-    .sp-dash-card-date .sp-dash-sub { font-size: 11px !important; }
-    .sp-dash-value { font-size: 10px; }
-    .sp-dash-sub { font-size: 8px; }
+    .sp-dash-card-date .sp-dash-sub { font-size: var(--sp-fs-xs) !important; }
+    .sp-dash-value { font-size: var(--sp-fs-xs); }
+    .sp-dash-sub { font-size: var(--sp-fs-xs); }
     .sp-wx-svg { width: 34px; height: 34px; }
 
     .sp-section-header { padding: 5px 10px; }
-    .sp-section-title { font-size: 10px; }
-    .sp-row-label { font-size: 10px; }
-    .sp-row-value { font-size: 11px; }
+    .sp-section-title { font-size: var(--sp-fs-xs); }
+    .sp-row-label { font-size: var(--sp-fs-xs); }
+    .sp-row-value { font-size: var(--sp-fs-xs); }
     .sp-meter-row { grid-template-columns: clamp(50px, 10cqi, 66px) 1fr auto 40px; gap: 4px; }
     .sp-regen-overlay { min-height: 40vh; padding: 24px 16px; }
     .sp-regen-spinner { width: 60px; height: 60px; }
@@ -86,42 +86,42 @@
 
 /* Small width — panel squeezed by ST sheld */
 @media (max-width: 1400px) {
-    .sp-dash-location { font-size: 10px; }
-    .sp-dash-loc-text { font-size: 10px; }
-    .sp-idea-hook { font-size: 10px; }
-    .sp-idea-name { font-size: 11px; }
-    .sp-char-val { font-size: 11px; }
-    .sp-rel-name { font-size: 12px; }
+    .sp-dash-location { font-size: var(--sp-fs-xs); }
+    .sp-dash-loc-text { font-size: var(--sp-fs-xs); }
+    .sp-idea-hook { font-size: var(--sp-fs-xs); }
+    .sp-idea-name { font-size: var(--sp-fs-xs); }
+    .sp-char-val { font-size: var(--sp-fs-xs); }
+    .sp-rel-name { font-size: var(--sp-fs-base); }
 }
 
 /* 2560x1440 QHD — slightly larger for readability at distance */
 @media (min-width: 2400px) {
-    #sp-panel { font-size: 14px; }
+    #sp-panel { font-size: var(--sp-fs-md); }
     .sp-dashboard { gap: 5px; }
     .sp-dash-card { min-height: 80px; padding: 10px 6px; border-radius: 12px; }
     .sp-dash-day { font-size: 26px; }
-    .sp-dash-card-date .sp-dash-sub { font-size: 15px !important; }
-    .sp-dash-value { font-size: 13px; }
-    .sp-dash-sub { font-size: 10px; }
+    .sp-dash-card-date .sp-dash-sub { font-size: var(--sp-fs-lg) !important; }
+    .sp-dash-value { font-size: var(--sp-fs-sm); }
+    .sp-dash-sub { font-size: var(--sp-fs-xs); }
     .sp-wx-svg { width: 46px; height: 46px; }
 
     .sp-temp-bar-svg { height: 20px; }
-    .sp-temp-bar-label { font-size: 12px; }
-    .sp-section-title { font-size: 12px; }
-    .sp-row-label { font-size: 12px; }
-    .sp-row-value { font-size: 13px; }
-    .sp-plot-tier-title { font-size: 11px; }
-    .sp-plot-name { font-size: 13px; }
-    .sp-quest-detail { font-size: 12px; }
-    .sp-quest-star { font-size: 13px; }
+    .sp-temp-bar-label { font-size: var(--sp-fs-base); }
+    .sp-section-title { font-size: var(--sp-fs-base); }
+    .sp-row-label { font-size: var(--sp-fs-base); }
+    .sp-row-value { font-size: var(--sp-fs-sm); }
+    .sp-plot-tier-title { font-size: var(--sp-fs-xs); }
+    .sp-plot-name { font-size: var(--sp-fs-sm); }
+    .sp-quest-detail { font-size: var(--sp-fs-base); }
+    .sp-quest-star { font-size: var(--sp-fs-sm); }
     .sp-meter-row { grid-template-columns: 78px 1fr auto 54px; gap: 4px; }
     .sp-sparkline { width: 50px !important; height: 18px !important; }
-    .sp-idea-name { font-size: 13px; }
-    .sp-idea-hook { font-size: 12px; }
-    .sp-char-name { font-size: 15px; }
-    .sp-char-val { font-size: 13px; }
-    .sp-rel-name { font-size: 14px; }
-    .sp-gen-footer { font-size: 10px; }
+    .sp-idea-name { font-size: var(--sp-fs-sm); }
+    .sp-idea-hook { font-size: var(--sp-fs-base); }
+    .sp-char-name { font-size: var(--sp-fs-lg); }
+    .sp-char-val { font-size: var(--sp-fs-sm); }
+    .sp-rel-name { font-size: var(--sp-fs-md); }
+    .sp-gen-footer { font-size: var(--sp-fs-xs); }
 }
 
 /* 3840x2160 4K — scale up further */
@@ -130,12 +130,12 @@
     .sp-dashboard { gap: 6px; }
     .sp-dash-card { min-height: 100px; padding: 14px 8px; border-radius: 14px; }
     .sp-dash-day { font-size: 32px; }
-    .sp-dash-value { font-size: 14px; }
+    .sp-dash-value { font-size: var(--sp-fs-md); }
     .sp-wx-svg { width: 48px; height: 48px; }
-    .sp-section-title { font-size: 13px; }
+    .sp-section-title { font-size: var(--sp-fs-sm); }
     .sp-meter-row { grid-template-columns: 90px 1fr auto 60px; gap: 4px; }
     .sp-sparkline { width: 56px !important; height: 20px !important; }
     .sp-idea-card { padding: 8px 10px; }
-    .sp-idea-name { font-size: 14px; }
+    .sp-idea-name { font-size: var(--sp-fs-md); }
     .sp-char-name { font-size: 16px; }
 }
