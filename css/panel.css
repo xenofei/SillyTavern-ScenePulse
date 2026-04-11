@@ -5,27 +5,39 @@
 /* ═══ RIGHT SIDE PANEL ═══ */
 /* Uses position:fixed + --trackerUI-panel-width to integrate with ST layout */
 
+/* Flex column layout: toolbar stays at top (flex-shrink:0), body
+   scrolls independently (flex:1 + overflow-y:auto + min-height:0).
+   This is the VS Code / Discord standard sidebar pattern. We do NOT
+   scroll on #sp-panel itself — SillyTavern overrides its height/overflow
+   in ways that break panel-level scrolling. Instead, #sp-panel-body
+   is the scroll container. */
 #sp-panel {
     position: fixed; top: 45px; right: 0; height: calc(100vh - 45px);
-    /* v6.9.6: use theme variable instead of hardcoded dark */
     background: var(--sp-bg-solid, #181a20);
     border-left: 2px solid rgba(77,184,164,0.25);
-    overflow-y: scroll !important; overflow-x: hidden;
+    overflow: hidden;
     z-index: 1000; display: none;
     font-family: var(--sp-font); font-size: 13px; color: var(--sp-text);
     pointer-events: auto;
     -webkit-backface-visibility: hidden; backface-visibility: hidden;
     transform: translateZ(0);
-    scrollbar-color: rgba(100,110,130,0.3) transparent;
     transition: width 0.3s ease-out;
     box-sizing: border-box;
     container-type: inline-size;
     container-name: sp-panel;
+    /* Flex column: toolbar + body */
+    display: none; flex-direction: column;
 }
-#sp-panel.sp-visible { display: block; }
-#sp-panel::-webkit-scrollbar { width: 4px; }
-#sp-panel::-webkit-scrollbar-thumb { background: rgba(100,110,130,0.3); border-radius: 2px; }
-#sp-panel-body { pointer-events: auto; position: relative; min-height: 200px; }
+#sp-panel.sp-visible { display: flex; }
+#sp-panel-body {
+    pointer-events: auto; position: relative;
+    /* Flex child: fill remaining height, scroll independently */
+    flex: 1 1 0; min-height: 0;
+    overflow-y: auto; overflow-x: hidden;
+    scrollbar-color: rgba(100,110,130,0.3) transparent;
+}
+#sp-panel-body::-webkit-scrollbar { width: 4px; }
+#sp-panel-body::-webkit-scrollbar-thumb { background: rgba(100,110,130,0.3); border-radius: 2px; }
 #sp-panel * { pointer-events: auto; }
 
 #sp-panel-toggle { display: none; }
@@ -33,7 +45,7 @@
 /* Panel header */
 /* ═══ UNIFIED TOOLBAR ═══ */
 .sp-toolbar {
-    position: sticky; top: 0; z-index: 10;
+    flex-shrink: 0; z-index: 10;
     display: flex; align-items: center; gap: 4px 8px; padding: 7px 10px;
     background: var(--sp-bg-solid); border-bottom: 1px solid var(--sp-border);
     flex-wrap: wrap;
