@@ -85,7 +85,8 @@ export function buildDynamicSchema(s){
                 const clone=JSON.parse(JSON.stringify(BUILTIN_SCHEMA.value.properties.plotBranches));
                 if(enabledTypes.length<BRANCH_TYPES.length&&clone.items?.properties?.type){
                     clone.items.properties.type.enum=enabledTypes;
-                    clone.description=`Exactly ${enabledTypes.length} story directions — one per category.`;
+                    clone.description=`Exactly ${enabledTypes.length} story directions in this order: ${enabledTypes.map((t,i)=>`[${i}]=${t}`).join(', ')}. One per category, never duplicate.`;
+                    clone.minItems=enabledTypes.length;clone.maxItems=enabledTypes.length;
                 }
                 props[f.key]=clone;
             }

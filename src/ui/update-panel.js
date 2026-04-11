@@ -499,10 +499,9 @@ export function updatePanel(d,_force=false){
         critical: _tv('critical', '#ef4444'),
     };
     const _tensionColor = _tensionColors[_tension] || '#9a9a9a';
-    // Collapsed badge: tension label + character count
-    const _cpLen = (d.charactersPresent || []).length;
-    const _tensionLabel = _tension ? _tension.charAt(0).toUpperCase() + _tension.slice(1) : null;
-    const _sceneBadge = _tensionLabel || _cpLen ? 'badge' : null; // placeholder — overridden below via innerHTML
+    // Collapsed badge: tension dot + full topic
+    const _topicText = (d.sceneTopic || '').trim() || null;
+    const _sceneBadge = _topicText || _tension ? 'badge' : null; // placeholder — overridden below via innerHTML
     {const _sec=mkSection('scene',t('Scene Details'),_sceneBadge,()=>{
         const f=document.createDocumentFragment();
         // Helper: check if a scene field changed since previous snapshot
@@ -521,7 +520,7 @@ export function updatePanel(d,_force=false){
             mkEditable(sv, () => d.sceneSummary || '', v => { d.sceneSummary = v; const snap = getLatestSnapshot(); if (snap) snap.sceneSummary = v; });
             sr.appendChild(sv); f.appendChild(sr);
         }
-        const sceneFields=[[t('Tension'),'sceneTension'],[t('Topic'),'sceneTopic'],[t('Mood'),'sceneMood'],[t('Interaction'),'sceneInteraction'],[t('Sounds'),'soundEnvironment']];
+        const sceneFields=[[t('Tension'),'sceneTension'],[t('Topic'),'sceneTopic'],[t('Mood'),'sceneMood'],[t('Interaction'),'sceneInteraction'],[t('Elapsed'),'elapsed'],[t('Sounds'),'soundEnvironment']];
         for(const[l,key]of sceneFields){
             const r=document.createElement('div');r.className='sp-row';r.dataset.ft=key;
             // v6.9.5: tension row gets a visual meter class
@@ -561,12 +560,11 @@ export function updatePanel(d,_force=false){
     // v6.9.5: tension-colored left border on the section
     if (_tensionColor) _sec.style.setProperty('--sp-scene-tension-color', _tensionColor);
     _sec.classList.add('sp-scene-section');
-    // Scene badge: colored dot + tension label + character count
+    // Scene badge: tension-colored dot + full topic text
     const _badgeEl = _sec.querySelector('.sp-section-badge');
     if (_badgeEl && _sceneBadge) {
         let _bHtml = `<span class="sp-scene-badge-dot" style="color:${esc(_tensionColor)}"></span>`;
-        if (_tensionLabel) _bHtml += esc(_tensionLabel);
-        if (_cpLen) _bHtml += ` \u00B7 ${_cpLen}`;
+        if (_topicText) _bHtml += esc(_topicText);
         _badgeEl.innerHTML = _bHtml;
     }
     if(s.panels?.scene===false)_sec.classList.add('sp-panel-hidden');body.appendChild(_sec)}

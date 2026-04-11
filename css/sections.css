@@ -37,6 +37,10 @@
 .sp-section-badge { font-size: 9px; font-weight: 600; padding: 1px 6px; border-radius: 8px; background: var(--sp-accent-dim); color: var(--sp-accent); display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
 .sp-section-body {
     display: none;
+    /* Clip content so cards with positioned elements or backgrounds
+       cannot visually escape into adjacent sections */
+    overflow: hidden;
+    position: relative;
 }
 .sp-section.sp-open .sp-section-body { display: block; }
 /* v6.9.6: removed max-height: 40vh which caused a nested scroll trap
@@ -109,10 +113,9 @@
 }
 
 /* Collapsed badge: tension dot */
-/* Tension-colored dot inline with badge text — use inline-flex for
-   precise vertical centering regardless of font metrics */
+/* Tension-colored dot inline with badge text — small filled circle */
 .sp-scene-badge-dot {
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 8px; height: 8px; border-radius: 50%;
+    display: inline-block;
+    width: 5px; height: 5px; border-radius: 50%;
     background: currentColor; flex-shrink: 0;
 }
