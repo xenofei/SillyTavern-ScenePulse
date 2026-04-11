@@ -42,9 +42,13 @@
    This compartmentalizes sections so expanding one doesn't push
    others off-screen. Sections with less content than max-height
    show at their natural size (no wasted space). */
+/* max-height uses a fixed pixel value because vh units resolve
+   against html's height (not viewport) due to ST's html{transform}.
+   500px fits ~40-50 lines of content before scrolling. JS overrides
+   this with a viewport-proportional value after panel renders. */
 .sp-section-content {
     padding: 8px 12px 12px 12px;
-    max-height: 50vh;
+    max-height: 500px;
     overflow-y: auto;
     overflow-x: hidden;
     scrollbar-color: rgba(100,110,130,0.3) transparent;
