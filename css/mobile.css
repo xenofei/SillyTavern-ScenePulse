@@ -80,18 +80,13 @@
 }
 
 /* ═══ MOBILE MODE (class-driven, ≤600px viewport) ═══ */
-/* Mobile: hide weather, tint, condense, thoughts buttons */
-#sp-panel.sp-mode-mobile #sp-tb-weather,
-#sp-panel.sp-mode-mobile #sp-tb-timeTint,
-#sp-panel.sp-mode-mobile #sp-tb-compact,
-#sp-panel.sp-mode-mobile #sp-tb-thoughts { display: none !important; }
-/* Mobile: hide separators adjacent to hidden buttons */
-#sp-panel.sp-mode-mobile .sp-toolbar-sep:nth-of-type(2),
-#sp-panel.sp-mode-mobile .sp-toolbar-sep:nth-of-type(3) { display: none; }
-/* Mobile: hide original brand entirely (replaced by mobile top bar) */
+/* Mobile: hide compact button (already fullscreen) */
+#sp-panel.sp-mode-mobile #sp-tb-compact { display: none !important; }
+/* Mobile: hide brand (replaced by mobile top bar) */
 #sp-panel.sp-mode-mobile .sp-brand-icon-wrap,
-#sp-panel.sp-mode-mobile .sp-brand-icon,
-#sp-panel.sp-mode-mobile .sp-brand-title { display: none !important; }
+#sp-panel.sp-mode-mobile .sp-brand-title-wrap { display: none !important; }
+/* Mobile: simplify toolbar groups */
+#sp-panel.sp-mode-mobile .sp-toolbar-group { background: none; border: none; padding: 0; }
 
 /* ═══ SP MOBILE TOP BAR (replaces ST's extension bar) ═══ */
 /* Force-hide ST's top bar when SP panel is fullscreen on mobile */
@@ -259,7 +254,7 @@ body:has(#sp-panel.sp-mode-mobile) .sp-tour-spotlight { z-index: 100003; }
 /* ═══ SMALL PHONES (≤390px) — single-column stacking ═══ */
 @media (max-width: 390px) {
     #sp-panel.sp-mode-mobile .sp-toolbar-btn { width: 38px; height: 38px; min-width: 38px; }
-    #sp-panel.sp-mode-mobile .sp-brand-title { font-size: 12px; }
+    #sp-panel.sp-mode-mobile .sp-brand-title-wrap { display: none !important; }
     #sp-panel.sp-mode-mobile .sp-dashboard .sp-dash-card { flex: 1 1 100%; }
     #sp-panel.sp-mode-mobile .sp-char-grid { grid-template-columns: 1fr; }
     #sp-panel.sp-mode-mobile .sp-meter-row { grid-template-columns: 58px 1fr auto 0; }

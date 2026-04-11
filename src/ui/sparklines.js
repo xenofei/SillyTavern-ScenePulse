@@ -119,8 +119,8 @@ export async function _scrollToMessage(mesIdx) {
     }
 }
 
-const SPARK_W = 56;
-const SPARK_H = 22;
+const SPARK_W = 40;
+const SPARK_H = 16;
 
 const METER_COLORS = {
     affection: '#e87070',

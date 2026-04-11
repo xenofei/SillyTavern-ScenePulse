@@ -22,16 +22,10 @@
 
 /* Hide brand entirely (replaced by mobile top bar) */
 #sp-panel.sp-mode-tablet .sp-brand-icon-wrap,
-#sp-panel.sp-mode-tablet .sp-brand-icon,
-#sp-panel.sp-mode-tablet .sp-brand-title { display: none !important; }
+#sp-panel.sp-mode-tablet .sp-brand-title-wrap { display: none !important; }
 
-/* Hide non-essential toolbar buttons to save space */
-#sp-panel.sp-mode-tablet #sp-tb-weather,
-#sp-panel.sp-mode-tablet #sp-tb-timeTint,
-#sp-panel.sp-mode-tablet #sp-tb-compact,
-#sp-panel.sp-mode-tablet #sp-tb-sceneTrans { display: none !important; }
-#sp-panel.sp-mode-tablet .sp-toolbar-sep:nth-of-type(2),
-#sp-panel.sp-mode-tablet .sp-toolbar-sep:nth-of-type(3) { display: none; }
+/* Hide compact button on tablet (fullscreen already) */
+#sp-panel.sp-mode-tablet #sp-tb-compact { display: none !important; }
 
 /* Touch-friendly targets */
 #sp-panel.sp-mode-tablet .sp-section-header { padding: 10px 12px; min-height: 44px; }
