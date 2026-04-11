@@ -43,10 +43,37 @@
     flex: 1; min-height: 0;
     overflow-y: auto; overflow-x: hidden;
     pointer-events: auto; position: relative;
-    scrollbar-color: rgba(100,110,130,0.3) transparent;
+    /* Firefox scrollbar */
+    scrollbar-width: thin !important;
+    scrollbar-color: #6b7280 #1e222c !important;
 }
-#sp-panel-body::-webkit-scrollbar { width: 4px; }
-#sp-panel-body::-webkit-scrollbar-thumb { background: rgba(100,110,130,0.3); border-radius: 2px; }
+/* Beat SillyTavern's global ::-webkit-scrollbar rules which use
+   var(--grey7070a) that doesn't resolve in our panel = invisible thumb.
+   Triple-ID specificity + !important to guarantee override. */
+#sp-panel-anchor #sp-panel #sp-panel-body::-webkit-scrollbar {
+    width: 10px !important;
+    background: #1e222c !important;
+}
+#sp-panel-anchor #sp-panel #sp-panel-body::-webkit-scrollbar-track {
+    background: #1e222c !important;
+}
+#sp-panel-anchor #sp-panel #sp-panel-body::-webkit-scrollbar-thumb {
+    background: #6b7280 !important;
+    border-radius: 5px !important;
+    border: 2px solid #1e222c !important;
+    min-height: 40px !important;
+}
+#sp-panel-anchor #sp-panel #sp-panel-body::-webkit-scrollbar-thumb:vertical {
+    background: #6b7280 !important;
+    border-radius: 5px !important;
+    border: 2px solid #1e222c !important;
+    box-shadow: none !important;
+    background-clip: padding-box !important;
+    min-height: 40px !important;
+}
+#sp-panel-anchor #sp-panel #sp-panel-body::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af !important;
+}
 #sp-panel * { pointer-events: auto; }
 
 #sp-panel-toggle { display: none; }
