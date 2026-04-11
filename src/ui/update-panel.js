@@ -1360,6 +1360,16 @@ export function updatePanel(d,_force=false){
         else el.classList.remove('sp-ft-force-shown');
     });
     log('\u23F1 updatePanel:',((performance.now()-_perfStart)|0)+'ms');
+    // DOM verification: check if body is actually scrollable
+    requestAnimationFrame(()=>{
+        const _b=document.getElementById('sp-panel-body');
+        const _p=document.getElementById('sp-panel');
+        if(_b&&_p){
+            const _bcs=getComputedStyle(_b);const _pcs=getComputedStyle(_p);
+            log('DOM-VERIFY panel: display='+_pcs.display+' flexDir='+_pcs.flexDirection+' h='+_pcs.height+' overflow='+_pcs.overflow);
+            log('DOM-VERIFY body: display='+_bcs.display+' h='+_bcs.height+' maxH='+_bcs.maxHeight+' overflow='+_bcs.overflowY+' scrollH='+_b.scrollHeight+' clientH='+_b.clientHeight+' flex='+_bcs.flex+' parent='+_b.parentElement?.id+' childCount='+_b.children.length);
+        }
+    });
     } catch(_renderErr) {
         // Error boundary: restore previous panel content on failure
         log('ERROR updatePanel render failed — restoring previous content:', _renderErr?.message||_renderErr);
