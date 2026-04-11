@@ -1,26 +1,28 @@
-/* ═══ SECTIONS (shared) ═══ */
-.sp-section { border-top: 1px solid var(--sp-border); transition: margin 0.3s ease-out; }
-.sp-section:last-child { border-bottom: 1px solid var(--sp-border); margin-bottom: 8px; }
-/* Opaque background prevents content from earlier sections showing
-   through. Hover layers sp-surface (semi-transparent) over sp-bg-solid
-   to stay fully opaque. */
-/* Sticky headers stay visible when scrolling through the panel.
-   They sit on top of any content that scrolls behind them, which
-   prevents bleed from the previous section. The opaque background
-   covers everything beneath. top:0 sticks below the toolbar
-   (which is also sticky at top:0 with higher z-index). */
+/* ═══ SECTIONS — Flexbox Column Architecture ═══ */
+/* Each section is a flex item in #sp-panel-body's column layout.
+   Collapsed sections show only their header (flex:0 0 auto).
+   Open sections grow to share available space (flex:1 1 0).
+   Content scrolls independently within each section — no panel scroll,
+   no sticky headers, no bleed by construction. */
+.sp-section {
+    border-top: 1px solid var(--sp-border);
+    display: flex; flex-direction: column;
+    min-height: 0; flex: 0 0 auto;
+}
+.sp-section:last-child { border-bottom: 1px solid var(--sp-border); }
+/* Open sections grow to fill available space equally */
+.sp-section.sp-open { flex: 1 1 0; min-height: 0; }
 .sp-section-header {
     display: flex; align-items: center; gap: 8px; padding: 7px 12px;
     cursor: pointer; user-select: none; transition: background var(--sp-transition);
-    pointer-events: auto; position: sticky; top: 0; z-index: 3;
+    pointer-events: auto; flex-shrink: 0;
     background: var(--sp-bg-solid);
     border-bottom: 1px solid transparent;
 }
 .sp-section-header:hover { background: linear-gradient(var(--sp-surface), var(--sp-surface)), var(--sp-bg-solid); }
-/* When a section is open, add a subtle bottom border on the header */
 .sp-section.sp-open .sp-section-header { border-bottom-color: var(--sp-border); }
 .sp-section-spacer { flex: 1; }
-/* Collapse/Expand all cards button in section headers */
+/* Collapse/Expand all cards button */
 .sp-char-toggle-all {
     background: none; border: 1px solid transparent; color: var(--sp-text-dim);
     cursor: pointer; padding: 2px; border-radius: 4px; opacity: 0.4;
@@ -43,25 +45,22 @@
 .sp-section-icon svg { display: block; }
 .sp-section-title { font-size: var(--sp-fs-xs); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--sp-text-dim); }
 .sp-section-badge { font-size: var(--sp-fs-xs); font-weight: 600; padding: 1px 6px; border-radius: 8px; background: var(--sp-accent-dim); color: var(--sp-accent); display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
-/* z-index:1 keeps section content BELOW sticky headers (z-index:3).
-   position:relative establishes stacking context so child elements
-   (character portraits with transforms, etc.) can't paint above
-   the next section's sticky header. */
 .sp-section-body {
     display: none;
     background: var(--sp-bg-solid);
-    position: relative;
-    z-index: 1;
+    flex: 1; min-height: 0;
+    flex-direction: column;
 }
-.sp-section.sp-open .sp-section-body { display: block; }
-/* JS sets explicit height so content scrolls within each section.
-   Combined with sticky headers (z-index:3 above body z-index:1),
-   content scrolls behind headers with no bleed. */
+.sp-section.sp-open .sp-section-body { display: flex; }
+/* The ONLY scroll region — sized by flex, scrolls independently */
 .sp-section-content {
     padding: 8px 12px 12px 12px;
-    overflow-y: auto;
-    overflow-x: hidden;
+    overflow-y: auto; overflow-x: hidden;
+    flex: 1; min-height: 0;
     scrollbar-color: rgba(100,110,130,0.3) transparent;
+    /* Skip rendering for off-screen content within each section */
+    content-visibility: auto;
+    contain-intrinsic-size: auto 500px;
 }
 .sp-section-content::-webkit-scrollbar { width: 4px; }
 .sp-section-content::-webkit-scrollbar-thumb { background: rgba(100,110,130,0.3); border-radius: 2px; }

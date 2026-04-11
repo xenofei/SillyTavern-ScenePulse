@@ -8,6 +8,8 @@
    Note on multi-background fallback: each layer in the comma list
    needs its own explicit value, so we repeat the color in both the
    pattern fallback AND the base. */
+/* contain:layout style scopes stacking contexts from portrait
+   transforms so they can't escape the card or section boundary */
 .sp-char-card {
     background-image: var(--char-pattern, none);
     background-color: var(--char-bg, var(--sp-surface));
@@ -16,6 +18,7 @@
     padding: 0;
     margin-bottom: 5px;
     border-left: 3px solid var(--char-border, var(--sp-border));
+    contain: layout style;
 }
 .sp-char-card:last-child { margin-bottom: 0; }
 .sp-char-header { display: flex; align-items: center; gap: 6px; padding: 6px 8px; cursor: pointer; user-select: none; overflow: hidden; flex-wrap: wrap; }

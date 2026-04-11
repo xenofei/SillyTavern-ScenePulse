@@ -140,8 +140,9 @@ body:has(#sp-panel.sp-mode-mobile) .sp-loading-glass-fixed {
     font-size: var(--sp-fs-xs); color: rgba(200,204,212,0.75);
     border-top: 1px solid var(--sp-border);
     background: var(--sp-bg-solid, #12141a);
-    /* Anchor to bottom of panel */
-    position: sticky; bottom: 0; z-index: 4;
+    /* Anchored at bottom by flex layout — margin-top:auto pushes
+       to bottom if space remains, flex-shrink:0 prevents shrinking */
+    flex-shrink: 0; margin-top: auto;
 }
 .sp-gen-footer span { white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; }
 .sp-gen-footer svg { opacity: 0.7; }

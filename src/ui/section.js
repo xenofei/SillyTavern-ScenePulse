@@ -6,33 +6,9 @@ import { generating, setLastGenSource } from '../state.js';
 import { generateTracker } from '../generation/engine.js';
 import { showLoadingOverlay, clearLoadingOverlay, showStopButton, hideStopButton } from './loading.js';
 
-// Set fixed height on section-content so expanded cards stay contained.
-// Sticky headers (z-index:3) cover any visual bleed at the top.
-export function resizeSectionContent(){
-    const panel=document.getElementById('sp-panel');
-    if(!panel)return;
-    // Simple: each section gets panelH minus toolbar and footer.
-    // Sticky headers overlap content so we don't subtract them.
-    const panelH=panel.clientHeight;
-    const toolbar=panel.querySelector('.sp-toolbar');
-    const footer=panel.querySelector('.sp-gen-footer');
-    const tbH=toolbar?toolbar.offsetHeight:0;
-    const ftH=footer?footer.offsetHeight:0;
-    const maxH=Math.max(panelH-tbH-ftH,300);
-    panel.querySelectorAll('.sp-section-content').forEach(ct=>{
-        const sec=ct.closest('.sp-section');
-        if(!sec)return;
-        if(sec.classList.contains('sp-open')){
-            // Clear height, force reflow, measure, then constrain
-            ct.style.height='auto';
-            void ct.offsetHeight; // force reflow
-            const contentH=ct.scrollHeight;
-            ct.style.height=(contentH>maxH)?maxH+'px':'auto';
-        }else{
-            ct.style.height='';
-        }
-    });
-}
+// No-op: flex layout handles section sizing automatically.
+// Retained as export to avoid breaking existing call sites.
+export function resizeSectionContent(){}
 
 // Section icons keyed by section key — compact SVGs for visual scanability
 const SECTION_ICONS={

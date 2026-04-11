@@ -11,6 +11,7 @@
     background-color: var(--char-bg, transparent);
     background-repeat: repeat;
     border-left: 3px solid var(--char-border, var(--sp-border));
+    contain: layout style;
 }
 .sp-rel-block:last-child { margin-bottom: 0; }
 .sp-rel-header { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 6px 6px; cursor: pointer; user-select: none; }

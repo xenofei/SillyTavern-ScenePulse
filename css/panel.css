@@ -2,29 +2,31 @@
 /* Panel background is self-contained, never leaks to ST */
 #sp-panel, #sp-thought-panel { isolation: isolate; }
 
-/* ═══ RIGHT SIDE PANEL ═══ */
-/* Panel extends from top bar to bottom of viewport. Individual
-   sections handle their own scrolling via max-height on
-   .sp-section-content. The panel itself scrolls if total section
-   headers + content exceed the viewport. */
+/* ═══ RIGHT SIDE PANEL — Flexbox Column Architecture ═══ */
+/* Panel is a flex column: toolbar at top, body fills middle, footer
+   at bottom. Panel itself NEVER scrolls — each section scrolls
+   independently within its flex-allocated space. This eliminates
+   bleed by construction: sections occupy non-overlapping flex regions.
+   Proven pattern from Dooms-Enhancement-Suite. */
 #sp-panel {
     position: fixed; top: 45px; right: 0; bottom: 0;
     background: var(--sp-bg-solid, #181a20);
     border-left: 2px solid rgba(77,184,164,0.25);
     font-family: var(--sp-font); font-size: var(--sp-fs-sm); color: var(--sp-text);
-    overflow-y: auto; overflow-x: hidden;
+    overflow: hidden;
     z-index: 1000;
-    scrollbar-color: rgba(100,110,130,0.3) transparent;
     transition: width 0.3s ease-out;
     box-sizing: border-box;
     container-type: inline-size;
     container-name: sp-panel;
-    display: none;
+    display: none; flex-direction: column;
 }
-#sp-panel.sp-visible { display: block; }
-#sp-panel::-webkit-scrollbar { width: 4px; }
-#sp-panel::-webkit-scrollbar-thumb { background: rgba(100,110,130,0.3); border-radius: 2px; }
-#sp-panel-body { position: relative; min-height: 200px; }
+#sp-panel.sp-visible { display: flex; }
+#sp-panel-body {
+    flex: 1; min-height: 0;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+}
 #sp-panel * { pointer-events: auto; }
 
 #sp-panel-toggle { display: none; }
@@ -32,7 +34,7 @@
 /* Panel header */
 /* ═══ UNIFIED TOOLBAR ═══ */
 .sp-toolbar {
-    position: sticky; top: 0; z-index: 10;
+    flex-shrink: 0; z-index: 10;
     display: flex; align-items: center; gap: 4px 8px; padding: 7px 10px;
     background: var(--sp-bg-solid); border-bottom: 1px solid var(--sp-border);
     flex-wrap: wrap;
