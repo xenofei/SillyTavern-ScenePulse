@@ -6,29 +6,9 @@ import { generating, setLastGenSource } from '../state.js';
 import { generateTracker } from '../generation/engine.js';
 import { showLoadingOverlay, clearLoadingOverlay, showStopButton, hideStopButton } from './loading.js';
 
-// Set each open section-content's height to its exact scrollHeight.
-// Uses double-rAF to ensure card expand/collapse has fully reflowed
-// before measuring. This handles the case where a card inside a
-// section is toggled — the content height changes and we need to
-// remeasure AFTER the new content has laid out.
-export function resizeSectionContent(){
-    const panel=document.getElementById('sp-panel');
-    if(!panel)return;
-    // Double rAF: first frame applies DOM changes, second frame measures
-    requestAnimationFrame(()=>requestAnimationFrame(()=>{
-        panel.querySelectorAll('.sp-section-content').forEach(ct=>{
-            const sec=ct.closest('.sp-section');
-            if(!sec)return;
-            if(sec.classList.contains('sp-open')){
-                ct.style.height='auto';
-                void ct.offsetHeight;
-                ct.style.height=ct.scrollHeight+'px';
-            }else{
-                ct.style.height='';
-            }
-        });
-    }));
-}
+// No-op: flex layout handles section sizing automatically.
+// Retained as export to avoid breaking existing call sites.
+export function resizeSectionContent(){}
 
 // Section icons keyed by section key — compact SVGs for visual scanability
 const SECTION_ICONS={

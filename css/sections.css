@@ -10,9 +10,11 @@
     min-height: 0; flex: 0 0 auto;
 }
 .sp-section:last-child { border-bottom: 1px solid var(--sp-border); }
-/* Open sections display full content — no max-height, no scroll.
-   Panel body scrolls to reach all sections. */
-.sp-section.sp-open { flex: 0 0 auto; }
+/* Open sections size to their content (flex:0 0 auto) but cap at
+   70vh so very long sections scroll instead of extending forever.
+   Short sections (like Story Ideas with 5 collapsed cards) stop
+   right after their last element with no wasted space. */
+.sp-section.sp-open { flex: 0 0 auto; max-height: 70vh; }
 .sp-section-header {
     display: flex; align-items: center; gap: 8px; padding: 7px 12px;
     cursor: pointer; user-select: none; transition: background var(--sp-transition);
@@ -49,14 +51,22 @@
 .sp-section-body {
     display: none;
     background: var(--sp-bg-solid);
+    flex: 1; min-height: 0;
+    flex-direction: column;
 }
-.sp-section.sp-open .sp-section-body { display: block; }
-/* JS sets exact height matching content. overflow:hidden clips
-   at that exact boundary so nothing can bleed past. */
+.sp-section.sp-open .sp-section-body { display: flex; }
+/* The ONLY scroll region — sized by flex, scrolls independently */
 .sp-section-content {
     padding: 8px 12px 12px 12px;
-    overflow: hidden;
+    overflow-y: auto; overflow-x: hidden;
+    flex: 1; min-height: 0;
+    scrollbar-color: rgba(100,110,130,0.3) transparent;
+    /* Skip rendering for off-screen content within each section */
+    content-visibility: auto;
+    contain-intrinsic-size: auto 500px;
 }
+.sp-section-content::-webkit-scrollbar { width: 4px; }
+.sp-section-content::-webkit-scrollbar-thumb { background: rgba(100,110,130,0.3); border-radius: 2px; }
 
 /* ═══ EMPTY STATE ═══ */
 .sp-empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; padding: 40px 20px; text-align: center; }
