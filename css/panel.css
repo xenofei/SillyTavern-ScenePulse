@@ -32,7 +32,20 @@
     pointer-events: auto; position: relative;
     flex: 1 1 0px; min-height: 0 !important;
     overflow-y: auto !important; overflow-x: hidden !important;
+    /* Force visible scrollbar — ST's global ::-webkit-scrollbar uses
+       CSS vars (--grey7070a) that don't resolve inside #sp-panel,
+       making the thumb transparent. These !important overrides use
+       hardcoded colors to guarantee visibility. */
+    scrollbar-width: thin !important;
+    scrollbar-color: rgba(140,150,170,0.5) rgba(30,34,44,0.3) !important;
 }
+/* Override ST's global ::-webkit-scrollbar rules which use undefined
+   CSS variables inside our panel, producing invisible scrollbar thumbs */
+#sp-panel #sp-panel-body::-webkit-scrollbar { width: 7px !important; }
+#sp-panel #sp-panel-body::-webkit-scrollbar-track { background: rgba(30,34,44,0.3) !important; }
+#sp-panel #sp-panel-body::-webkit-scrollbar-thumb { background: rgba(140,150,170,0.5) !important; border-radius: 4px !important; border: none !important; background-clip: padding-box !important; }
+#sp-panel #sp-panel-body::-webkit-scrollbar-thumb:hover { background: rgba(170,180,200,0.7) !important; }
+#sp-panel #sp-panel-body::-webkit-scrollbar-thumb:vertical { background: rgba(140,150,170,0.5) !important; border: none !important; box-shadow: none !important; background-clip: padding-box !important; min-height: 30px !important; }
 #sp-panel * { pointer-events: auto; }
 
 #sp-panel-toggle { display: none; }
