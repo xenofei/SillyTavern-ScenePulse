@@ -14,6 +14,14 @@
     /* v6.9.6: tension level colors — themes can override these */
     --sp-tension-calm: #60a5fa; --sp-tension-low: #4ade80;
     --sp-tension-moderate: #facc15; --sp-tension-high: #fb923c; --sp-tension-critical: #ef4444;
+    /* Font size scale — 12px floor, all sizes relative.
+       Override --sp-fs-base to scale everything proportionally. */
+    --sp-fs-base: 12px;                              /* minimum / body text */
+    --sp-fs-xs: var(--sp-fs-base);                   /* smallest (badges, chevrons) */
+    --sp-fs-sm: calc(var(--sp-fs-base) + 1px);       /* 13px — labels, meta */
+    --sp-fs-md: calc(var(--sp-fs-base) + 2px);       /* 14px — standard content */
+    --sp-fs-lg: calc(var(--sp-fs-base) + 3px);       /* 15px — names, headings */
+    --sp-fs-xl: calc(var(--sp-fs-base) + 5px);       /* 17px — titles */
     --sp-radius: 6px; --sp-radius-lg: 10px;
     --sp-font: 'Segoe UI',system-ui,-apple-system,sans-serif;
     --sp-font-mono: 'Cascadia Code','Fira Code','JetBrains Mono',monospace;

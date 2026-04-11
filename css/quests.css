@@ -4,33 +4,33 @@
 .sp-tier-star { border-left-color: rgba(212,165,94,0.7); background: rgba(212,165,94,0.04); }
 .sp-tier-main { border-left-color: rgba(196,91,91,0.5); background: rgba(196,91,91,0.04); }
 .sp-tier-side { border-left-color: rgba(155,122,196,0.5); background: rgba(155,122,196,0.04); }
-.sp-plot-tier-title { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--sp-text-dim); padding: 4px 6px; border-bottom: 1px solid var(--sp-border); display: flex; align-items: center; gap: 5px; cursor: pointer; user-select: none; }
+.sp-plot-tier-title { font-size: var(--sp-fs-xs); font-weight: 700; letter-spacing: 0.06em; color: var(--sp-text-dim); padding: 4px 6px; border-bottom: 1px solid var(--sp-border); display: flex; align-items: center; gap: 5px; cursor: pointer; user-select: none; }
 .sp-plot-tier-title:hover { background: rgba(255,255,255,0.02); }
-.sp-tier-chevron { font-size: 9px; color: var(--sp-text-dim); transition: transform 0.2s ease; flex-shrink: 0; }
+.sp-tier-chevron { font-size: var(--sp-fs-xs); color: var(--sp-text-dim); transition: transform 0.2s ease; flex-shrink: 0; }
 .sp-plot-tier.sp-tier-open .sp-tier-chevron { transform: rotate(90deg); }
 .sp-tier-body { display: none; padding-left: 6px; }
 .sp-plot-tier.sp-tier-open .sp-tier-body { display: block; }
 .sp-tier-icon { width: 16px; height: 16px; color: var(--sp-accent); flex-shrink: 0; opacity: 0.7; }
-.sp-quest-star { font-size: 12px; font-weight: 600; color: var(--sp-amber); padding: 4px 0 4px 6px; font-style: italic; }
-.sp-plot-entry { padding: 0; font-size: 12px; border-bottom: 1px solid rgba(255,255,255,0.02); margin-bottom: 2px; }
+.sp-quest-star { font-size: var(--sp-fs-base); font-weight: 600; color: var(--sp-amber); padding: 4px 0 4px 6px; font-style: italic; }
+.sp-plot-entry { padding: 0; font-size: var(--sp-fs-base); border-bottom: 1px solid rgba(255,255,255,0.02); margin-bottom: 2px; }
 .sp-plot-entry:last-child { border-bottom: none; margin-bottom: 0; }
 .sp-quest-header { display: flex; align-items: center; gap: 5px; padding: 5px 0 5px 6px; cursor: pointer; user-select: none; }
 .sp-quest-header:hover { background: rgba(255,255,255,0.02); }
-.sp-quest-chevron { font-size: 9px; color: var(--sp-text-dim); transition: transform 0.2s ease; flex-shrink: 0; }
+.sp-quest-chevron { font-size: var(--sp-fs-xs); color: var(--sp-text-dim); transition: transform 0.2s ease; flex-shrink: 0; }
 .sp-plot-entry.sp-card-open .sp-quest-chevron { transform: rotate(90deg); }
-.sp-quest-detail { font-size: 11px; color: var(--sp-text-dim); line-height: 1.45; padding: 0 0 4px 17px; margin-top: 0; display: none; }
+.sp-quest-detail { font-size: var(--sp-fs-xs); color: var(--sp-text-dim); line-height: 1.45; padding: 0 0 4px 17px; margin-top: 0; display: none; }
 .sp-plot-entry.sp-card-open .sp-quest-detail { display: block; }
-.sp-plot-status { font-size: 9px; font-weight: 700; padding: 1px 4px; border-radius: 3px; text-transform: uppercase; letter-spacing: 0.04em; flex-shrink: 0; line-height: 1.4; }
+.sp-plot-status { font-size: var(--sp-fs-xs); font-weight: 700; padding: 1px 4px; border-radius: 3px; text-transform: uppercase; letter-spacing: 0.04em; flex-shrink: 0; line-height: 1.4; }
 .sp-urgency-critical { background: rgba(196,60,60,0.2); color: var(--sp-red); }
 .sp-urgency-high { background: var(--sp-amber-dim); color: var(--sp-amber); }
 .sp-urgency-moderate { background: var(--sp-blue-dim); color: var(--sp-blue); }
 .sp-urgency-low { background: rgba(100,100,100,0.12); color: var(--sp-text-dim); }
 .sp-urgency-resolved { background: rgba(91,196,122,0.15); color: var(--sp-green); }
-.sp-plot-name { font-weight: 600; color: var(--sp-text-bright); font-size: 12px; }
-.sp-plot-notes { color: var(--sp-text-dim); font-size: 10px; }
+.sp-plot-name { font-weight: 600; color: var(--sp-text-bright); font-size: var(--sp-fs-base); }
+.sp-plot-notes { color: var(--sp-text-dim); font-size: var(--sp-fs-xs); }
 /* Quest status badges (NEW / UPDATED) */
 .sp-quest-status {
-    font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 4px;
+    font-size: var(--sp-fs-xs); font-weight: 700; padding: 1px 5px; border-radius: 4px;
     text-transform: uppercase; letter-spacing: 0.06em; flex-shrink: 0; line-height: 1.4;
     animation: sp-quest-badge-pop 0.4s ease-out;
 }
@@ -74,7 +74,7 @@
 .sp-quest-undo:hover { background: rgba(77,184,164,0.15); color: var(--sp-accent); }
 /* Add quest button */
 .sp-quest-add {
-    font-size: 9px; color: var(--sp-text); padding: 4px 6px; cursor: pointer;
+    font-size: var(--sp-fs-xs); color: var(--sp-text); padding: 4px 6px; cursor: pointer;
     display: flex; align-items: center; gap: 4px; opacity: 0.7;
     transition: opacity 0.15s, color 0.15s; user-select: none;
 }
@@ -82,10 +82,10 @@
 /* Add quest dialog */
 .sp-quest-dialog { min-width: 320px; max-width: 420px; }
 .sp-quest-dialog-form { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
-.sp-quest-dialog-label { font-size: 10px; font-weight: 600; color: var(--sp-text-dim); text-transform: uppercase; letter-spacing: 0.04em; }
+.sp-quest-dialog-label { font-size: var(--sp-fs-xs); font-weight: 600; color: var(--sp-text-dim); text-transform: uppercase; letter-spacing: 0.04em; }
 .sp-quest-dialog-input, .sp-quest-dialog-select, .sp-quest-dialog-textarea {
     background: rgba(255,255,255,0.06); border: 1px solid var(--sp-border, rgba(255,255,255,0.12));
-    border-radius: 5px; padding: 7px 10px; font-size: 12px; color: var(--sp-text-bright, #e8ecf4);
+    border-radius: 5px; padding: 7px 10px; font-size: var(--sp-fs-base); color: var(--sp-text-bright, #e8ecf4);
     font-family: inherit; outline: none; transition: border-color 0.15s;
 }
 .sp-quest-dialog-input:focus, .sp-quest-dialog-select:focus, .sp-quest-dialog-textarea:focus {
@@ -105,7 +105,7 @@
 }
 /* Tier-level status summary badges — pushed to far right of tier title */
 .sp-tier-status {
-    font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 4px;
+    font-size: var(--sp-fs-xs); font-weight: 700; padding: 1px 5px; border-radius: 4px;
     text-transform: capitalize; letter-spacing: 0.03em; flex-shrink: 0; line-height: 1.4;
     margin-left: 2px; animation: sp-quest-badge-pop 0.4s ease-out;
 }
@@ -119,7 +119,7 @@
     text-transform: capitalize;
     animation: sp-quest-badge-pop 0.4s ease-out;
 }
-.sp-section-status-new { font-size: 9px; font-weight: 600; color: var(--sp-accent); opacity: 0.85; }
-.sp-section-status-updated { font-size: 9px; font-weight: 600; color: var(--sp-amber); opacity: 0.85; }
-.sp-section-status-done { font-size: 9px; font-weight: 600; color: var(--sp-green); opacity: 0.85; }
-.sp-section-status-sep { font-size: 9px; color: var(--sp-text-dim); opacity: 0.4; }
+.sp-section-status-new { font-size: var(--sp-fs-xs); font-weight: 600; color: var(--sp-accent); opacity: 0.85; }
+.sp-section-status-updated { font-size: var(--sp-fs-xs); font-weight: 600; color: var(--sp-amber); opacity: 0.85; }
+.sp-section-status-done { font-size: var(--sp-fs-xs); font-weight: 600; color: var(--sp-green); opacity: 0.85; }
+.sp-section-status-sep { font-size: var(--sp-fs-xs); color: var(--sp-text-dim); opacity: 0.4; }

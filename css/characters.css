@@ -28,7 +28,7 @@
 .sp-char-portrait { width: 26px; height: 26px; border-radius: 50%; overflow: hidden; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--sp-border); background: var(--sp-surface); position: relative; }
 .sp-char-portrait img { width: 100%; height: 100%; object-fit: cover; display: block; }
 /* v6.9.6: #fff → var(--sp-text-bright) for theme compliance */
-.sp-char-portrait-monogram { color: var(--sp-text-bright); font-weight: 700; font-size: 13px; letter-spacing: 0; text-shadow: 0 1px 2px rgba(0,0,0,0.45); }
+.sp-char-portrait-monogram { color: var(--sp-text-bright); font-weight: 700; font-size: var(--sp-fs-sm); letter-spacing: 0; text-shadow: 0 1px 2px rgba(0,0,0,0.45); }
 .sp-char-portrait-monogram .sp-char-portrait-letter { display: inline-block; line-height: 1; }
 .sp-char-portrait-errored { background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)); }
 .sp-char-portrait { cursor: pointer; transition: transform 120ms ease, border-color 120ms ease; }
@@ -66,7 +66,7 @@
     display: block;
 }
 .sp-portrait-preview-caption {
-    font-size: 12px;
+    font-size: var(--sp-fs-base);
     font-weight: 700;
     text-align: center;
     padding: 0 6px;
@@ -79,7 +79,7 @@
    has a distinct color + subtle background tint so readers can tell
    allies from rivals from antagonists at a glance. Uses text-only, no
    icon, to keep the header compact. */
-.sp-char-archetype { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 2px 6px; border-radius: 9px; border: 1px solid currentColor; background: rgba(255,255,255,0.035); flex-shrink: 0; line-height: 1; }
+.sp-char-archetype { font-size: var(--sp-fs-xs); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 2px 6px; border-radius: 9px; border: 1px solid currentColor; background: rgba(255,255,255,0.035); flex-shrink: 0; line-height: 1; }
 /* v6.8.26 archetype palette — 11 values. Colors chosen for contrast
    against the character's accent border and readable against both dark
    and light panel backgrounds. Each archetype gets a distinct hue so
@@ -97,41 +97,41 @@
 .sp-char-archetype-background { color: #7a8794; }  /* slate gray-blue — peripheral */
 
 /* v6.8.18: alias badge and merge button in the character card header. */
-.sp-char-alias-badge { font-size: 9px; color: var(--sp-text-dim); font-style: italic; padding: 1px 5px; background: rgba(255,255,255,0.04); border: 1px solid var(--sp-border); border-radius: 3px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0; }
+.sp-char-alias-badge { font-size: var(--sp-fs-xs); color: var(--sp-text-dim); font-style: italic; padding: 1px 5px; background: rgba(255,255,255,0.04); border: 1px solid var(--sp-border); border-radius: 3px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0; }
 /* v6.8.21: two-line header layout — name row on top, meta (shared-scene
    counter) dim text below. .sp-char-name-col is the flex column that
    holds both lines so they align vertically under the portrait. */
 .sp-char-name-col { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1 1 auto; }
 .sp-char-name-row { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
-.sp-char-meta { font-size: 9px; color: var(--sp-text-dim); opacity: 0.85; line-height: 1.2; }
+.sp-char-meta { font-size: var(--sp-fs-xs); color: var(--sp-text-dim); opacity: 0.85; line-height: 1.2; }
 .sp-char-header-spacer { flex: 0 0 auto; min-width: 0; }
 
 /* v6.8.21 Feature D: off-scene stubs. A separate section appended after
    the main character cards, showing characters who were present in a
    recent snapshot but not in the current one. Renders as a compact row
    with portrait + name + "last seen" meta line. No body, no expand. */
-.sp-char-offscene-header { font-size: 9px; font-weight: 700; color: var(--sp-text-dim); text-transform: uppercase; letter-spacing: 0.08em; margin: 10px 4px 4px; padding-top: 6px; border-top: 1px dashed var(--sp-border); }
+.sp-char-offscene-header { font-size: var(--sp-fs-xs); font-weight: 700; color: var(--sp-text-dim); text-transform: uppercase; letter-spacing: 0.08em; margin: 10px 4px 4px; padding-top: 6px; border-top: 1px dashed var(--sp-border); }
 .sp-char-offscene-stub { opacity: 0.6; background-image: var(--char-pattern, none); background-color: var(--char-bg, var(--sp-surface)); background-repeat: repeat; border-left-width: 2px; padding: 0; margin-bottom: 3px; }
 .sp-char-offscene-stub:hover { opacity: 1; }
 .sp-char-offscene-row { display: flex; align-items: center; gap: 8px; padding: 5px 8px; }
 .sp-char-offscene-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1 1 auto; }
-.sp-char-offscene-name { font-size: 12px; font-weight: 600; color: var(--sp-text); line-height: 1.2; }
-.sp-char-offscene-last { font-size: 9px; color: var(--sp-text-dim); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sp-char-offscene-name { font-size: var(--sp-fs-base); font-weight: 600; color: var(--sp-text); line-height: 1.2; }
+.sp-char-offscene-last { font-size: var(--sp-fs-xs); color: var(--sp-text-dim); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sp-char-offscene-stub .sp-char-portrait { width: 20px; height: 20px; }
-.sp-char-offscene-stub .sp-char-portrait-monogram { font-size: 10px; }
+.sp-char-offscene-stub .sp-char-portrait-monogram { font-size: var(--sp-fs-xs); }
 .sp-char-merge-btn { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; padding: 0; border: 1px solid transparent; background: transparent; color: var(--sp-text-dim); border-radius: 3px; cursor: pointer; flex-shrink: 0; }
 .sp-char-merge-btn:hover { color: var(--char-accent, var(--sp-accent)); border-color: var(--sp-border); background: rgba(255,255,255,0.04); }
 .sp-char-merge-btn svg { display: block; }
 /* Merge picker modal — reuses sp-confirm-overlay styling, adds a scrollable list. */
 .sp-merge-picker-dialog { max-width: 320px; }
 .sp-merge-picker-list { display: flex; flex-direction: column; gap: 4px; max-height: 240px; overflow-y: auto; margin: 8px 0 4px; padding: 2px; }
-.sp-merge-picker-option { font-size: 12px; padding: 6px 10px; text-align: left; background: var(--sp-surface); color: var(--sp-text); border: 1px solid var(--sp-border); border-radius: var(--sp-radius); cursor: pointer; }
+.sp-merge-picker-option { font-size: var(--sp-fs-base); padding: 6px 10px; text-align: left; background: var(--sp-surface); color: var(--sp-text); border: 1px solid var(--sp-border); border-radius: var(--sp-radius); cursor: pointer; }
 .sp-merge-picker-option:hover { background: rgba(255,255,255,0.06); border-color: var(--sp-accent); }
-.sp-char-chevron { font-size: 8px; color: var(--sp-text-dim); transition: transform 0.2s ease; flex-shrink: 0; }
+.sp-char-chevron { font-size: var(--sp-fs-xs); color: var(--sp-text-dim); transition: transform 0.2s ease; flex-shrink: 0; }
 .sp-char-card.sp-card-open .sp-char-chevron { transform: rotate(90deg); }
 .sp-char-body { display: none; padding: 0 8px 6px 8px; border-top: 1px solid var(--sp-border); }
 .sp-char-card.sp-card-open .sp-char-body { display: block; }
-.sp-char-name { font-size: 13px; font-weight: 700; color: var(--char-accent, var(--sp-text-bright)); flex-shrink: 0; }
+.sp-char-name { font-size: var(--sp-fs-sm); font-weight: 700; color: var(--char-accent, var(--sp-text-bright)); flex-shrink: 0; }
 /* v6.8.15: primary character (bot in single-chat, all group members in group chat)
    gets a subtle left-border accent to distinguish them from incidental NPCs. */
 .sp-char-card.sp-char-primary { border-left-width: 4px; border-left-color: var(--char-accent, var(--sp-accent)); }
@@ -140,18 +140,18 @@
 .sp-char-role-row,
 .sp-char-thought-row { display: grid; grid-template-columns: auto 1fr; gap: 2px 6px; padding: 4px 0 2px 2px; align-items: baseline; }
 .sp-char-thought-row { border-top: 1px dashed var(--sp-border); margin-top: 4px; padding-top: 5px; }
-.sp-char-role-val { font-size: 11px; color: var(--sp-text); line-height: 1.35; }
-.sp-char-thought-val { font-size: 11px; color: var(--sp-text-dim); font-style: italic; line-height: 1.4; }
+.sp-char-role-val { font-size: var(--sp-fs-xs); color: var(--sp-text); line-height: 1.35; }
+.sp-char-thought-val { font-size: var(--sp-fs-xs); color: var(--sp-text-dim); font-style: italic; line-height: 1.4; }
 .sp-char-grid { display: grid; grid-template-columns: auto 1fr; gap: 1px 6px; padding-left: 2px; }
-.sp-char-field { font-size: 9px; font-weight: 600; color: var(--sp-text-dim); text-transform: uppercase; letter-spacing: 0.03em; text-align: right; padding: 1px 0; }
-.sp-char-val { font-size: 11px; color: var(--sp-text); padding: 1px 0; }
+.sp-char-field { font-size: var(--sp-fs-xs); font-weight: 600; color: var(--sp-text-dim); text-transform: uppercase; letter-spacing: 0.03em; text-align: right; padding: 1px 0; }
+.sp-char-val { font-size: var(--sp-fs-xs); color: var(--sp-text); padding: 1px 0; }
 /* v6.8.16+: labeled subsection headers inside the character card body.
    Bold uppercase text with an SVG icon tinted in the character's accent
    color, sitting above a solid top rule. The visual anchor that tells
    readers which group of fields follows (Right Now, Appearance, Carrying,
    Goals, Fertility). v6.8.17 bumps visual weight: icons + solid rule +
    brighter text + slightly larger. */
-.sp-char-subsection-label { display: flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 700; color: var(--sp-text); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 8px; padding: 5px 4px 3px 4px; border-top: 1px solid var(--sp-border); }
+.sp-char-subsection-label { display: flex; align-items: center; gap: 6px; font-size: var(--sp-fs-xs); font-weight: 700; color: var(--sp-text); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 8px; padding: 5px 4px 3px 4px; border-top: 1px solid var(--sp-border); }
 .sp-char-subsection-label:first-child { margin-top: 4px; }
 .sp-char-subsection-icon { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 14px; height: 14px; color: var(--char-accent, var(--sp-accent)); opacity: 0.95; }
 .sp-char-subsection-icon svg { display: block; }
@@ -159,7 +159,7 @@
 /* Inner thought as a block quote — italic, left-border accent in the
    character's color, visually distinct from plain grid rows so the
    voice of the character reads like speech not metadata. */
-.sp-char-thought-block { font-size: 11px; color: var(--sp-text); font-style: italic; line-height: 1.45; padding: 3px 6px 3px 8px; margin: 3px 2px 4px 2px; border-left: 2px solid var(--char-accent, var(--sp-accent)); background: rgba(255,255,255,0.02); border-radius: 4px; }
+.sp-char-thought-block { font-size: var(--sp-fs-xs); color: var(--sp-text); font-style: italic; line-height: 1.45; padding: 3px 6px 3px 8px; margin: 3px 2px 4px 2px; border-left: 2px solid var(--char-accent, var(--sp-accent)); background: rgba(255,255,255,0.02); border-radius: 4px; }
 .sp-char-thought-block.sp-empty-field { font-style: normal; }
 /* v6.8.17: Carrying/inventory rendered as flex-wrap pill chips.
    Each item is its own rounded chip with a colored dot, so individual
@@ -167,7 +167,7 @@
    run-on line. Long items wrap onto their own row; short items pack
    horizontally. */
 .sp-char-inventory { display: flex; flex-wrap: wrap; gap: 4px 5px; padding: 4px 2px 3px 4px; }
-.sp-char-inventory-item { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; color: var(--sp-text); line-height: 1.3; padding: 2px 7px 2px 6px; background: rgba(255,255,255,0.035); border: 1px solid var(--sp-border); border-radius: 10px; max-width: 100%; }
+.sp-char-inventory-item { display: inline-flex; align-items: center; gap: 5px; font-size: var(--sp-fs-xs); color: var(--sp-text); line-height: 1.3; padding: 2px 7px 2px 6px; background: rgba(255,255,255,0.035); border: 1px solid var(--sp-border); border-radius: 10px; max-width: 100%; }
 .sp-char-inventory-item::before { content: ''; width: 4px; height: 4px; background: var(--char-accent, var(--sp-accent)); border-radius: 50%; opacity: 0.8; flex-shrink: 0; }
 .sp-char-inventory-item:hover { background: rgba(255,255,255,0.06); border-color: var(--char-accent, var(--sp-border)); }
 /* v6.8.25: placeholder chip shown when the CARRYING section renders
@@ -186,7 +186,7 @@
    a visible teal dot near the changed content. */
 .sp-char-val-changed { position: relative; }
 .sp-char-val-changed::before {
-    content: '\25CF'; font-size: 6px; color: var(--sp-accent);
+    content: '\25CF'; font-size: var(--sp-fs-xs); color: var(--sp-accent);
     margin-right: 4px; vertical-align: middle;
 }
 /* Inner thought block gets a slightly brighter background when changed
@@ -212,12 +212,12 @@
     opacity: 1;
 }
 .sp-char-goals { margin-top: 4px; padding-top: 4px; border-top: 1px dashed var(--sp-border); }
-.sp-char-goal-item { font-size: 10px; color: var(--sp-text-dim); padding: 1px 0 1px 4px; }
+.sp-char-goal-item { font-size: var(--sp-fs-xs); color: var(--sp-text-dim); padding: 1px 0 1px 4px; }
 .sp-char-goal-item strong { color: var(--sp-text); }
 /* v6.8.16: fertility section no longer needs its own border — the
    subsection label above it already supplies the visual divider. */
 .sp-fert-section { padding-top: 2px; }
-.sp-fert-na { font-size: 10px; color: var(--sp-text-dim); font-style: italic; }
+.sp-fert-na { font-size: var(--sp-fs-xs); color: var(--sp-text-dim); font-style: italic; }
 .sp-fert-inline { display: inline-flex; align-items: baseline; gap: 3px; }
-.sp-fert-inline-label { font-size: 8px; font-weight: 600; color: var(--sp-text-dim); text-transform: uppercase; letter-spacing: 0.03em; }
-.sp-fert-inline-val { font-size: 10px; color: var(--sp-text); }
+.sp-fert-inline-label { font-size: var(--sp-fs-xs); font-weight: 600; color: var(--sp-text-dim); text-transform: uppercase; letter-spacing: 0.03em; }
+.sp-fert-inline-val { font-size: var(--sp-fs-xs); color: var(--sp-text); }

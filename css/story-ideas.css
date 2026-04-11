@@ -11,15 +11,15 @@
 .sp-idea-card:last-child { margin-bottom: 0; }
 .sp-idea-header { display: flex; align-items: center; gap: 5px; padding: 6px 10px; cursor: pointer; user-select: none; }
 .sp-idea-header:hover { background: rgba(255,255,255,0.02); }
-.sp-idea-chevron { font-size: 8px; color: var(--sp-text-dim); transition: transform 0.2s ease; flex-shrink: 0; }
+.sp-idea-chevron { font-size: var(--sp-fs-xs); color: var(--sp-text-dim); transition: transform 0.2s ease; flex-shrink: 0; }
 .sp-idea-card.sp-card-open .sp-idea-chevron { transform: rotate(90deg); }
 .sp-idea-icon { width: 14px; height: 14px; flex-shrink: 0; color: var(--idea-color); }
 .sp-idea-icon svg { width: 14px; height: 14px; }
-.sp-idea-type { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--idea-color); opacity: 0.85; }
-.sp-idea-name { font-size: 11px; font-weight: 700; color: var(--sp-text-bright); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.sp-idea-type { font-size: var(--sp-fs-xs); font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--idea-color); opacity: 0.85; }
+.sp-idea-name { font-size: var(--sp-fs-xs); font-weight: 700; color: var(--sp-text-bright); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .sp-idea-body { display: none; padding: 0 10px 7px 10px; }
 .sp-idea-card.sp-card-open .sp-idea-body { display: block; }
-.sp-idea-hook { font-size: 10px; color: var(--sp-text); line-height: 1.45; opacity: 0.85; }
+.sp-idea-hook { font-size: var(--sp-fs-xs); color: var(--sp-text); line-height: 1.45; opacity: 0.85; }
 .sp-idea-spacer { flex: 1; }
 .sp-idea-inject, .sp-idea-paste {
     display: inline-flex; align-items: center; justify-content: center;

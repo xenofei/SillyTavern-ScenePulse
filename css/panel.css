@@ -11,7 +11,7 @@
     position: fixed; top: 45px; right: 0; bottom: 0;
     background: var(--sp-bg-solid, #181a20);
     border-left: 2px solid rgba(77,184,164,0.25);
-    font-family: var(--sp-font); font-size: 13px; color: var(--sp-text);
+    font-family: var(--sp-font); font-size: var(--sp-fs-sm); color: var(--sp-text);
     overflow-y: auto; overflow-x: hidden;
     z-index: 1000;
     scrollbar-color: rgba(100,110,130,0.3) transparent;
@@ -59,13 +59,13 @@
     50% { filter: drop-shadow(0 0 10px rgba(77,184,164,0.5)) drop-shadow(0 0 20px rgba(77,184,164,0.15)); }
 }
 .sp-brand-title {
-    font-size: 14px; font-weight: 800; letter-spacing: 0.02em;
+    font-size: var(--sp-fs-md); font-weight: 800; letter-spacing: 0.02em;
     color: var(--sp-text-bright); line-height: 1; white-space: nowrap;
 }
 .sp-brand-accent { color: var(--sp-accent); }
 .sp-brand-title-wrap { display: flex; flex-direction: column; min-width: 0; }
 .sp-brand-subtitle {
-    font-size: 9px; font-weight: 500; color: var(--sp-text-dim);
+    font-size: var(--sp-fs-xs); font-weight: 500; color: var(--sp-text-dim);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     line-height: 1.1; margin-top: 1px; letter-spacing: 0.01em;
     transition: opacity 0.2s;
@@ -98,7 +98,7 @@
 .sp-toolbar-btn {
     background: var(--sp-surface); border: 1px solid var(--sp-border);
     color: var(--sp-text-dim); border-radius: 5px; padding: 4px 6px;
-    font-size: 14px; cursor: pointer;
+    font-size: var(--sp-fs-md); cursor: pointer;
     transition: all var(--sp-transition); text-align: center; line-height: 1;
     display: inline-flex; align-items: center; justify-content: center;
 }
@@ -111,7 +111,7 @@
 #sp-tb-features { position: relative; }
 .sp-feat-badge {
     position: absolute; top: -4px; right: -6px;
-    font-size: 7px; font-weight: 700; font-family: var(--sp-font-mono);
+    font-size: var(--sp-fs-xs); font-weight: 700; font-family: var(--sp-font-mono);
     background: var(--sp-accent-dim); color: var(--sp-accent);
     padding: 1px 3px; border-radius: 6px; line-height: 1;
     pointer-events: none; white-space: nowrap;
@@ -126,7 +126,7 @@
 .sp-feat-dropdown.sp-feat-open { display: block; }
 .sp-feat-item {
     display: flex; align-items: center; gap: 8px;
-    padding: 6px 12px; font-size: 11px; color: var(--sp-text);
+    padding: 6px 12px; font-size: var(--sp-fs-xs); color: var(--sp-text);
     cursor: pointer; transition: background 0.1s; white-space: nowrap;
     user-select: none;
 }
@@ -159,7 +159,7 @@
 .sp-dev-dropdown.sp-dev-open { display: block; }
 @keyframes sp-dev-drop-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 .sp-dev-dropdown-item {
-    padding: 5px 12px; font-size: 11px; color: var(--sp-text); cursor: pointer;
+    padding: 5px 12px; font-size: var(--sp-fs-xs); color: var(--sp-text); cursor: pointer;
     transition: all 0.1s ease; white-space: nowrap;
 }
 .sp-dev-dropdown-item:hover { background: var(--sp-surface-hover); color: var(--sp-text-bright); }

@@ -24,12 +24,12 @@
 .sp-section-refresh:hover { opacity: 1 !important; color: var(--sp-accent); background: var(--sp-accent-dim); }
 .sp-section-refresh.sp-spinning { opacity: 1; }
 .sp-section-refresh.sp-spinning svg { animation: sp-spin 0.8s linear infinite; }
-.sp-section-chevron { font-size: 9px; color: var(--sp-text-dim); transition: transform 0.25s ease-out; width: 10px; text-align: center; flex-shrink: 0; }
+.sp-section-chevron { font-size: var(--sp-fs-xs); color: var(--sp-text-dim); transition: transform 0.25s ease-out; width: 10px; text-align: center; flex-shrink: 0; }
 .sp-section.sp-open .sp-section-chevron { transform: rotate(90deg); }
 .sp-section-icon { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--sp-text-dim); }
 .sp-section-icon svg { display: block; }
-.sp-section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--sp-text-dim); }
-.sp-section-badge { font-size: 9px; font-weight: 600; padding: 1px 6px; border-radius: 8px; background: var(--sp-accent-dim); color: var(--sp-accent); display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.sp-section-title { font-size: var(--sp-fs-xs); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--sp-text-dim); }
+.sp-section-badge { font-size: var(--sp-fs-xs); font-weight: 600; padding: 1px 6px; border-radius: 8px; background: var(--sp-accent-dim); color: var(--sp-accent); display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
 .sp-section-body {
     display: none;
     background: var(--sp-bg-solid);
@@ -52,27 +52,27 @@
 /* ═══ EMPTY STATE ═══ */
 .sp-empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; padding: 40px 20px; text-align: center; }
 .sp-empty-icon { font-size: 32px; margin-bottom: 12px; opacity: 0.4; }
-.sp-empty-title { font-size: 14px; font-weight: 600; color: var(--sp-text); margin-bottom: 6px; }
-.sp-empty-sub { font-size: 11px; color: var(--sp-text-dim); line-height: 1.5; }
+.sp-empty-title { font-size: var(--sp-fs-md); font-weight: 600; color: var(--sp-text); margin-bottom: 6px; }
+.sp-empty-sub { font-size: var(--sp-fs-xs); color: var(--sp-text-dim); line-height: 1.5; }
 
 /* ═══ DATA ROWS ═══ */
 .sp-row { display: flex; gap: 8px; padding: 3px 0; align-items: baseline; }
-.sp-row-label { font-size: 11px; font-weight: 600; color: var(--sp-text-dim); min-width: 70px; flex-shrink: 0; text-align: right; }
-.sp-row-value { font-size: 12px; color: var(--sp-text); min-width: 0; word-break: break-word; }
+.sp-row-label { font-size: var(--sp-fs-xs); font-weight: 600; color: var(--sp-text-dim); min-width: 70px; flex-shrink: 0; text-align: right; }
+.sp-row-value { font-size: var(--sp-fs-base); color: var(--sp-text); min-width: 0; word-break: break-word; }
 
 /* ═══ SCENE PANEL v6.9.5 ═══ */
 /* Tension-colored left border on the entire scene section */
 /* Tension-colored left border removed per user feedback */
 
 /* sceneSummary: muted italic, slightly smaller */
-.sp-scene-summary { font-style: italic; color: var(--sp-text-dim); font-size: 11px; line-height: 1.5; }
+.sp-scene-summary { font-style: italic; color: var(--sp-text-dim); font-size: var(--sp-fs-xs); line-height: 1.5; }
 .sp-scene-summary-row { padding-bottom: 6px; margin-bottom: 2px; border-bottom: 1px dashed var(--sp-border); }
 
 /* Tension row: visual meter. Background gradient fills proportionally
    to the tension level. The label stays right-aligned, the value sits
    in a colored strip. */
 .sp-scene-tension-row .sp-row-value {
-    font-weight: 700; letter-spacing: 0.06em; font-size: 10px;
+    font-weight: 700; letter-spacing: 0.06em; font-size: var(--sp-fs-xs);
     padding: 2px 8px; border-radius: 3px;
 }
 /* v6.9.6: tension colors use CSS variables for theme overriding */
@@ -87,14 +87,14 @@
 
 /* Changed-this-turn indicator: small dot before the label */
 .sp-scene-changed .sp-row-label::before {
-    content: '\25CF'; font-size: 6px; color: var(--sp-accent);
+    content: '\25CF'; font-size: var(--sp-fs-xs); color: var(--sp-accent);
     margin-right: 4px; vertical-align: middle;
 }
 
 /* charactersPresent: colored name chips */
 .sp-scene-present { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
 .sp-scene-chip {
-    font-size: 10px; font-weight: 600; padding: 1px 7px; border-radius: 9px;
+    font-size: var(--sp-fs-xs); font-weight: 600; padding: 1px 7px; border-radius: 9px;
     border: 1px solid var(--chip-color, var(--sp-border));
     color: var(--chip-color, var(--sp-text));
     background: var(--sp-surface, rgba(255,255,255,0.04));
@@ -107,7 +107,7 @@
 
 /* Solo scene indicator */
 .sp-scene-solo {
-    font-size: 10px; font-style: italic; color: var(--sp-text-dim);
+    font-size: var(--sp-fs-xs); font-style: italic; color: var(--sp-text-dim);
     opacity: 0.6;
 }
 
