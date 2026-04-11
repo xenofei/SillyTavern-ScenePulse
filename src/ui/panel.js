@@ -68,10 +68,13 @@ export function showPanel(){
     // Measure ST's top bar for all modes
     const topBar=document.getElementById('top-bar')||document.getElementById('top-settings-holder')||document.querySelector('.header,.nav-bar,header');
     const tbH=topBar?topBar.getBoundingClientRect().bottom:0;
-    // Use the REAL visual viewport height — NOT 100vh which SillyTavern's
-    // layout can shrink via resize events. visualViewport is the most
-    // reliable, then documentElement.clientHeight, then window.innerHeight.
-    const _trueVH=window.visualViewport?.height||document.documentElement.clientHeight||window.innerHeight;
+    // SillyTavern's layout triggers resize events that report a HALVED
+    // viewport height (e.g. 526px instead of 1065px). We capture the
+    // maximum observed viewport height and never shrink below it.
+    // This prevents the panel from collapsing to half-height on resize.
+    const _rawVH=window.visualViewport?.height||document.documentElement.clientHeight||window.innerHeight;
+    if(!showPanel._maxVH||_rawVH>showPanel._maxVH)showPanel._maxVH=_rawVH;
+    const _trueVH=showPanel._maxVH;
     if(mode==='mobile'){
         const spTopH=44;
         p.style.top=spTopH+'px';p.style.height=(_trueVH-spTopH)+'px';p.style.width='100vw';p.style.right='0';
