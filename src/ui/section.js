@@ -39,7 +39,7 @@ export function resizeSectionContent(){
     // This provides a large viewport per section while still constraining
     // content so it can't bleed past the section boundary.
     const availH=Math.max(panelH-fixedH,300);
-    const perSection=Math.max(Math.round(availH*0.7),300);
+    const perSection=Math.max(Math.round(availH*0.9),300);
     sections.forEach(sec=>{
         const ct=sec.querySelector('.sp-section-content');
         if(!ct)return;
