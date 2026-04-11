@@ -1,14 +1,14 @@
 /* ═══ SECTIONS (shared) ═══ */
-/* Each section creates its own stacking context so internal z-index
-   values (e.g. the header's z-index:1) cannot leak across section
-   boundaries. Prevents character/relationship card backgrounds from
-   bleeding into adjacent sections. */
-.sp-section { border-top: 1px solid var(--sp-border); transition: margin 0.3s ease-out; position: relative; isolation: isolate; }
+/* Each section gets position:relative so JS-assigned z-index works.
+   mkSection() assigns incrementing z-index (1,2,3...) so later
+   sections ALWAYS paint on top of earlier ones — this is the
+   definitive fix for card background bleed-through. */
+.sp-section { border-top: 1px solid var(--sp-border); transition: margin 0.3s ease-out; position: relative; }
 .sp-section:last-child { border-bottom: 1px solid var(--sp-border); margin-bottom: 8px; }
-/* Sticky headers remain visible while scrolling through long section
-   content, matching VS Code Explorer / Amazon accordion UX pattern.
-   top: 40px clears the sticky toolbar. The opaque background prevents
-   content from bleeding through the header. */
+/* Sticky headers. Opaque background covers content scrolling behind.
+   Hover uses layered background to stay fully opaque (sp-surface is
+   semi-transparent rgba — layering it over sp-bg-solid makes it
+   opaque while preserving the visual tint). */
 .sp-section-header {
     display: flex; align-items: center; gap: 8px; padding: 7px 12px;
     cursor: pointer; user-select: none; transition: background var(--sp-transition);
@@ -16,8 +16,8 @@
     background: var(--sp-bg-solid);
     border-bottom: 1px solid transparent;
 }
-.sp-section-header:hover { background: var(--sp-surface); }
-/* When a section header is stuck, add a subtle bottom border for depth */
+.sp-section-header:hover { background: linear-gradient(var(--sp-surface), var(--sp-surface)), var(--sp-bg-solid); }
+/* When a section is open, add a subtle bottom border on the header */
 .sp-section.sp-open .sp-section-header { border-bottom-color: var(--sp-border); }
 .sp-section-spacer { flex: 1; }
 .sp-section-refresh {
@@ -37,19 +37,20 @@
 .sp-section-badge { font-size: 9px; font-weight: 600; padding: 1px 6px; border-radius: 8px; background: var(--sp-accent-dim); color: var(--sp-accent); display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
 .sp-section-body {
     display: none;
-    /* Opaque background ensures this section's body covers any content
-       from earlier sections that might scroll behind it. This is the
-       definitive fix for card background bleed-through between sections. */
+    /* Opaque background covers any earlier sections' content that
+       scrolls behind this section. No overflow or position properties
+       here — they would break sticky headers in child sections. */
     background: var(--sp-bg-solid);
-    position: relative;
 }
 .sp-section.sp-open .sp-section-body { display: block; }
 /* v6.9.6: removed max-height: 40vh which caused a nested scroll trap
    (scrollable sub-region inside the already-scrollable panel). The
    panel's own overflow handles all scrolling now. */
-.sp-section-content { padding: 4px 12px 12px 12px; overflow-x: hidden; }
-.sp-section-content::-webkit-scrollbar { width: 3px; }
-.sp-section-content::-webkit-scrollbar-thumb { background: rgba(100,110,130,0.3); border-radius: 2px; }
+/* No overflow property — overflow on any ancestor between the scroll
+   container (#sp-panel) and a sticky element breaks position:sticky
+   and can create unwanted nested scroll traps. */
+.sp-section-content { padding: 4px 12px 12px 12px; }
+/* Scrollbar styles removed — section-content no longer has overflow */
 
 /* ═══ EMPTY STATE ═══ */
 .sp-empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; padding: 40px 20px; text-align: center; }

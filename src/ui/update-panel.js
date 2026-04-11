@@ -22,7 +22,7 @@ import { checkSceneTransition } from './scene-transition.js';
 import { renderTimeline } from './timeline.js';
 import { updateThoughts } from './thoughts.js';
 import { mkEditable } from './edit-mode.js';
-import { mkSection } from './section.js';
+import { mkSection, resetSectionCounter } from './section.js';
 import { injectStoryIdea } from '../story-ideas.js';
 import { showPanel } from './panel.js';
 import { showLoadingOverlay, clearLoadingOverlay, showStopButton, hideStopButton } from './loading.js';
@@ -232,6 +232,7 @@ export function updatePanel(d,_force=false){
     if(mgrNode)mgrNode.remove();
     body.innerHTML='';
     if(mgrNode)body.appendChild(mgrNode);
+    resetSectionCounter(); // Each section gets incrementing z-index (1,2,3...)
     try { // Error boundary: if rendering fails, restore previous panel content
     const s=getSettings();
     const ft=s.fieldToggles||{};
