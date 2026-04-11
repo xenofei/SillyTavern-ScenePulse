@@ -1,11 +1,8 @@
 /* ═══ SECTIONS (shared) ═══ */
-/* isolation:isolate creates a stacking context per section. With all
-   sections at z-index:auto, natural DOM order determines paint order
-   (later sections paint on top of earlier ones). Combined with opaque
-   backgrounds on section-header and section-body, this prevents card
-   background bleed-through. Do NOT add position:relative here — it
-   breaks #sp-panel's overflow-y scrolling in some browsers. */
-.sp-section { border-top: 1px solid var(--sp-border); transition: margin 0.3s ease-out; isolation: isolate; }
+/* No position/isolation/z-index on sections — these break #sp-panel's
+   overflow-y scroll. Bleed-through prevention uses opaque backgrounds
+   on section-header and section-body instead of stacking contexts. */
+.sp-section { border-top: 1px solid var(--sp-border); transition: margin 0.3s ease-out; }
 .sp-section:last-child { border-bottom: 1px solid var(--sp-border); margin-bottom: 8px; }
 /* Section headers: opaque background prevents bleed from earlier
    sections (which have lower z-index). Hover uses layered background
