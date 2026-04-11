@@ -35,18 +35,22 @@
 .sp-section-badge { font-size: 9px; font-weight: 600; padding: 1px 6px; border-radius: 8px; background: var(--sp-accent-dim); color: var(--sp-accent); display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
 .sp-section-body {
     display: none;
-    /* Opaque background covers any earlier sections' content that
-       scrolls behind this section. No overflow or position properties
-       here — they would break sticky headers in child sections. */
     background: var(--sp-bg-solid);
 }
 .sp-section.sp-open .sp-section-body { display: block; }
-/* v6.9.6: removed max-height: 40vh which caused a nested scroll trap
-   (scrollable sub-region inside the already-scrollable panel). The
-   panel's own overflow handles all scrolling now. */
-/* overflow-x:hidden prevents wide content from expanding the panel
-   horizontally. No overflow-y — the panel's own scroll handles it. */
-.sp-section-content { padding: 4px 12px 12px 12px; overflow-x: hidden; }
+/* Each section is independently scrollable with a max height.
+   This compartmentalizes sections so expanding one doesn't push
+   others off-screen. Sections with less content than max-height
+   show at their natural size (no wasted space). */
+.sp-section-content {
+    padding: 4px 12px 12px 12px;
+    max-height: 50vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-color: rgba(100,110,130,0.3) transparent;
+}
+.sp-section-content::-webkit-scrollbar { width: 4px; }
+.sp-section-content::-webkit-scrollbar-thumb { background: rgba(100,110,130,0.3); border-radius: 2px; }
 
 /* ═══ EMPTY STATE ═══ */
 .sp-empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; padding: 40px 20px; text-align: center; }
