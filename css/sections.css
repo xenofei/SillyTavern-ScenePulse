@@ -5,14 +5,13 @@
    definitive fix for card background bleed-through. */
 .sp-section { border-top: 1px solid var(--sp-border); transition: margin 0.3s ease-out; position: relative; }
 .sp-section:last-child { border-bottom: 1px solid var(--sp-border); margin-bottom: 8px; }
-/* Sticky headers. Opaque background covers content scrolling behind.
-   Hover uses layered background to stay fully opaque (sp-surface is
-   semi-transparent rgba — layering it over sp-bg-solid makes it
-   opaque while preserving the visual tint). */
+/* Section headers: opaque background prevents bleed from earlier
+   sections (which have lower z-index). Hover uses layered background
+   to stay fully opaque (sp-surface is semi-transparent rgba). */
 .sp-section-header {
     display: flex; align-items: center; gap: 8px; padding: 7px 12px;
     cursor: pointer; user-select: none; transition: background var(--sp-transition);
-    pointer-events: auto; position: sticky; top: 40px; z-index: 2;
+    pointer-events: auto; position: relative; z-index: 2;
     background: var(--sp-bg-solid);
     border-bottom: 1px solid transparent;
 }
