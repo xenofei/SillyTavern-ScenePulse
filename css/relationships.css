@@ -54,7 +54,10 @@
    between the meter name and the bar's left edge. This is independent
    of the grid gap (which controls bar→value spacing) so both spacings
    work correctly at all panel widths and resolutions. */
-.sp-meter-label { font-size: var(--sp-fs-xs); font-weight: 600; text-align: right; color: var(--sp-text-dim); text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap; padding-right: 10px; }
+/* min-width ensures all labels align (sized for "AFFECTION" at
+   --sp-fs-xs with uppercase + letter-spacing). Right-aligned text
+   within the min-width keeps shorter labels flush with the bar edge. */
+.sp-meter-label { font-size: var(--sp-fs-xs); font-weight: 600; text-align: right; color: var(--sp-text-dim); text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap; padding-right: 10px; min-width: calc(var(--sp-fs-xs) * 8); }
 .sp-meter-bar-wrap { position: relative; height: clamp(6px, 1.4cqi, 12px); background: rgba(100,110,130,0.12); border-radius: 5px; overflow: visible; }
 .sp-meter-bar-fill { height: 100%; border-radius: 5px; transition: width 0.6s cubic-bezier(0.4,0,0.2,1); position: relative; overflow: hidden; }
 .sp-meter-bar-fill::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(255,255,255,0.15) 0%, transparent 60%); border-radius: 5px; }

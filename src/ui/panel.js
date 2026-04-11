@@ -75,6 +75,9 @@ export function showPanel(){
         // with bottom:0 because per-section scrolling handles overflow.
         const mobileH=Math.max(window.innerHeight,window.screen?.availHeight||0)-spTopH;
         p.style.top=spTopH+'px';p.style.height=mobileH+'px';p.style.left='0';p.style.right='0';p.style.width='100vw';
+        // Force-remove compact mode on mobile/tablet — fullscreen panel
+        // doesn't need condensing, and compact hides char grid/goals/fertility
+        p.classList.remove('sp-compact');delete p.dataset.spAutoCompact;delete p.dataset.spUserCompact;
     }else{
         p.style.top=tbH+'px';p.style.right='0';
         const sheld=document.getElementById('sheld');
