@@ -37,9 +37,10 @@
 .sp-section-badge { font-size: 9px; font-weight: 600; padding: 1px 6px; border-radius: 8px; background: var(--sp-accent-dim); color: var(--sp-accent); display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
 .sp-section-body {
     display: none;
-    /* Clip content so cards with positioned elements or backgrounds
-       cannot visually escape into adjacent sections */
-    overflow: hidden;
+    /* Opaque background ensures this section's body covers any content
+       from earlier sections that might scroll behind it. This is the
+       definitive fix for card background bleed-through between sections. */
+    background: var(--sp-bg-solid);
     position: relative;
 }
 .sp-section.sp-open .sp-section-body { display: block; }
