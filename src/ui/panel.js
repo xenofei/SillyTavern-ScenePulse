@@ -105,13 +105,7 @@ export function showPanel(){
     spInjectTopBar(mode);
     syncThoughts();
     spUpdateFab();
-    log('Panel shown, width:',p.style.width,'top:',p.style.top,'mode:',mode);
-    // Diagnostic: report computed dimensions and overflow
-    requestAnimationFrame(()=>{
-        const cs=getComputedStyle(p);const body=document.getElementById('sp-panel-body');const bcs=body?getComputedStyle(body):null;
-        log('DIAG panel: h='+cs.height+' maxH='+cs.maxHeight+' overflow='+cs.overflowX+'/'+cs.overflowY+' display='+cs.display+' flexDir='+cs.flexDirection+' parent='+p.parentElement?.tagName+'#'+p.parentElement?.id);
-        if(body)log('DIAG body: h='+bcs.height+' scrollH='+body.scrollHeight+' overflow='+bcs.overflowX+'/'+bcs.overflowY+' flex='+bcs.flex+' minH='+bcs.minHeight);
-    });
+    log('Panel shown, width:',p.style.width,'top:',p.style.top,'mode:',mode,'vh:',window.innerHeight);
 }
 export function hidePanel(){
     const p=document.getElementById('sp-panel');if(!p)return;
