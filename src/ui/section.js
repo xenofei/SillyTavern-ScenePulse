@@ -13,9 +13,8 @@ export function resizeSectionContent(){
     const panel=document.getElementById('sp-panel');
     const body=document.getElementById('sp-panel-body');
     if(!panel||!body)return;
-    // Measure total panel height
     const panelH=panel.clientHeight;
-    // Measure all fixed-height elements: toolbar, dashboard, all section headers, footer
+    // Measure fixed elements
     let fixedH=0;
     const toolbar=panel.querySelector('.sp-toolbar');
     if(toolbar)fixedH+=toolbar.offsetHeight;
@@ -23,7 +22,6 @@ export function resizeSectionContent(){
     if(dash)fixedH+=dash.offsetHeight;
     const footer=body.querySelector('.sp-gen-footer');
     if(footer)fixedH+=footer.offsetHeight;
-    // Count section headers (always visible) and open section bodies
     const sections=body.querySelectorAll('.sp-section');
     let openCount=0;
     sections.forEach(sec=>{
@@ -31,16 +29,28 @@ export function resizeSectionContent(){
         if(header)fixedH+=header.offsetHeight;
         if(sec.classList.contains('sp-open'))openCount++;
     });
-    // Each section gets 70% of panel height — large enough to show
-    // substantial content, small enough to prevent bleed into the
-    // next section. The panel scrolls to reach different sections.
-    const perSection=Math.max(Math.round(panelH*0.7),300);
-    // Apply to each open section's content only (NOT body — overflow
-    // on body blocks scrolling in ST's 3D context)
+    // Available height divided among open sections (min 250px each).
+    // Using FIXED height (not max-height) — the element is exactly
+    // this tall, so it physically cannot extend past the next header.
+    // CSS overflow has proven unreliable in ST's 3D transform context,
+    // but a fixed height constrains the element's layout box itself.
+    const availH=Math.max(panelH-fixedH,250);
+    const perSection=Math.max(Math.floor(availH/(openCount||1)),250);
     sections.forEach(sec=>{
         const ct=sec.querySelector('.sp-section-content');
         if(!ct)return;
-        ct.style.maxHeight=sec.classList.contains('sp-open')?perSection+'px':'';
+        if(sec.classList.contains('sp-open')){
+            // Only constrain if content is taller than available space
+            if(ct.scrollHeight>perSection){
+                ct.style.height=perSection+'px';
+                ct.style.maxHeight='';
+            }else{
+                ct.style.height='auto';
+                ct.style.maxHeight='';
+            }
+        }else{
+            ct.style.height='';ct.style.maxHeight='';
+        }
     });
 }
 
