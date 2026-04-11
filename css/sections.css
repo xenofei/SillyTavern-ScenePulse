@@ -4,15 +4,17 @@
 /* Opaque background prevents content from earlier sections showing
    through. Hover layers sp-surface (semi-transparent) over sp-bg-solid
    to stay fully opaque. */
+/* Sticky headers stay visible when scrolling through the panel.
+   They sit on top of any content that scrolls behind them, which
+   prevents bleed from the previous section. The opaque background
+   covers everything beneath. top:0 sticks below the toolbar
+   (which is also sticky at top:0 with higher z-index). */
 .sp-section-header {
     display: flex; align-items: center; gap: 8px; padding: 7px 12px;
     cursor: pointer; user-select: none; transition: background var(--sp-transition);
-    pointer-events: auto; position: relative; z-index: 2;
+    pointer-events: auto; position: sticky; top: 0; z-index: 3;
     background: var(--sp-bg-solid);
     border-bottom: 1px solid transparent;
-    /* Spread shadow above the header covers any bleed from the
-       previous section's content rendering on top */
-    box-shadow: 0 -4px 0 0 var(--sp-bg-solid), 0 -8px 0 0 var(--sp-bg-solid);
 }
 .sp-section-header:hover { background: linear-gradient(var(--sp-surface), var(--sp-surface)), var(--sp-bg-solid); }
 /* When a section is open, add a subtle bottom border on the header */

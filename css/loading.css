@@ -139,7 +139,9 @@ body:has(#sp-panel.sp-mode-mobile) .sp-loading-glass-fixed {
     padding: 6px 10px;
     font-size: var(--sp-fs-xs); color: var(--sp-text); opacity: 0.75;
     border-top: 1px solid var(--sp-border);
-    background: rgba(255,255,255,0.02);
+    background: var(--sp-bg-solid, #12141a);
+    /* Anchor to bottom of panel */
+    position: sticky; bottom: 0; z-index: 4;
 }
 .sp-gen-footer span { white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; }
 .sp-gen-footer svg { opacity: 0.7; }
