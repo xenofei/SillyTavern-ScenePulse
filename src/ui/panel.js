@@ -75,15 +75,19 @@ export function showPanel(){
     const _rawVH=window.visualViewport?.height||document.documentElement.clientHeight||window.innerHeight;
     if(!showPanel._maxVH||_rawVH>showPanel._maxVH)showPanel._maxVH=_rawVH;
     const _trueVH=showPanel._maxVH;
+    // Set both height AND max-height in px. max-height is the hard constraint
+    // that enforces clipping even when position:fixed is broken by ST's
+    // html{transform:translateZ(0)} which makes fixed == absolute-to-html.
     if(mode==='mobile'){
-        const spTopH=44;
-        p.style.top=spTopH+'px';p.style.height=(_trueVH-spTopH)+'px';p.style.width='100vw';p.style.right='0';
+        const spTopH=44;const h=(_trueVH-spTopH)+'px';
+        p.style.top=spTopH+'px';p.style.height=h;p.style.maxHeight=h;p.style.width='100vw';p.style.right='0';
     }else if(mode==='tablet'){
-        const spTopH=44;
-        p.style.top=spTopH+'px';p.style.height=(_trueVH-spTopH)+'px';p.style.width='100vw';p.style.right='0';
+        const spTopH=44;const h=(_trueVH-spTopH)+'px';
+        p.style.top=spTopH+'px';p.style.height=h;p.style.maxHeight=h;p.style.width='100vw';p.style.right='0';
     }else{
+        const h=(_trueVH-tbH)+'px';
         p.style.top=tbH+'px';
-        p.style.height=(_trueVH-tbH)+'px';
+        p.style.height=h;p.style.maxHeight=h;
         const sheld=document.getElementById('sheld');
         const sheldRight=sheld?sheld.getBoundingClientRect().right:window.innerWidth*0.5;
         const availW=window.innerWidth-sheldRight;

@@ -5,9 +5,13 @@
 /* ═══ RIGHT SIDE PANEL ═══ */
 /* Uses position:fixed + --trackerUI-panel-width to integrate with ST layout */
 
-/* Restored to the exact pattern from v6.9.6 that worked. Panel is
-   display:block (NOT flex), overflow-y:auto, toolbar is position:sticky.
-   Height set by JS using visualViewport to avoid ST's 100vh halving. */
+/* ROOT CAUSE: SillyTavern sets html{-webkit-transform:translateZ(0)}
+   which breaks position:fixed — fixed elements become contained by
+   html instead of the viewport. Our panel must use position:fixed
+   BUT we counteract this by:
+   1. Removing our own transform:translateZ(0) (was GPU hack, no longer needed)
+   2. Setting height via JS using visualViewport (not CSS vh units)
+   3. Using max-height as a hard constraint to enforce clipping */
 #sp-panel {
     position: fixed; top: 45px; right: 0; height: calc(100vh - 45px);
     background: var(--sp-bg-solid, #181a20);
@@ -16,8 +20,6 @@
     z-index: 1000; display: none;
     font-family: var(--sp-font); font-size: 13px; color: var(--sp-text);
     pointer-events: auto;
-    -webkit-backface-visibility: hidden; backface-visibility: hidden;
-    transform: translateZ(0);
     scrollbar-color: rgba(100,110,130,0.3) transparent;
     transition: width 0.3s ease-out;
     box-sizing: border-box;
