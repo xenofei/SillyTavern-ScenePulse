@@ -44,6 +44,8 @@
     max-height: 50vh;
     overflow-y: auto;
     overflow-x: hidden;
+    /* Clip content that escapes overflow bounds in ST's 3D context */
+    contain: paint;
     scrollbar-color: rgba(100,110,130,0.3) transparent;
 }
 .sp-section-content::-webkit-scrollbar { width: 4px; }
