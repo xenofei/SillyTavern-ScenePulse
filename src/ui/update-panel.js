@@ -696,7 +696,7 @@ export function updatePanel(d,_force=false){
         // is a canonical form that matches an ST character by alias.
         // Falls back to a bare {name} stub if no character matched.
         const _relPortraitHtml=getPortraitHtml(matchedChar||{name:displayName,aliases:[]},cc.accent,_relPortraitIdx);
-        let hh=`<div class="sp-rel-header">${_relPortraitHtml}<span class="sp-rel-chevron">\u25B6</span><span class="sp-rel-name">${esc(displayName)}</span>`;if(rel.relType)hh+=`<span class="sp-rel-type-badge" data-ft="rel_type">${esc(rel.relType)}</span>`;if(rel.relPhase)hh+=`<span class="sp-rel-phase-badge" data-ft="rel_phase">${esc(rel.relPhase)}</span>`;hh+=`</div>`;bl.innerHTML=hh;bl.querySelector('.sp-rel-header').addEventListener('click',()=>bl.classList.toggle('sp-card-open'));
+        let hh=`<div class="sp-rel-header">${_relPortraitHtml}<span class="sp-rel-chevron">\u25B6</span><span class="sp-rel-name">${esc(displayName)}</span>`;if(rel.relType)hh+=`<span class="sp-rel-type-badge" data-ft="rel_type">${esc(rel.relType)}</span>`;if(rel.relPhase)hh+=`<span class="sp-rel-phase-badge" data-ft="rel_phase">${esc(rel.relPhase)}</span>`;hh+=`</div>`;bl.innerHTML=hh;bl.querySelector('.sp-rel-header').addEventListener('click',()=>{bl.classList.toggle('sp-card-open');requestAnimationFrame(()=>resizeSectionContent())});
         const _body=document.createElement('div');_body.className='sp-rel-body';
         {const meta=document.createElement('div');meta.className='sp-rel-meta';{const ttItem=document.createElement('div');ttItem.className='sp-rel-meta-item';ttItem.dataset.ft='rel_timeknown';ttItem.innerHTML=`<span class="sp-rel-meta-label">${t('Time Known')}</span>`;const ttVal=document.createElement('span');ttVal.textContent=rel.timeTogether||'\u2014';if(!rel.timeTogether){ttItem.classList.add('sp-empty-field');ttVal.dataset.placeholder='Time known'}mkEditable(ttVal,()=>rel.timeTogether||'',v=>{rel.timeTogether=v;const snap=getLatestSnapshot();if(snap){const sr=snap.relationships?.find(r=>r.name===rel.name);if(sr)sr.timeTogether=v}});ttItem.appendChild(ttVal);meta.appendChild(ttItem)}{const msItem=document.createElement('div');msItem.className='sp-rel-meta-item sp-rel-milestone';msItem.dataset.ft='rel_milestone';msItem.innerHTML=`<span class="sp-rel-meta-label">${t('Milestone')}</span>`;const msVal=document.createElement('span');msVal.textContent=rel.milestone||'\u2014';if(!rel.milestone){msItem.classList.add('sp-empty-field');msVal.dataset.placeholder='Milestone'}mkEditable(msVal,()=>rel.milestone||'',v=>{rel.milestone=v;const snap=getLatestSnapshot();if(snap){const sr=snap.relationships?.find(r=>r.name===rel.name);if(sr)sr.milestone=v}});msItem.appendChild(msVal);meta.appendChild(msItem)}_body.appendChild(meta)}
         // Unique per-meter delta icons — emotionally distinct UP and DOWN variants
@@ -735,7 +735,24 @@ export function updatePanel(d,_force=false){
         const _sparkCanvas=createSparklineCanvas(displayName,m.k);
         if(_sparkCanvas){row.appendChild(_sparkCanvas)}
         _body.appendChild(meterWrap)}bl.appendChild(_body);f.appendChild(bl)}return f;
-    },s);if(s.panels?.relationships===false)_sec.classList.add('sp-panel-hidden');body.appendChild(_sec)}
+    },s);
+    // Collapse/Expand all button in Relationships header
+    {const _relHeader=_sec.querySelector('.sp-section-header .sp-section-spacer');
+    if(_relHeader){
+        const _toggleAll=document.createElement('button');
+        _toggleAll.className='sp-char-toggle-all';
+        _toggleAll.title=t('Collapse/Expand all cards');
+        _toggleAll.innerHTML='<svg viewBox="0 0 16 16" width="14" height="14" fill="none"><rect x="2" y="2" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="2" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="2" y="9" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="9" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/></svg>';
+        _toggleAll.addEventListener('click',(e)=>{
+            e.stopPropagation();
+            const cards=_sec.querySelectorAll('.sp-rel-block,.sp-card-open');
+            const anyOpen=Array.from(_sec.querySelectorAll('.sp-rel-block')).some(c=>c.classList.contains('sp-card-open'));
+            _sec.querySelectorAll('.sp-rel-block').forEach(c=>{if(anyOpen)c.classList.remove('sp-card-open');else c.classList.add('sp-card-open')});
+            requestAnimationFrame(()=>resizeSectionContent());
+        });
+        _relHeader.parentNode.insertBefore(_toggleAll,_relHeader);
+    }}
+    if(s.panels?.relationships===false)_sec.classList.add('sp-panel-hidden');body.appendChild(_sec)}
 
     // Characters section
     {const _sec=mkSection('characters',t('Characters'),d.characters?.length||0,()=>{
@@ -868,6 +885,7 @@ export function updatePanel(d,_force=false){
                 if(e.target.closest('.sp-char-merge-btn'))return;
                 if(e.target.closest('.sp-char-portrait'))return;
                 cd.classList.toggle('sp-card-open');
+                requestAnimationFrame(()=>resizeSectionContent());
             });
             cd.querySelector('.sp-char-merge-btn').addEventListener('click',async(e)=>{
                 e.stopPropagation();
@@ -1200,7 +1218,24 @@ export function updatePanel(d,_force=false){
             }
         }
         return f;
-    },s);if(s.panels?.characters===false)_sec.classList.add('sp-panel-hidden');body.appendChild(_sec)}
+    },s);
+    // Collapse/Expand all button in Characters header
+    {const _charHeader=_sec.querySelector('.sp-section-header .sp-section-spacer');
+    if(_charHeader){
+        const _toggleAll=document.createElement('button');
+        _toggleAll.className='sp-char-toggle-all';
+        _toggleAll.title=t('Collapse/Expand all cards');
+        _toggleAll.innerHTML='<svg viewBox="0 0 16 16" width="14" height="14" fill="none"><rect x="2" y="2" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="2" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="2" y="9" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="9" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/></svg>';
+        _toggleAll.addEventListener('click',(e)=>{
+            e.stopPropagation();
+            const cards=_sec.querySelectorAll('.sp-char-card');
+            const anyOpen=Array.from(cards).some(c=>c.classList.contains('sp-card-open'));
+            cards.forEach(c=>{if(anyOpen)c.classList.remove('sp-card-open');else c.classList.add('sp-card-open')});
+            requestAnimationFrame(()=>resizeSectionContent());
+        });
+        _charHeader.parentNode.insertBefore(_toggleAll,_charHeader);
+    }}
+    if(s.panels?.characters===false)_sec.classList.add('sp-panel-hidden');body.appendChild(_sec)}
 
     // Story Ideas section
     {const _sec=mkSection('branches',t('Story Ideas'),d.plotBranches?.length||0,()=>{

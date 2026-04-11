@@ -31,7 +31,11 @@ export function resizeSectionContent(){
         const ct=sec.querySelector('.sp-section-content');
         if(!ct)return;
         if(sec.classList.contains('sp-open')){
-            ct.style.height=(ct.scrollHeight>perSection)?perSection+'px':'auto';
+            // Temporarily clear height to measure true content height
+            const prevH=ct.style.height;
+            ct.style.height='auto';
+            const fullH=ct.scrollHeight;
+            ct.style.height=(fullH>perSection)?perSection+'px':'auto';
         }else{
             ct.style.height='';
         }
