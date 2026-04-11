@@ -14,15 +14,12 @@
 /* Height set by JS in pixels (screen.availHeight - topBar).
    Do NOT use bottom:0 — html{transform} makes it resolve to
    html content height, not viewport bottom. */
-/* transform-style:flat breaks out of html's 3D perspective context
-   (html has -webkit-perspective:1000) which causes overflow:hidden to
-   fail in 3D rendering. flat forces 2D clipping. */
+/* DEBUG: bright red border to visualize anchor bounds */
 #sp-panel-anchor {
     position: fixed; top: 45px; right: 0;
     z-index: 1000; pointer-events: none;
     overflow: hidden;
-    transform-style: flat;
-    -webkit-transform-style: flat;
+    border: 3px solid red;
 }
 #sp-panel {
     width: 100%; height: 100%;
