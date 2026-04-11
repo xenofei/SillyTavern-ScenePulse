@@ -6,58 +6,6 @@ import { generating, setLastGenSource } from '../state.js';
 import { generateTracker } from '../generation/engine.js';
 import { showLoadingOverlay, clearLoadingOverlay, showStopButton, hideStopButton } from './loading.js';
 
-// Resize all open section-content elements so their max-height fills
-// the available space between section headers. This ensures section
-// content stops exactly at the next section header with no bleed.
-export function resizeSectionContent(){
-    const panel=document.getElementById('sp-panel');
-    const body=document.getElementById('sp-panel-body');
-    if(!panel||!body)return;
-    const panelH=panel.clientHeight;
-    // Measure fixed elements
-    let fixedH=0;
-    const toolbar=panel.querySelector('.sp-toolbar');
-    if(toolbar)fixedH+=toolbar.offsetHeight;
-    const dash=body.querySelector('.sp-env-permanent');
-    if(dash)fixedH+=dash.offsetHeight;
-    const footer=body.querySelector('.sp-gen-footer');
-    if(footer)fixedH+=footer.offsetHeight;
-    const sections=body.querySelectorAll('.sp-section');
-    let openCount=0;
-    sections.forEach(sec=>{
-        const header=sec.querySelector('.sp-section-header');
-        if(header)fixedH+=header.offsetHeight;
-        if(sec.classList.contains('sp-open'))openCount++;
-    });
-    // Available height divided among open sections (min 250px each).
-    // Using FIXED height (not max-height) — the element is exactly
-    // this tall, so it physically cannot extend past the next header.
-    // CSS overflow has proven unreliable in ST's 3D transform context,
-    // but a fixed height constrains the element's layout box itself.
-    // Give each section 70% of the available space (not divided among
-    // open sections). Users scroll the panel to reach different sections.
-    // This provides a large viewport per section while still constraining
-    // content so it can't bleed past the section boundary.
-    const availH=Math.max(panelH-fixedH,300);
-    const perSection=Math.max(Math.round(availH*0.9),300);
-    sections.forEach(sec=>{
-        const ct=sec.querySelector('.sp-section-content');
-        if(!ct)return;
-        if(sec.classList.contains('sp-open')){
-            // Only constrain if content is taller than available space
-            if(ct.scrollHeight>perSection){
-                ct.style.height=perSection+'px';
-                ct.style.maxHeight='';
-            }else{
-                ct.style.height='auto';
-                ct.style.maxHeight='';
-            }
-        }else{
-            ct.style.height='';ct.style.maxHeight='';
-        }
-    });
-}
-
 // Section icons keyed by section key — compact SVGs for visual scanability
 const SECTION_ICONS={
     scene:'<svg viewBox="0 0 16 16" width="14" height="14" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.1" opacity="0.5"/><path d="M8 2.5v5.5l4 2" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/><circle cx="8" cy="8" r="1.2" fill="currentColor" opacity="0.4"/></svg>',
@@ -81,8 +29,6 @@ export function mkSection(key,title,badge,fn,s){
         e.stopPropagation();sec.classList.toggle('sp-open');
         const st=getSettings();if(!st.openSections)st.openSections={};
         st.openSections[key]=sec.classList.contains('sp-open');saveSettings();
-        // Recalculate section heights when toggling
-        requestAnimationFrame(()=>resizeSectionContent());
     });
     // Refresh button regenerates just this section
     h.querySelector('.sp-section-refresh').addEventListener('click',async(e)=>{

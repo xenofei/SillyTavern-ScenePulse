@@ -38,17 +38,11 @@
     background: var(--sp-bg-solid);
 }
 .sp-section.sp-open .sp-section-body { display: block; }
-/* JS sets explicit height on each section-content so it physically
-   cannot extend past the next section header. overflow-y:auto handles
-   scrolling within the fixed-height container. */
+/* Content flows naturally — no max-height, no per-section scroll.
+   The panel itself scrolls to accommodate all expanded content. */
 .sp-section-content {
     padding: 8px 12px 12px 12px;
-    overflow-y: auto;
-    overflow-x: hidden;
-    scrollbar-color: rgba(100,110,130,0.3) transparent;
 }
-.sp-section-content::-webkit-scrollbar { width: 4px; }
-.sp-section-content::-webkit-scrollbar-thumb { background: rgba(100,110,130,0.3); border-radius: 2px; }
 
 /* ═══ EMPTY STATE ═══ */
 .sp-empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; padding: 40px 20px; text-align: center; }
