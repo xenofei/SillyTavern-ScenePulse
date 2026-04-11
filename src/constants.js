@@ -2,7 +2,7 @@
 // Extracted from index.js lines 1-365, plus TOUR_EXAMPLE_DATA (~4720-4747)
 
 export const MODULE_NAME='scenepulse';
-export const VERSION = '6.11.3';
+export const VERSION = '6.11.4';
 
 // v6.8.19: canonical list of character archetype enum values.
 // Shared between schema validation, normalize, prompt builder, UI filter,
