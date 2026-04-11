@@ -62,7 +62,7 @@
 
 /* ═══ SCENE PANEL v6.9.5 ═══ */
 /* Tension-colored left border on the entire scene section */
-.sp-scene-section.sp-section { border-left: 3px solid var(--sp-scene-tension-color, var(--sp-border)); }
+/* Tension-colored left border removed per user feedback */
 
 /* sceneSummary: muted italic, slightly smaller */
 .sp-scene-summary { font-style: italic; color: var(--sp-text-dim); font-size: 11px; line-height: 1.5; }
