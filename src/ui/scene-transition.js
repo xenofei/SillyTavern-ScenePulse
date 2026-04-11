@@ -30,12 +30,21 @@ export function checkSceneTransition(d){
         lines.push(labels[period]||period);
     }
     if(!lines.length)return;
-    let card=document.getElementById('sp-scene-transition');
-    if(!card){card=document.createElement('div');card.id='sp-scene-transition';document.body.appendChild(card)}
+    // Remove any existing transition card before creating a new one
+    const old=document.getElementById('sp-scene-transition');
+    if(old)old.remove();
+    const card=document.createElement('div');
+    card.id='sp-scene-transition';
     card.innerHTML=`<div class="sp-st-rule"></div>${lines.map(l=>`<span><b>${esc(l)}</b></span>`).join('<span class="sp-st-sep">\u203A</span>')}<div class="sp-st-rule"></div>`;
-    card.classList.remove('sp-st-show');
+    document.body.appendChild(card);
     void card.offsetWidth; // force reflow
     card.classList.add('sp-st-show');
-    setTimeout(()=>card.classList.remove('sp-st-show'),4500);
+    // Use animationend for reliable cleanup — setTimeout can be
+    // throttled in background tabs, leaving the overlay stuck
+    const cleanup=()=>{card.remove()};
+    card.addEventListener('animationend',cleanup,{once:true});
+    // Safety fallback: if animationend doesn't fire (e.g. animation
+    // cancelled, display:none), remove after 6s
+    setTimeout(()=>{if(card.parentNode)card.remove()},6000);
     log('Scene transition:',lines.join(' \u2014 '));
 }
