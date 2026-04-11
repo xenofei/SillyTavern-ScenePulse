@@ -164,31 +164,6 @@ export function createPanel(){
     <div id="sp-panel-body"><div class="sp-empty-state"><div class="sp-empty-icon">\uD83D\uDCE1</div><div class="sp-empty-title">${t('No scene data yet')}</div><div class="sp-empty-sub">${t('Send a message or click ⟳ to generate.')}</div></div></div>`;
     document.body.appendChild(panel);
     log('Panel appended to body');
-    // ── Manual scroll handling ──
-    // SillyTavern's html{transform+perspective} breaks native overflow
-    // scrolling inside fixed-position panels. Wheel events go to the
-    // main page instead of our panel. Fix: capture wheel events on the
-    // entire panel and manually scroll #sp-panel-body.
-    panel.addEventListener('wheel',(e)=>{
-        const body=document.getElementById('sp-panel-body');
-        if(!body)return;
-        e.preventDefault();
-        e.stopPropagation();
-        body.scrollTop+=e.deltaY;
-    },{passive:false});
-    // Also handle touch scrolling
-    let _touchY=null;
-    panel.addEventListener('touchstart',(e)=>{_touchY=e.touches[0]?.clientY??null},{passive:true});
-    panel.addEventListener('touchmove',(e)=>{
-        if(_touchY===null)return;
-        const body=document.getElementById('sp-panel-body');
-        if(!body)return;
-        const dy=_touchY-(e.touches[0]?.clientY??_touchY);
-        _touchY=e.touches[0]?.clientY??null;
-        body.scrollTop+=dy;
-        e.preventDefault();
-        e.stopPropagation();
-    },{passive:false});
 
     // ── Mobile FAB (floating action button to restore panel) ──
     if(!document.getElementById('sp-mobile-fab')){
