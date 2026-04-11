@@ -2,6 +2,44 @@
 
 All notable changes to ScenePulse are documented in this file.
 
+### [6.11.8] — 2026-04-11
+
+#### Changed — Full panel architecture redesign
+Complete rewrite of the panel layout system based on 15-agent expert analysis. Adopts flexbox column architecture (proven by Dooms-Enhancement-Suite). Panel uses `display: flex; flex-direction: column; overflow: hidden`. Each section is a flex child — collapsed sections show only their header, open sections share remaining space with per-section scrolling (`max-height: 70vh`, `overflow-y: auto`). Content stops at the last element with no wasted space. Eliminates all bleed-through issues by construction — sections occupy non-overlapping flex regions.
+
+#### Changed — Toolbar overhaul
+Four feature toggle buttons (Thoughts, Weather, Time Tint, Scene Transitions) collapsed into a single Features dropdown with checkboxes and active-count badge. Toolbar buttons grouped with subtle pill backgrounds. Brand icon animation is now state-driven (idle=static, generating=pulse, error=flash). Contextual subtitle under "ScenePulse" showing live character/relationship/message counts.
+
+#### Changed — 12px minimum font floor
+Introduced CSS custom property font scale system (`--sp-fs-base` through `--sp-fs-xl`). All ~200 font-size declarations across 28 CSS files migrated to use variables. Zero sub-12px text remains. Overriding `--sp-fs-base` scales the entire UI proportionally. Font scale settings slider now just sets one variable.
+
+#### Added — Section header icons
+Each section has a compact SVG icon (Scene=clock, Quests=bookmark, Relationships=people, Characters=person, Story Ideas=branches).
+
+#### Added — Collapse/expand all button
+Characters and Relationships section headers have a toggle button to collapse or expand all cards at once.
+
+#### Added — Scene badge improvements
+Badge shows tension-colored dot (5px) + full topic text. Quest badge shows "2 Main · 3 Side" format. Elapsed field added to Scene Details panel.
+
+#### Added — Meter grid improvements
+4-column grid layout (label | bar | value | sparkline). Sparklines separated into own column — visible at all resolutions (scaled down at narrow widths). Label column uses `auto` width with `min-width` for alignment.
+
+#### Changed — Story ideas type enforcement
+Schema and prompt now use positional slot ordering: [0]=dramatic, [1]=intense, [2]=comedic, [3]=twist, [4]=exploratory. `minItems`/`maxItems` set to 5.
+
+#### Changed — Mobile/tablet fixes
+Fixed panel positioning with explicit pixel height for mobile. Clean mode switching resets all inline styles. Compact mode force-removed on mobile/tablet. Stale button hiding rules updated for Features dropdown.
+
+#### Fixed — Theme variable compliance
+40+ hardcoded hex colors replaced with `--sp-*` variable equivalents across quests, relationships, mobile, and timeline CSS.
+
+#### Fixed — UX polish (10 items from design review)
+Section refresh button: 24x24px, opacity 0.5. Section content top padding: 8px. Story idea buttons: opacity 0.4. Quest Add button: opacity 0.7. Border-radius standardized to variables. Witness/offscene opacity unified to 0.6. Subtitle opacity removed. Section icon opacity matched to title.
+
+#### Removed — Stale code cleanup
+~35 lines of dead CSS from anchor wrapper pattern. Duplicate `.sp-error` rule. No-op `resizeSectionContent()` and all 6 call sites. Stale comments from iteration history.
+
 ### [6.9.14] — 2026-04-10
 
 #### Changed — Per-chat custom panel definitions
