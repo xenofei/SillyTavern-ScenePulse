@@ -45,11 +45,9 @@
 /* v6.9.6: removed max-height: 40vh which caused a nested scroll trap
    (scrollable sub-region inside the already-scrollable panel). The
    panel's own overflow handles all scrolling now. */
-/* No overflow property — overflow on any ancestor between the scroll
-   container (#sp-panel) and a sticky element breaks position:sticky
-   and can create unwanted nested scroll traps. */
-.sp-section-content { padding: 4px 12px 12px 12px; }
-/* Scrollbar styles removed — section-content no longer has overflow */
+/* overflow-x:hidden prevents wide content from expanding the panel
+   horizontally. No overflow-y — the panel's own scroll handles it. */
+.sp-section-content { padding: 4px 12px 12px 12px; overflow-x: hidden; }
 
 /* ═══ EMPTY STATE ═══ */
 .sp-empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; padding: 40px 20px; text-align: center; }
