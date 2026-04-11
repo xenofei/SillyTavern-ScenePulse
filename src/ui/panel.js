@@ -101,13 +101,7 @@ export function showPanel(){
     spInjectTopBar(mode);
     syncThoughts();
     spUpdateFab();
-    // Set section max-height using real viewport height (vh units are
-    // unreliable due to ST's html{transform:translateZ(0)}). Use 50%
-    // of the actual viewport measured via screen.availHeight.
-    const _realVH=Math.max(window.innerHeight,window.screen?.availHeight||0);
-    const _secMaxH=Math.round(_realVH*0.5)+'px';
-    p.querySelectorAll('.sp-section-content').forEach(el=>{el.style.maxHeight=_secMaxH});
-    log('Panel shown, width:',p.style.width,'top:',p.style.top,'secMaxH:',_secMaxH,'mode:',mode);
+    log('Panel shown, width:',p.style.width,'top:',p.style.top,'mode:',mode);
 }
 export function hidePanel(){
     const p=document.getElementById('sp-panel');if(!p)return;

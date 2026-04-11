@@ -22,7 +22,7 @@ import { checkSceneTransition } from './scene-transition.js';
 import { renderTimeline } from './timeline.js';
 import { updateThoughts } from './thoughts.js';
 import { mkEditable } from './edit-mode.js';
-import { mkSection } from './section.js';
+import { mkSection, resizeSectionContent } from './section.js';
 import { injectStoryIdea } from '../story-ideas.js';
 import { showPanel } from './panel.js';
 import { showLoadingOverlay, clearLoadingOverlay, showStopButton, hideStopButton } from './loading.js';
@@ -1360,6 +1360,8 @@ export function updatePanel(d,_force=false){
         else el.classList.remove('sp-ft-force-shown');
     });
     log('\u23F1 updatePanel:',((performance.now()-_perfStart)|0)+'ms');
+    // Recalculate section max-heights after content renders
+    requestAnimationFrame(()=>resizeSectionContent());
     } catch(_renderErr) {
         // Error boundary: restore previous panel content on failure
         log('ERROR updatePanel render failed — restoring previous content:', _renderErr?.message||_renderErr);
