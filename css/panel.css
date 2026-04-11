@@ -5,18 +5,16 @@
 /* ═══ RIGHT SIDE PANEL ═══ */
 /* Uses position:fixed + --trackerUI-panel-width to integrate with ST layout */
 
-/* Flex column layout: toolbar stays at top (flex-shrink:0), body
-   scrolls independently (flex:1 + overflow-y:auto + min-height:0).
-   This is the VS Code / Discord standard sidebar pattern. We do NOT
-   scroll on #sp-panel itself — SillyTavern overrides its height/overflow
-   in ways that break panel-level scrolling. Instead, #sp-panel-body
-   is the scroll container. */
+/* Panel uses display:flex + column so the toolbar stays fixed at top
+   and #sp-panel-body fills the rest and scrolls. The .scrollY class
+   from SillyTavern is added to #sp-panel-body to use ST's own scroll
+   infrastructure, avoiding all scrollbar styling conflicts. */
 #sp-panel {
     position: fixed; top: 45px; right: 0; height: calc(100vh - 45px);
     background: var(--sp-bg-solid, #181a20);
     border-left: 2px solid rgba(77,184,164,0.25);
-    overflow: hidden;
-    z-index: 1000; display: none;
+    overflow: hidden !important;
+    z-index: 1000;
     font-family: var(--sp-font); font-size: 13px; color: var(--sp-text);
     pointer-events: auto;
     -webkit-backface-visibility: hidden; backface-visibility: hidden;
@@ -25,21 +23,14 @@
     box-sizing: border-box;
     container-type: inline-size;
     container-name: sp-panel;
-    /* Flex column: toolbar + body */
     display: none; flex-direction: column;
 }
-#sp-panel.sp-visible { display: flex; }
+#sp-panel.sp-visible { display: flex !important; }
 #sp-panel-body {
     pointer-events: auto; position: relative;
-    /* Flex child: fill remaining height, scroll independently */
-    flex: 1 1 0; min-height: 0;
-    overflow-y: auto !important; overflow-x: hidden;
-    scrollbar-color: rgba(160,170,190,0.6) rgba(40,44,56,0.4);
+    flex: 1 1 0px; min-height: 0 !important;
+    overflow-y: auto !important; overflow-x: hidden !important;
 }
-#sp-panel-body::-webkit-scrollbar { width: 8px; }
-#sp-panel-body::-webkit-scrollbar-track { background: rgba(40,44,56,0.4); }
-#sp-panel-body::-webkit-scrollbar-thumb { background: rgba(160,170,190,0.6); border-radius: 4px; }
-#sp-panel-body::-webkit-scrollbar-thumb:hover { background: rgba(180,190,210,0.8); }
 #sp-panel * { pointer-events: auto; }
 
 #sp-panel-toggle { display: none; }
