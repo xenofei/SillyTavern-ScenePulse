@@ -127,6 +127,15 @@ export function showPanel(){
         log('Body constrained:',bodyH+'px','toolbar:',tbHeight);
     }
     log('Panel shown, anchorH:',anchor?.style.height,'trueH:',trueH,'mode:',mode);
+    // Verify position:fixed is actually applied
+    requestAnimationFrame(()=>{
+        const a=document.getElementById('sp-panel-anchor');
+        if(a){
+            const cs=getComputedStyle(a);
+            log('POSITION-CHECK anchor: position='+cs.position+' top='+cs.top+' height='+cs.height+' overflow='+cs.overflow+' display='+cs.display);
+            log('POSITION-CHECK panel: position='+getComputedStyle(p).position+' height='+getComputedStyle(p).height+' display='+getComputedStyle(p).display+' overflow='+getComputedStyle(p).overflow);
+        }
+    });
     // Nuclear diagnostic: dump the actual inline style and verify it stuck
     requestAnimationFrame(()=>{
         const b=document.getElementById('sp-panel-body');
