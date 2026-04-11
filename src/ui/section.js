@@ -34,8 +34,12 @@ export function resizeSectionContent(){
     // this tall, so it physically cannot extend past the next header.
     // CSS overflow has proven unreliable in ST's 3D transform context,
     // but a fixed height constrains the element's layout box itself.
-    const availH=Math.max(panelH-fixedH,250);
-    const perSection=Math.max(Math.floor(availH/(openCount||1)),250);
+    // Give each section 70% of the available space (not divided among
+    // open sections). Users scroll the panel to reach different sections.
+    // This provides a large viewport per section while still constraining
+    // content so it can't bleed past the section boundary.
+    const availH=Math.max(panelH-fixedH,300);
+    const perSection=Math.max(Math.round(availH*0.7),300);
     sections.forEach(sec=>{
         const ct=sec.querySelector('.sp-section-content');
         if(!ct)return;
