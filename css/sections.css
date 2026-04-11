@@ -13,15 +13,10 @@
 /* Open sections display full content — no max-height, no scroll.
    Panel body scrolls to reach all sections. */
 .sp-section.sp-open { flex: 0 0 auto; }
-/* Sticky headers stay at top of the panel body scroll container.
-   z-index:3 ensures they paint above any section content (cards with
-   transforms, colored backgrounds, etc.). Opaque background covers
-   content scrolling behind. */
 .sp-section-header {
     display: flex; align-items: center; gap: 8px; padding: 7px 12px;
     cursor: pointer; user-select: none; transition: background var(--sp-transition);
     pointer-events: auto; flex-shrink: 0;
-    position: sticky; top: 0; z-index: 3;
     background: var(--sp-bg-solid);
     border-bottom: 1px solid transparent;
 }
@@ -51,21 +46,16 @@
 .sp-section-icon svg { display: block; }
 .sp-section-title { font-size: var(--sp-fs-xs); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--sp-text-dim); }
 .sp-section-badge { font-size: var(--sp-fs-xs); font-weight: 600; padding: 1px 6px; border-radius: 8px; background: var(--sp-accent-dim); color: var(--sp-accent); display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
-/* z-index:1 traps card transforms below sticky headers (z-index:3) */
 .sp-section-body {
     display: none;
     background: var(--sp-bg-solid);
-    flex: 1; min-height: 0;
-    flex-direction: column;
-    position: relative; z-index: 1;
 }
-.sp-section.sp-open .sp-section-body { display: flex; }
-/* Content displays fully — no per-section scroll */
+.sp-section.sp-open .sp-section-body { display: block; }
+/* JS sets exact height matching content. overflow:hidden clips
+   at that exact boundary so nothing can bleed past. */
 .sp-section-content {
     padding: 8px 12px 12px 12px;
-    /* Skip rendering for off-screen content within each section */
-    content-visibility: auto;
-    contain-intrinsic-size: auto 500px;
+    overflow: hidden;
 }
 
 /* ═══ EMPTY STATE ═══ */
