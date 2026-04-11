@@ -10,6 +10,9 @@
     pointer-events: auto; position: relative; z-index: 2;
     background: var(--sp-bg-solid);
     border-bottom: 1px solid transparent;
+    /* Spread shadow above the header covers any bleed from the
+       previous section's content rendering on top */
+    box-shadow: 0 -4px 0 0 var(--sp-bg-solid), 0 -8px 0 0 var(--sp-bg-solid);
 }
 .sp-section-header:hover { background: linear-gradient(var(--sp-surface), var(--sp-surface)), var(--sp-bg-solid); }
 /* When a section is open, add a subtle bottom border on the header */
@@ -33,6 +36,11 @@
 .sp-section-body {
     display: none;
     background: var(--sp-bg-solid);
+    /* position:relative + z-index:1 ensures this body paints above
+       the PREVIOUS section's content (which has no z-index). The
+       opaque background covers any bleed from the section above. */
+    position: relative;
+    z-index: 1;
 }
 .sp-section.sp-open .sp-section-body { display: block; }
 /* Each section is independently scrollable with a max height.
@@ -44,9 +52,10 @@
     max-height: 50vh;
     overflow-y: auto;
     overflow-x: hidden;
-    /* Clip content that escapes overflow bounds in ST's 3D context */
-    contain: paint;
     scrollbar-color: rgba(100,110,130,0.3) transparent;
+    /* Ensure this element is the scroll container — position:relative
+       establishes it as the containing block for children */
+    position: relative;
 }
 .sp-section-content::-webkit-scrollbar { width: 4px; }
 .sp-section-content::-webkit-scrollbar-thumb { background: rgba(100,110,130,0.3); border-radius: 2px; }
