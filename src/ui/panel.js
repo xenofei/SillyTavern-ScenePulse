@@ -65,51 +65,40 @@ export function showPanel(){
     const p=document.getElementById('sp-panel');if(!p)return;
     if(!getSettings().enabled){p.classList.remove('sp-visible');return}
     const mode=spApplyMode();
+    const anchor=document.getElementById('sp-panel-anchor');
     // Measure ST's top bar for all modes
     const topBar=document.getElementById('top-bar')||document.getElementById('top-settings-holder')||document.querySelector('.header,.nav-bar,header');
     const tbH=topBar?topBar.getBoundingClientRect().bottom:0;
-    // Use top + bottom:0 pattern (from Dooms-Enhancement-Suite).
-    // SillyTavern's html{transform:translateZ(0)} makes position:fixed
-    // relative to html. top+bottom lets the browser compute height from
-    // html's bounds (which stretches to viewport). No height/maxHeight
-    // needed — the browser handles it. No vh units, no JS height calc.
-    if(mode==='mobile'){
-        const spTopH=44;
-        p.style.top=spTopH+'px';p.style.bottom='0';p.style.height='';p.style.maxHeight='';p.style.width='100vw';p.style.right='0';
-    }else if(mode==='tablet'){
-        const spTopH=44;
-        p.style.top=spTopH+'px';p.style.bottom='0';p.style.height='';p.style.maxHeight='';p.style.width='100vw';p.style.right='0';
-    }else{
-        p.style.top=tbH+'px';
-        p.style.bottom='0';p.style.height='';p.style.maxHeight='';
-        const sheld=document.getElementById('sheld');
-        const sheldRight=sheld?sheld.getBoundingClientRect().right:window.innerWidth*0.5;
-        const availW=window.innerWidth-sheldRight;
-        // Auto-condense: if available space is too narrow for full panel, switch to compact
-        const _userCompact=p.dataset.spUserCompact==='true'; // user manually toggled
-        if(availW<360&&!_userCompact){
-            p.classList.add('sp-compact');p.dataset.spAutoCompact='true';
-            const compactW=Math.max(240,Math.min(Math.round(window.innerWidth*0.22),280));
-            p.style.width=compactW+'px';
-        }else if(p.dataset.spAutoCompact==='true'&&availW>=360){
-            // Auto-restore when space opens up
-            p.classList.remove('sp-compact');delete p.dataset.spAutoCompact;
-            p.style.width=Math.max(300,availW)+'px';
-        }else if(p.classList.contains('sp-compact')){
-            const compactW=Math.max(240,Math.min(Math.round(window.innerWidth*0.22),280));
-            p.style.width=compactW+'px';
+    // Position the ANCHOR (fixed-position frame), panel fills it via CSS height:100%
+    if(anchor){
+        if(mode==='mobile'||mode==='tablet'){
+            const spTopH=44;
+            anchor.style.top=spTopH+'px';anchor.style.bottom='0';anchor.style.width='100vw';anchor.style.right='0';anchor.style.left='0';
         }else{
-            p.style.width=Math.max(300,availW)+'px';
+            anchor.style.top=tbH+'px';anchor.style.bottom='0';anchor.style.left='';
+            const sheld=document.getElementById('sheld');
+            const sheldRight=sheld?sheld.getBoundingClientRect().right:window.innerWidth*0.5;
+            const availW=window.innerWidth-sheldRight;
+            const _userCompact=p.dataset.spUserCompact==='true';
+            if(availW<360&&!_userCompact){
+                p.classList.add('sp-compact');p.dataset.spAutoCompact='true';
+                anchor.style.width=Math.max(240,Math.min(Math.round(window.innerWidth*0.22),280))+'px';
+            }else if(p.dataset.spAutoCompact==='true'&&availW>=360){
+                p.classList.remove('sp-compact');delete p.dataset.spAutoCompact;
+                anchor.style.width=Math.max(300,availW)+'px';
+            }else if(p.classList.contains('sp-compact')){
+                anchor.style.width=Math.max(240,Math.min(Math.round(window.innerWidth*0.22),280))+'px';
+            }else{
+                anchor.style.width=Math.max(300,availW)+'px';
+            }
         }
     }
     p.classList.add('sp-visible');
-    // Apply font scale via injected stylesheet (text only, not layout)
     _applyFontScale(getSettings().fontScale);
-    // Must call AFTER sp-visible is set so spInjectTopBar sees panel as visible
     spInjectTopBar(mode);
     syncThoughts();
     spUpdateFab();
-    log('Panel shown, width:',p.style.width,'top:',p.style.top,'bottom:',p.style.bottom,'mode:',mode);
+    log('Panel shown, anchor:',anchor?.style.width,'top:',anchor?.style.top,'bottom:',anchor?.style.bottom,'mode:',mode);
 }
 export function hidePanel(){
     const p=document.getElementById('sp-panel');if(!p)return;
@@ -172,8 +161,14 @@ export function createPanel(){
         <button class="sp-toolbar-btn" id="sp-tb-minimize" title="${t('Hide panel')}" style="display:none"><svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><line x1="2" y1="13" x2="14" y2="13" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity="0.4"/></svg></button>
     </div>
     <div id="sp-panel-body"><div class="sp-empty-state"><div class="sp-empty-icon">\uD83D\uDCE1</div><div class="sp-empty-title">${t('No scene data yet')}</div><div class="sp-empty-sub">${t('Send a message or click ⟳ to generate.')}</div></div></div>`;
-    document.body.appendChild(panel);
-    log('Panel appended to body');
+    // Wrap panel in a fixed-position anchor div. The anchor handles
+    // viewport positioning; the panel fills it with height:100%.
+    // This avoids the html{transform:translateZ(0)} containment bug
+    // where position:fixed on the panel itself doesn't clip properly.
+    let anchor=document.getElementById('sp-panel-anchor');
+    if(!anchor){anchor=document.createElement('div');anchor.id='sp-panel-anchor';document.body.appendChild(anchor)}
+    anchor.appendChild(panel);
+    log('Panel appended inside anchor');
 
     // ── Mobile FAB (floating action button to restore panel) ──
     if(!document.getElementById('sp-mobile-fab')){
@@ -283,14 +278,15 @@ export function createPanel(){
         // Track user-initiated compact so auto-condense doesn't override
         p.dataset.spUserCompact=isCompact?'true':'false';
         delete p.dataset.spAutoCompact;
-        // Recalculate width -- compact uses less space
-        if(isCompact){
-            const compactW=Math.max(240,Math.min(Math.round(window.innerWidth*0.22),280));
-            p.style.width=compactW+'px';
-        }else{
-            // Restore full width
-            const sheld=document.getElementById('sheld');
-            if(sheld){const rect=sheld.getBoundingClientRect();p.style.width=Math.max(300,window.innerWidth-rect.right)+'px'}
+        // Recalculate width on anchor -- compact uses less space
+        const anchor=document.getElementById('sp-panel-anchor');
+        if(anchor){
+            if(isCompact){
+                anchor.style.width=Math.max(240,Math.min(Math.round(window.innerWidth*0.22),280))+'px';
+            }else{
+                const sheld=document.getElementById('sheld');
+                if(sheld)anchor.style.width=Math.max(300,window.innerWidth-sheld.getBoundingClientRect().right)+'px';
+            }
         }
         log('Compact:',isCompact);
     });

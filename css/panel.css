@@ -5,20 +5,21 @@
 /* ═══ RIGHT SIDE PANEL ═══ */
 /* Uses position:fixed + --trackerUI-panel-width to integrate with ST layout */
 
-/* Pattern from Dooms-Enhancement-Suite (confirmed working in ST).
-   SillyTavern sets html{-webkit-transform:translateZ(0)} which makes
-   position:fixed relative to html instead of viewport. The fix:
-   - Use top + bottom:0 (NOT height:calc) — lets browser compute height
-     from html's bounds, which stretches to viewport despite the transform
-   - display:flex + flex-direction:column — toolbar stays at top
-   - overflow:visible on panel, overflow-y:auto on #sp-panel-body
-   - flex:1 + min-height:0 on body to constrain and enable scroll */
-#sp-panel {
+/* Two-layer approach: #sp-panel-anchor is a position:fixed viewport
+   anchor with NO content (just a positioning frame). #sp-panel sits
+   inside it as a normal-flow child, inheriting the anchor's height.
+   This avoids the html{transform:translateZ(0)} containment problem
+   because the anchor is zero-content (nothing to overflow) and the
+   panel uses the anchor's constrained dimensions via height:100%. */
+#sp-panel-anchor {
     position: fixed; top: 45px; right: 0; bottom: 0;
+    z-index: 1000; pointer-events: none;
+    overflow: hidden;
+}
+#sp-panel {
+    width: 100%; height: 100%;
     background: var(--sp-bg-solid, #181a20);
     border-left: 2px solid rgba(77,184,164,0.25);
-    overflow: visible;
-    z-index: 1000;
     font-family: var(--sp-font); font-size: 13px; color: var(--sp-text);
     pointer-events: auto;
     transition: width 0.3s ease-out;
@@ -26,6 +27,7 @@
     container-type: inline-size;
     container-name: sp-panel;
     display: none; flex-direction: column;
+    overflow: hidden;
 }
 #sp-panel.sp-visible { display: flex; }
 #sp-panel-body {
