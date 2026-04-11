@@ -31,10 +31,10 @@ export function resizeSectionContent(){
         if(header)fixedH+=header.offsetHeight;
         if(sec.classList.contains('sp-open'))openCount++;
     });
-    // Available height for all open sections combined
-    const availH=Math.max(panelH-fixedH,100);
-    // Divide equally among open sections (min 150px each)
-    const perSection=Math.max(Math.floor(availH/(openCount||1)),150);
+    // Each open section gets the full remaining height — users view
+    // one section at a time and scroll within it. The panel itself
+    // scrolls to reach different sections.
+    const perSection=Math.max(panelH-fixedH,200);
     // Apply to each open section's content
     sections.forEach(sec=>{
         const ct=sec.querySelector('.sp-section-content');
