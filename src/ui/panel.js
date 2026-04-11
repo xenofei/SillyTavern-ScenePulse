@@ -66,16 +66,28 @@ export function showPanel(){
     if(!getSettings().enabled){p.classList.remove('sp-visible');return}
     const mode=spApplyMode();
     const anchor=document.getElementById('sp-panel-anchor');
-    // Measure ST's top bar for all modes
     const topBar=document.getElementById('top-bar')||document.getElementById('top-settings-holder')||document.querySelector('.header,.nav-bar,header');
     const tbH=topBar?topBar.getBoundingClientRect().bottom:0;
-    // Position the ANCHOR (fixed-position frame), panel fills it via CSS height:100%
+    // SillyTavern's html{transform:translateZ(0)} breaks position:fixed.
+    // bottom:0 resolves to html's content height, not viewport bottom.
+    // ST also triggers resize events with halved viewport values.
+    // FIX: use screen.availHeight (physical screen minus OS chrome) which
+    // is IMMUNE to both html transform and ST resize manipulation.
+    // Fall back to max of all viewport measurements.
+    const _screenH=window.screen?.availHeight||window.screen?.height||window.outerHeight||window.innerHeight;
+    const _vpH=Math.max(window.innerHeight,document.documentElement.clientHeight,_screenH);
+    // Lock to the largest observed value (first render is always correct)
+    if(!showPanel._lockedH||_vpH>showPanel._lockedH)showPanel._lockedH=_vpH;
+    const trueH=showPanel._lockedH;
     if(anchor){
         if(mode==='mobile'||mode==='tablet'){
             const spTopH=44;
-            anchor.style.top=spTopH+'px';anchor.style.bottom='0';anchor.style.width='100vw';anchor.style.right='0';anchor.style.left='0';
+            anchor.style.top=spTopH+'px';
+            anchor.style.bottom='';anchor.style.height=(trueH-spTopH)+'px';
+            anchor.style.width='100vw';anchor.style.right='0';anchor.style.left='0';
         }else{
-            anchor.style.top=tbH+'px';anchor.style.bottom='0';anchor.style.left='';
+            anchor.style.top=tbH+'px';anchor.style.left='';
+            anchor.style.bottom='';anchor.style.height=(trueH-tbH)+'px';
             const sheld=document.getElementById('sheld');
             const sheldRight=sheld?sheld.getBoundingClientRect().right:window.innerWidth*0.5;
             const availW=window.innerWidth-sheldRight;
@@ -98,15 +110,7 @@ export function showPanel(){
     spInjectTopBar(mode);
     syncThoughts();
     spUpdateFab();
-    log('Panel shown, anchor:',anchor?.style.width,'top:',anchor?.style.top,'bottom:',anchor?.style.bottom,'mode:',mode);
-    // Debug: verify anchor and panel dimensions
-    requestAnimationFrame(()=>{
-        const a=document.getElementById('sp-panel-anchor');
-        const b=document.getElementById('sp-panel-body');
-        if(a)log('DIAG anchor: offset='+a.offsetHeight+' client='+a.clientHeight+' computed='+getComputedStyle(a).height+' overflow='+getComputedStyle(a).overflow);
-        if(p)log('DIAG panel: offset='+p.offsetHeight+' client='+p.clientHeight+' computed='+getComputedStyle(p).height);
-        if(b)log('DIAG body: offset='+b.offsetHeight+' client='+b.clientHeight+' scroll='+b.scrollHeight+' computed='+getComputedStyle(b).height+' overflow='+getComputedStyle(b).overflowY);
-    });
+    log('Panel shown, anchorH:',anchor?.style.height,'trueH:',trueH,'mode:',mode);
 }
 export function hidePanel(){
     const p=document.getElementById('sp-panel');if(!p)return;
