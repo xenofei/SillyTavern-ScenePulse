@@ -127,6 +127,14 @@ export function showPanel(){
         log('Body constrained:',bodyH+'px','toolbar:',tbHeight);
     }
     log('Panel shown, anchorH:',anchor?.style.height,'trueH:',trueH,'mode:',mode);
+    // Nuclear diagnostic: dump the actual inline style and verify it stuck
+    requestAnimationFrame(()=>{
+        const b=document.getElementById('sp-panel-body');
+        if(b){
+            const cs=getComputedStyle(b);
+            log('NUCLEAR body.style.height='+b.style.height+' .overflowY='+b.style.overflowY+' computed.height='+cs.height+' computed.overflowY='+cs.overflowY+' scrollH='+b.scrollHeight+' clientH='+b.clientHeight+' children='+b.children.length+' parent='+b.parentElement?.id+' parentParent='+b.parentElement?.parentElement?.id);
+        }
+    });
 }
 export function hidePanel(){
     const p=document.getElementById('sp-panel');if(!p)return;
