@@ -10,32 +10,24 @@ import { showLoadingOverlay, clearLoadingOverlay, showStopButton, hideStopButton
 // Sticky headers (z-index:3) cover any visual bleed at the top.
 export function resizeSectionContent(){
     const panel=document.getElementById('sp-panel');
-    const body=document.getElementById('sp-panel-body');
-    if(!panel||!body)return;
+    if(!panel)return;
+    // Simple: each section gets panelH minus toolbar and footer.
+    // Sticky headers overlap content so we don't subtract them.
     const panelH=panel.clientHeight;
-    let fixedH=0;
     const toolbar=panel.querySelector('.sp-toolbar');
-    if(toolbar)fixedH+=toolbar.offsetHeight;
-    const dash=body.querySelector('.sp-env-permanent');
-    if(dash)fixedH+=dash.offsetHeight;
-    const footer=body.querySelector('.sp-gen-footer');
-    if(footer)fixedH+=footer.offsetHeight;
-    const sections=body.querySelectorAll('.sp-section');
-    sections.forEach(sec=>{
-        const header=sec.querySelector('.sp-section-header');
-        if(header)fixedH+=header.offsetHeight;
-    });
-    // 90% of available space per section
-    const perSection=Math.max(Math.round((panelH-fixedH)*0.9),300);
-    sections.forEach(sec=>{
-        const ct=sec.querySelector('.sp-section-content');
-        if(!ct)return;
+    const footer=panel.querySelector('.sp-gen-footer');
+    const tbH=toolbar?toolbar.offsetHeight:0;
+    const ftH=footer?footer.offsetHeight:0;
+    const maxH=Math.max(panelH-tbH-ftH,300);
+    panel.querySelectorAll('.sp-section-content').forEach(ct=>{
+        const sec=ct.closest('.sp-section');
+        if(!sec)return;
         if(sec.classList.contains('sp-open')){
-            // Temporarily clear height to measure true content height
-            const prevH=ct.style.height;
+            // Clear height, force reflow, measure, then constrain
             ct.style.height='auto';
-            const fullH=ct.scrollHeight;
-            ct.style.height=(fullH>perSection)?perSection+'px':'auto';
+            void ct.offsetHeight; // force reflow
+            const contentH=ct.scrollHeight;
+            ct.style.height=(contentH>maxH)?maxH+'px':'auto';
         }else{
             ct.style.height='';
         }
