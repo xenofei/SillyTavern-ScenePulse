@@ -137,7 +137,7 @@ body:has(#sp-panel.sp-mode-mobile) .sp-loading-glass-fixed {
 .sp-gen-footer {
     display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap;
     padding: 6px 10px;
-    font-size: var(--sp-fs-xs); color: var(--sp-text); opacity: 0.75;
+    font-size: var(--sp-fs-xs); color: rgba(200,204,212,0.75);
     border-top: 1px solid var(--sp-border);
     background: var(--sp-bg-solid, #12141a);
     /* Anchor to bottom of panel */

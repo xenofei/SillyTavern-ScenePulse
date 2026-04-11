@@ -35,9 +35,15 @@
 .sp-section-icon svg { display: block; }
 .sp-section-title { font-size: var(--sp-fs-xs); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--sp-text-dim); }
 .sp-section-badge { font-size: var(--sp-fs-xs); font-weight: 600; padding: 1px 6px; border-radius: 8px; background: var(--sp-accent-dim); color: var(--sp-accent); display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+/* z-index:1 keeps section content BELOW sticky headers (z-index:3).
+   position:relative establishes stacking context so child elements
+   (character portraits with transforms, etc.) can't paint above
+   the next section's sticky header. */
 .sp-section-body {
     display: none;
     background: var(--sp-bg-solid);
+    position: relative;
+    z-index: 1;
 }
 .sp-section.sp-open .sp-section-body { display: block; }
 /* Content flows naturally — no max-height, no per-section scroll.
