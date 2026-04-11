@@ -1,5 +1,5 @@
 /* ═══ ENVIRONMENT DASHBOARD ═══ */
-.sp-dashboard { display: flex; flex-wrap: wrap; gap: 4px; padding: 2px; position: relative; border-radius: 12px; overflow: hidden; }
+.sp-dashboard { display: flex; flex-wrap: wrap; gap: 4px; padding: 2px; position: relative; border-radius: var(--sp-radius-lg); overflow: hidden; }
 .sp-dashboard .sp-dash-card { flex: 1 1 calc(50% - 4px); min-width: 80px; }
 .sp-dash-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 1; mix-blend-mode: soft-light; border-radius: inherit; }
 .sp-dash-card {

@@ -6,7 +6,7 @@
 .sp-tier-side { border-left-color: rgba(155,122,196,0.5); background: rgba(155,122,196,0.04); }
 .sp-plot-tier-title { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--sp-text-dim); padding: 4px 6px; border-bottom: 1px solid var(--sp-border); display: flex; align-items: center; gap: 5px; cursor: pointer; user-select: none; }
 .sp-plot-tier-title:hover { background: rgba(255,255,255,0.02); }
-.sp-tier-chevron { font-size: 7px; color: var(--sp-text-dim); transition: transform 0.2s ease; flex-shrink: 0; }
+.sp-tier-chevron { font-size: 9px; color: var(--sp-text-dim); transition: transform 0.2s ease; flex-shrink: 0; }
 .sp-plot-tier.sp-tier-open .sp-tier-chevron { transform: rotate(90deg); }
 .sp-tier-body { display: none; padding-left: 6px; }
 .sp-plot-tier.sp-tier-open .sp-tier-body { display: block; }
@@ -16,34 +16,34 @@
 .sp-plot-entry:last-child { border-bottom: none; margin-bottom: 0; }
 .sp-quest-header { display: flex; align-items: center; gap: 5px; padding: 5px 0 5px 6px; cursor: pointer; user-select: none; }
 .sp-quest-header:hover { background: rgba(255,255,255,0.02); }
-.sp-quest-chevron { font-size: 7px; color: var(--sp-text-dim); transition: transform 0.2s ease; flex-shrink: 0; }
+.sp-quest-chevron { font-size: 9px; color: var(--sp-text-dim); transition: transform 0.2s ease; flex-shrink: 0; }
 .sp-plot-entry.sp-card-open .sp-quest-chevron { transform: rotate(90deg); }
 .sp-quest-detail { font-size: 11px; color: var(--sp-text-dim); line-height: 1.45; padding: 0 0 4px 17px; margin-top: 0; display: none; }
 .sp-plot-entry.sp-card-open .sp-quest-detail { display: block; }
-.sp-plot-status { font-size: 8px; font-weight: 700; padding: 1px 4px; border-radius: 3px; text-transform: uppercase; letter-spacing: 0.04em; flex-shrink: 0; line-height: 1.4; }
-.sp-urgency-critical { background: rgba(196,60,60,0.2); color: #e06060; }
+.sp-plot-status { font-size: 9px; font-weight: 700; padding: 1px 4px; border-radius: 3px; text-transform: uppercase; letter-spacing: 0.04em; flex-shrink: 0; line-height: 1.4; }
+.sp-urgency-critical { background: rgba(196,60,60,0.2); color: var(--sp-red); }
 .sp-urgency-high { background: var(--sp-amber-dim); color: var(--sp-amber); }
 .sp-urgency-moderate { background: var(--sp-blue-dim); color: var(--sp-blue); }
 .sp-urgency-low { background: rgba(100,100,100,0.12); color: var(--sp-text-dim); }
-.sp-urgency-resolved { background: rgba(91,196,122,0.15); color: #5bc47a; }
+.sp-urgency-resolved { background: rgba(91,196,122,0.15); color: var(--sp-green); }
 .sp-plot-name { font-weight: 600; color: var(--sp-text-bright); font-size: 12px; }
 .sp-plot-notes { color: var(--sp-text-dim); font-size: 10px; }
 /* Quest status badges (NEW / UPDATED) */
 .sp-quest-status {
-    font-size: 7px; font-weight: 700; padding: 1px 5px; border-radius: 4px;
+    font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 4px;
     text-transform: uppercase; letter-spacing: 0.06em; flex-shrink: 0; line-height: 1.4;
     animation: sp-quest-badge-pop 0.4s ease-out;
 }
 .sp-quest-status-new {
-    background: rgba(77,184,164,0.18); color: #4db8a4;
+    background: rgba(77,184,164,0.18); color: var(--sp-accent);
     border: 1px solid rgba(77,184,164,0.25);
 }
 .sp-quest-status-updated {
-    background: rgba(212,145,94,0.15); color: #d4915e;
+    background: rgba(212,145,94,0.15); color: var(--sp-amber);
     border: 1px solid rgba(212,145,94,0.22);
 }
 .sp-quest-status-done {
-    background: rgba(91,196,122,0.18); color: #5bc47a;
+    background: rgba(91,196,122,0.18); color: var(--sp-green);
     border: 1px solid rgba(91,196,122,0.25);
 }
 .sp-quest-resolved .sp-plot-name { text-decoration: line-through; opacity: 0.5; }
@@ -68,14 +68,14 @@
     display: flex; align-items: center; justify-content: center; padding: 0;
     background: transparent; color: var(--sp-text-dim); transition: all 0.15s;
 }
-.sp-quest-complete:hover { background: rgba(91,196,122,0.15); color: #5bc47a; }
-.sp-quest-remove:hover { background: rgba(196,91,91,0.15); color: #c45b5b; }
+.sp-quest-complete:hover { background: rgba(91,196,122,0.15); color: var(--sp-green); }
+.sp-quest-remove:hover { background: rgba(196,91,91,0.15); color: var(--sp-red); }
 .sp-quest-undo { color: var(--sp-accent); }
-.sp-quest-undo:hover { background: rgba(77,184,164,0.15); color: #4db8a4; }
+.sp-quest-undo:hover { background: rgba(77,184,164,0.15); color: var(--sp-accent); }
 /* Add quest button */
 .sp-quest-add {
-    font-size: 9px; color: var(--sp-text-dim); padding: 4px 6px; cursor: pointer;
-    display: flex; align-items: center; gap: 4px; opacity: 0.5;
+    font-size: 9px; color: var(--sp-text); padding: 4px 6px; cursor: pointer;
+    display: flex; align-items: center; gap: 4px; opacity: 0.7;
     transition: opacity 0.15s, color 0.15s; user-select: none;
 }
 .sp-quest-add:hover { opacity: 1; color: var(--sp-accent); }
@@ -105,21 +105,21 @@
 }
 /* Tier-level status summary badges — pushed to far right of tier title */
 .sp-tier-status {
-    font-size: 7px; font-weight: 700; padding: 1px 5px; border-radius: 4px;
+    font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 4px;
     text-transform: capitalize; letter-spacing: 0.03em; flex-shrink: 0; line-height: 1.4;
     margin-left: 2px; animation: sp-quest-badge-pop 0.4s ease-out;
 }
 .sp-plot-tier-title .sp-tier-status:first-of-type { margin-left: auto; }
-.sp-tier-status-new { background: rgba(77,184,164,0.15); color: #4db8a4; }
-.sp-tier-status-updated { background: rgba(212,145,94,0.12); color: #d4915e; }
-.sp-tier-status-done { background: rgba(91,196,122,0.12); color: #5bc47a; }
+.sp-tier-status-new { background: rgba(77,184,164,0.15); color: var(--sp-accent); }
+.sp-tier-status-updated { background: rgba(212,145,94,0.12); color: var(--sp-amber); }
+.sp-tier-status-done { background: rgba(91,196,122,0.12); color: var(--sp-green); }
 /* Section-header quest status summary — pushed to far right (before refresh button) */
 .sp-section-status-summary {
     display: inline-flex; align-items: center; gap: 4px; margin-left: auto; margin-right: 6px;
     text-transform: capitalize;
     animation: sp-quest-badge-pop 0.4s ease-out;
 }
-.sp-section-status-new { font-size: 8px; font-weight: 600; color: #4db8a4; opacity: 0.85; }
-.sp-section-status-updated { font-size: 8px; font-weight: 600; color: #d4915e; opacity: 0.85; }
-.sp-section-status-done { font-size: 8px; font-weight: 600; color: #5bc47a; opacity: 0.85; }
-.sp-section-status-sep { font-size: 8px; color: var(--sp-text-dim); opacity: 0.4; }
+.sp-section-status-new { font-size: 9px; font-weight: 600; color: var(--sp-accent); opacity: 0.85; }
+.sp-section-status-updated { font-size: 9px; font-weight: 600; color: var(--sp-amber); opacity: 0.85; }
+.sp-section-status-done { font-size: 9px; font-weight: 600; color: var(--sp-green); opacity: 0.85; }
+.sp-section-status-sep { font-size: 9px; color: var(--sp-text-dim); opacity: 0.4; }

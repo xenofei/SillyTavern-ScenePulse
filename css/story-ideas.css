@@ -15,7 +15,7 @@
 .sp-idea-card.sp-card-open .sp-idea-chevron { transform: rotate(90deg); }
 .sp-idea-icon { width: 14px; height: 14px; flex-shrink: 0; color: var(--idea-color); }
 .sp-idea-icon svg { width: 14px; height: 14px; }
-.sp-idea-type { font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--idea-color); opacity: 0.85; }
+.sp-idea-type { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--idea-color); opacity: 0.85; }
 .sp-idea-name { font-size: 11px; font-weight: 700; color: var(--sp-text-bright); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .sp-idea-body { display: none; padding: 0 10px 7px 10px; }
 .sp-idea-card.sp-card-open .sp-idea-body { display: block; }
@@ -24,8 +24,7 @@
 .sp-idea-inject, .sp-idea-paste {
     display: inline-flex; align-items: center; justify-content: center;
     width: 22px; height: 22px; border-radius: 50%;
-    /* v6.9.6: raised from 0 to 0.25 for discoverability */
-    color: var(--idea-color); opacity: 0.25;
+    color: var(--idea-color); opacity: 0.4;
     cursor: pointer; transition: all 0.15s ease;
     background: transparent; border: 1px solid transparent;
     flex-shrink: 0;

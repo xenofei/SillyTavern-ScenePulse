@@ -24,8 +24,8 @@
 .sp-rel-chevron { font-size: 8px; color: var(--sp-text-dim); transition: transform 0.2s ease; flex-shrink: 0; }
 .sp-rel-block.sp-card-open .sp-rel-chevron { transform: rotate(90deg); }
 .sp-rel-name { font-size: 12px; font-weight: 700; color: var(--char-accent, var(--sp-text-bright)); }
-.sp-rel-type-badge { font-size: 8px; font-weight: 600; text-transform: uppercase; padding: 1px 5px; border-radius: 6px; background: rgba(155,122,196,0.15); color: #b09ad4; }
-.sp-rel-phase-badge { font-size: 8px; font-weight: 600; padding: 1px 5px; border-radius: 6px; background: rgba(91,140,196,0.12); color: #7aace0; }
+.sp-rel-type-badge { font-size: 9px; font-weight: 600; text-transform: uppercase; padding: 1px 5px; border-radius: var(--sp-radius); background: rgba(155,122,196,0.15); color: var(--sp-purple); }
+.sp-rel-phase-badge { font-size: 9px; font-weight: 600; padding: 1px 5px; border-radius: var(--sp-radius); background: rgba(91,140,196,0.12); color: var(--sp-blue); }
 .sp-rel-body { display: none; padding: 0 6px 6px 6px; }
 .sp-rel-block.sp-card-open .sp-rel-body { display: block; }
 .sp-rel-meta { display: flex; flex-direction: column; gap: 3px; margin-bottom: 10px; padding-left: 2px; }

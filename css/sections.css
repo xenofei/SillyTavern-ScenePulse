@@ -17,7 +17,7 @@
 .sp-section-spacer { flex: 1; }
 .sp-section-refresh {
     background: none; border: none; color: var(--sp-text-dim); cursor: pointer;
-    width: 22px; height: 22px; padding: 0; border-radius: 50%; opacity: 0.3;
+    width: 24px; height: 24px; padding: 0; border-radius: 50%; opacity: 0.5;
     transition: all var(--sp-transition); display: inline-flex; align-items: center; justify-content: center;
 }
 .sp-section-header:hover .sp-section-refresh { opacity: 0.6; }
@@ -26,7 +26,7 @@
 .sp-section-refresh.sp-spinning svg { animation: sp-spin 0.8s linear infinite; }
 .sp-section-chevron { font-size: 9px; color: var(--sp-text-dim); transition: transform 0.25s ease-out; width: 10px; text-align: center; flex-shrink: 0; }
 .sp-section.sp-open .sp-section-chevron { transform: rotate(90deg); }
-.sp-section-icon { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--sp-text-dim); opacity: 0.7; }
+.sp-section-icon { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--sp-text-dim); }
 .sp-section-icon svg { display: block; }
 .sp-section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--sp-text-dim); }
 .sp-section-badge { font-size: 9px; font-weight: 600; padding: 1px 6px; border-radius: 8px; background: var(--sp-accent-dim); color: var(--sp-accent); display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
@@ -40,7 +40,7 @@
    others off-screen. Sections with less content than max-height
    show at their natural size (no wasted space). */
 .sp-section-content {
-    padding: 4px 12px 12px 12px;
+    padding: 8px 12px 12px 12px;
     max-height: 50vh;
     overflow-y: auto;
     overflow-x: hidden;
@@ -102,7 +102,7 @@
 }
 /* Witness chips: dimmed + dashed border */
 .sp-scene-chip-witness {
-    opacity: 0.55; border-style: dashed;
+    opacity: 0.6; border-style: dashed;
 }
 
 /* Solo scene indicator */

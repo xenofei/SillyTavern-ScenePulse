@@ -111,7 +111,7 @@
    recent snapshot but not in the current one. Renders as a compact row
    with portrait + name + "last seen" meta line. No body, no expand. */
 .sp-char-offscene-header { font-size: 9px; font-weight: 700; color: var(--sp-text-dim); text-transform: uppercase; letter-spacing: 0.08em; margin: 10px 4px 4px; padding-top: 6px; border-top: 1px dashed var(--sp-border); }
-.sp-char-offscene-stub { opacity: 0.72; background-image: var(--char-pattern, none); background-color: var(--char-bg, var(--sp-surface)); background-repeat: repeat; border-left-width: 2px; padding: 0; margin-bottom: 3px; }
+.sp-char-offscene-stub { opacity: 0.6; background-image: var(--char-pattern, none); background-color: var(--char-bg, var(--sp-surface)); background-repeat: repeat; border-left-width: 2px; padding: 0; margin-bottom: 3px; }
 .sp-char-offscene-stub:hover { opacity: 1; }
 .sp-char-offscene-row { display: flex; align-items: center; gap: 8px; padding: 5px 8px; }
 .sp-char-offscene-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1 1 auto; }
@@ -125,7 +125,7 @@
 /* Merge picker modal — reuses sp-confirm-overlay styling, adds a scrollable list. */
 .sp-merge-picker-dialog { max-width: 320px; }
 .sp-merge-picker-list { display: flex; flex-direction: column; gap: 4px; max-height: 240px; overflow-y: auto; margin: 8px 0 4px; padding: 2px; }
-.sp-merge-picker-option { font-size: 12px; padding: 6px 10px; text-align: left; background: var(--sp-surface); color: var(--sp-text); border: 1px solid var(--sp-border); border-radius: 4px; cursor: pointer; }
+.sp-merge-picker-option { font-size: 12px; padding: 6px 10px; text-align: left; background: var(--sp-surface); color: var(--sp-text); border: 1px solid var(--sp-border); border-radius: var(--sp-radius); cursor: pointer; }
 .sp-merge-picker-option:hover { background: rgba(255,255,255,0.06); border-color: var(--sp-accent); }
 .sp-char-chevron { font-size: 8px; color: var(--sp-text-dim); transition: transform 0.2s ease; flex-shrink: 0; }
 .sp-char-card.sp-card-open .sp-char-chevron { transform: rotate(90deg); }
@@ -159,7 +159,7 @@
 /* Inner thought as a block quote — italic, left-border accent in the
    character's color, visually distinct from plain grid rows so the
    voice of the character reads like speech not metadata. */
-.sp-char-thought-block { font-size: 11px; color: var(--sp-text); font-style: italic; line-height: 1.45; padding: 3px 6px 3px 8px; margin: 3px 2px 4px 2px; border-left: 2px solid var(--char-accent, var(--sp-accent)); background: rgba(255,255,255,0.02); border-radius: 2px; }
+.sp-char-thought-block { font-size: 11px; color: var(--sp-text); font-style: italic; line-height: 1.45; padding: 3px 6px 3px 8px; margin: 3px 2px 4px 2px; border-left: 2px solid var(--char-accent, var(--sp-accent)); background: rgba(255,255,255,0.02); border-radius: 4px; }
 .sp-char-thought-block.sp-empty-field { font-style: normal; }
 /* v6.8.17: Carrying/inventory rendered as flex-wrap pill chips.
    Each item is its own rounded chip with a colored dot, so individual
