@@ -127,17 +127,10 @@ body:has(#sp-panel.sp-mode-mobile) .sp-loading-glass-fixed {
     margin-top: -8px; opacity: 0.6; letter-spacing: 0.04em;
     font-family: var(--sp-font-mono);
 }
-.sp-error {
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    padding: 30px 20px; text-align: center; min-height: 200px;
-    color: var(--sp-red);
-}
-.sp-error div:first-child { font-size: var(--sp-fs-md); }
-.sp-error div:last-child { color: var(--sp-text-dim); line-height: 1.5; }
 .sp-gen-footer {
     display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap;
     padding: 6px 10px;
-    font-size: var(--sp-fs-xs); color: rgba(200,204,212,0.75);
+    font-size: var(--sp-fs-xs); color: var(--sp-text-dim);
     border-top: 1px solid var(--sp-border);
     background: var(--sp-bg-solid, #12141a);
     /* Anchored at bottom by flex layout — margin-top:auto pushes

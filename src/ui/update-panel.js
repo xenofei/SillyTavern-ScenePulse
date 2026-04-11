@@ -22,7 +22,7 @@ import { checkSceneTransition } from './scene-transition.js';
 import { renderTimeline } from './timeline.js';
 import { updateThoughts } from './thoughts.js';
 import { mkEditable } from './edit-mode.js';
-import { mkSection, resizeSectionContent } from './section.js';
+import { mkSection } from './section.js';
 import { injectStoryIdea } from '../story-ideas.js';
 import { showPanel } from './panel.js';
 import { showLoadingOverlay, clearLoadingOverlay, showStopButton, hideStopButton } from './loading.js';
@@ -696,7 +696,7 @@ export function updatePanel(d,_force=false){
         // is a canonical form that matches an ST character by alias.
         // Falls back to a bare {name} stub if no character matched.
         const _relPortraitHtml=getPortraitHtml(matchedChar||{name:displayName,aliases:[]},cc.accent,_relPortraitIdx);
-        let hh=`<div class="sp-rel-header">${_relPortraitHtml}<span class="sp-rel-chevron">\u25B6</span><span class="sp-rel-name">${esc(displayName)}</span>`;if(rel.relType)hh+=`<span class="sp-rel-type-badge" data-ft="rel_type">${esc(rel.relType)}</span>`;if(rel.relPhase)hh+=`<span class="sp-rel-phase-badge" data-ft="rel_phase">${esc(rel.relPhase)}</span>`;hh+=`</div>`;bl.innerHTML=hh;bl.querySelector('.sp-rel-header').addEventListener('click',()=>{bl.classList.toggle('sp-card-open');requestAnimationFrame(()=>resizeSectionContent())});
+        let hh=`<div class="sp-rel-header">${_relPortraitHtml}<span class="sp-rel-chevron">\u25B6</span><span class="sp-rel-name">${esc(displayName)}</span>`;if(rel.relType)hh+=`<span class="sp-rel-type-badge" data-ft="rel_type">${esc(rel.relType)}</span>`;if(rel.relPhase)hh+=`<span class="sp-rel-phase-badge" data-ft="rel_phase">${esc(rel.relPhase)}</span>`;hh+=`</div>`;bl.innerHTML=hh;bl.querySelector('.sp-rel-header').addEventListener('click',()=>{bl.classList.toggle('sp-card-open')});
         const _body=document.createElement('div');_body.className='sp-rel-body';
         {const meta=document.createElement('div');meta.className='sp-rel-meta';{const ttItem=document.createElement('div');ttItem.className='sp-rel-meta-item';ttItem.dataset.ft='rel_timeknown';ttItem.innerHTML=`<span class="sp-rel-meta-label">${t('Time Known')}</span>`;const ttVal=document.createElement('span');ttVal.textContent=rel.timeTogether||'\u2014';if(!rel.timeTogether){ttItem.classList.add('sp-empty-field');ttVal.dataset.placeholder='Time known'}mkEditable(ttVal,()=>rel.timeTogether||'',v=>{rel.timeTogether=v;const snap=getLatestSnapshot();if(snap){const sr=snap.relationships?.find(r=>r.name===rel.name);if(sr)sr.timeTogether=v}});ttItem.appendChild(ttVal);meta.appendChild(ttItem)}{const msItem=document.createElement('div');msItem.className='sp-rel-meta-item sp-rel-milestone';msItem.dataset.ft='rel_milestone';msItem.innerHTML=`<span class="sp-rel-meta-label">${t('Milestone')}</span>`;const msVal=document.createElement('span');msVal.textContent=rel.milestone||'\u2014';if(!rel.milestone){msItem.classList.add('sp-empty-field');msVal.dataset.placeholder='Milestone'}mkEditable(msVal,()=>rel.milestone||'',v=>{rel.milestone=v;const snap=getLatestSnapshot();if(snap){const sr=snap.relationships?.find(r=>r.name===rel.name);if(sr)sr.milestone=v}});msItem.appendChild(msVal);meta.appendChild(msItem)}_body.appendChild(meta)}
         // Unique per-meter delta icons — emotionally distinct UP and DOWN variants
@@ -748,7 +748,6 @@ export function updatePanel(d,_force=false){
             const cards=_sec.querySelectorAll('.sp-rel-block,.sp-card-open');
             const anyOpen=Array.from(_sec.querySelectorAll('.sp-rel-block')).some(c=>c.classList.contains('sp-card-open'));
             _sec.querySelectorAll('.sp-rel-block').forEach(c=>{if(anyOpen)c.classList.remove('sp-card-open');else c.classList.add('sp-card-open')});
-            requestAnimationFrame(()=>resizeSectionContent());
         });
         _relHeader.parentNode.insertBefore(_toggleAll,_relHeader);
     }}
@@ -885,7 +884,6 @@ export function updatePanel(d,_force=false){
                 if(e.target.closest('.sp-char-merge-btn'))return;
                 if(e.target.closest('.sp-char-portrait'))return;
                 cd.classList.toggle('sp-card-open');
-                requestAnimationFrame(()=>resizeSectionContent());
             });
             cd.querySelector('.sp-char-merge-btn').addEventListener('click',async(e)=>{
                 e.stopPropagation();
@@ -1231,7 +1229,6 @@ export function updatePanel(d,_force=false){
             const cards=_sec.querySelectorAll('.sp-char-card');
             const anyOpen=Array.from(cards).some(c=>c.classList.contains('sp-card-open'));
             cards.forEach(c=>{if(anyOpen)c.classList.remove('sp-card-open');else c.classList.add('sp-card-open')});
-            requestAnimationFrame(()=>resizeSectionContent());
         });
         _charHeader.parentNode.insertBefore(_toggleAll,_charHeader);
     }}
@@ -1395,7 +1392,6 @@ export function updatePanel(d,_force=false){
         else el.classList.remove('sp-ft-force-shown');
     });
     log('\u23F1 updatePanel:',((performance.now()-_perfStart)|0)+'ms');
-    requestAnimationFrame(()=>resizeSectionContent());
     } catch(_renderErr) {
         // Error boundary: restore previous panel content on failure
         log('ERROR updatePanel render failed — restoring previous content:', _renderErr?.message||_renderErr);

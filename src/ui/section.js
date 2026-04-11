@@ -6,9 +6,7 @@ import { generating, setLastGenSource } from '../state.js';
 import { generateTracker } from '../generation/engine.js';
 import { showLoadingOverlay, clearLoadingOverlay, showStopButton, hideStopButton } from './loading.js';
 
-// No-op: flex layout handles section sizing automatically.
-// Retained as export to avoid breaking existing call sites.
-export function resizeSectionContent(){}
+
 
 // Section icons keyed by section key — compact SVGs for visual scanability
 const SECTION_ICONS={
@@ -33,7 +31,6 @@ export function mkSection(key,title,badge,fn,s){
         e.stopPropagation();sec.classList.toggle('sp-open');
         const st=getSettings();if(!st.openSections)st.openSections={};
         st.openSections[key]=sec.classList.contains('sp-open');saveSettings();
-        requestAnimationFrame(()=>resizeSectionContent());
     });
     // Refresh button regenerates just this section
     h.querySelector('.sp-section-refresh').addEventListener('click',async(e)=>{

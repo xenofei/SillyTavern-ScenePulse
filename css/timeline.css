@@ -73,7 +73,7 @@
 /* Message highlight when navigating to historical node */
 /* sp-highlight-msg: outline applied by JS, glow/pulse/fade driven by JS inline styles */
 .sp-highlight-msg {
-    outline: 2px solid #4db8a4 !important;
+    outline: 2px solid var(--sp-accent) !important;
     outline-offset: -2px !important;
     border-radius: 4px !important;
 }

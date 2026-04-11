@@ -51,7 +51,7 @@
     cursor: pointer; white-space: nowrap;
     animation: sp-banner-in 0.35s ease-out;
 }
-.sp-banner-icon { width: 22px; height: 22px; color: #4db8a4; flex-shrink: 0; animation: sp-logo-glow 3s ease-in-out infinite; }
+.sp-banner-icon { width: 22px; height: 22px; color: var(--sp-accent); flex-shrink: 0; animation: sp-logo-glow 3s ease-in-out infinite; }
 .sp-banner-icon svg { width: 22px; height: 22px; }
 .sp-banner-text { font-size: var(--sp-fs-sm); font-weight: 600; }
 .sp-banner-out { animation: sp-banner-out 0.4s ease-in forwards; }
@@ -106,7 +106,7 @@ body:has(#sp-panel.sp-mode-mobile.sp-visible) #top-settings-holder { display: no
     font-size: 17px; font-weight: 800; color: #e8ecf4;
 }
 .sp-mt-brand svg {
-    width: 28px; height: 28px; color: #4db8a4;
+    width: 28px; height: 28px; color: var(--sp-accent);
     animation: sp-logo-glow 3s ease-in-out infinite;
 }
 .sp-mt-minimize {

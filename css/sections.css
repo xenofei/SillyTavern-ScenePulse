@@ -6,10 +6,10 @@
    no sticky headers, no bleed by construction. */
 .sp-section {
     border-top: 1px solid var(--sp-border);
+    border-bottom: 1px solid var(--sp-border);
     display: flex; flex-direction: column;
     min-height: 0; flex: 0 0 auto;
 }
-.sp-section:last-child { border-bottom: 1px solid var(--sp-border); }
 /* Open sections size to their content (flex:0 0 auto) but cap at
    70vh so very long sections scroll instead of extending forever.
    Short sections (like Story Ideas with 5 collapsed cards) stop
@@ -79,11 +79,7 @@
 .sp-row-label { font-size: var(--sp-fs-xs); font-weight: 600; color: var(--sp-text-dim); min-width: 70px; flex-shrink: 0; text-align: right; }
 .sp-row-value { font-size: var(--sp-fs-base); color: var(--sp-text); min-width: 0; word-break: break-word; }
 
-/* ═══ SCENE PANEL v6.9.5 ═══ */
-/* Tension-colored left border on the entire scene section */
-/* Tension-colored left border removed per user feedback */
-
-/* sceneSummary: muted italic, slightly smaller */
+/* ═══ SCENE PANEL ═══ */
 .sp-scene-summary { font-style: italic; color: var(--sp-text-dim); font-size: var(--sp-fs-xs); line-height: 1.5; }
 .sp-scene-summary-row { padding-bottom: 6px; margin-bottom: 2px; border-bottom: 1px dashed var(--sp-border); }
 
