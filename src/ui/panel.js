@@ -99,6 +99,14 @@ export function showPanel(){
     syncThoughts();
     spUpdateFab();
     log('Panel shown, anchor:',anchor?.style.width,'top:',anchor?.style.top,'bottom:',anchor?.style.bottom,'mode:',mode);
+    // Debug: verify anchor and panel dimensions
+    requestAnimationFrame(()=>{
+        const a=document.getElementById('sp-panel-anchor');
+        const b=document.getElementById('sp-panel-body');
+        if(a)log('DIAG anchor: offset='+a.offsetHeight+' client='+a.clientHeight+' computed='+getComputedStyle(a).height+' overflow='+getComputedStyle(a).overflow);
+        if(p)log('DIAG panel: offset='+p.offsetHeight+' client='+p.clientHeight+' computed='+getComputedStyle(p).height);
+        if(b)log('DIAG body: offset='+b.offsetHeight+' client='+b.clientHeight+' scroll='+b.scrollHeight+' computed='+getComputedStyle(b).height+' overflow='+getComputedStyle(b).overflowY);
+    });
 }
 export function hidePanel(){
     const p=document.getElementById('sp-panel');if(!p)return;
