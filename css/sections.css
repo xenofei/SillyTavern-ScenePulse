@@ -1,5 +1,5 @@
 /* ═══ SECTIONS (shared) ═══ */
-.sp-section { border-top: 1px solid var(--sp-border); transition: margin 0.3s ease-out; overflow: hidden; }
+.sp-section { border-top: 1px solid var(--sp-border); transition: margin 0.3s ease-out; }
 .sp-section:last-child { border-bottom: 1px solid var(--sp-border); margin-bottom: 8px; }
 /* Opaque background prevents content from earlier sections showing
    through. Hover layers sp-surface (semi-transparent) over sp-bg-solid

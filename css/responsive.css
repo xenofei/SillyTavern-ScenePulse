@@ -21,7 +21,7 @@
     .sp-row-label { font-size: var(--sp-fs-xs); }
     .sp-row-value { font-size: var(--sp-fs-xs); }
 
-    .sp-meter-row { grid-template-columns: clamp(44px, 10cqi, 58px) 1fr auto 36px; gap: 4px; }
+    .sp-meter-row { grid-template-columns: auto 1fr auto 36px; gap: 4px; }
     .sp-sparkline { width: 36px !important; height: 14px !important; }
 
     .sp-rel-name { font-size: var(--sp-fs-xs); }
@@ -56,7 +56,7 @@
     .sp-dashboard .sp-dash-card { flex: 1 1 100%; min-height: 45px; }
     .sp-dash-day { font-size: 16px; }
     .sp-wx-svg { width: 26px; height: 26px; }
-    .sp-meter-row { grid-template-columns: 42px 1fr auto 30px; gap: 4px; }
+    .sp-meter-row { grid-template-columns: auto 1fr auto 30px; gap: 4px; }
     .sp-sparkline { width: 28px !important; height: 12px !important; }
     .sp-brand-title-wrap { display: none; }
     .sp-rel-phase-badge { display: none; }
@@ -78,7 +78,7 @@
     .sp-section-title { font-size: var(--sp-fs-xs); }
     .sp-row-label { font-size: var(--sp-fs-xs); }
     .sp-row-value { font-size: var(--sp-fs-xs); }
-    .sp-meter-row { grid-template-columns: clamp(50px, 10cqi, 66px) 1fr auto 40px; gap: 4px; }
+    .sp-meter-row { grid-template-columns: auto 1fr auto 40px; gap: 4px; }
     .sp-regen-overlay { min-height: 40vh; padding: 24px 16px; }
     .sp-regen-spinner { width: 60px; height: 60px; }
     .sp-regen-text { font-size: 16px; }
@@ -114,7 +114,7 @@
     .sp-plot-name { font-size: var(--sp-fs-sm); }
     .sp-quest-detail { font-size: var(--sp-fs-base); }
     .sp-quest-star { font-size: var(--sp-fs-sm); }
-    .sp-meter-row { grid-template-columns: 78px 1fr auto 54px; gap: 4px; }
+    .sp-meter-row { grid-template-columns: auto 1fr auto 54px; gap: 4px; }
     .sp-sparkline { width: 50px !important; height: 18px !important; }
     .sp-idea-name { font-size: var(--sp-fs-sm); }
     .sp-idea-hook { font-size: var(--sp-fs-base); }
@@ -133,7 +133,7 @@
     .sp-dash-value { font-size: var(--sp-fs-md); }
     .sp-wx-svg { width: 48px; height: 48px; }
     .sp-section-title { font-size: var(--sp-fs-sm); }
-    .sp-meter-row { grid-template-columns: 90px 1fr auto 60px; gap: 4px; }
+    .sp-meter-row { grid-template-columns: auto 1fr auto 60px; gap: 4px; }
     .sp-sparkline { width: 56px !important; height: 20px !important; }
     .sp-idea-card { padding: 8px 10px; }
     .sp-idea-name { font-size: var(--sp-fs-md); }
