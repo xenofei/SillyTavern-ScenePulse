@@ -10,7 +10,7 @@
     /* v6.9.6: use theme variable instead of hardcoded dark */
     background: var(--sp-bg-solid, #181a20);
     border-left: 2px solid rgba(77,184,164,0.25);
-    overflow-y: auto; overflow-x: hidden;
+    overflow-y: scroll !important; overflow-x: hidden;
     z-index: 1000; display: none;
     font-family: var(--sp-font); font-size: 13px; color: var(--sp-text);
     pointer-events: auto;
