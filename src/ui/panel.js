@@ -68,16 +68,19 @@ export function showPanel(){
     // Measure ST's top bar for all modes
     const topBar=document.getElementById('top-bar')||document.getElementById('top-settings-holder')||document.querySelector('.header,.nav-bar,header');
     const tbH=topBar?topBar.getBoundingClientRect().bottom:0;
+    // Use the REAL visual viewport height — NOT 100vh which SillyTavern's
+    // layout can shrink via resize events. visualViewport is the most
+    // reliable, then documentElement.clientHeight, then window.innerHeight.
+    const _trueVH=window.visualViewport?.height||document.documentElement.clientHeight||window.innerHeight;
     if(mode==='mobile'){
-        const spTopH=44; // SP mobile top bar height
-        p.style.top=spTopH+'px';p.style.height=`calc(100vh - ${spTopH}px)`;p.style.width='100vw';p.style.right='0';
-    }else if(mode==='tablet'){
-        // Tablet goes fullscreen like mobile — SP top bar at 44px, panel below it
         const spTopH=44;
-        p.style.top=spTopH+'px';p.style.height=`calc(100vh - ${spTopH}px)`;p.style.width='100vw';p.style.right='0';
+        p.style.top=spTopH+'px';p.style.height=(_trueVH-spTopH)+'px';p.style.width='100vw';p.style.right='0';
+    }else if(mode==='tablet'){
+        const spTopH=44;
+        p.style.top=spTopH+'px';p.style.height=(_trueVH-spTopH)+'px';p.style.width='100vw';p.style.right='0';
     }else{
         p.style.top=tbH+'px';
-        p.style.height=`calc(100vh - ${tbH}px)`;
+        p.style.height=(_trueVH-tbH)+'px';
         const sheld=document.getElementById('sheld');
         const sheldRight=sheld?sheld.getBoundingClientRect().right:window.innerWidth*0.5;
         const availW=window.innerWidth-sheldRight;
@@ -105,7 +108,7 @@ export function showPanel(){
     spInjectTopBar(mode);
     syncThoughts();
     spUpdateFab();
-    log('Panel shown, width:',p.style.width,'top:',p.style.top,'mode:',mode,'vh:',window.innerHeight);
+    log('Panel shown, width:',p.style.width,'top:',p.style.top,'h:',p.style.height,'mode:',mode,'trueVH:',_trueVH);
 }
 export function hidePanel(){
     const p=document.getElementById('sp-panel');if(!p)return;

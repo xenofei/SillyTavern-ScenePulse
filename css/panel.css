@@ -10,7 +10,9 @@
    from SillyTavern is added to #sp-panel-body to use ST's own scroll
    infrastructure, avoiding all scrollbar styling conflicts. */
 #sp-panel {
-    position: fixed; top: 45px; right: 0; height: calc(100vh - 45px);
+    /* height is set by JS using window.visualViewport.height — NOT 100vh
+       which SillyTavern's layout shrinks via resize events */
+    position: fixed; top: 45px; right: 0; height: calc(100dvh - 45px);
     background: var(--sp-bg-solid, #181a20);
     border-left: 2px solid rgba(77,184,164,0.25);
     overflow: hidden !important;
