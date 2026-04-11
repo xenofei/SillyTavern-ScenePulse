@@ -257,7 +257,7 @@ body:has(#sp-panel.sp-mode-mobile) .sp-tour-spotlight { z-index: 100003; }
     #sp-panel.sp-mode-mobile .sp-brand-title-wrap { display: none !important; }
     #sp-panel.sp-mode-mobile .sp-dashboard .sp-dash-card { flex: 1 1 100%; }
     #sp-panel.sp-mode-mobile .sp-char-grid { grid-template-columns: 1fr; }
-    #sp-panel.sp-mode-mobile .sp-meter-row { grid-template-columns: 58px 1fr auto 0; }
+    #sp-panel.sp-mode-mobile .sp-meter-row { grid-template-columns: 58px 1fr auto 30px; }
     #sp-panel.sp-mode-mobile .sp-meter-face { display: none !important; }
-    #sp-panel.sp-mode-mobile .sp-sparkline { display: none !important; }
+    #sp-panel.sp-mode-mobile .sp-sparkline { width: 28px !important; height: 12px !important; }
 }

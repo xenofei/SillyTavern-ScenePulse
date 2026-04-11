@@ -56,8 +56,8 @@
     .sp-dashboard .sp-dash-card { flex: 1 1 100%; min-height: 45px; }
     .sp-dash-day { font-size: 16px; }
     .sp-wx-svg { width: 26px; height: 26px; }
-    .sp-meter-row { grid-template-columns: 42px 1fr auto 0; gap: 4px; }
-    .sp-sparkline { display: none !important; }
+    .sp-meter-row { grid-template-columns: 42px 1fr auto 30px; gap: 4px; }
+    .sp-sparkline { width: 28px !important; height: 12px !important; }
     .sp-brand-title-wrap { display: none; }
     .sp-rel-phase-badge { display: none; }
     .sp-char-role-badge { max-width: 100px; }

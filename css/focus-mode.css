@@ -60,8 +60,8 @@
 #sp-panel.sp-compact .sp-rel-name { font-size: 11px; }
 #sp-panel.sp-compact .sp-rel-type-badge, #sp-panel.sp-compact .sp-rel-phase-badge { font-size: 6px; padding: 0 3px; }
 #sp-panel.sp-compact .sp-rel-meta { display: none; }
-#sp-panel.sp-compact .sp-meter-row { grid-template-columns: 48px 1fr auto 0; gap: 4px; }
-#sp-panel.sp-compact .sp-sparkline { display: none !important; }
+#sp-panel.sp-compact .sp-meter-row { grid-template-columns: 48px 1fr auto 26px; gap: 4px; }
+#sp-panel.sp-compact .sp-sparkline { width: 24px !important; height: 10px !important; }
 #sp-panel.sp-compact .sp-meter-label { font-size: 7px; min-width: 40px; }
 #sp-panel.sp-compact .sp-meter-bar-wrap, #sp-panel.sp-compact .sp-meter-bar-na { height: 5px; border-radius: 3px; }
 #sp-panel.sp-compact .sp-meter-value, #sp-panel.sp-compact .sp-meter-value-na { font-size: 7px; min-width: 20px; }
