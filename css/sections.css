@@ -46,11 +46,17 @@
     z-index: 1;
 }
 .sp-section.sp-open .sp-section-body { display: block; }
-/* Content flows naturally — no max-height, no per-section scroll.
-   The panel itself scrolls to accommodate all expanded content. */
+/* JS sets explicit height so content scrolls within each section.
+   Combined with sticky headers (z-index:3 above body z-index:1),
+   content scrolls behind headers with no bleed. */
 .sp-section-content {
     padding: 8px 12px 12px 12px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-color: rgba(100,110,130,0.3) transparent;
 }
+.sp-section-content::-webkit-scrollbar { width: 4px; }
+.sp-section-content::-webkit-scrollbar-thumb { background: rgba(100,110,130,0.3); border-radius: 2px; }
 
 /* ═══ EMPTY STATE ═══ */
 .sp-empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; padding: 40px 20px; text-align: center; }

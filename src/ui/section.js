@@ -6,6 +6,38 @@ import { generating, setLastGenSource } from '../state.js';
 import { generateTracker } from '../generation/engine.js';
 import { showLoadingOverlay, clearLoadingOverlay, showStopButton, hideStopButton } from './loading.js';
 
+// Set fixed height on section-content so expanded cards stay contained.
+// Sticky headers (z-index:3) cover any visual bleed at the top.
+export function resizeSectionContent(){
+    const panel=document.getElementById('sp-panel');
+    const body=document.getElementById('sp-panel-body');
+    if(!panel||!body)return;
+    const panelH=panel.clientHeight;
+    let fixedH=0;
+    const toolbar=panel.querySelector('.sp-toolbar');
+    if(toolbar)fixedH+=toolbar.offsetHeight;
+    const dash=body.querySelector('.sp-env-permanent');
+    if(dash)fixedH+=dash.offsetHeight;
+    const footer=body.querySelector('.sp-gen-footer');
+    if(footer)fixedH+=footer.offsetHeight;
+    const sections=body.querySelectorAll('.sp-section');
+    sections.forEach(sec=>{
+        const header=sec.querySelector('.sp-section-header');
+        if(header)fixedH+=header.offsetHeight;
+    });
+    // 90% of available space per section
+    const perSection=Math.max(Math.round((panelH-fixedH)*0.9),300);
+    sections.forEach(sec=>{
+        const ct=sec.querySelector('.sp-section-content');
+        if(!ct)return;
+        if(sec.classList.contains('sp-open')){
+            ct.style.height=(ct.scrollHeight>perSection)?perSection+'px':'auto';
+        }else{
+            ct.style.height='';
+        }
+    });
+}
+
 // Section icons keyed by section key — compact SVGs for visual scanability
 const SECTION_ICONS={
     scene:'<svg viewBox="0 0 16 16" width="14" height="14" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.1" opacity="0.5"/><path d="M8 2.5v5.5l4 2" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/><circle cx="8" cy="8" r="1.2" fill="currentColor" opacity="0.4"/></svg>',
@@ -29,6 +61,7 @@ export function mkSection(key,title,badge,fn,s){
         e.stopPropagation();sec.classList.toggle('sp-open');
         const st=getSettings();if(!st.openSections)st.openSections={};
         st.openSections[key]=sec.classList.contains('sp-open');saveSettings();
+        requestAnimationFrame(()=>resizeSectionContent());
     });
     // Refresh button regenerates just this section
     h.querySelector('.sp-section-refresh').addEventListener('click',async(e)=>{
