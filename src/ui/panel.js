@@ -205,6 +205,31 @@ export function createPanel(){
     if(!anchor){anchor=document.createElement('div');anchor.id='sp-panel-anchor';document.body.appendChild(anchor)}
     anchor.appendChild(panel);
     log('Panel appended inside anchor');
+    // ── Manual scroll handling ──
+    // SillyTavern's html{transform+perspective} breaks native overflow
+    // scrolling inside fixed-position panels. Wheel events go to the
+    // main page instead of our panel. Fix: capture wheel events on the
+    // entire panel and manually scroll #sp-panel-body.
+    panel.addEventListener('wheel',(e)=>{
+        const body=document.getElementById('sp-panel-body');
+        if(!body)return;
+        e.preventDefault();
+        e.stopPropagation();
+        body.scrollTop+=e.deltaY;
+    },{passive:false});
+    // Also handle touch scrolling
+    let _touchY=null;
+    panel.addEventListener('touchstart',(e)=>{_touchY=e.touches[0]?.clientY??null},{passive:true});
+    panel.addEventListener('touchmove',(e)=>{
+        if(_touchY===null)return;
+        const body=document.getElementById('sp-panel-body');
+        if(!body)return;
+        const dy=_touchY-(e.touches[0]?.clientY??_touchY);
+        _touchY=e.touches[0]?.clientY??null;
+        body.scrollTop+=dy;
+        e.preventDefault();
+        e.stopPropagation();
+    },{passive:false});
 
     // ── Mobile FAB (floating action button to restore panel) ──
     if(!document.getElementById('sp-mobile-fab')){
