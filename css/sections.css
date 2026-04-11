@@ -1,9 +1,11 @@
 /* ═══ SECTIONS (shared) ═══ */
-/* Each section gets position:relative so JS-assigned z-index works.
-   mkSection() assigns incrementing z-index (1,2,3...) so later
-   sections ALWAYS paint on top of earlier ones — this is the
-   definitive fix for card background bleed-through. */
-.sp-section { border-top: 1px solid var(--sp-border); transition: margin 0.3s ease-out; position: relative; }
+/* isolation:isolate creates a stacking context per section. With all
+   sections at z-index:auto, natural DOM order determines paint order
+   (later sections paint on top of earlier ones). Combined with opaque
+   backgrounds on section-header and section-body, this prevents card
+   background bleed-through. Do NOT add position:relative here — it
+   breaks #sp-panel's overflow-y scrolling in some browsers. */
+.sp-section { border-top: 1px solid var(--sp-border); transition: margin 0.3s ease-out; isolation: isolate; }
 .sp-section:last-child { border-bottom: 1px solid var(--sp-border); margin-bottom: 8px; }
 /* Section headers: opaque background prevents bleed from earlier
    sections (which have lower z-index). Hover uses layered background

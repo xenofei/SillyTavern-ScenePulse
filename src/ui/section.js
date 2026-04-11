@@ -15,15 +15,8 @@ const SECTION_ICONS={
     branches:'<svg viewBox="0 0 16 16" width="14" height="14" fill="none"><path d="M8 2v4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/><circle cx="8" cy="7.5" r="2.5" stroke="currentColor" stroke-width="1.1" fill="currentColor" opacity="0.12"/><path d="M5.5 7.5L3 11M10.5 7.5L13 11M8 10v3" stroke="currentColor" stroke-width="1" stroke-linecap="round" opacity="0.4"/></svg>',
 };
 
-// Incrementing z-index counter — each section gets a higher value so
-// later sections always paint on top of earlier ones. Reset per render.
-let _sectionZ=0;
-export function resetSectionCounter(){_sectionZ=0}
-
 export function mkSection(key,title,badge,fn,s){
-    _sectionZ++;
     const sec=document.createElement('div');sec.className='sp-section'+((s.openSections?.[key])?' sp-open':'');sec.dataset.key=key;
-    sec.style.zIndex=_sectionZ;
     const h=document.createElement('div');h.className='sp-section-header';
     const _icon=SECTION_ICONS[key]?`<span class="sp-section-icon">${SECTION_ICONS[key]}</span>`:'';
     h.innerHTML=`<span class="sp-section-chevron">\u25B8</span>${_icon}<span class="sp-section-title">${esc(title)}</span>${badge!=null?`<span class="sp-section-badge">${esc(String(badge))}</span>`:''}<span class="sp-section-spacer"></span><button class="sp-section-refresh" title="Refresh ${title}"><svg viewBox="0 0 16 16" width="12" height="12" fill="none"><path d="M13.5 8a5.5 5.5 0 1 1-1.3-3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M13.5 3v2h-2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`;
