@@ -36,11 +36,6 @@
 .sp-section-body {
     display: none;
     background: var(--sp-bg-solid);
-    /* position:relative + z-index:1 ensures this body paints above
-       the PREVIOUS section's content (which has no z-index). The
-       opaque background covers any bleed from the section above. */
-    position: relative;
-    z-index: 1;
 }
 .sp-section.sp-open .sp-section-body { display: block; }
 /* Each section is independently scrollable with a max height.
@@ -53,9 +48,6 @@
     overflow-y: auto;
     overflow-x: hidden;
     scrollbar-color: rgba(100,110,130,0.3) transparent;
-    /* Ensure this element is the scroll container — position:relative
-       establishes it as the containing block for children */
-    position: relative;
 }
 .sp-section-content::-webkit-scrollbar { width: 4px; }
 .sp-section-content::-webkit-scrollbar-thumb { background: rgba(100,110,130,0.3); border-radius: 2px; }
