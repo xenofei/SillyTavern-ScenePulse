@@ -72,7 +72,7 @@ export function showPanel(){
     // content overflow within each section independently.
     if(mode==='mobile'||mode==='tablet'){
         const spTopH=44;
-        p.style.top=spTopH+'px';p.style.height='';p.style.width='100vw';p.style.right='0';
+        p.style.top=spTopH+'px';p.style.bottom='0';p.style.height='';p.style.width='100vw';p.style.left='0';p.style.right='0';
     }else{
         p.style.top=tbH+'px';p.style.height='';
         const sheld=document.getElementById('sheld');
