@@ -35,14 +35,17 @@ export function resizeSectionContent(){
     // one section at a time and scroll within it. The panel itself
     // scrolls to reach different sections.
     const perSection=Math.max(panelH-fixedH,200);
-    // Apply to each open section's content
+    // Apply to each open section's content AND body
     sections.forEach(sec=>{
         const ct=sec.querySelector('.sp-section-content');
+        const bd=sec.querySelector('.sp-section-body');
         if(!ct)return;
         if(sec.classList.contains('sp-open')){
             ct.style.maxHeight=perSection+'px';
+            if(bd)bd.style.maxHeight=perSection+'px';
         }else{
             ct.style.maxHeight='';
+            if(bd)bd.style.maxHeight='';
         }
     });
 }
