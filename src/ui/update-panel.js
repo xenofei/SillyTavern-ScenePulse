@@ -198,31 +198,29 @@ function _openPortraitPicker(characterName) {
 }
 
 // Delegated portrait click handler — allows portrait upload from ANY
-// .sp-char-portrait element in the panel (characters, relationships,
-// wiki, relationship web). Registered once on #sp-panel-body.
-let _portraitDelegateRegistered=false;
-function _ensurePortraitDelegate(){
-    if(_portraitDelegateRegistered)return;
-    const body=document.getElementById('sp-panel-body');
-    if(!body)return;
-    body.addEventListener('click',(e)=>{
+// .sp-char-portrait element anywhere (main panel, thoughts panel,
+// wiki, relationship web). Registered once per container.
+const _portraitDelegateContainers=new Set();
+function _registerPortraitDelegate(container){
+    if(!container||_portraitDelegateContainers.has(container.id))return;
+    _portraitDelegateContainers.add(container.id);
+    container.addEventListener('click',(e)=>{
         const portrait=e.target.closest('.sp-char-portrait');
         if(!portrait)return;
-        // Get character name from nearest card header or data attribute
-        const card=portrait.closest('.sp-char-card,.sp-rel-block,.sp-wiki-entry,.sp-char-offscene-stub');
+        const card=portrait.closest('.sp-char-card,.sp-rel-block,.sp-wiki-entry,.sp-char-offscene-stub,.sp-tp-card,.sp-tp-name');
         if(!card)return;
-        const nameEl=card.querySelector('.sp-char-name,.sp-rel-name,.sp-wiki-name,.sp-char-offscene-name');
+        const nameEl=card.querySelector('.sp-char-name,.sp-rel-name,.sp-wiki-name,.sp-char-offscene-name,.sp-tp-name-text');
         const name=nameEl?.textContent?.trim();
         if(!name)return;
         e.stopPropagation();
         _openPortraitPicker(name);
     });
-    body.addEventListener('contextmenu',(e)=>{
+    container.addEventListener('contextmenu',(e)=>{
         const portrait=e.target.closest('.sp-char-portrait');
         if(!portrait)return;
-        const card=portrait.closest('.sp-char-card,.sp-rel-block,.sp-wiki-entry,.sp-char-offscene-stub');
+        const card=portrait.closest('.sp-char-card,.sp-rel-block,.sp-wiki-entry,.sp-char-offscene-stub,.sp-tp-card,.sp-tp-name');
         if(!card)return;
-        const nameEl=card.querySelector('.sp-char-name,.sp-rel-name,.sp-wiki-name,.sp-char-offscene-name');
+        const nameEl=card.querySelector('.sp-char-name,.sp-rel-name,.sp-wiki-name,.sp-char-offscene-name,.sp-tp-name-text');
         const name=nameEl?.textContent?.trim();
         if(!name)return;
         e.preventDefault();e.stopPropagation();
@@ -233,7 +231,10 @@ function _ensurePortraitDelegate(){
             if(snap)updatePanel(normalizeTracker(snap),true);
         }
     });
-    _portraitDelegateRegistered=true;
+}
+function _ensurePortraitDelegate(){
+    _registerPortraitDelegate(document.getElementById('sp-panel-body'));
+    _registerPortraitDelegate(document.getElementById('sp-thought-panel'));
 }
 
 export function updatePanel(d,_force=false){
@@ -736,7 +737,7 @@ export function updatePanel(d,_force=false){
         // is a canonical form that matches an ST character by alias.
         // Falls back to a bare {name} stub if no character matched.
         const _relPortraitHtml=getPortraitHtml(matchedChar||{name:displayName,aliases:[]},cc.accent,_relPortraitIdx);
-        let hh=`<div class="sp-rel-header">${_relPortraitHtml}<span class="sp-rel-chevron">\u25B6</span><span class="sp-rel-name">${esc(displayName)}</span>`;if(rel.relType)hh+=`<span class="sp-rel-type-badge" data-ft="rel_type">${esc(rel.relType)}</span>`;if(rel.relPhase)hh+=`<span class="sp-rel-phase-badge" data-ft="rel_phase">${esc(rel.relPhase)}</span>`;hh+=`</div>`;bl.innerHTML=hh;bl.querySelector('.sp-rel-header').addEventListener('click',()=>{bl.classList.toggle('sp-card-open')});
+        let hh=`<div class="sp-rel-header">${_relPortraitHtml}<span class="sp-rel-chevron">\u25B6</span><span class="sp-rel-name">${esc(displayName)}</span>`;if(rel.relType)hh+=`<span class="sp-rel-type-badge" data-ft="rel_type">${esc(rel.relType)}</span>`;if(rel.relPhase)hh+=`<span class="sp-rel-phase-badge" data-ft="rel_phase">${esc(rel.relPhase)}</span>`;hh+=`</div>`;bl.innerHTML=hh;bl.querySelector('.sp-rel-header').addEventListener('click',(e)=>{if(e.target.closest('.sp-char-portrait'))return;bl.classList.toggle('sp-card-open')});
         const _body=document.createElement('div');_body.className='sp-rel-body';
         {const meta=document.createElement('div');meta.className='sp-rel-meta';{const ttItem=document.createElement('div');ttItem.className='sp-rel-meta-item';ttItem.dataset.ft='rel_timeknown';ttItem.innerHTML=`<span class="sp-rel-meta-label">${t('Time Known')}</span>`;const ttVal=document.createElement('span');ttVal.textContent=rel.timeTogether||'\u2014';if(!rel.timeTogether){ttItem.classList.add('sp-empty-field');ttVal.dataset.placeholder='Time known'}mkEditable(ttVal,()=>rel.timeTogether||'',v=>{rel.timeTogether=v;const snap=getLatestSnapshot();if(snap){const sr=snap.relationships?.find(r=>r.name===rel.name);if(sr)sr.timeTogether=v}});ttItem.appendChild(ttVal);meta.appendChild(ttItem)}{const msItem=document.createElement('div');msItem.className='sp-rel-meta-item sp-rel-milestone';msItem.dataset.ft='rel_milestone';msItem.innerHTML=`<span class="sp-rel-meta-label">${t('Milestone')}</span>`;const msVal=document.createElement('span');msVal.textContent=rel.milestone||'\u2014';if(!rel.milestone){msItem.classList.add('sp-empty-field');msVal.dataset.placeholder='Milestone'}mkEditable(msVal,()=>rel.milestone||'',v=>{rel.milestone=v;const snap=getLatestSnapshot();if(snap){const sr=snap.relationships?.find(r=>r.name===rel.name);if(sr)sr.milestone=v}});msItem.appendChild(msVal);meta.appendChild(msItem)}_body.appendChild(meta)}
         // Unique per-meter delta icons — emotionally distinct UP and DOWN variants
