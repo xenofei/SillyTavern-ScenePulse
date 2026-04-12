@@ -197,7 +197,47 @@ function _openPortraitPicker(characterName) {
     input.click();
 }
 
+// Delegated portrait click handler — allows portrait upload from ANY
+// .sp-char-portrait element in the panel (characters, relationships,
+// wiki, relationship web). Registered once on #sp-panel-body.
+let _portraitDelegateRegistered=false;
+function _ensurePortraitDelegate(){
+    if(_portraitDelegateRegistered)return;
+    const body=document.getElementById('sp-panel-body');
+    if(!body)return;
+    body.addEventListener('click',(e)=>{
+        const portrait=e.target.closest('.sp-char-portrait');
+        if(!portrait)return;
+        // Get character name from nearest card header or data attribute
+        const card=portrait.closest('.sp-char-card,.sp-rel-block,.sp-wiki-entry,.sp-char-offscene-stub');
+        if(!card)return;
+        const nameEl=card.querySelector('.sp-char-name,.sp-rel-name,.sp-wiki-name,.sp-char-offscene-name');
+        const name=nameEl?.textContent?.trim();
+        if(!name)return;
+        e.stopPropagation();
+        _openPortraitPicker(name);
+    });
+    body.addEventListener('contextmenu',(e)=>{
+        const portrait=e.target.closest('.sp-char-portrait');
+        if(!portrait)return;
+        const card=portrait.closest('.sp-char-card,.sp-rel-block,.sp-wiki-entry,.sp-char-offscene-stub');
+        if(!card)return;
+        const nameEl=card.querySelector('.sp-char-name,.sp-rel-name,.sp-wiki-name,.sp-char-offscene-name');
+        const name=nameEl?.textContent?.trim();
+        if(!name)return;
+        e.preventDefault();e.stopPropagation();
+        if(getSettings().charPortraits?.[name.toLowerCase().trim()]){
+            clearPortraitOverride(name);
+            toastr.info(t('Portrait cleared'),name);
+            const snap=getLatestSnapshot();
+            if(snap)updatePanel(normalizeTracker(snap),true);
+        }
+    });
+    _portraitDelegateRegistered=true;
+}
+
 export function updatePanel(d,_force=false){
+    _ensurePortraitDelegate();
     // Debounce: skip if called within 150ms of last update (unless forced)
     const _now=performance.now();
     if(!_force&&_now-_lastPanelUpdate<150){return}
@@ -889,31 +929,8 @@ export function updatePanel(d,_force=false){
                 e.stopPropagation();
                 await _openMergePicker(ch.name, (d.characters||[]).map(c=>c.name).filter(n=>n&&n!==ch.name));
             });
-            // v6.8.20: click portrait → file picker to upload a replacement
-            // image. Stores as a data: URL in settings.charPortraits so it
-            // persists across reloads without needing file-system access.
-            // Right-click (or long-press) clears the override and falls
-            // back to ST avatar / monogram.
-            const _portraitEl=cd.querySelector('.sp-char-portrait');
-            if(_portraitEl){
-                _portraitEl.addEventListener('click',(e)=>{
-                    e.stopPropagation();
-                    _openPortraitPicker(ch.name);
-                });
-                _portraitEl.addEventListener('contextmenu',async(e)=>{
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const ok=await spConfirm(
-                        t('Clear portrait'),
-                        t('Remove the custom portrait for') + ' "' + ch.name + '"? ' +
-                        t('The tracker will fall back to the SillyTavern avatar or a monogram.')
-                    );
-                    if(!ok)return;
-                    clearPortraitOverride(ch.name);
-                    const snap=getLatestSnapshot();
-                    if(snap)updatePanel(normalizeTracker(snap),true);
-                });
-            }
+            // Portrait upload handled by delegated handler on #sp-panel-body
+            // (click any .sp-char-portrait anywhere → file picker)
             const _cbody=document.createElement('div');_cbody.className='sp-char-body';
 
             // v6.8.17: Per-section icon constants. Each subsection gets a

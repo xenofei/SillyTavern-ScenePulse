@@ -72,7 +72,10 @@ export async function processExtraction(mesIdx, extracted, source, opts = {}) {
     // Attach metadata (persists per-snapshot for historical browsing)
     // v6.8.50: track deltaTurnsSinceFull for the periodic refresh counter.
     const _prevCounter = (prevSnap?._spMeta?.deltaTurnsSinceFull ?? 0);
-    extracted._spMeta = {
+    // Attach metadata to the NORMALIZED data (not raw extracted) so the
+    // saved snapshot matches what the panel displays. This aligns with
+    // engine.js which also saves normalized data.
+    norm._spMeta = {
         promptTokens,
         completionTokens,
         elapsed,
@@ -83,8 +86,8 @@ export async function processExtraction(mesIdx, extracted, source, opts = {}) {
         deltaTurnsSinceFull: _useDelta ? _prevCounter + 1 : 0,
     };
 
-    // Save snapshot
-    saveSnapshot(mesIdx, extracted);
+    // Save normalized snapshot (consistent with engine.js path)
+    saveSnapshot(mesIdx, norm);
 
     // Update panel
     updatePanel(norm);

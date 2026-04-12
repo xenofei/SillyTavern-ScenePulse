@@ -313,12 +313,20 @@ export async function renderExisting(){
                     log('renderExisting: found unextracted inline tracker in message',i);
                     const extracted=extractInlineTracker(i);
                     if(extracted){
-                        // CRITICAL: Save snapshot so it survives subsequent CHAT_CHANGED reloads
+                        // Normalize and merge with previous snapshot (if any)
+                        // to preserve accumulated character data
+                        const prevSnap=getLatestSnapshot();
+                        let merged=extracted;
+                        if(prevSnap){
+                            const{mergeDelta:_md}=await import('../generation/delta-merge.js');
+                            merged=_md(prevSnap,extracted);
+                        }
+                        const norm=normalizeTracker(merged);
                         setCurrentSnapshotMesIdx(i);
-                        saveSnapshot(i,extracted);
+                        saveSnapshot(i,norm);
                         await ensureChatSaved();
-                        log('renderExisting: saved recovered snapshot for message',i);
-                        latest=normalizeTracker(extracted);
+                        log('renderExisting: saved recovered+merged snapshot for message',i);
+                        latest=norm;
                         break;
                     }
                 }
