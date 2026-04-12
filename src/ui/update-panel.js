@@ -197,31 +197,35 @@ function _openPortraitPicker(characterName) {
     input.click();
 }
 
-// Delegated portrait click handler — allows portrait upload from ANY
-// .sp-char-portrait element anywhere (main panel, thoughts panel,
-// wiki, relationship web). Registered once per container.
-const _portraitDelegateContainers=new Set();
-function _registerPortraitDelegate(container){
-    if(!container||_portraitDelegateContainers.has(container.id))return;
-    _portraitDelegateContainers.add(container.id);
-    container.addEventListener('click',(e)=>{
+// Delegated portrait click handler on document.body — catches ANY
+// .sp-char-portrait click regardless of which panel it's in (main,
+// thoughts, wiki, relationship web). Registered once.
+let _portraitDelegateRegistered=false;
+function _ensurePortraitDelegate(){
+    if(_portraitDelegateRegistered)return;
+    _portraitDelegateRegistered=true;
+    // Helper: find character name from nearest card context
+    function _nameFromPortrait(portrait){
+        const card=portrait.closest('.sp-char-card,.sp-rel-block,.sp-wiki-entry,.sp-char-offscene-stub,.sp-tp-card,.sp-tp-name');
+        if(!card)return null;
+        const nameEl=card.querySelector('.sp-char-name,.sp-rel-name,.sp-wiki-name,.sp-char-offscene-name,.sp-tp-name-text');
+        return nameEl?.textContent?.trim()||null;
+    }
+    document.body.addEventListener('click',(e)=>{
         const portrait=e.target.closest('.sp-char-portrait');
         if(!portrait)return;
-        const card=portrait.closest('.sp-char-card,.sp-rel-block,.sp-wiki-entry,.sp-char-offscene-stub,.sp-tp-card,.sp-tp-name');
-        if(!card)return;
-        const nameEl=card.querySelector('.sp-char-name,.sp-rel-name,.sp-wiki-name,.sp-char-offscene-name,.sp-tp-name-text');
-        const name=nameEl?.textContent?.trim();
+        // Only handle ScenePulse portraits (inside #sp-panel, #sp-thought-panel, or .sp-wiki)
+        if(!portrait.closest('#sp-panel,#sp-thought-panel,.sp-wiki-overlay'))return;
+        const name=_nameFromPortrait(portrait);
         if(!name)return;
         e.stopPropagation();
         _openPortraitPicker(name);
     });
-    container.addEventListener('contextmenu',(e)=>{
+    document.body.addEventListener('contextmenu',(e)=>{
         const portrait=e.target.closest('.sp-char-portrait');
         if(!portrait)return;
-        const card=portrait.closest('.sp-char-card,.sp-rel-block,.sp-wiki-entry,.sp-char-offscene-stub,.sp-tp-card,.sp-tp-name');
-        if(!card)return;
-        const nameEl=card.querySelector('.sp-char-name,.sp-rel-name,.sp-wiki-name,.sp-char-offscene-name,.sp-tp-name-text');
-        const name=nameEl?.textContent?.trim();
+        if(!portrait.closest('#sp-panel,#sp-thought-panel,.sp-wiki-overlay'))return;
+        const name=_nameFromPortrait(portrait);
         if(!name)return;
         e.preventDefault();e.stopPropagation();
         if(getSettings().charPortraits?.[name.toLowerCase().trim()]){
@@ -231,10 +235,6 @@ function _registerPortraitDelegate(container){
             if(snap)updatePanel(normalizeTracker(snap),true);
         }
     });
-}
-function _ensurePortraitDelegate(){
-    _registerPortraitDelegate(document.getElementById('sp-panel-body'));
-    _registerPortraitDelegate(document.getElementById('sp-thought-panel'));
 }
 
 export function updatePanel(d,_force=false){
