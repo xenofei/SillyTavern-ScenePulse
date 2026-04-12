@@ -359,7 +359,11 @@ function _renderEntry(e, viewMode) {
         <span class="sp-wiki-status ${statusCls}">${esc(statusText)}</span>
     </div><div class="sp-wiki-entry-body"></div>`;
 
-    card.querySelector('.sp-wiki-entry-header').addEventListener('click', () => card.classList.toggle('sp-card-open'));
+    card.querySelector('.sp-wiki-entry-header').addEventListener('click', (e) => {
+        // Don't toggle card when clicking the avatar (portrait upload handler fires instead)
+        if(e.target.closest('.sp-wiki-avatar-slot,.sp-wiki-avatar,.sp-char-portrait'))return;
+        card.classList.toggle('sp-card-open');
+    });
 
     const body = card.querySelector('.sp-wiki-entry-body');
     let bodyHtml = '';

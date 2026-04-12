@@ -206,13 +206,14 @@ function _ensurePortraitDelegate(){
     _portraitDelegateRegistered=true;
     // Helper: find character name from nearest card context
     function _nameFromPortrait(portrait){
-        const card=portrait.closest('.sp-char-card,.sp-rel-block,.sp-wiki-entry,.sp-char-offscene-stub,.sp-tp-card,.sp-tp-name');
+        const card=portrait.closest('.sp-char-card,.sp-rel-block,.sp-wiki-entry,.sp-char-offscene-stub,.sp-tp-card,.sp-tp-name,.sp-wiki-grid-inner');
         if(!card)return null;
-        const nameEl=card.querySelector('.sp-char-name,.sp-rel-name,.sp-wiki-name,.sp-char-offscene-name,.sp-tp-name-text');
+        const nameEl=card.querySelector('.sp-char-name,.sp-rel-name,.sp-wiki-name,.sp-char-offscene-name,.sp-tp-name-text,.sp-wiki-grid-name');
         return nameEl?.textContent?.trim()||null;
     }
     document.body.addEventListener('click',(e)=>{
-        const portrait=e.target.closest('.sp-char-portrait');
+        // Match both main panel portraits AND wiki avatars
+        const portrait=e.target.closest('.sp-char-portrait,.sp-wiki-avatar-slot,.sp-wiki-avatar');
         if(!portrait)return;
         // Only handle ScenePulse portraits (inside #sp-panel, #sp-thought-panel, or .sp-wiki)
         if(!portrait.closest('#sp-panel,#sp-thought-panel,.sp-wiki-overlay'))return;
@@ -222,7 +223,7 @@ function _ensurePortraitDelegate(){
         _openPortraitPicker(name);
     });
     document.body.addEventListener('contextmenu',(e)=>{
-        const portrait=e.target.closest('.sp-char-portrait');
+        const portrait=e.target.closest('.sp-char-portrait,.sp-wiki-avatar-slot,.sp-wiki-avatar');
         if(!portrait)return;
         if(!portrait.closest('#sp-panel,#sp-thought-panel,.sp-wiki-overlay'))return;
         const name=_nameFromPortrait(portrait);
