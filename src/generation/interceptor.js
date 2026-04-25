@@ -13,6 +13,7 @@ import {
 import { spSetGenerating } from '../ui/mobile.js';
 import { startStreamingHider } from './streaming.js';
 import { showChatBanner } from '../ui/loading.js';
+import { getActiveProfile } from '../profiles.js';
 
 // Build compact inline prompt for "together" mode — tells the AI to append tracker JSON
 export function buildInlineTrackerPrompt(){
@@ -87,8 +88,20 @@ QUEST STATE RULES (all REQUIRED):
     const schemaObj=getActiveSchema().value;
     const topKeys=schemaObj?.properties?Object.keys(schemaObj.properties):Object.keys(schemaObj||{});
     const fieldList=topKeys.join(', ');
-    // Build mandatory fields list from enabled panels
-    const panels=s.panels||DEFAULTS.panels;
+    // Build mandatory fields list from enabled panels.
+    // v6.23.4: read from active profile (the v6.16.2 orphan migration drains
+    // s.panels — was silently producing prompts with NO panel-specific
+    // hints because empty {} resolved every check to undefined!==false=true,
+    // listing fields the user had disabled instead of respecting their toggles).
+    let panels;
+    try {
+        const profile = getActiveProfile(s);
+        panels = (profile && profile.panels && Object.keys(profile.panels).length)
+            ? profile.panels
+            : (s.panels || DEFAULTS.panels);
+    } catch {
+        panels = s.panels || DEFAULTS.panels;
+    }
     let mandatoryHints='';
     if(panels.storyIdeas!==false)mandatoryHints+='\n- plotBranches: EXACTLY 5 story suggestions (dramatic, intense, comedic, twist, exploratory). Each needs type, name, hook.';
     if(panels.quests!==false)mandatoryHints+='\n- mainQuests (MAX 3) / sideQuests (MAX 4): Persistent life arcs spanning multiple scenes, NOT scene-level actions. Introduce AT MOST 1 new quest per turn. Each needs name, urgency, detail. Every quest must be something {{user}} can personally ACT on \u2014 NPC activities and world facts are character notes, not quests. MAX 1 critical quest at a time; urgency = timing, not importance.';

@@ -129,7 +129,28 @@ export function saveChatPanels() {
     } catch {}
 }
 
-export function anyPanelsActive(){const s=getSettings();const p=s.panels||DEFAULTS.panels;const panels=getActivePanels(s);return Object.values(p).some(v=>v!==false)||panels.some(cp=>cp.enabled!==false&&cp.fields?.length>0)}
+// v6.23.4 BUGFIX: was reading `s.panels` (root) which the v6.16.2+ orphan
+// migration drains — so post-migration this returned false even when the
+// active profile had panels. v6.22.1's one-shot guard then PERSISTED the
+// drained root to disk, breaking interceptor + function-tool + slash
+// commands on every load (Together-mode generation silently skipped).
+// Fix: read from the profile-projected view, matching getActivePrompt /
+// getActiveSchema's pattern. Profile is the source of truth; root is
+// post-migration empty.
+export function anyPanelsActive(){
+    const s=getSettings();
+    let p, panels;
+    try {
+        const profile = getActiveProfile(s);
+        const sView = _buildProfileView(s, profile);
+        p = sView.panels || DEFAULTS.panels;
+        panels = getActivePanels(sView);
+    } catch {
+        p = s.panels || DEFAULTS.panels;
+        panels = getActivePanels(s);
+    }
+    return Object.values(p).some(v=>v!==false) || panels.some(cp=>cp.enabled!==false && cp.fields?.length>0);
+}
 
 export function getTrackerData(){
     const m=SillyTavern.getContext().chatMetadata;if(!m)return{snapshots:{}};

@@ -2,6 +2,33 @@
 
 All notable changes to ScenePulse are documented in this file.
 
+### [6.23.4] — 2026-04-25
+
+#### URGENT — Fixed: Together-mode generation silently skipped (v6.22.1 regression)
+
+User reported: "After the message comes in, I'm not seeing a payload get delivered." Diagnostics dump showed the smoking gun:
+
+```
+[ 5:11:07 PM] Interceptor: skipped — all panels disabled, no custom panels
+```
+
+even though the active profile had `panels: {6 keys}` populated correctly.
+
+**Root cause** — long-standing latent bug exposed by v6.22.1's one-shot orphan-migration guard:
+
+- `anyPanelsActive()` in `src/settings.js` was reading from `s.panels` (root) instead of the active profile.
+- Pre-v6.22.1: the orphan migration ran on every read of `getActiveSchema()` / `getActivePrompt()`, draining root in MEMORY but never persisting. So the FIRST chat completion per page-load would see populated root → `anyPanelsActive` returned true → generation succeeded. Subsequent generations failed silently.
+- v6.22.1's one-shot guard correctly persisted the migration to disk via `s._spOrphanMigrationDone`. After that, `s.panels = {}` permanently. `anyPanelsActive()` returned false on EVERY load → interceptor skipped → no tracker JSON → no payload.
+- The interceptor's mandatory-hints builder at line 91 had the same root read — when `s.panels = {}`, every `panels.X !== false` check evaluated `undefined !== false` = true, so the prompt told the model to produce fields for panels the user had disabled.
+
+**Fix**: both code paths now read from the active profile via `_buildProfileView` / `getActiveProfile`, matching the pattern `getActivePrompt` and `getActiveSchema` have used since v6.13.0. Profile is the source of truth post-migration; root is permanently empty.
+
+This blocks Together-mode generation completely on every chat session and was caught by the user within hours of v6.22.1. Patch is ~30 lines across 2 files. **No data loss occurred** — snapshots, profile, panels, etc. are all intact; the bug was only that the interceptor silently bailed before injecting the tracker prompt.
+
+**Other code paths that read `s.panels` directly** (settings UI checkbox state, panel hide visibility checks) are display-only and degrade gracefully (panels stay visible because `undefined !== false` is true) — non-blocking. They'll be cleaned up in a follow-up release.
+
+**Tests**: 1,338 still pass.
+
 ### [6.23.3] — 2026-04-25
 
 #### Fixed — Doctor popover centered + backdrop fully opaque
