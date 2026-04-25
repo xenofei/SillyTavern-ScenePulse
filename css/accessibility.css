@@ -41,14 +41,16 @@
     .sp-update-dot,
     .sp-badge-pulse { animation: none !important; }
 
-    /* v6.13.9 (issue #14 follow-up): drawer icon + badge dot live in ST's
-       extensions list, OUTSIDE #sp-panel — so the descendant rule above
-       doesn't reach them. They keep glowing under reduced-motion without
-       these explicit gates. Animation disabled but element visibility
-       preserved (icon is the extension's identifier, dot indicates state). */
+    /* v6.13.9 + v6.13.10 (issue #14 follow-up): icons that live OUTSIDE
+       #sp-panel — so the descendant rule above doesn't reach them. They
+       keep glowing under reduced-motion without these explicit gates.
+       Animation disabled but element visibility preserved (icons identify
+       the extension; dots indicate state). */
     .sp-drawer-icon-wrap,
     .sp-on .sp-drawer-badge-dot,
-    .sp-banner-icon {
+    .sp-banner-icon,
+    .sp-setup-icon,
+    .sp-mt-brand svg {
         animation: none !important;
     }
 
@@ -71,7 +73,14 @@ body.sp-reduce-effects #sp-panel .sp-mascot-pulse,
 body.sp-reduce-effects #sp-panel .sp-egg-rainbow,
 body.sp-reduce-effects .sp-drawer-icon-wrap,
 body.sp-reduce-effects .sp-on .sp-drawer-badge-dot,
-body.sp-reduce-effects .sp-banner-icon {
+body.sp-reduce-effects .sp-banner-icon,
+/* v6.13.10 (issue #14 follow-up): close the remaining sp-logo-glow
+   consumers that v6.13.9 missed — mobile fullscreen header brand
+   icon and the setup-wizard icon. Both use the same keyframe but
+   live outside #sp-panel (mobile fullscreen replaces the panel
+   header) or appear in their own modal (setup wizard). */
+body.sp-reduce-effects .sp-mt-brand svg,
+body.sp-reduce-effects .sp-setup-icon {
     animation: none !important;
 }
 
