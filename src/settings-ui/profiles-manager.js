@@ -8,7 +8,7 @@
 // shell + common toolbar/list patterns.
 
 import { t } from '../i18n.js';
-import { esc } from '../utils.js';
+import { esc, spConfirm, spPrompt } from '../utils.js';
 import { getSettings, saveSettings } from '../settings.js';
 import {
     getActiveProfile, createProfile, duplicateProfile, renameProfile,
@@ -71,11 +71,18 @@ export function openProfilesManager(onChange) {
         const isActive = active && p.id === active.id;
         const row = document.createElement('div');
         row.className = 'sp-cl-row sp-cl-sev-info' + (isActive ? ' sp-pm-row-active' : '');
+        // Each tag carries a `title` tooltip explaining what it means so
+        // users don't have to guess. "2 PANELS" alone is opaque; the
+        // tooltip explains it's the profile's seed panel set.
         const tags = [];
-        if (p.systemPrompt) tags.push(t('custom prompt'));
-        if (p.schema) tags.push(t('custom schema'));
-        if (Array.isArray(p.customPanels) && p.customPanels.length) tags.push(`${p.customPanels.length} ${t('panels')}`);
-        const tagHtml = tags.length ? `<span class="sp-cl-src">${esc(tags.join(' · '))}</span>` : '';
+        if (p.systemPrompt) tags.push(`<span class="sp-pm-tag" title="${esc(t('Profile overrides the dynamically built system prompt with custom text.'))}">${esc(t('Custom Prompt'))}</span>`);
+        if (p.schema) tags.push(`<span class="sp-pm-tag" title="${esc(t('Profile overrides the dynamically built JSON schema with custom JSON.'))}">${esc(t('Custom Schema'))}</span>`);
+        if (Array.isArray(p.customPanels) && p.customPanels.length) {
+            const n = p.customPanels.length;
+            const names = p.customPanels.map(cp => cp?.name || 'Untitled').join(', ');
+            tags.push(`<span class="sp-pm-tag" title="${esc(t('This profile defines') + ' ' + n + ' ' + t('custom panel(s) used as the default starting set for new chats:') + ' ' + names)}">${n} ${esc(n === 1 ? t('Custom Panel') : t('Custom Panels'))}</span>`);
+        }
+        const tagHtml = tags.join(' ');
         row.innerHTML = `
             <div class="sp-cl-row-header">
                 ${isActive ? `<span class="sp-cl-sev-pill sp-cl-sev-pill-info">${t('ACTIVE')}</span>` : ''}
@@ -88,7 +95,8 @@ export function openProfilesManager(onChange) {
                 <button class="sp-btn sp-pm-rename">${t('Rename')}</button>
                 <button class="sp-btn sp-pm-duplicate">${t('Duplicate')}</button>
                 <button class="sp-btn sp-pm-export">${t('Export')}</button>
-                <button class="sp-btn sp-pm-delete" style="color:#fca5a5">${t('Delete')}</button>
+                ${Array.isArray(p.customPanels) && p.customPanels.length ? `<button class="sp-btn sp-pm-clear-panels" title="${esc(t('Remove all custom panels from this profile so they no longer seed new chats.'))}">${t('Clear Panels')}</button>` : ''}
+                <button class="sp-btn sp-pm-delete">${t('Delete')}</button>
             </div>
         `;
         const actBtn = row.querySelector('.sp-pm-activate');
@@ -96,6 +104,8 @@ export function openProfilesManager(onChange) {
         row.querySelector('.sp-pm-rename').addEventListener('click', (ev) => { ev.stopPropagation(); _rename(p.id); });
         row.querySelector('.sp-pm-duplicate').addEventListener('click', (ev) => { ev.stopPropagation(); _duplicate(p.id); });
         row.querySelector('.sp-pm-export').addEventListener('click', (ev) => { ev.stopPropagation(); _export(p); });
+        const clearBtn = row.querySelector('.sp-pm-clear-panels');
+        if (clearBtn) clearBtn.addEventListener('click', (ev) => { ev.stopPropagation(); _clearPanels(p.id, p.name); });
         row.querySelector('.sp-pm-delete').addEventListener('click', (ev) => { ev.stopPropagation(); _delete(p.id, p.name); });
         return row;
     }
@@ -111,13 +121,19 @@ export function openProfilesManager(onChange) {
         _notify(); render();
     }
 
-    function _rename(id) {
+    async function _rename(id) {
         const s = getSettings();
         const p = s.profiles?.find(x => x.id === id); if (!p) return;
-        const newName = window.prompt(t('New name:'), p.name);
-        if (!newName || !newName.trim()) return;
-        if (renameProfile(s, id, newName.trim())) {
+        const newName = await spPrompt(
+            t('Rename profile'),
+            t('Enter a new name for') + ` "${p.name}":`,
+            { value: p.name, placeholder: t('Profile name'),
+              validate: v => v ? null : t('Name cannot be empty.') }
+        );
+        if (!newName) return;
+        if (renameProfile(s, id, newName)) {
             saveSettings(); _notify(); render();
+            try { toastr.success(t('Profile renamed')); } catch {}
         }
     }
 
@@ -129,6 +145,22 @@ export function openProfilesManager(onChange) {
         try { toastr.success(t('Duplicated as') + ' ' + dup.name); } catch {}
     }
 
+    async function _clearPanels(id, name) {
+        const s = getSettings();
+        const p = s.profiles?.find(x => x.id === id); if (!p) return;
+        const n = Array.isArray(p.customPanels) ? p.customPanels.length : 0;
+        if (!await spConfirm(
+            t('Clear custom panels?'),
+            t('Remove all') + ` ${n} ` + t('custom panel(s) from profile') + ` "${name}". ` +
+            t('Existing chats keep their per-chat panels untouched, but new chats started under this profile will no longer seed those panels. This cannot be undone.'),
+            { okLabel: t('Clear Panels'), danger: true }
+        )) return;
+        p.customPanels = [];
+        p.updatedAt = new Date().toISOString();
+        saveSettings(); _notify(); render();
+        try { toastr.success(t('Cleared') + ' ' + n + ' ' + t('panel(s) from profile')); } catch {}
+    }
+
     function _export(p) {
         const payload = exportProfile(p);
         const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -138,27 +170,36 @@ export function openProfilesManager(onChange) {
         document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
     }
 
-    function _delete(id, name) {
+    async function _delete(id, name) {
         const s = getSettings();
         const profiles = Array.isArray(s.profiles) ? s.profiles : [];
         if (profiles.length <= 1) {
             try { toastr.warning(t('Cannot delete the last profile.')); } catch {}
             return;
         }
-        if (!confirm(t('Delete profile') + ' "' + name + '"? ' + t('This cannot be undone.'))) return;
+        if (!await spConfirm(
+            t('Delete profile?'),
+            `"${name}" ` + t('will be permanently removed. This cannot be undone.'),
+            { okLabel: t('Delete'), danger: true }
+        )) return;
         if (deleteProfile(s, id)) {
             saveSettings(); _notify(); render();
-            try { toastr.success(t('Deleted')); } catch {}
+            try { toastr.success(t('Profile deleted')); } catch {}
         }
     }
 
-    overlay.querySelector('#sp-pm-new').addEventListener('click', () => {
-        const name = window.prompt(t('Name for new profile:'), 'New Profile');
-        if (!name || !name.trim()) return;
+    overlay.querySelector('#sp-pm-new').addEventListener('click', async () => {
+        const name = await spPrompt(
+            t('Create new profile'),
+            t('Give your new profile a name (e.g. "Medieval Fantasy" or "Pokemon"):'),
+            { placeholder: t('Profile name'), value: 'New Profile',
+              validate: v => v ? null : t('Name cannot be empty.') }
+        );
+        if (!name) return;
         const s = getSettings();
-        const p = createProfile(s, { name: name.trim() });
+        const p = createProfile(s, { name });
         setActiveProfile(s, p.id); saveSettings();
-        try { toastr.success(t('Created') + ': ' + p.name); } catch {}
+        try { toastr.success(t('Profile created') + ': ' + p.name); } catch {}
         _notify(); render();
     });
 

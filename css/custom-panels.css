@@ -442,6 +442,26 @@
     color: #f07070;
 }
 .sp-confirm-ok:hover { background: rgba(212,80,80,0.35); color: #ff8888; }
+/* v6.13.2: non-destructive OK variant for spPrompt + safe spConfirm calls */
+.sp-confirm-ok-safe {
+    background: rgba(77,184,164,0.18); border-color: rgba(77,184,164,0.5);
+    color: var(--sp-accent);
+}
+.sp-confirm-ok-safe:hover { background: rgba(77,184,164,0.32); color: var(--sp-text-bright); }
+/* v6.13.2: spPrompt — text input dialog */
+.sp-prompt-dialog { min-width: 340px; max-width: 440px; }
+.sp-prompt-input {
+    width: 100%; box-sizing: border-box;
+    background: var(--sp-surface, #1a1a2e); color: var(--sp-text, #eee);
+    border: 1px solid var(--sp-border-strong, #444); border-radius: 5px;
+    padding: 8px 10px; margin-bottom: 12px;
+    font-size: var(--sp-fs-base); font-family: var(--sp-font);
+    transition: border-color 0.15s ease;
+}
+.sp-prompt-input:focus { outline: none; border-color: var(--sp-accent); }
+.sp-prompt-error {
+    color: #f07070; font-size: var(--sp-fs-xs); margin: -8px 0 10px;
+}
 
 /* ── Collapsible Built-in Toggles ── */
 .sp-mgr-collapsible { margin-bottom: 4px; }

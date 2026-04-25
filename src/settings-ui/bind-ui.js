@@ -435,9 +435,15 @@ function bindProfileUI(s){
         try { toastr.success(t('Switched to profile') + ': ' + (getActiveProfile(s).name || '')); } catch {}
     });
     $('#sp-profile-new').on('click',async()=>{
-        const name=window.prompt(t('Name for new profile:'),'New Profile');
-        if(!name||!name.trim())return;
-        const p=createProfile(s,{name:name.trim()});
+        const { spPrompt } = await import('../utils.js');
+        const name = await spPrompt(
+            t('Create new profile'),
+            t('Give your new profile a name (e.g. "Medieval Fantasy" or "Pokemon"):'),
+            { placeholder: t('Profile name'), value: 'New Profile',
+              validate: v => v ? null : t('Name cannot be empty.') }
+        );
+        if (!name) return;
+        const p=createProfile(s,{name});
         setActiveProfile(s,p.id);saveSettings();renderProfileUI();loadUI();
         try { toastr.success(t('Profile created') + ': ' + p.name); } catch {}
     });
@@ -448,11 +454,17 @@ function bindProfileUI(s){
         setActiveProfile(s,dup.id);saveSettings();renderProfileUI();loadUI();
         try { toastr.success(t('Profile duplicated') + ': ' + dup.name); } catch {}
     });
-    $('#sp-profile-rename').on('click',()=>{
+    $('#sp-profile-rename').on('click',async()=>{
         const active=getActiveProfile(s);if(!active)return;
-        const newName=window.prompt(t('New name for profile:'),active.name);
-        if(!newName||!newName.trim())return;
-        if(renameProfile(s,active.id,newName.trim())){
+        const { spPrompt } = await import('../utils.js');
+        const newName = await spPrompt(
+            t('Rename profile'),
+            t('Enter a new name for') + ` "${active.name}":`,
+            { value: active.name, placeholder: t('Profile name'),
+              validate: v => v ? null : t('Name cannot be empty.') }
+        );
+        if (!newName) return;
+        if(renameProfile(s,active.id,newName)){
             saveSettings();renderProfileUI();
             try { toastr.success(t('Profile renamed')); } catch {}
         }
@@ -464,7 +476,11 @@ function bindProfileUI(s){
             try { toastr.warning(t('Cannot delete the last profile.')); } catch {}
             return;
         }
-        if(!await spConfirm(t('Delete profile?'),`"${active.name}" — ${t('this cannot be undone.')}`))return;
+        if(!await spConfirm(
+            t('Delete profile?'),
+            `"${active.name}" ` + t('will be permanently removed. This cannot be undone.'),
+            { okLabel: t('Delete'), danger: true }
+        ))return;
         const newActive=deleteProfile(s,active.id);
         if(newActive){saveSettings();renderProfileUI();loadUI();
             try { toastr.success(t('Profile deleted')); } catch {}

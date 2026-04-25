@@ -241,3 +241,46 @@
 
 /* Crashes tab — reuses .sp-cl-* row styles, just lives inside the tabpanel */
 .sp-di-crash-list { padding: 8px 14px; }
+
+/* v6.13.2: .sp-btn inside any overlay (profile manager, etc).
+   The original .sp-btn rule is scoped to #scenepulse-settings and
+   doesn't reach overlays appended to document.body, leaving buttons
+   unstyled (browser-default white on white). Mirror the settings
+   styling here so overlay buttons look like native ScenePulse buttons. */
+.sp-cl-overlay .sp-btn {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--sp-surface); color: var(--sp-text-dim);
+    border: 1px solid var(--sp-border); border-radius: 4px;
+    padding: 4px 10px; font-size: var(--sp-fs-xs);
+    font-family: var(--sp-font); cursor: pointer;
+    transition: all 0.15s ease;
+}
+.sp-cl-overlay .sp-btn:hover {
+    color: var(--sp-text); border-color: var(--sp-accent);
+    background: var(--sp-surface-hover, rgba(255,255,255,0.04));
+}
+.sp-cl-overlay .sp-btn:disabled {
+    opacity: 0.4; cursor: not-allowed;
+}
+/* Danger variant for delete buttons inside overlays */
+.sp-cl-overlay .sp-btn.sp-btn-danger,
+.sp-cl-overlay .sp-pm-delete {
+    color: #fca5a5; border-color: rgba(252,165,165,0.25);
+}
+.sp-cl-overlay .sp-btn.sp-btn-danger:hover,
+.sp-cl-overlay .sp-pm-delete:hover {
+    color: #ff8888; border-color: rgba(252,165,165,0.55);
+    background: rgba(212,80,80,0.1);
+}
+
+/* v6.13.2: Profile Manager — active row highlight + tag pill */
+.sp-pm-row-active {
+    border-left-color: var(--sp-accent) !important;
+    background: rgba(77,184,164,0.04);
+}
+.sp-pm-tag {
+    display: inline-block; padding: 1px 6px; border-radius: 3px;
+    background: rgba(77,184,164,0.12); color: var(--sp-accent);
+    font-size: 9px; font-weight: 700; letter-spacing: 0.04em;
+    text-transform: uppercase; margin-left: 4px; cursor: help;
+}
