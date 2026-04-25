@@ -2,9 +2,9 @@
 // Thin entry point: imports, event wiring, globalThis export
 
 // ── Foundation ──
-import './src/logger.js';
 import { VERSION } from './src/constants.js';
-import { log, warn, err } from './src/logger.js';
+import { log, warn, err, setErrorListener } from './src/logger.js';
+import { installCrashLog } from './src/crash-log.js';
 
 // ── Core Logic ──
 import {
@@ -67,6 +67,10 @@ try { createPanel(); log('Panel created at load'); } catch (e) { warn('Early pan
 
 eventSource.on(event_types.APP_READY, async () => { try {
     log('APP_READY: start');
+    // v6.12.5 (issue #13): install crash-log capture EARLY so any
+    // failure during the rest of APP_READY is recorded.
+    try { await installCrashLog({ spVersion: VERSION, setErrorListener }); log('APP_READY: crash log ok'); }
+    catch (e) { warn('Crash log install failed:', e?.message); }
     // v6.9.10: AWAIT initI18n so t() calls during panel/settings
     // construction have translations ready. Without await, non-English
     // users saw an English flash on every page load because the async

@@ -19,6 +19,15 @@ function _pushConsole(level,args){
     if(consoleBuf.length>MAX_CONSOLE)consoleBuf.shift();
 }
 
+// v6.12.5 (issue #13): optional bridge for the crash log. Set via
+// setErrorListener() so the crash-log module can capture every err()
+// call without circular imports.
+let _errorListener = null;
+export function setErrorListener(fn) { _errorListener = (typeof fn === 'function') ? fn : null; }
+
 export function log(...a){console.log(LOG,...a);_push('',a);_pushConsole('LOG',a)}
 export function warn(...a){console.warn(LOG,...a);_push('WARN',a);_pushConsole('WARN',a)}
-export function err(...a){console.error(LOG,...a);_push('ERROR',a);_pushConsole('ERR',a)}
+export function err(...a){
+    console.error(LOG,...a);_push('ERROR',a);_pushConsole('ERR',a);
+    if (_errorListener) { try { _errorListener(a); } catch {} }
+}

@@ -1,0 +1,164 @@
+/* ── Crash Log overlay (issue #13) ── */
+/* Same modal pattern as character-wiki / snapshot browser. */
+
+.sp-cl-overlay {
+    position: fixed; inset: 0; z-index: 100001;
+    background: rgba(0,0,0,0.55); backdrop-filter: blur(4px);
+    display: flex; align-items: stretch; justify-content: center;
+    animation: sp-glass-in 0.18s ease-out;
+}
+
+.sp-cl-container {
+    margin: auto; width: min(900px, calc(100vw - 32px)); max-height: calc(100vh - 32px);
+    background: var(--sp-surface);
+    border: 1px solid var(--sp-border-strong);
+    border-radius: var(--sp-radius);
+    display: flex; flex-direction: column; overflow: hidden;
+    color: var(--sp-text);
+}
+
+.sp-cl-header {
+    display: flex; align-items: center; gap: 6px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--sp-border);
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
+    flex-shrink: 0;
+}
+.sp-cl-title {
+    flex: 1; font-weight: 700; font-size: var(--sp-fs-md);
+    color: var(--sp-accent); letter-spacing: 0.04em; text-transform: uppercase;
+}
+.sp-cl-count { color: var(--sp-text-dim); font-weight: 500; margin-left: 6px; font-size: var(--sp-fs-xs); }
+.sp-cl-export-btn {
+    background: var(--sp-surface); color: var(--sp-text-dim);
+    border: 1px solid var(--sp-border); border-radius: 4px;
+    padding: 4px 10px; font-size: var(--sp-fs-xs); cursor: pointer;
+    transition: all 0.15s ease;
+}
+.sp-cl-export-btn:hover { color: var(--sp-text); border-color: var(--sp-accent); background: var(--sp-surface-hover); }
+.sp-cl-export-btn.sp-cl-danger:hover { color: #fca5a5; border-color: rgba(252,165,165,0.5); }
+.sp-cl-close {
+    background: none; border: 1px solid var(--sp-border);
+    color: var(--sp-text-dim); cursor: pointer; border-radius: 4px;
+    padding: 2px 8px; font-size: var(--sp-fs-sm); line-height: 1;
+}
+.sp-cl-close:hover { color: var(--sp-text); border-color: var(--sp-accent); }
+
+.sp-cl-toolbar {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+    padding: 8px 14px; border-bottom: 1px solid var(--sp-border);
+    flex-shrink: 0;
+}
+.sp-cl-search {
+    flex: 1 1 200px; min-width: 0;
+    background: var(--sp-surface); color: var(--sp-text);
+    border: 1px solid var(--sp-border); border-radius: 4px;
+    padding: 4px 8px; font-size: var(--sp-fs-xs); font-family: inherit;
+}
+.sp-cl-search:focus { outline: none; border-color: var(--sp-accent); }
+.sp-cl-filters { display: flex; gap: 2px; }
+.sp-cl-filter {
+    background: var(--sp-surface); color: var(--sp-text-dim);
+    border: 1px solid var(--sp-border); border-radius: 3px;
+    padding: 3px 8px; font-size: var(--sp-fs-xs); cursor: pointer;
+    transition: all 0.15s ease;
+}
+.sp-cl-filter:hover { color: var(--sp-text); }
+.sp-cl-filter-active { color: var(--sp-accent); border-color: var(--sp-accent); background: rgba(77,184,164,0.08); }
+
+.sp-cl-list {
+    flex: 1; min-height: 0; overflow-y: auto;
+    padding: 8px 14px;
+}
+.sp-cl-empty {
+    text-align: center; color: var(--sp-text-dim);
+    font-size: var(--sp-fs-sm); padding: 40px 20px;
+}
+
+.sp-cl-row {
+    border: 1px solid var(--sp-border); border-radius: 4px;
+    margin-bottom: 6px; background: rgba(255,255,255,0.015);
+    border-left: 3px solid var(--sp-border);
+    transition: border-color 0.15s ease;
+}
+.sp-cl-row.sp-cl-sev-error { border-left-color: #ef4444; }
+.sp-cl-row.sp-cl-sev-warning { border-left-color: #f59e0b; }
+.sp-cl-row.sp-cl-sev-info { border-left-color: #60a5fa; }
+
+.sp-cl-row-header {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 10px; cursor: pointer; user-select: none;
+    font-size: var(--sp-fs-xs);
+}
+.sp-cl-row-header:hover { background: rgba(255,255,255,0.025); }
+.sp-cl-chevron { color: var(--sp-text-dim); transition: transform 0.15s ease; flex-shrink: 0; font-size: 9px; }
+.sp-cl-row.sp-cl-open .sp-cl-chevron { transform: rotate(90deg); }
+.sp-cl-sev-pill {
+    flex-shrink: 0; padding: 1px 6px; border-radius: 3px;
+    font-size: 9px; font-weight: 700; letter-spacing: 0.05em;
+}
+.sp-cl-sev-pill-error { background: rgba(239,68,68,0.15); color: #fca5a5; }
+.sp-cl-sev-pill-warning { background: rgba(245,158,11,0.15); color: #fcd34d; }
+.sp-cl-sev-pill-info { background: rgba(96,165,250,0.15); color: #93c5fd; }
+.sp-cl-src {
+    flex-shrink: 0; color: var(--sp-text-dim);
+    font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em;
+}
+.sp-cl-msg {
+    flex: 1; min-width: 0;
+    color: var(--sp-text);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.sp-cl-repeat {
+    flex-shrink: 0; color: var(--sp-accent);
+    font-size: 9px; font-weight: 700;
+    background: rgba(77,184,164,0.12); padding: 1px 5px; border-radius: 3px;
+}
+.sp-cl-ts {
+    flex-shrink: 0; color: var(--sp-text-dim);
+    font-size: 9px; font-family: var(--sp-font-mono);
+}
+
+.sp-cl-row-body {
+    display: none;
+    padding: 8px 14px 10px 32px;
+    border-top: 1px solid var(--sp-border);
+    background: rgba(0,0,0,0.15);
+}
+.sp-cl-row.sp-cl-open .sp-cl-row-body { display: block; }
+.sp-cl-stack-label {
+    color: var(--sp-text-dim); font-size: 9px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    margin: 4px 0 2px;
+}
+.sp-cl-stack, .sp-cl-context {
+    background: rgba(0,0,0,0.3); border: 1px solid var(--sp-border);
+    border-radius: 3px; padding: 6px 8px; margin: 0;
+    font-family: var(--sp-font-mono); font-size: 10px;
+    color: var(--sp-text); white-space: pre-wrap; word-break: break-all;
+    max-height: 240px; overflow: auto;
+}
+.sp-cl-meta {
+    display: flex; gap: 10px; margin-top: 6px;
+    color: var(--sp-text-dim); font-size: 9px;
+}
+.sp-cl-row-actions {
+    display: flex; gap: 4px; margin-top: 8px;
+}
+
+.sp-cl-footer {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 14px;
+    border-top: 1px solid var(--sp-border);
+    color: var(--sp-text-dim); font-size: 9px;
+    flex-shrink: 0;
+}
+.sp-cl-footer-text { flex: 1; }
+.sp-cl-footer-hint { opacity: 0.7; }
+
+@media (max-width: 600px) {
+    .sp-cl-container { width: calc(100vw - 16px); max-height: calc(100vh - 16px); }
+    .sp-cl-row-header { flex-wrap: wrap; }
+    .sp-cl-msg { flex-basis: 100%; white-space: normal; }
+    .sp-cl-ts { flex-basis: 100%; text-align: right; }
+}

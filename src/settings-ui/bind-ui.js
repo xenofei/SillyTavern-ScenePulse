@@ -400,6 +400,26 @@ export function bindUI(){const s=getSettings();
     });
     $('#sp-debug-close').on('click',()=>{const v=document.getElementById('sp-debug-viewer');if(v)v.style.display='none';if(debugRefreshInterval){clearInterval(debugRefreshInterval);debugRefreshInterval=null}});
     $('#sp-debug-copy-inline').on('click',()=>{const _t='ScenePulse Debug ('+new Date().toISOString()+')\n'+debugLog.join('\n');navigator.clipboard.writeText(_t).then(()=>toastr.success(t('Debug log copied'))).catch(()=>toastr.error(t('Copy failed')))});
+    // v6.12.5 (issue #13): crash log viewer — lazy-imported so the
+    // viewer module isn't pulled in unless the user opens it.
+    $('#sp-btn-crash-log').on('click',async()=>{
+        try {
+            const m = await import('../ui/crash-log-viewer.js');
+            m.openCrashLogViewer();
+            // Refresh the count badge after the viewer is opened (and again
+            // periodically while it's open via the count update on close).
+            const badge = document.getElementById('sp-crash-log-count');
+            if (badge) badge.textContent = m.getCrashLogCount() ? `(${m.getCrashLogCount()})` : '';
+        } catch (e) { warn('Crash log viewer:', e?.message); }
+    });
+    // Initial badge update
+    try {
+        import('../crash-log.js').then(m => {
+            const badge = document.getElementById('sp-crash-log-count');
+            const n = m.entryCount();
+            if (badge) badge.textContent = n ? `(${n})` : '';
+        });
+    } catch {}
 }
 
 function renderLoreTags(){const s=getSettings();const c=document.getElementById('sp-lore-tags');if(!c)return;c.innerHTML='';for(const n of(s.lorebookAllowlist||[])){const tag=document.createElement('span');tag.className='sp-lore-tag';tag.innerHTML=`${esc(n)} <span class="sp-lore-tag-x" data-n="${esc(n)}">✕</span>`;tag.querySelector('.sp-lore-tag-x').addEventListener('click',function(){s.lorebookAllowlist=s.lorebookAllowlist.filter(x=>x!==this.dataset.n);saveSettings();renderLoreTags()});c.appendChild(tag)}}
