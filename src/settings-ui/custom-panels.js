@@ -2,6 +2,7 @@
 // Extracted from index.js lines 4969-5130
 
 import { getSettings, saveSettings, ensureChatPanels, saveChatPanels, getActivePanels } from '../settings.js';
+import { getActiveProfile } from '../profiles.js';
 import { esc, str, clamp, spConfirm } from '../utils.js';
 import { _cachedNormData } from '../state.js';
 import { buildDynamicSchema, buildDynamicPrompt } from '../schema.js';
@@ -90,8 +91,9 @@ export function renderCustomPanelsMgr(s,container,panelBody){
             // Auto-refresh schema/prompt when custom panel changes
             const schemaEl=document.getElementById('sp-schema');
             const promptEl=document.getElementById('sp-sysprompt');
-            if(schemaEl&&!s.schema)schemaEl.value=JSON.stringify(buildDynamicSchema(s),null,2);
-            if(promptEl&&!s.systemPrompt)promptEl.value=buildDynamicPrompt(s);
+            const _ap=getActiveProfile(s);
+            if(schemaEl&&!_ap.schema)schemaEl.value=JSON.stringify(buildDynamicSchema(s),null,2);
+            if(promptEl&&!_ap.systemPrompt)promptEl.value=buildDynamicPrompt(s);
         };
         // Header: chevron + toggle + name + duplicate + delete
         const header=document.createElement('div');header.className='sp-cp-header';

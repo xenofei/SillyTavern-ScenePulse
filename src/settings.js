@@ -7,6 +7,7 @@ import { esc } from './utils.js';
 import { buildDynamicSchema, buildDynamicPrompt } from './schema.js';
 import { t } from './i18n.js';
 import { consolidateQuests } from './generation/delta-merge.js';
+import { getActiveProfile, migrateLegacySettingsToProfile } from './profiles.js';
 
 // Minimal inline user-name check for the one-shot migration below.
 // Duplicates the logic in normalize.isUserName to avoid a circular import
@@ -71,11 +72,20 @@ export function getActivePanels(s) {
     if (!s) s = getSettings();
     try {
         const cp = SillyTavern.getContext().chatMetadata?.scenepulse?.chatPanels;
-        if (Array.isArray(cp)) return cp;
+        if (Array.isArray(cp) && cp.length > 0) return cp;
     } catch {}
-    // No chat context or no chatPanels — return empty. Each chat
-    // manages its own panels independently. Global customPanels is
-    // only used as a template library, never auto-applied.
+    // v6.13.0 (issue #15): when the chat has no per-chat panels, fall
+    // back to the active profile's customPanels. This makes profiles
+    // self-sufficient for new chats while preserving the per-chat-edit
+    // semantics: editing a panel still triggers the chatPanels migration
+    // (deep-clone profile panels into chatMetadata) so subsequent edits
+    // stay local to that chat.
+    try {
+        const profile = getActiveProfile(s);
+        if (profile && Array.isArray(profile.customPanels) && profile.customPanels.length > 0) {
+            return profile.customPanels;
+        }
+    } catch {}
     return [];
 }
 
@@ -86,21 +96,24 @@ export function getActivePanels(s) {
  */
 export function ensureChatPanels() {
     const s = getSettings();
-    const fallback = s.customPanels || [];
+    // v6.13.0 (issue #15): when materializing chatPanels for the first
+    // time (because the user is about to edit a panel), seed them from
+    // the active profile's customPanels. This means a "fresh" edit on
+    // a chat that previously read panels through the profile fallback
+    // will start with the same set the chat was already showing — no
+    // surprise panel disappearance.
+    const profile = getActiveProfile(s);
+    const seed = (profile && Array.isArray(profile.customPanels)) ? profile.customPanels : (s.customPanels || []);
     try {
         const ctx = SillyTavern.getContext();
-        if (!ctx || !ctx.chatMetadata) return fallback;
+        if (!ctx || !ctx.chatMetadata) return seed;
         if (!ctx.chatMetadata.scenepulse) ctx.chatMetadata.scenepulse = { snapshots: {} };
         if (!Array.isArray(ctx.chatMetadata.scenepulse.chatPanels)) {
-            // New chat starts with empty panels. The user adds panels
-            // to each chat explicitly via templates, import, or manual
-            // creation. No auto-cloning from global — that caused every
-            // new chat to inherit panels from other chats.
-            ctx.chatMetadata.scenepulse.chatPanels = [];
+            ctx.chatMetadata.scenepulse.chatPanels = JSON.parse(JSON.stringify(seed));
             try { ctx.saveMetadata(); } catch {}
         }
         return ctx.chatMetadata.scenepulse.chatPanels;
-    } catch { return fallback; }
+    } catch { return seed; }
 }
 
 /** Save per-chat panel changes to metadata. No-op if no chat is active. */
@@ -657,18 +670,52 @@ export function getSnapshotFor(id){return getTrackerData().snapshots?.[String(id
 
 export function getPrevSnapshot(id){const sorted=Object.keys(getTrackerData().snapshots).map(Number).sort((a,b)=>a-b);const p=sorted.filter(k=>k<id).pop();return p!=null?getTrackerData().snapshots[String(p)]:null}
 
+// v6.13.0 (issue #15): schema/prompt now resolved through the active
+// profile rather than directly off `s`. Existing legacy settings were
+// migrated into a "Default" profile on first load, so behavior is
+// preserved for users with custom schema/prompt overrides.
+
 export function getActiveSchema(){
     const s=getSettings();
-    // If user has a fully custom schema override, use it
-    if(s.schema){try{return{name:'Custom',description:'',strict:false,value:JSON.parse(s.schema)}}catch{}}
-    // Otherwise build dynamically from enabled panels + custom panels
-    return{name:'ScenePulse',description:'Scene tracker.',strict:false,value:buildDynamicSchema(s)};
+    if(migrateLegacySettingsToProfile(s)) saveSettings();
+    const profile = getActiveProfile(s);
+    // Build a "view" object that mirrors the legacy settings shape but
+    // sources panels/fieldToggles/dashCards/customPanels from the profile.
+    const sView = _buildProfileView(s, profile);
+    if (profile.schema) {
+        try { return { name: profile.name || 'Custom', description: profile.description || '', strict: false, value: JSON.parse(profile.schema) }; }
+        catch { /* fall through to dynamic build */ }
+    }
+    return { name: 'ScenePulse', description: 'Scene tracker.', strict: false, value: buildDynamicSchema(sView) };
 }
 
 export function getActivePrompt(opts){
     const s=getSettings();
-    if(s.systemPrompt)return s.systemPrompt;
-    return buildDynamicPrompt(s, opts);
+    if(migrateLegacySettingsToProfile(s)) saveSettings();
+    const profile = getActiveProfile(s);
+    if (profile.systemPrompt) return profile.systemPrompt;
+    const sView = _buildProfileView(s, profile);
+    return buildDynamicPrompt(sView, opts);
+}
+
+// Construct a settings-shaped view where panels/fieldToggles/dashCards
+// come from the active profile but everything else comes from `s`. The
+// dynamic builders read these fields by name; the cleanest path is to
+// shadow them rather than refactor every call site in schema.js.
+//
+// customPanels in this view comes from the profile too — but the
+// per-chat chatPanels override (chatMetadata.scenepulse.chatPanels)
+// still wins via getActivePanels(). That preserves the "this chat's
+// edits are local" semantics that have shipped since v6.9.14.
+function _buildProfileView(s, profile) {
+    if (!profile) return s;
+    return {
+        ...s,
+        panels: profile.panels && Object.keys(profile.panels).length ? profile.panels : s.panels,
+        fieldToggles: profile.fieldToggles && Object.keys(profile.fieldToggles).length ? profile.fieldToggles : s.fieldToggles,
+        dashCards: profile.dashCards && Object.keys(profile.dashCards).length ? profile.dashCards : s.dashCards,
+        customPanels: Array.isArray(profile.customPanels) && profile.customPanels.length ? profile.customPanels : s.customPanels,
+    };
 }
 
 // ── Language ──

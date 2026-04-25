@@ -6,6 +6,7 @@ import { MASCOT_SVG, DEFAULTS, VERSION } from '../constants.js';
 import { getSettings, saveSettings, ensureChatPanels, saveChatPanels, getActivePanels } from '../settings.js';
 import { BUILTIN_PANELS } from '../constants.js';
 import { buildDynamicSchema } from '../schema.js';
+import { getActiveProfile } from '../profiles.js';
 import { getLatestSnapshot } from '../settings.js';
 import { normalizeTracker } from '../normalize.js';
 import {
@@ -357,7 +358,7 @@ export function createPanel(){
                     }
                 }
                 const schemaEl=document.getElementById('sp-schema');
-                if(schemaEl&&!s.schema)schemaEl.value=JSON.stringify(buildDynamicSchema(s),null,2);
+                if(schemaEl&&!getActiveProfile(s).schema)schemaEl.value=JSON.stringify(buildDynamicSchema(s),null,2);
                 // Sync toolbar icons: hide/dim when panel disabled
                 if(cb.dataset.panel==='dashboard'){
                     const wxItem=document.getElementById('sp-feat-weather');
@@ -437,7 +438,7 @@ export function createPanel(){
                         }
                         saveSettings();
                         const schemaEl=document.getElementById('sp-schema');
-                        if(schemaEl&&!s.schema)schemaEl.value=JSON.stringify(buildDynamicSchema(s),null,2);
+                        if(schemaEl&&!getActiveProfile(s).schema)schemaEl.value=JSON.stringify(buildDynamicSchema(s),null,2);
                         log((f.isDashCard?'DashCard':f.isSub?'SubField':'Field')+' toggled:',fKey,'\u2192',scb.checked);
                     });
                     subWrap.appendChild(sub);
@@ -509,7 +510,7 @@ export function createPanel(){
             if(snap){const n=normalizeTracker(snap);updateWeatherOverlay(n.weather);updateTimeTint(n.time);updateThoughts(n);const tp=document.getElementById('sp-thought-panel');if(tp)tp.classList.add('sp-tp-visible')}
             builtinHeader.querySelector('.sp-mgr-collapse-count').textContent=Object.keys(BUILTIN_PANELS).length+'/'+Object.keys(BUILTIN_PANELS).length;
             const schemaEl=document.getElementById('sp-schema');
-            if(schemaEl&&!s.schema)schemaEl.value=JSON.stringify(buildDynamicSchema(s),null,2);
+            if(schemaEl&&!getActiveProfile(s).schema)schemaEl.value=JSON.stringify(buildDynamicSchema(s),null,2);
             checkAllState();
             toastr.info('All panels and fields enabled','ScenePulse');
             log('Enable All: all panels + fields activated');
@@ -546,7 +547,7 @@ export function createPanel(){
             s.sceneTransitions=false;_updateFeatBadge();
             builtinHeader.querySelector('.sp-mgr-collapse-count').textContent='0/'+Object.keys(BUILTIN_PANELS).length;
             const schemaEl=document.getElementById('sp-schema');
-            if(schemaEl&&!s.schema)schemaEl.value=JSON.stringify(buildDynamicSchema(s),null,2);
+            if(schemaEl&&!getActiveProfile(s).schema)schemaEl.value=JSON.stringify(buildDynamicSchema(s),null,2);
             checkAllState();
             toastr.info('All panels disabled','ScenePulse');
             log('Disable All: all panels + fields deactivated');

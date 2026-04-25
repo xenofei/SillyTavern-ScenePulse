@@ -13,6 +13,7 @@ import {
     refreshLorebookDisplay, updateLorebookRec
 } from '../settings.js';
 import { genNonce, genMeta, setLastGenSource } from '../state.js';
+import { getActiveProfile, updateActiveProfile, createProfile, duplicateProfile, renameProfile, deleteProfile, setActiveProfile, validateImportedProfile, importProfile, exportProfile, makeProfile, migrateLegacySettingsToProfile } from '../profiles.js';
 import { updatePanel } from '../ui/update-panel.js';
 import { hidePanel, _applyFontScale as _applyFontScaleFromUI, updateFeatBadge } from '../ui/panel.js';
 import { updateThoughts } from '../ui/thoughts.js';
@@ -129,10 +130,11 @@ export function loadUI(){const s=getSettings();$('#sp-enabled').prop('checked',s
     // Display active lorebooks
     refreshLorebookDisplay();
     updateLorebookRec();
-    // Show active prompt (custom or built-in)
-    $('#sp-sysprompt').val(s.systemPrompt||buildDynamicPrompt(s));
-    // Show active schema (custom or dynamically built)
-    const schemaStr=s.schema||JSON.stringify(buildDynamicSchema(s),null,2);
+    // v6.13.0 (issue #15): editor reads/writes go through the active
+    // profile, not s.schema / s.systemPrompt directly.
+    const _activeProfile=getActiveProfile(s);
+    $('#sp-sysprompt').val(_activeProfile.systemPrompt||buildDynamicPrompt(s));
+    const schemaStr=_activeProfile.schema||JSON.stringify(buildDynamicSchema(s),null,2);
     $('#sp-schema').val(schemaStr);
     updateBadge();$('#sp-lore-section').toggle(s.lorebookMode==='allowlist');$('#scenepulse-settings .inline-drawer-content').toggleClass('sp-disabled',!s.enabled);
     // Save resolved UUIDs back to localStorage (synchronous, immune to ST race conditions)
@@ -256,8 +258,19 @@ export function bindUI(){const s=getSettings();
     $('#sp-embed-n').on('change',function(){s.embedSnapshots=clamp(+this.value,0,5);saveSettings();_spSaveLS()});
     $('#sp-embed-role').on('change',function(){s.embedRole=this.value;saveSettings();_spSaveLS()});
     $('#sp-lore-mode').on('change',function(){s.lorebookMode=this.value;saveSettings();_spSaveLS();$('#sp-lore-section').toggle(this.value==='allowlist');refreshLorebookDisplay();updateLorebookRec()});
-    $('#sp-sysprompt').on('change',function(){const v=this.value.trim();const dynamicPrompt=buildDynamicPrompt(s).trim();s.systemPrompt=(v===dynamicPrompt)?null:v||null;saveSettings()});
-    $('#sp-schema').on('change',function(){const v=this.value.trim();const dynamicStr=JSON.stringify(buildDynamicSchema(s),null,2);if(v===dynamicStr){s.schema=null;saveSettings();return}if(v){try{JSON.parse(v);s.schema=v}catch{toastr.error(t('Invalid JSON'));return}}else s.schema=null;saveSettings()});
+    // v6.13.0 (issue #15): writes land on the active profile.
+    $('#sp-sysprompt').on('change',function(){
+        const v=this.value.trim();const dynamicPrompt=buildDynamicPrompt(s).trim();
+        const next=(v===dynamicPrompt)?null:v||null;
+        updateActiveProfile(s,{systemPrompt:next});saveSettings();
+    });
+    $('#sp-schema').on('change',function(){
+        const v=this.value.trim();const dynamicStr=JSON.stringify(buildDynamicSchema(s),null,2);
+        if(v===dynamicStr){updateActiveProfile(s,{schema:null});saveSettings();return}
+        if(v){try{JSON.parse(v);updateActiveProfile(s,{schema:v})}catch{toastr.error(t('Invalid JSON'));return}}
+        else updateActiveProfile(s,{schema:null});
+        saveSettings();
+    });
     // Schema edit protection
     $('#sp-schema-unlock').on('click',function(){
         $('#sp-schema-locked').hide();$('#sp-schema-unlocked').show();
@@ -270,15 +283,15 @@ export function bindUI(){const s=getSettings();
     });
     $('#sp-schema-lock').on('click',async function(){
         if(!await spConfirm(t('Lock Schema'),t('This will lock the schema editor and reset to the built-in default. Any custom schema changes will be permanently lost.')))return;
-        s.schema=null;saveSettings();
+        updateActiveProfile(s,{schema:null});saveSettings();
         $('#sp-schema').val('');
         $('#sp-schema-unlocked').hide();$('#sp-schema-locked').show();
         toastr.info(t('Schema locked and reset to default'));
     });
     // Default and Copy buttons
-    $('#sp-sysprompt-default').on('click',()=>{s.systemPrompt=null;saveSettings();$('#sp-sysprompt').val(buildDynamicPrompt(s));toastr.info(t('System prompt reset to default'))});
+    $('#sp-sysprompt-default').on('click',()=>{updateActiveProfile(s,{systemPrompt:null});saveSettings();$('#sp-sysprompt').val(buildDynamicPrompt(s));toastr.info(t('System prompt reset to default'))});
     $('#sp-sysprompt-copy').on('click',()=>{navigator.clipboard.writeText($('#sp-sysprompt').val());toastr.success(t('Prompt copied'))});
-    $('#sp-schema-default').on('click',()=>{s.schema=null;saveSettings();$('#sp-schema').val(JSON.stringify(buildDynamicSchema(s),null,2));toastr.info(t('Schema reset to default'))});
+    $('#sp-schema-default').on('click',()=>{updateActiveProfile(s,{schema:null});saveSettings();$('#sp-schema').val(JSON.stringify(buildDynamicSchema(s),null,2));toastr.info(t('Schema reset to default'))});
     $('#sp-schema-copy').on('click',()=>{navigator.clipboard.writeText($('#sp-schema').val());toastr.success(t('Schema copied'))});
     $('#sp-btn-refresh').on('click',()=>{
         const _rp=getConnectionProfiles(),_rpr=getChatPresets();
@@ -374,6 +387,124 @@ export function bindUI(){const s=getSettings();
             if (badge) badge.textContent = n ? `(${n})` : '';
         });
     } catch {}
+
+    // ── v6.13.0 (issue #15): Profile manager UI wiring ──
+    bindProfileUI(s);
+}
+
+// Render the profile dropdown + meta line. Called on init and after any
+// CRUD action so the UI stays in sync with the profile array.
+function renderProfileUI(){
+    const s=getSettings();
+    if(migrateLegacySettingsToProfile(s)) saveSettings();
+    const sel=document.getElementById('sp-profile-active');
+    const meta=document.getElementById('sp-profile-meta');
+    if(!sel||!meta)return;
+    const profiles=Array.isArray(s.profiles)?s.profiles:[];
+    const active=getActiveProfile(s);
+    sel.innerHTML='';
+    for(const p of profiles){
+        const opt=document.createElement('option');
+        opt.value=p.id;opt.textContent=p.name;
+        if(active&&p.id===active.id)opt.selected=true;
+        sel.appendChild(opt);
+    }
+    if(active){
+        const parts=[];
+        if(active.systemPrompt)parts.push(t('custom prompt'));
+        if(active.schema)parts.push(t('custom schema'));
+        if(Array.isArray(active.customPanels)&&active.customPanels.length)parts.push(`${active.customPanels.length} ${t('custom panels')}`);
+        const tag=parts.length?` · ${parts.join(' · ')}`:` · ${t('uses dynamic defaults')}`;
+        meta.textContent=`${profiles.length} ${t('profile(s)')}${tag}`;
+    } else {
+        meta.textContent='';
+    }
+}
+
+function bindProfileUI(s){
+    renderProfileUI();
+    $('#sp-profile-active').on('change',function(){
+        const id=this.value;if(!setActiveProfile(s,id))return;
+        saveSettings();
+        // Force-full regen on next turn — delta against a different schema
+        // would be nonsensical. The user can immediately re-generate to
+        // see the new profile's output.
+        try { import('../settings.js').then(m => m.forceFullStateRefresh && m.forceFullStateRefresh()); } catch {}
+        // Re-render the schema/prompt textareas to reflect the new active profile
+        loadUI();
+        try { toastr.success(t('Switched to profile') + ': ' + (getActiveProfile(s).name || '')); } catch {}
+    });
+    $('#sp-profile-new').on('click',async()=>{
+        const name=window.prompt(t('Name for new profile:'),'New Profile');
+        if(!name||!name.trim())return;
+        const p=createProfile(s,{name:name.trim()});
+        setActiveProfile(s,p.id);saveSettings();renderProfileUI();loadUI();
+        try { toastr.success(t('Profile created') + ': ' + p.name); } catch {}
+    });
+    $('#sp-profile-duplicate').on('click',()=>{
+        const active=getActiveProfile(s);if(!active)return;
+        const dup=duplicateProfile(s,active.id);
+        if(!dup)return;
+        setActiveProfile(s,dup.id);saveSettings();renderProfileUI();loadUI();
+        try { toastr.success(t('Profile duplicated') + ': ' + dup.name); } catch {}
+    });
+    $('#sp-profile-rename').on('click',()=>{
+        const active=getActiveProfile(s);if(!active)return;
+        const newName=window.prompt(t('New name for profile:'),active.name);
+        if(!newName||!newName.trim())return;
+        if(renameProfile(s,active.id,newName.trim())){
+            saveSettings();renderProfileUI();
+            try { toastr.success(t('Profile renamed')); } catch {}
+        }
+    });
+    $('#sp-profile-delete').on('click',async()=>{
+        const active=getActiveProfile(s);if(!active)return;
+        const profiles=Array.isArray(s.profiles)?s.profiles:[];
+        if(profiles.length<=1){
+            try { toastr.warning(t('Cannot delete the last profile.')); } catch {}
+            return;
+        }
+        if(!await spConfirm(t('Delete profile?'),`"${active.name}" — ${t('this cannot be undone.')}`))return;
+        const newActive=deleteProfile(s,active.id);
+        if(newActive){saveSettings();renderProfileUI();loadUI();
+            try { toastr.success(t('Profile deleted')); } catch {}
+        }
+    });
+    $('#sp-profile-export').on('click',()=>{
+        const active=getActiveProfile(s);if(!active)return;
+        const payload=exportProfile(active);
+        const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+        const url=URL.createObjectURL(blob);
+        const safeName=(active.name||'profile').replace(/[^a-z0-9_-]+/gi,'_').toLowerCase();
+        const a=document.createElement('a');a.href=url;a.download=`scenepulse-profile-${safeName}.json`;
+        document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+        try { toastr.success(t('Profile exported')); } catch {}
+    });
+    $('#sp-profile-import').on('click',()=>document.getElementById('sp-profile-import-file')?.click());
+    $('#sp-profile-import-file').on('change',async function(){
+        const file=this.files?.[0];if(!file)return;this.value='';
+        try{
+            const text=await file.text();const raw=JSON.parse(text);
+            const v=validateImportedProfile(raw);
+            if(!v.ok){
+                try { toastr.error(t('Invalid profile')+': '+v.errors.join('; ')); } catch {}
+                return;
+            }
+            const imported=importProfile(s,v.profile);
+            saveSettings();renderProfileUI();
+            try { toastr.success(t('Profile imported')+': '+imported.name); } catch {}
+        }catch(e){
+            try { toastr.error(t('Failed to import profile')+': '+(e?.message||'')); } catch {}
+            warn('Profile import:',e);
+        }
+    });
+    $('#sp-profile-manage').on('click',async()=>{
+        // Lazy-import the manager overlay (deeper-edit + bulk operations).
+        try {
+            const m = await import('./profiles-manager.js');
+            m.openProfilesManager(()=>{renderProfileUI();loadUI();});
+        } catch(e) { warn('Profile manager:', e?.message); }
+    });
 }
 
 function renderLoreTags(){const s=getSettings();const c=document.getElementById('sp-lore-tags');if(!c)return;c.innerHTML='';for(const n of(s.lorebookAllowlist||[])){const tag=document.createElement('span');tag.className='sp-lore-tag';tag.innerHTML=`${esc(n)} <span class="sp-lore-tag-x" data-n="${esc(n)}">✕</span>`;tag.querySelector('.sp-lore-tag-x').addEventListener('click',function(){s.lorebookAllowlist=s.lorebookAllowlist.filter(x=>x!==this.dataset.n);saveSettings();renderLoreTags()});c.appendChild(tag)}}

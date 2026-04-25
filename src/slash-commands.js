@@ -5,6 +5,7 @@ import { log, warn } from './logger.js';
 import { t } from './i18n.js';
 import { spConfirm } from './utils.js';
 import { getSettings, saveSettings, getLatestSnapshot, getTrackerData, anyPanelsActive, forceFullStateRefresh, clearForceFullState } from './settings.js';
+import { getActiveProfile } from './profiles.js';
 import { normalizeTracker, clearNormCache } from './normalize.js';
 import { generating } from './state.js';
 import { BUILTIN_PANELS, VERSION } from './constants.js';
@@ -430,8 +431,9 @@ function _spDebug() {
         snap?.relationships ? `Relationships: ${snap.relationships.map(r => r.name).join(', ')}` : '',
         '',
         meta.source ? `Last gen: source=${meta.source} elapsed=${meta.elapsed?.toFixed(1)}s tokens=~${(meta.promptTokens || 0) + (meta.completionTokens || 0)}` : 'No generation metadata',
-        `Schema: ${s.schema ? 'custom override' : 'dynamic (auto)'}`,
-        `Prompt: ${s.systemPrompt ? 'custom override' : 'dynamic (auto)'}`,
+        `Active profile: ${getActiveProfile(s).name || '(unset)'}`,
+        `Schema: ${getActiveProfile(s).schema ? 'custom override' : 'dynamic (auto)'}`,
+        `Prompt: ${getActiveProfile(s).systemPrompt ? 'custom override' : 'dynamic (auto)'}`,
         `Lorebook mode: ${s.lorebookMode || 'character_attached'}`,
     ].filter(l => l !== undefined).join('\n');
 }
