@@ -98,6 +98,78 @@ export function migrateLegacySettingsToProfile(s) {
 }
 
 /**
+ * v6.16.2 backfill — clean up "shadowed root data" orphaned by the v6.13.0
+ * migration. The original `migrateLegacySettingsToProfile` COPIED legacy
+ * values into the new profile but left the originals at the root. Result:
+ * the diagnostics bundle and other consumers that read from raw `s` saw
+ * stale data that the UI was no longer using (Panel C synthesis).
+ *
+ * Rules per Panel C Q3 (treats all six profile-overlay fields uniformly):
+ *  - panels / fieldToggles / dashCards / customPanels: ALWAYS overlaid by
+ *    profile. If profile has its own value, root is dead → clear. If profile
+ *    is empty/missing the field, MOVE root → profile.
+ *  - schema / systemPrompt: only overlaid when profile.<x> is non-null. If
+ *    profile.<x> IS non-null, root is dead → clear. Otherwise root is
+ *    genuinely effective; leave it.
+ *
+ * Idempotent. Logs each field cleared. Returns the count of fields touched.
+ */
+export function migrateOrphanRootData(s) {
+    if (!s || typeof s !== 'object') return 0;
+    if (!Array.isArray(s.profiles) || !s.profiles.length || !s.activeProfileId) return 0;
+    const profile = s.profiles.find(p => p && p.id === s.activeProfileId);
+    if (!profile) return 0;
+    let touched = 0;
+
+    // Always-overlaid object/array fields
+    const _alwaysOverlaid = [
+        { key: 'panels',        emptyVal: () => ({}) },
+        { key: 'fieldToggles',  emptyVal: () => ({}) },
+        { key: 'dashCards',     emptyVal: () => ({}) },
+        { key: 'customPanels',  emptyVal: () => [] },
+    ];
+    for (const { key, emptyVal } of _alwaysOverlaid) {
+        const rootVal = s[key];
+        const profVal = profile[key];
+        const rootHas = (Array.isArray(rootVal) ? rootVal.length > 0
+                          : (rootVal && typeof rootVal === 'object' && Object.keys(rootVal).length > 0));
+        if (!rootHas) continue;
+        const profHas = (Array.isArray(profVal) ? profVal.length > 0
+                          : (profVal && typeof profVal === 'object' && Object.keys(profVal).length > 0));
+        if (profHas) {
+            // Profile owns it; root is dead weight.
+            log(`Orphan migration: cleared root.${key} (shadowed by profile "${profile.name}")`);
+            s[key] = emptyVal();
+            touched++;
+        } else {
+            // Profile is empty; promote root → profile.
+            log(`Orphan migration: moved root.${key} → profile "${profile.name}"`);
+            profile[key] = rootVal;
+            s[key] = emptyVal();
+            touched++;
+        }
+    }
+
+    // Conditionally-overlaid scalar fields — only touch if profile sets them.
+    const _conditionallyOverlaid = ['schema', 'systemPrompt'];
+    for (const key of _conditionallyOverlaid) {
+        const profSet = (typeof profile[key] === 'string' && profile[key].trim().length > 0);
+        if (!profSet) continue; // root is genuinely effective; leave it
+        const rootVal = s[key];
+        if (typeof rootVal === 'string' && rootVal.trim().length > 0) {
+            log(`Orphan migration: cleared root.${key} (shadowed by profile.${key})`);
+            s[key] = null;
+            touched++;
+        }
+    }
+
+    if (touched > 0) {
+        profile.updatedAt = new Date().toISOString();
+    }
+    return touched;
+}
+
+/**
  * Resolve the currently-active profile.
  *
  * Resolution order:

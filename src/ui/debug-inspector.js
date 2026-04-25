@@ -130,6 +130,80 @@ function _nonDefaultSettings(s, defaults) {
     return out;
 }
 
+// v6.16.2: Resolve EFFECTIVE configuration with provenance — what the UI
+// actually uses, with each source labeled. Mirrors `_buildProfileView` but
+// returns the same data tagged with where each value came from. Panel C: a
+// dump field without a `source:` label is an anti-pattern.
+function _resolveEffectiveConfig(s) {
+    let profile = null;
+    try { profile = getActiveProfile(s); } catch {}
+    const profileName = profile?.name || '(none)';
+    const _arrSet = (v) => Array.isArray(v) && v.length > 0;
+    const _objSet = (v) => v && typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length > 0;
+    const _strSet = (v) => typeof v === 'string' && v.trim().length > 0;
+    // ALWAYS-overlaid fields: profile wins if set, else root, else empty.
+    const _resolveAlways = (key, isArr) => {
+        const profVal = profile?.[key];
+        const rootVal = s?.[key];
+        const test = isArr ? _arrSet : _objSet;
+        if (test(profVal)) return { value: profVal, source: `profile:${profileName}` };
+        if (test(rootVal)) return { value: rootVal, source: 'root' };
+        return { value: isArr ? [] : {}, source: 'default' };
+    };
+    // CONDITIONALLY-overlaid scalar fields: profile wins only when non-null.
+    const _resolveConditional = (key) => {
+        const profVal = profile?.[key];
+        const rootVal = s?.[key];
+        if (_strSet(profVal)) return { value: profVal, source: `profile:${profileName}` };
+        if (_strSet(rootVal)) return { value: rootVal, source: 'root' };
+        return { value: null, source: `default (profile.${key} = null)` };
+    };
+    return {
+        activeProfileId: s.activeProfileId || null,
+        activeProfileName: profileName,
+        panels:        _resolveAlways('panels', false),
+        fieldToggles:  _resolveAlways('fieldToggles', false),
+        dashCards:     _resolveAlways('dashCards', false),
+        customPanels:  _resolveAlways('customPanels', true),
+        schema:        _resolveConditional('schema'),
+        systemPrompt:  _resolveConditional('systemPrompt'),
+    };
+}
+
+// v6.16.2: Detect root-level data shadowed by the active profile. Same rule
+// set as `migrateOrphanRootData` but read-only — for the Diagnostics bundle
+// + the Config tab warning row.
+function _detectShadowedRootData(s) {
+    const out = [];
+    let profile = null;
+    try { profile = getActiveProfile(s); } catch {}
+    if (!profile) return out;
+    const profileName = profile.name || 'active profile';
+    const _arrHas = (v) => Array.isArray(v) && v.length > 0;
+    const _objHas = (v) => v && typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length > 0;
+    const _strHas = (v) => typeof v === 'string' && v.trim().length > 0;
+    const _checkAlways = (key, isArr) => {
+        const rootHas = isArr ? _arrHas(s[key]) : _objHas(s[key]);
+        const profHas = isArr ? _arrHas(profile[key]) : _objHas(profile[key]);
+        if (rootHas && profHas) {
+            const summary = isArr
+                ? `${s[key].length} ${s[key].length === 1 ? 'entry' : 'entries'}`
+                : `${Object.keys(s[key]).length} keys`;
+            out.push({ key, summary, shadowedBy: `profile:${profileName}` });
+        }
+    };
+    _checkAlways('panels', false);
+    _checkAlways('fieldToggles', false);
+    _checkAlways('dashCards', false);
+    _checkAlways('customPanels', true);
+    for (const key of ['schema', 'systemPrompt']) {
+        if (_strHas(s[key]) && _strHas(profile[key])) {
+            out.push({ key, summary: `${s[key].length} chars`, shadowedBy: `profile.${key}` });
+        }
+    }
+    return out;
+}
+
 function _buildDiagnostics({ spVersion = '', stVersion = '' } = {}) {
     // Activity log: last 50 lines
     const activity = (debugLog || []).slice(-50).map(_redact).join('\n');
@@ -155,20 +229,62 @@ function _buildDiagnostics({ spVersion = '', stVersion = '' } = {}) {
             + (e.context ? `Context: ${_redact(JSON.stringify(e.context))}\n` : '')
             + (e.stack ? `Stack:\n${_redact(e.stack)}\n` : '');
     }).join('\n---\n\n');
-    // Settings (non-default only) + active profile
-    let settingsBlock = '';
+    // v6.16.2 (Panel C): bundle now leads with EFFECTIVE configuration (what
+    // the UI actually uses, with source labels), then surfaces SHADOWED root
+    // data explicitly, then everything else. The previous "Non-default settings"
+    // dump silently included shadowed data, generating the user's exact bug
+    // report ("custom panels in JSON even though I have none enabled").
+    let effectiveBlock = '(unavailable)';
+    let shadowedLines = [];
+    let otherSettingsBlock = '';
     let profileBlock = '';
+    let profilesArrayBlock = '';
     try {
         const s = getSettings();
+        const eff = _resolveEffectiveConfig(s);
+        // Render effective config with [source: ...] tags inline
+        const effLines = [
+            `activeProfileId: ${eff.activeProfileId} ("${eff.activeProfileName}")`,
+            ...['panels', 'fieldToggles', 'dashCards', 'customPanels', 'schema', 'systemPrompt'].map(key => {
+                const v = eff[key].value;
+                const src = eff[key].source;
+                let summary;
+                if (v == null) summary = 'null';
+                else if (Array.isArray(v)) summary = `[${v.length} entries]`;
+                else if (typeof v === 'object') summary = `{${Object.keys(v).length} keys}`;
+                else if (typeof v === 'string') summary = `"${v.slice(0, 60)}${v.length > 60 ? '…' : ''}" (${v.length} chars)`;
+                else summary = JSON.stringify(v);
+                return `${key}: ${summary}    [source: ${src}]`;
+            }),
+        ];
+        effectiveBlock = effLines.join('\n');
+        // Shadowed root data
+        const shadowed = _detectShadowedRootData(s);
+        shadowedLines = shadowed.length
+            ? shadowed.map(o => `- root.${o.key}: ${o.summary}    ← shadowed by ${o.shadowedBy}`)
+            : ['(none — root configuration is consistent with active profile)'];
+        // Non-default settings MINUS the always-overlaid keys (those are in Effective above)
         const nonDef = _nonDefaultSettings(s, DEFAULT_SETTINGS);
-        settingsBlock = _redact(JSON.stringify(nonDef, null, 2));
+        const _omitFromOther = ['panels', 'fieldToggles', 'dashCards', 'customPanels', 'schema', 'systemPrompt', 'profiles', 'activeProfileId'];
+        const otherOnly = {};
+        for (const k of Object.keys(nonDef)) if (!_omitFromOther.includes(k)) otherOnly[k] = nonDef[k];
+        otherSettingsBlock = _redact(JSON.stringify(otherOnly, null, 2));
+        // Active profile detail (single profile) and full profiles array (separate sections)
         const prof = getActiveProfile(s);
         if (prof) {
-            const pSafe = { id: prof.id, name: prof.name, hasSchema: !!prof.schema, hasPrompt: !!prof.systemPrompt, panels: prof.panels?.length || 0 };
+            const pSafe = { id: prof.id, name: prof.name, hasSchema: !!prof.schema, hasPrompt: !!prof.systemPrompt,
+                panels: Object.keys(prof.panels || {}).length, customPanels: (prof.customPanels || []).length,
+                fieldToggles: Object.keys(prof.fieldToggles || {}).length };
             profileBlock = JSON.stringify(pSafe, null, 2);
         }
-    } catch (e) { settingsBlock = '(unavailable: ' + (e?.message || '') + ')'; }
-    // Build the bundle, then prepend the hash header so the hash covers content.
+        if (Array.isArray(s.profiles)) {
+            profilesArrayBlock = JSON.stringify(s.profiles.map(p => ({
+                id: p.id, name: p.name, hasSchema: !!p.schema, hasPrompt: !!p.systemPrompt,
+                panels: Object.keys(p.panels || {}).length, customPanels: (p.customPanels || []).length,
+            })), null, 2);
+        }
+    } catch (e) { effectiveBlock = '(unavailable: ' + (e?.message || '') + ')'; }
+
     const body = [
         '## Versions',
         `- ScenePulse: ${spVersion || '(unknown)'}`,
@@ -176,11 +292,20 @@ function _buildDiagnostics({ spVersion = '', stVersion = '' } = {}) {
         `- UA: ${(typeof navigator !== 'undefined' && navigator.userAgent) || '(unknown)'}`,
         `- Viewport: ${typeof window !== 'undefined' ? `${window.innerWidth}x${window.innerHeight}` : '(unknown)'}`,
         '',
+        '## Effective configuration (what the UI actually uses)',
+        '```', effectiveBlock, '```',
+        '',
+        '## Shadowed root data (persisted but NOT in effect)',
+        shadowedLines.join('\n'),
+        '',
         '## Active profile',
         '```json', profileBlock || '(none)', '```',
         '',
-        '## Non-default settings',
-        '```json', settingsBlock, '```',
+        '## All profiles (summary)',
+        '```json', profilesArrayBlock || '(none)', '```',
+        '',
+        '## Other non-default root settings (excluding profile-overlaid)',
+        '```json', otherSettingsBlock, '```',
         '',
         `## Recent issues (last ${Math.min(10, crashGetEntries().length)} of ${crashGetEntries().length})`,
         '```', issues || '(none)', '```',
@@ -237,15 +362,64 @@ function _buildSnapshotSparkline() {
     try { snaps = getTrackerData()?.snapshots || {}; } catch {}
     const turnIds = Object.keys(snaps).map(Number).filter(n => !isNaN(n)).sort((a, b) => a - b);
     if (turnIds.length === 0) return null;
+
+    // v6.16.2 Panel B "real fix": backfill mesIdx for historic crash entries
+    // (v6.12.3-era) that lack it in their auto-context. Strategy: each parse-
+    // related crash gets its mesIdx inferred as the snapshot whose save time
+    // is CLOSEST to the crash ts AND falls within a 5-minute window (typical
+    // generation+retry cycle). Without a save-time map for snapshots we fall
+    // back to using the crash's own ts to find the closest turnId by ts —
+    // snapshots are saved at generation completion so closest-ts matching
+    // gives the right answer for failures during that generation.
+    //
+    // If snapshots don't carry their own ts, we approximate using the snapshot
+    // body's `_spMeta` / time/date fields where available, else skip backfill
+    // for that entry (still counts as untracked, so we keep the qualifier).
+    const snapTs = {}; // turnId -> ms timestamp
+    let backfillable = false;
+    for (const turnId of turnIds) {
+        const snap = snaps[String(turnId)];
+        // Snapshots saved post-v6.x usually have _spMeta with no ts but include
+        // top-level time/date strings. Fall back to using turn order as a
+        // monotonic proxy if no ts is present.
+        const tsStr = snap?._spMeta?.savedAt || snap?.savedAt || null;
+        if (tsStr) {
+            const ms = new Date(tsStr).getTime();
+            if (!isNaN(ms)) { snapTs[turnId] = ms; backfillable = true; }
+        }
+    }
     const failedTurnSet = new Set();
     const fails = crashGetEntries().filter(e =>
-        e.source === 'scenepulse'
-        && _isParseRelated(e.message || '')
-        && e.context?.mesIdx != null);
-    for (const e of fails) failedTurnSet.add(Number(e.context.mesIdx));
+        e.source === 'scenepulse' && _isParseRelated(e.message || ''));
+    const FIVE_MIN_MS = 5 * 60 * 1000;
+    for (const e of fails) {
+        // 1. If auto-context already has mesIdx, use it directly.
+        if (e.context?.mesIdx != null) {
+            failedTurnSet.add(Number(e.context.mesIdx));
+            continue;
+        }
+        // 2. Backfill: find the snapshot whose savedAt is closest to the crash
+        //    ts AND within FIVE_MIN_MS. Skip if no snapshot has a savedAt.
+        if (!backfillable) continue;
+        const crashMs = new Date(e.ts).getTime();
+        if (isNaN(crashMs)) continue;
+        let bestId = null;
+        let bestDelta = Infinity;
+        for (const turnId of turnIds) {
+            const snapMs = snapTs[turnId];
+            if (snapMs == null) continue;
+            const delta = Math.abs(snapMs - crashMs);
+            if (delta < bestDelta) { bestDelta = delta; bestId = turnId; }
+        }
+        if (bestId != null && bestDelta <= FIVE_MIN_MS) {
+            failedTurnSet.add(Number(bestId));
+        }
+    }
     const totalTurns = turnIds.length;
     const failCount = failedTurnSet.size;
-    const lastFailTurn = fails.length ? Math.max(...fails.map(e => Number(e.context.mesIdx))) : null;
+    const lastFailTurn = failedTurnSet.size
+        ? Math.max(...Array.from(failedTurnSet))
+        : null;
     if (totalTurns === 0) return null;
     // Bucket the turn range into BUCKETS bins; each bin's height = fail count / max bin
     const BUCKETS = 20;
@@ -264,7 +438,10 @@ function _buildSnapshotSparkline() {
         const idx = Math.min(_SPARK_BLOCKS.length - 1, Math.ceil(ratio * (_SPARK_BLOCKS.length - 1)));
         return _SPARK_BLOCKS[idx];
     }).join('');
-    return { spark, totalTurns, failCount, lastFailTurn };
+    // backfilled = true means we have savedAt timestamps for snapshots and were
+    // able to infer historic failures. The footer drops the "since v6.15.3"
+    // qualifier in this case (Panel B preferred path).
+    return { spark, totalTurns, failCount, lastFailTurn, backfilled: backfillable };
 }
 
 // v6.15.3: pattern-match common error messages to a one-line cause hint.
@@ -1115,9 +1292,11 @@ function _configTab(panel) {
             <button class="sp-cl-export-btn sp-di-copy">${t('Copy')}</button>
             <button class="sp-cl-export-btn sp-di-export">${t('Export TXT')}</button>
         </div>
+        <div class="sp-di-orphan-warn"></div>
         <div class="sp-di-config-body"></div>
     `;
     const body = panel.querySelector('.sp-di-config-body');
+    const orphanWarn = panel.querySelector('.sp-di-orphan-warn');
 
     function _build() {
         const s = (() => { try { return getSettings(); } catch { return null; } })();
@@ -1169,6 +1348,47 @@ function _configTab(panel) {
             <pre class="sp-cl-context">${esc(settingsBlock)}</pre>
             <div class="sp-cl-meta"><span>${t('API keys, paths, and emails are auto-redacted in this view.')}</span></div>
         `;
+        // v6.16.2: orphan warning row at the top — Panel C: same data as the
+        // Diagnostics _orphans block, surfaced where users edit settings so
+        // they can act on it. Auto-cleanup runs via migrateOrphanRootData on
+        // next save (already wired in src/settings.js getActiveSchema), but
+        // this row makes the cleanup visible AND offers a manual cleanup
+        // button for cases where the auto-migration didn't fire.
+        try {
+            const sNow = getSettings();
+            const orphans = _detectShadowedRootData(sNow);
+            if (orphans.length > 0) {
+                const lines = orphans.map(o =>
+                    `<li><code>root.${esc(o.key)}</code>: ${esc(o.summary)} <span class="sp-di-orphan-shadowed">${esc(t('shadowed by'))} ${esc(o.shadowedBy)}</span></li>`
+                ).join('');
+                orphanWarn.innerHTML = `
+                    <div class="sp-di-orphan-card">
+                        <div class="sp-di-orphan-head">
+                            <span class="sp-di-orphan-icon">!</span>
+                            <strong>${orphans.length} ${t('settings overridden by profile (not in effect)')}</strong>
+                            <button class="sp-cl-export-btn sp-di-orphan-clean" type="button">${t('Clean up legacy root data')}</button>
+                        </div>
+                        <ul class="sp-di-orphan-list">${lines}</ul>
+                        <div class="sp-di-orphan-hint">${t('These root values are persisted but ignored — the active profile owns them. Cleanup is auto-run on next save; manual button is for cases where the auto-migration did not fire (e.g. imported settings backup).')}</div>
+                    </div>
+                `;
+                orphanWarn.querySelector('.sp-di-orphan-clean').addEventListener('click', async () => {
+                    const sLatest = getSettings();
+                    const { migrateOrphanRootData } = await import('../profiles.js');
+                    const touched = migrateOrphanRootData(sLatest);
+                    if (touched > 0) {
+                        const { saveSettings } = await import('../settings.js');
+                        saveSettings();
+                        try { toastr.success(`${t('Cleaned up')} ${touched} ${t('orphaned root settings')}`); } catch {}
+                        _build();
+                    } else {
+                        try { toastr.info(t('Nothing to clean up')); } catch {}
+                    }
+                });
+            } else {
+                orphanWarn.innerHTML = '';
+            }
+        } catch {}
     }
 
     function _toText() {

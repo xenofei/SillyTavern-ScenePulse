@@ -7,7 +7,7 @@ import { esc } from './utils.js';
 import { buildDynamicSchema, buildDynamicPrompt } from './schema.js';
 import { t } from './i18n.js';
 import { consolidateQuests } from './generation/delta-merge.js';
-import { getActiveProfile, migrateLegacySettingsToProfile } from './profiles.js';
+import { getActiveProfile, migrateLegacySettingsToProfile, migrateOrphanRootData } from './profiles.js';
 
 // Minimal inline user-name check for the one-shot migration below.
 // Duplicates the logic in normalize.isUserName to avoid a circular import
@@ -657,6 +657,14 @@ export function clearForceFullState() {
 
 export function saveSnapshot(id,j){
     const data=getTrackerData();
+    // v6.16.2: stamp savedAt on every snapshot at write time so the inspector's
+    // sparkline can correlate crash-log timestamps to turn IDs (Panel B
+    // backfill). Live under _spMeta to avoid colliding with model-emitted
+    // top-level fields.
+    if(j && typeof j === 'object'){
+        if(!j._spMeta || typeof j._spMeta !== 'object') j._spMeta = {};
+        j._spMeta.savedAt = new Date().toISOString();
+    }
     data.snapshots[String(id)]=j;
     // Prune: user-configurable max snapshots (0 = unlimited)
     const keys=Object.keys(data.snapshots).map(Number).sort((a,b)=>a-b);
@@ -682,6 +690,9 @@ export function getPrevSnapshot(id){const sorted=Object.keys(getTrackerData().sn
 export function getActiveSchema(){
     const s=getSettings();
     if(migrateLegacySettingsToProfile(s)) saveSettings();
+    // v6.16.2: also clean up shadowed root data (Panel C). Auto-runs once
+    // post-upgrade; idempotent so re-entry is harmless.
+    if(migrateOrphanRootData(s) > 0) saveSettings();
     const profile = getActiveProfile(s);
     // Build a "view" object that mirrors the legacy settings shape but
     // sources panels/fieldToggles/dashCards/customPanels from the profile.
@@ -696,6 +707,7 @@ export function getActiveSchema(){
 export function getActivePrompt(opts){
     const s=getSettings();
     if(migrateLegacySettingsToProfile(s)) saveSettings();
+    if(migrateOrphanRootData(s) > 0) saveSettings();
     const profile = getActiveProfile(s);
     if (profile.systemPrompt) return profile.systemPrompt;
     const sView = _buildProfileView(s, profile);

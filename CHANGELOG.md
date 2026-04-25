@@ -2,6 +2,39 @@
 
 All notable changes to ScenePulse are documented in this file.
 
+### [6.16.2] — 2026-04-25
+
+#### Changed — Diagnostics data integrity: effective view + shadowed-data section + orphan migration (Panel C)
+
+**The bug** (user-reported): the Diagnostics bundle showed `customPanels: [{Fantasy RPG, Sci-Fi/Space Opera}]` at the root even though the active profile's `customPanels: []` was the value the UI actually used. Root cause: v6.13.0's profile migration COPIED legacy values into the new profile but never CLEARED the originals at root. The Diagnostics bundle dumped raw root settings, surfacing the orphans as if they were live.
+
+**Diagnostics bundle restructured** (Panel C synthesis):
+- New leading section **"Effective configuration (what the UI actually uses)"** — every overlay-eligible field (panels, fieldToggles, dashCards, customPanels, schema, systemPrompt) shown with its source label (`[source: profile:Default]` / `[source: root]` / `[source: default]`). Modeled on Postgres `pg_settings.source` and VS Code's "Modified in: Workspace" pattern.
+- New **"Shadowed root data (persisted but NOT in effect)"** section — explicitly lists every root-level value that an active profile has overridden, with the shadowing source. Empty section when configuration is consistent.
+- "Active profile" + new "All profiles (summary)" section.
+- Renamed "Non-default settings" → **"Other non-default root settings (excluding profile-overlaid)"** so the per-section purpose is clear.
+
+**Profile orphan migration** (`migrateOrphanRootData()` in `src/profiles.js`):
+- Detects shadowed root data per Panel C's Q3 rules: ALWAYS-overlaid fields (panels/fieldToggles/dashCards/customPanels) clear root if profile has its own value, MOVE root → profile if profile is empty. CONDITIONALLY-overlaid scalars (schema/systemPrompt) clear root only when the profile field is non-null.
+- Auto-runs on next call to `getActiveSchema()` / `getActivePrompt()` (silent + logged, matches v6.13.0's `migrateLegacySettingsToProfile` pattern).
+- Idempotent: second call is a no-op.
+- 66 test cases in `tests/profile-orphan-migration.test.mjs` covering scenarios 1-11 (no profiles, profile empty, profile populated, both empty, conditional fields, cumulative migration, idempotency, stale activeProfileId, legacy-then-orphan sequence, defensive null handling, updatedAt stamp).
+
+**Config tab orphan warning + cleanup affordance**:
+- Top of Config tab body shows an amber warning card listing shadowed root settings when present
+- "Clean up legacy root data" button manually invokes `migrateOrphanRootData()` for cases where the auto-migration didn't fire (e.g., imported settings backup post-v6.13.0)
+- Hint text explains what shadowed data means and that auto-cleanup runs on next save
+
+**Snapshot sparkline backfill** (Panel B "real fix"):
+- `saveSnapshot()` now stamps `_spMeta.savedAt` on every snapshot at write time
+- `_buildSnapshotSparkline()` infers `mesIdx` for historic crash entries that lack auto-context by matching the crash timestamp to the closest snapshot's `savedAt` within a 5-minute window
+- When backfill is available (post-v6.16.2 snapshots exist), the footer drops the "failure tracking added v6.15.3" qualifier and shows the honest failure count
+- v6.12.3-era entries with no nearby savedAt snapshot remain uncounted; the qualifier persists in that case
+
+All 686/686 tests pass (added 66 new cases for orphan migration).
+
+**Coming v6.17.0**: Performance Monitor MVP (Panel A) — FPS/frame-time headline strip + 30s capture mode with component attribution via `performance.mark` instrumentation.
+
 ### [6.16.1] — 2026-04-25
 
 #### Changed — Inspector quality pass: credibility, copy, polish (Panel B audit)

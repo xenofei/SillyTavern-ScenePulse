@@ -342,6 +342,68 @@
 }
 .sp-di-config-body .sp-cl-context { max-height: 320px; }
 
+/* v6.16.2: Orphan warning card in the Config tab — surfaces shadowed root
+   data with a manual cleanup button. Sits at the top of the tab body so
+   users see the integrity issue before scrolling through their config. */
+.sp-di-orphan-warn { padding: 0 14px; }
+.sp-di-orphan-card {
+    margin: 8px 0;
+    padding: 10px 12px;
+    background: rgba(245,158,11,0.06);
+    border: 1px solid rgba(245,158,11,0.25);
+    border-left: 3px solid #fcd34d;
+    border-radius: 4px;
+    font-size: var(--sp-fs-xs);
+    color: var(--sp-text);
+}
+.sp-di-orphan-head {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 6px;
+}
+.sp-di-orphan-icon {
+    flex-shrink: 0;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: rgba(245,158,11,0.25); color: #fcd34d;
+    font-weight: 700; text-align: center;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 11px; font-family: var(--sp-font-mono);
+}
+.sp-di-orphan-head strong { flex: 1; color: var(--sp-text); }
+.sp-di-orphan-clean {
+    background: rgba(245,158,11,0.12) !important;
+    color: #fcd34d !important;
+    border-color: rgba(245,158,11,0.4) !important;
+}
+.sp-di-orphan-clean:hover {
+    background: rgba(245,158,11,0.22) !important;
+    color: #fff !important;
+}
+.sp-di-orphan-list {
+    list-style: none; margin: 4px 0 0 0; padding: 0;
+}
+.sp-di-orphan-list li {
+    padding: 3px 0; font-size: 11px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.sp-di-orphan-list code {
+    background: rgba(0,0,0,0.25);
+    padding: 1px 5px; border-radius: 3px;
+    font-family: var(--sp-font-mono);
+    color: var(--sp-text);
+}
+.sp-di-orphan-shadowed {
+    color: var(--sp-text-dim);
+    font-style: italic;
+    margin-left: 6px;
+}
+.sp-di-orphan-hint {
+    margin-top: 8px;
+    color: var(--sp-text-dim);
+    font-size: 10px; line-height: 1.5;
+    border-top: 1px dashed rgba(255,255,255,0.05);
+    padding-top: 6px;
+}
+
 /* v6.15.4: Auto-open badge for the Debug Inspector toolbar button.
    Two states:
      .sp-di-has-unseen — steady-state amber dot at top-right, persists until
