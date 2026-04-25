@@ -19,9 +19,11 @@
     border: 1px solid var(--sp-border-strong);
     border-radius: var(--sp-radius);
     padding: 10px; margin: 4px 4px 8px;
-    /* Scrollable when many custom panels exist. max-height uses
-       calc to fill available panel space; overflow-y auto activates
-       the scrollbar only when content exceeds the height. */
+    /* Parent #sp-panel-body is a flex column; without flex-shrink: 0 the
+       Panel Manager gets squashed to a single line by sibling sections
+       (issue #12). Keep its intrinsic content height; the max-height cap
+       below + overflow-y handle long custom-panel lists. */
+    flex-shrink: 0;
     max-height: calc(100vh - 140px); overflow-y: auto; overflow-x: hidden;
     opacity: 1; transform: translateY(0);
     transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1),
