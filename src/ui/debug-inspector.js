@@ -21,8 +21,8 @@
 import { t } from '../i18n.js';
 import { esc } from '../utils.js';
 import { debugLog } from '../logger.js';
-import { lastRawResponse } from '../state.js';
-import { getEntries as crashGetEntries, clearAll as crashClearAll, flushNow as crashFlushNow, entryCount as crashEntryCount } from '../crash-log.js';
+import { getLastRawResponse } from '../state.js';
+import { getEntries as crashGetEntries, clearAll as crashClearAll, flushNow as crashFlushNow, entryCount as crashEntryCount, markSeen as crashMarkSeen } from '../crash-log.js';
 
 const REPO_NEW_ISSUE = 'https://github.com/xenofei/SillyTavern-ScenePulse/issues/new';
 
@@ -250,7 +250,10 @@ function _lastResponseTab(panel) {
     const stats = panel.querySelector('.sp-di-meta');
     const body = panel.querySelector('.sp-di-response');
 
-    if (!lastRawResponse) {
+    // v6.15.4: getter avoids the live-binding trap — reads current state value
+    // at render time, not the stale module-load-time snapshot.
+    const raw = getLastRawResponse();
+    if (!raw) {
         stats.textContent = '';
         body.innerHTML = `<div class="sp-cl-empty">${t('No API response captured yet. Generate a scene first.')}</div>`;
         panel.querySelector('.sp-di-copy').disabled = true;
@@ -259,53 +262,114 @@ function _lastResponseTab(panel) {
     }
 
     // Pretty-print if valid JSON; otherwise show raw.
-    let rendered = lastRawResponse;
+    let rendered = raw;
     let isJson = false;
     try {
-        const parsed = JSON.parse(lastRawResponse);
+        const parsed = JSON.parse(raw);
         rendered = JSON.stringify(parsed, null, 2);
         isJson = true;
     } catch {}
 
-    stats.textContent = `${lastRawResponse.length} ${t('chars')}${isJson ? ' · ' + t('valid JSON') : ' · ' + t('raw text')}`;
+    stats.textContent = `${raw.length} ${t('chars')}${isJson ? ' · ' + t('valid JSON') : ' · ' + t('raw text')}`;
     body.innerHTML = `<pre class="sp-di-response-pre">${esc(rendered)}</pre>`;
 
     panel.querySelector('.sp-di-copy').addEventListener('click', () => {
-        _copy(lastRawResponse, t('Last response copied'));
+        _copy(raw, t('Last response copied'));
     });
     panel.querySelector('.sp-di-export').addEventListener('click', () => {
         const ts = new Date().toISOString().replace(/[:.]/g, '-');
-        _exportFile(lastRawResponse, `scenepulse-last-response-${ts}.txt`);
+        _exportFile(raw, `scenepulse-last-response-${ts}.txt`);
     });
 
     return () => {};
 }
 
-// ── Tab: Crashes ────────────────────────────────────────────────────────
+// ── Tab: Issues (v6.15.4 — renamed from "Crashes" since contents include warnings/info) ──
 
-function _crashTab(panel) {
+const TIME_WINDOWS = [
+    { key: 'session', label: 'This session', ms: null },  // since-last-clear / since page load
+    { key: '5m', label: '5m', ms: 5 * 60 * 1000 },
+    { key: '1h', label: '1h', ms: 60 * 60 * 1000 },
+    { key: '1d', label: '1d', ms: 24 * 60 * 60 * 1000 },
+    { key: 'all', label: 'All', ms: -1 },
+];
+
+// v6.15.4: Group consecutive cleanJson + Parse fail (N) entries into one logical
+// event. The maintainer reported 17 entries for 7 actual events because every
+// JSON-parse failure logs both the cleanJson error AND the Parse fail retry —
+// once per attempt. Grouping reads {parent: cleanJson, children: [Parse fail …]}
+// when the source is scenepulse and timestamps are within 60s.
+function _groupParsePairs(entries) {
+    const grouped = [];
+    const PAIR_WINDOW_MS = 60 * 1000;
+    let i = 0;
+    while (i < entries.length) {
+        const e = entries[i];
+        const isCleanJson = e.source === 'scenepulse' && /cleanjson/i.test(e.message || '');
+        if (isCleanJson) {
+            const children = [];
+            let j = i + 1;
+            while (j < entries.length) {
+                const n = entries[j];
+                const dtMs = Math.abs(new Date(n.ts) - new Date(e.ts));
+                if (n.source === 'scenepulse'
+                    && /parse fail/i.test(n.message || '')
+                    && dtMs <= PAIR_WINDOW_MS) {
+                    children.push(n);
+                    j++;
+                } else break;
+            }
+            if (children.length > 0) {
+                grouped.push({ ...e, _group: { children, kind: 'parse-pair' } });
+                i = j;
+                continue;
+            }
+        }
+        grouped.push(e);
+        i++;
+    }
+    return grouped;
+}
+
+function _issuesTab(panel) {
     let severity = 'all';
     let source = 'all';
     let search = '';
+    let timeWindow = 'session';
+    const sessionStart = Date.now();
+
+    const tw = TIME_WINDOWS.map(w =>
+        `<button class="sp-cl-filter${w.key === 'session' ? ' sp-cl-filter-active' : ''}" data-tw="${w.key}">${esc(t(w.label))}</button>`
+    ).join('');
 
     panel.innerHTML = `
-        <div class="sp-cl-toolbar">
-            <input class="sp-cl-search sp-di-crash-search" type="text" placeholder="${t('Search messages and stacks...')}">
-            <div class="sp-cl-filters" data-group="severity">
-                <button class="sp-cl-filter sp-cl-filter-active" data-sev="all">${t('All')}</button>
-                <button class="sp-cl-filter" data-sev="error">${t('Errors')}</button>
-                <button class="sp-cl-filter" data-sev="warning">${t('Warnings')}</button>
-                <button class="sp-cl-filter" data-sev="info">${t('Info')}</button>
+        <div class="sp-cl-toolbar sp-di-issues-toolbar">
+            <div class="sp-cl-toolbar-zone sp-cl-zone-query">
+                <input class="sp-cl-search sp-di-crash-search" type="text" placeholder="${t('Search messages and stacks...')}">
+                <div class="sp-cl-filters sp-cl-filters-severity" data-group="severity">
+                    <button class="sp-cl-filter sp-cl-filter-active" data-sev="all">${t('All')}</button>
+                    <button class="sp-cl-filter sp-cl-filter-error" data-sev="error">${t('Errors')}</button>
+                    <button class="sp-cl-filter sp-cl-filter-warn" data-sev="warning">${t('Warnings')}</button>
+                    <button class="sp-cl-filter sp-cl-filter-info" data-sev="info">${t('Info')}</button>
+                </div>
+                <div class="sp-cl-filters" data-group="source">
+                    <button class="sp-cl-filter sp-cl-filter-active" data-src="all">${t('All sources')}</button>
+                    <button class="sp-cl-filter" data-src="scenepulse">ScenePulse</button>
+                    <button class="sp-cl-filter" data-src="sillytavern">SillyTavern</button>
+                    <button class="sp-cl-filter" data-src="unknown">${t('Unknown')}</button>
+                </div>
+                <div class="sp-cl-filters sp-cl-filters-time" data-group="time">
+                    <span class="sp-cl-filter-label">${t('Since:')}</span>
+                    ${tw}
+                </div>
             </div>
-            <div class="sp-cl-filters" data-group="source">
-                <button class="sp-cl-filter sp-cl-filter-active" data-src="all">${t('All sources')}</button>
-                <button class="sp-cl-filter" data-src="scenepulse">ScenePulse</button>
-                <button class="sp-cl-filter" data-src="sillytavern">SillyTavern</button>
-                <button class="sp-cl-filter" data-src="unknown">${t('Unknown')}</button>
+            <div class="sp-cl-toolbar-zone sp-cl-zone-actions">
+                <button class="sp-cl-export-btn sp-di-copy">${t('Copy All')}</button>
+                <button class="sp-cl-export-btn sp-di-export">${t('Export TXT')}</button>
             </div>
-            <button class="sp-cl-export-btn sp-di-copy">${t('Copy All')}</button>
-            <button class="sp-cl-export-btn sp-di-export">${t('Export TXT')}</button>
-            <button class="sp-cl-export-btn sp-cl-danger sp-di-clear">${t('Clear')}</button>
+            <div class="sp-cl-toolbar-zone sp-cl-zone-danger">
+                <button class="sp-cl-export-btn sp-cl-danger sp-di-clear">${t('Clear')}</button>
+            </div>
         </div>
         <div class="sp-cl-list sp-di-crash-list"></div>
         <div class="sp-cl-footer">
@@ -316,8 +380,23 @@ function _crashTab(panel) {
     const list = panel.querySelector('.sp-di-crash-list');
     const footerText = panel.querySelector('.sp-cl-footer-text');
 
+    function _windowCutoff() {
+        const w = TIME_WINDOWS.find(x => x.key === timeWindow);
+        if (!w) return 0;
+        if (w.key === 'session') return sessionStart;
+        if (w.ms === -1) return 0;
+        return Date.now() - w.ms;
+    }
+
     function _filter(entries) {
         let out = entries;
+        const cutoff = _windowCutoff();
+        if (cutoff > 0) {
+            out = out.filter(e => {
+                const ts = new Date(e.ts).getTime();
+                return !isNaN(ts) && ts >= cutoff;
+            });
+        }
         if (severity !== 'all') out = out.filter(e => e.severity === severity);
         if (source !== 'all') out = out.filter(e => e.source === source);
         if (search) {
@@ -335,25 +414,40 @@ function _crashTab(panel) {
         const row = document.createElement('div');
         row.className = 'sp-cl-row sp-cl-sev-' + (e.severity || 'error');
         const repeat = e.repeat > 1 ? `<span class="sp-cl-repeat">×${e.repeat}</span>` : '';
-        // v6.15.3: expanded body always shows useful sections — full message
-        // (header is truncated by overflow), diagnosis hint for known patterns,
-        // when/where metadata, stack (if present), context (if present), versions,
-        // actions. Previously the body could be near-empty when a string-only
-        // err() captured no stack and no context.
+        // v6.15.4: grouped entry — show "+N attempts" pill in header, list
+        // children at the top of the expanded body. The parent (cleanJson)
+        // already carries the diagnosis hint; children are just timestamps
+        // + brief lines. Per Panel B refinement: preserve original chronological
+        // order of children inside the group, even though the group itself
+        // appears at the parent's position in the newest-first list.
+        const grp = e._group;
+        const groupPill = grp?.children?.length
+            ? `<span class="sp-cl-group-pill" title="${esc(t('Includes related parse retries'))}">+${grp.children.length} ${esc(t(grp.children.length === 1 ? 'attempt' : 'attempts'))}</span>`
+            : '';
         const dx = _diagnose(e.message || '');
         const ctxKeys = e.context ? Object.keys(e.context) : [];
         const hasCtx = ctxKeys.length > 0;
         const _section = (label, html) => `<div class="sp-cl-stack-label">${esc(t(label))}</div>${html}`;
         const bodyParts = [];
-        // Full message (always — header is truncated by CSS)
+        // Group children (when grouped) — listed first since they're the
+        // "what else happened" context for this parent event.
+        if (grp?.children?.length) {
+            const childLines = grp.children.map(c => {
+                const sev = esc((c.severity || 'error'));
+                return `<li class="sp-cl-group-child sp-cl-sev-${sev}">
+                    <span class="sp-cl-ts">${esc(_fmtTs(c.ts))}</span>
+                    <span class="sp-cl-msg">${esc(c.message || '(no message)')}</span>
+                </li>`;
+            }).join('');
+            bodyParts.push(_section('Related attempts',
+                `<ul class="sp-cl-group-children">${childLines}</ul>`));
+        }
         bodyParts.push(_section('Full message',
             `<pre class="sp-cl-fullmsg">${esc(e.message || '(empty)')}</pre>`));
-        // Diagnosis (only when matched)
         if (dx) {
             bodyParts.push(`<div class="sp-cl-stack-label">${esc(t('Likely cause'))}</div>` +
                 `<div class="sp-cl-diagnosis">${esc(dx)}</div>`);
         }
-        // When / Where (always)
         const whenWhere = [
             `<span><strong>${esc(t('Time'))}:</strong> ${esc(_fmtTs(e.ts))}</span>`,
             `<span><strong>${esc(t('Source'))}:</strong> ${esc(e.source || 'unknown')}</span>`,
@@ -361,15 +455,12 @@ function _crashTab(panel) {
             e.repeat > 1 ? `<span><strong>${esc(t('Occurrences'))}:</strong> ${e.repeat}</span>` : '',
         ].filter(Boolean).join('');
         bodyParts.push(_section('When', `<div class="sp-cl-whenwhere">${whenWhere}</div>`));
-        // Stack
         if (e.stack) {
             bodyParts.push(_section('Stack', `<pre class="sp-cl-stack">${esc(e.stack)}</pre>`));
         }
-        // Context (auto + manual merged at capture time)
         if (hasCtx) {
             bodyParts.push(_section('Context', `<pre class="sp-cl-context">${esc(JSON.stringify(e.context, null, 2))}</pre>`));
         }
-        // Versions row
         const ver = [
             e.spVersion ? `<span>SP ${esc(e.spVersion)}</span>` : '',
             e.stVersion ? `<span>ST ${esc(e.stVersion)}</span>` : '',
@@ -381,6 +472,7 @@ function _crashTab(panel) {
                 <span class="sp-cl-sev-pill sp-cl-sev-pill-${esc(e.severity || 'error')}">${esc((e.severity || 'error').toUpperCase())}</span>
                 <span class="sp-cl-src">${esc(e.source || 'unknown')}</span>
                 <span class="sp-cl-msg">${esc(e.message || '(no message)')}</span>
+                ${groupPill}
                 ${repeat}
                 <span class="sp-cl-ts">${esc(_fmtTs(e.ts))}</span>
             </div>
@@ -395,7 +487,13 @@ function _crashTab(panel) {
         row.querySelector('.sp-cl-row-header').addEventListener('click', () => row.classList.toggle('sp-cl-open'));
         row.querySelector('.sp-cl-copy-one').addEventListener('click', ev => {
             ev.stopPropagation();
-            _copy(_crashEntryToText(e), t('Entry copied'));
+            // For groups, include children in the copied text so the maintainer
+            // gets the full event with all retries in one paste.
+            const text = grp?.children?.length
+                ? _crashEntryToText(e) + '\n\n' + t('Related attempts') + ':\n'
+                    + grp.children.map(c => `  [${_fmtTs(c.ts)}] ${c.message}`).join('\n')
+                : _crashEntryToText(e);
+            _copy(text, t('Entry copied'));
         });
         row.querySelector('.sp-cl-report-one').addEventListener('click', ev => {
             ev.stopPropagation();
@@ -405,17 +503,26 @@ function _crashTab(panel) {
     }
 
     function _render() {
-        const all = crashGetEntries().slice().reverse();
-        const filtered = _filter(all);
+        // v6.15.4: filter on the chronological list FIRST (oldest→newest) so
+        // _groupParsePairs can identify true neighbors, then reverse the
+        // grouped result for display (newest→oldest at the top).
+        const allChrono = crashGetEntries();
+        const filteredChrono = _filter(allChrono);
+        const grouped = _groupParsePairs(filteredChrono);
+        const display = grouped.slice().reverse();
         list.innerHTML = '';
-        if (!filtered.length) {
-            list.innerHTML = `<div class="sp-cl-empty">${all.length ? t('No entries match your filters.') : t('No errors recorded yet. 🎉')}</div>`;
+        if (!display.length) {
+            list.innerHTML = `<div class="sp-cl-empty">${allChrono.length ? t('No entries match your filters.') : t('No issues recorded yet. 🎉')}</div>`;
         } else {
             const frag = document.createDocumentFragment();
-            for (const e of filtered) frag.appendChild(_renderRow(e));
+            for (const e of display) frag.appendChild(_renderRow(e));
             list.appendChild(frag);
         }
-        footerText.textContent = `${filtered.length} ${t('shown')} · ${all.length} ${t('total')}`;
+        const groupCount = display.length;
+        const eventCount = display.reduce((acc, e) => acc + 1 + (e._group?.children?.length || 0), 0);
+        footerText.textContent = groupCount === eventCount
+            ? `${groupCount} ${t('shown')} · ${allChrono.length} ${t('total')}`
+            : `${groupCount} ${t('groups')} · ${eventCount} ${t('events')} · ${allChrono.length} ${t('total')}`;
     }
 
     let _searchT;
@@ -441,6 +548,15 @@ function _crashTab(panel) {
             _render();
         });
     });
+    panel.querySelectorAll('.sp-cl-filters[data-group="time"] .sp-cl-filter').forEach(btn => {
+        btn.addEventListener('click', () => {
+            panel.querySelectorAll('.sp-cl-filters[data-group="time"] .sp-cl-filter')
+                .forEach(b => b.classList.remove('sp-cl-filter-active'));
+            btn.classList.add('sp-cl-filter-active');
+            timeWindow = btn.dataset.tw;
+            _render();
+        });
+    });
     panel.querySelector('.sp-di-copy').addEventListener('click', () => {
         _copy(_crashAllToText(crashGetEntries()), t('Crash log copied'));
     });
@@ -462,14 +578,20 @@ function _crashTab(panel) {
 
 // ── Overlay ────────────────────────────────────────────────────────────
 
+// v6.15.4: "Crashes" renamed to "Issues" — the contents include warnings + info,
+// not just crashes. Tab id stays 'crashes' for back-compat with openDebugInspector
+// callers that pass the initial tab name.
 const TABS = [
+    { id: 'crashes', label: 'Issues', render: _issuesTab, badge: () => crashEntryCount() },
     { id: 'activity', label: 'Activity', render: _activityTab },
     { id: 'response', label: 'Last Response', render: _lastResponseTab },
-    { id: 'crashes', label: 'Crashes', render: _crashTab, badge: () => crashEntryCount() },
 ];
 
-export function openDebugInspector(initialTab = 'activity') {
+export function openDebugInspector(initialTab = 'crashes') {
     document.querySelector('.sp-cl-overlay')?.remove();
+    // v6.15.4: opening the inspector marks all captured entries as "seen" so the
+    // toolbar button's flash/dot indicator clears.
+    try { crashMarkSeen(); } catch {}
 
     const overlay = document.createElement('div');
     overlay.className = 'sp-cl-overlay';

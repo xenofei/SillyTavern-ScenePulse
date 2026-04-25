@@ -379,12 +379,32 @@ export function bindUI(){const s=getSettings();
             m.openDebugInspector();
         } catch (e) { warn('Debug inspector:', e?.message); }
     });
-    // Initial crash count badge on the inspector button
+    // Initial crash count badge on the inspector button + v6.15.4 auto-open
+    // signal: subscribe to crash-log changes so the badge updates live, AND
+    // briefly flash the inspector button when a NEW error fires. Per Panel B
+    // refinement: flash 3 times max, then steady-state dot. Never modal,
+    // never animate continuously.
     try {
         import('../crash-log.js').then(m => {
             const badge = document.getElementById('sp-crash-log-count');
-            const n = m.entryCount();
-            if (badge) badge.textContent = n ? `(${n})` : '';
+            const btn = document.getElementById('sp-btn-debug-inspector');
+            const _updateBadge = () => {
+                const n = m.entryCount();
+                if (badge) badge.textContent = n ? `(${n})` : '';
+                if (btn) {
+                    if (m.unseenCount() > 0) btn.classList.add('sp-di-has-unseen');
+                    else btn.classList.remove('sp-di-has-unseen');
+                }
+            };
+            _updateBadge();
+            m.addChangeListener(({ isNew }) => {
+                _updateBadge();
+                if (isNew && btn) {
+                    // Restart the flash by removing+re-adding the class on the next frame.
+                    btn.classList.remove('sp-di-flash');
+                    requestAnimationFrame(() => btn.classList.add('sp-di-flash'));
+                }
+            });
         });
     } catch {}
 

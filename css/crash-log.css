@@ -8,6 +8,38 @@
     animation: sp-glass-in 0.18s ease-out;
 }
 
+/* v6.15.4: Auto-open badge for the Debug Inspector toolbar button.
+   Two states:
+     .sp-di-has-unseen — steady-state amber dot at top-right, persists until
+                          inspector opens (markSeen is called).
+     .sp-di-flash      — brief 3-flash attention pulse on new error capture,
+                          one-shot via animation-iteration-count: 3. Class is
+                          re-added on the next frame to restart the animation.
+   Per Panel B: never modal, never animate continuously. Reduce-motion users
+   skip the flash and just see the steady dot. */
+#sp-btn-debug-inspector { position: relative; }
+#sp-btn-debug-inspector.sp-di-has-unseen::after {
+    content: '';
+    position: absolute;
+    top: 4px; right: 4px;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #fcd34d;
+    box-shadow: 0 0 0 2px var(--sp-surface, #161820);
+    pointer-events: none;
+}
+@keyframes sp-di-flash {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(252,211,77,0); }
+    50%      { box-shadow: 0 0 0 4px rgba(252,211,77,0.45); }
+}
+#sp-btn-debug-inspector.sp-di-flash {
+    animation: sp-di-flash 0.6s ease-in-out 3;
+}
+@media (prefers-reduced-motion: reduce) {
+    #sp-btn-debug-inspector.sp-di-flash { animation: none; }
+}
+body.sp-reduce-effects #sp-btn-debug-inspector.sp-di-flash { animation: none; }
+
 .sp-cl-container {
     margin: auto; width: min(900px, calc(100vw - 32px)); max-height: calc(100vh - 32px);
     background: var(--sp-surface);
@@ -49,14 +81,46 @@
     padding: 8px 14px; border-bottom: 1px solid var(--sp-border);
     flex-shrink: 0;
 }
+/* v6.15.4: Three-zone toolbar for the Issues tab — query controls (search +
+   filters) on the left, constructive actions (Copy/Export) pushed right via
+   margin-left:auto with a vertical rule between them, destructive (Clear)
+   isolated by a wider gap to prevent mis-clicks. Per Panel A synthesis:
+   different shapes for different filter semantics, one rule (not two), wide
+   gap before danger actions. */
+.sp-di-issues-toolbar {
+    flex-wrap: wrap; gap: 0; row-gap: 6px;
+}
+.sp-cl-toolbar-zone {
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+}
+.sp-cl-zone-query {
+    flex: 1 1 auto; min-width: 0;
+    /* internal gap a touch wider so sibling filter groups read as separate */
+    gap: 10px;
+}
+.sp-cl-zone-actions {
+    margin-left: auto;
+    /* vertical rule before the actions group */
+    padding-left: 14px;
+    border-left: 1px solid var(--sp-border);
+    gap: 4px;
+}
+.sp-cl-zone-danger {
+    /* wide gap to isolate Clear from the constructive group */
+    margin-left: 20px;
+}
 .sp-cl-search {
-    flex: 1 1 200px; min-width: 0;
+    flex: 1 1 180px; min-width: 0;
     background: var(--sp-surface); color: var(--sp-text);
     border: 1px solid var(--sp-border); border-radius: 4px;
     padding: 4px 8px; font-size: var(--sp-fs-xs); font-family: inherit;
 }
 .sp-cl-search:focus { outline: none; border-color: var(--sp-accent); }
-.sp-cl-filters { display: flex; gap: 2px; }
+.sp-cl-filters { display: flex; gap: 2px; align-items: center; }
+.sp-cl-filter-label {
+    color: var(--sp-text-dim); font-size: var(--sp-fs-xs);
+    margin-right: 4px; font-weight: 500;
+}
 .sp-cl-filter {
     background: var(--sp-surface); color: var(--sp-text-dim);
     border: 1px solid var(--sp-border); border-radius: 3px;
@@ -65,6 +129,21 @@
 }
 .sp-cl-filter:hover { color: var(--sp-text); }
 .sp-cl-filter-active { color: var(--sp-accent); border-color: var(--sp-accent); background: rgba(77,184,164,0.08); }
+/* v6.15.4: severity-active accent colors — only on the selected severity chip,
+   not on inactive ones. Color = data, not chrome (Tufte / Sentry pattern). */
+.sp-cl-filter-error.sp-cl-filter-active   { color: #fca5a5; border-color: rgba(252,165,165,0.55); background: rgba(239,68,68,0.10); }
+.sp-cl-filter-warn.sp-cl-filter-active    { color: #fcd34d; border-color: rgba(252,211,77,0.55);  background: rgba(245,158,11,0.10); }
+.sp-cl-filter-info.sp-cl-filter-active    { color: #93c5fd; border-color: rgba(147,197,253,0.55); background: rgba(96,165,250,0.10); }
+/* v6.15.4: danger button for Clear — outlined-danger variant, not solid red.
+   Solid red on a frequently-visible toolbar fatigues the eye (Sentry/Bugsnag
+   pattern); outlined-danger reads "destructive" without alarming. */
+.sp-cl-export-btn.sp-cl-danger {
+    color: #fca5a5; border-color: rgba(252,165,165,0.35);
+}
+.sp-cl-export-btn.sp-cl-danger:hover {
+    color: #fff; background: rgba(239,68,68,0.18);
+    border-color: rgba(252,165,165,0.7);
+}
 
 .sp-cl-list {
     flex: 1; min-height: 0; overflow-y: auto;
@@ -114,6 +193,36 @@
     font-size: 9px; font-weight: 700;
     background: rgba(77,184,164,0.12); padding: 1px 5px; border-radius: 3px;
 }
+/* v6.15.4: Group pill — appears on parent rows that bundle related parse
+   retries. Distinct from the "×N" repeat pill (which is for *identical*
+   repeated entries). Amber to suggest "these are connected events". */
+.sp-cl-group-pill {
+    flex-shrink: 0;
+    font-size: 9px; font-weight: 600;
+    color: #fcd34d;
+    background: rgba(245,158,11,0.12);
+    border: 1px solid rgba(245,158,11,0.25);
+    padding: 1px 6px; border-radius: 3px;
+}
+/* v6.15.4: Group children list inside the expanded body. Indented, dimmer,
+   chronologically ordered (oldest first — opposite of the main list, since
+   they read as a sequence of retries within one event). */
+.sp-cl-group-children {
+    list-style: none; margin: 0; padding: 0;
+    background: rgba(0,0,0,0.18);
+    border: 1px solid var(--sp-border);
+    border-radius: 3px;
+    max-height: 160px; overflow: auto;
+}
+.sp-cl-group-child {
+    display: flex; align-items: baseline; gap: 8px;
+    padding: 4px 8px;
+    font-size: 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+.sp-cl-group-child:last-child { border-bottom: none; }
+.sp-cl-group-child .sp-cl-ts { font-size: 9px; color: var(--sp-text-dim); flex-shrink: 0; }
+.sp-cl-group-child .sp-cl-msg { color: var(--sp-text); flex: 1; }
 .sp-cl-ts {
     flex-shrink: 0; color: var(--sp-text-dim);
     font-size: 9px; font-family: var(--sp-font-mono);

@@ -2,6 +2,48 @@
 
 All notable changes to ScenePulse are documented in this file.
 
+### [6.15.4] — 2026-04-25
+
+#### Changed — Debug Inspector overhaul, Phase A: rename, toolbar, grouping, Last Response fix, time filter, auto-open badge
+Synthesis from a 3-panel review (~150 specialist perspectives across observability tooling UX, diagnostic-triage workflows, and microcopy/IA) plus a focused Last Response bug investigation.
+
+**Renames** (Panel C: never name a tab after its worst-case content)
+- `Crashes` tab → `Issues` (the contents are heterogeneous: errors + warnings + info, and "Issues" matches the GitHub mental model that pairs naturally with "Report on GitHub")
+- "Issues" tab moved to first position; new tab order is `Issues / Activity / Last Response`
+
+**Toolbar layout** (Panel A: 3-zone with deliberate separation, never put destructive buttons next to constructive ones with identical styling)
+- Issues toolbar restructured into three zones: `[Search] [Severity] [Source] [Since:]  │  [Copy] [Export]  ─►─►  [Clear]`
+- One vertical rule between query controls and constructive actions; wider gap before destructive Clear; danger-outline (not solid red) on Clear to prevent eye fatigue and mis-clicks
+- Severity-active accent colors only on selected chip (red for Errors, amber for Warnings, blue for Info) — color = data, not chrome (Tufte / Sentry pattern)
+
+**Last Response bug fix**
+- Diagnosed: classic ES module live-binding trap. `export let lastRawResponse` is supposed to live-bind, but in SillyTavern's loader some importers see only the load-time snapshot.
+- Added `getLastRawResponse()` and `getLastDeltaPayload()` getters in `src/state.js`
+- `_lastResponseTab` now calls the getter at render time so it always reads the current state value
+
+**Group consecutive parse-fail pairs** (Panel B's MUST: 17 entries collapsing to 7 events directly mirrors how humans count incidents)
+- New `_groupParsePairs()` function in `src/ui/debug-inspector.js`
+- `cleanJson` parent + sequential `Parse fail (N)` children within 60s collapse into one parent row with a "+N attempts" amber pill
+- Children listed chronologically inside the expanded parent body under "Related attempts"
+- Footer count now reads `N groups · M events · K total` when grouping is active
+- Copying a grouped entry includes all child attempts in the paste
+
+**Time-window filter** (Panel B: cheap to build, default to "since last clear" not "all time")
+- New "Since:" pill with options: This session (default) / 5m / 1h / 1d / All
+- Filter cutoff applied BEFORE grouping so children/parent stay together inside the window
+
+**Auto-open badge** (Panel B: 3-flash then steady-state dot, never modal, never animate continuously)
+- New observer pattern in `src/crash-log.js`: `addChangeListener()`, `unseenCount()`, `markSeen()`
+- `bind-ui.js` subscribes and updates the toolbar button: amber dot at top-right when there are unseen entries, brief 3-flash animation on each new capture
+- Opening the inspector calls `markSeen()` which clears the dot
+- Reduce-motion / `body.sp-reduce-effects` users skip the flash and just see the steady dot
+
+All 620/620 tests still pass.
+
+**Skipped** (per Panel B unanimous): #4 Error rate sparkline — zero triage value at <100 events/window scale.
+
+**Coming next**: v6.15.5 (Diagnostics bundle button, Config tab, Show-in-Last-Response jump), v6.15.6 (raw response+prompt ring buffer), v6.16.0 (Network tab, Reproduce sandboxed, Checks tab).
+
 ### [6.15.3] — 2026-04-25
 
 #### Changed — Crash log entries now show useful detail when expanded

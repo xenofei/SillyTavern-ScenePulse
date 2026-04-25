@@ -100,9 +100,15 @@ export function setLastGenSource(v) { lastGenSource = state.lastGenSource = v; }
 
 export let lastRawResponse = state.lastRawResponse;
 export function setLastRawResponse(v) { lastRawResponse = state.lastRawResponse = v; }
+// v6.15.4: Getter avoids the live-binding trap. ES module `export let` is
+// supposed to live-bind, but in SillyTavern's loader some importers see only
+// the load-time snapshot. Last Response tab in the debug inspector calls this
+// getter at render time so it always reads the current value from state.
+export function getLastRawResponse() { return state.lastRawResponse; }
 
 export let lastDeltaPayload = state.lastDeltaPayload;
 export function setLastDeltaPayload(v) { lastDeltaPayload = state.lastDeltaPayload = v; }
+export function getLastDeltaPayload() { return state.lastDeltaPayload; }
 
 export let pendingInlineIdx = state.pendingInlineIdx;
 export function setPendingInlineIdx(v) { pendingInlineIdx = state.pendingInlineIdx = v; }

@@ -37,6 +37,12 @@ let _initialized = false;
 let _captureEnabled = true;
 let _spVersion = '';
 let _stVersion = '';
+// v6.15.4: unseen-since-last-open counter + observer pattern. Incremented on
+// every successful captureError (including repeats); reset when the inspector
+// opens. Subscribers (bind-ui's toolbar badge) get the new total + new-entry
+// flag so they can update the count badge AND fire a brief attention-flash.
+let _unseenCount = 0;
+const _changeListeners = new Set();
 
 function _now() { return new Date().toISOString(); }
 
@@ -136,11 +142,15 @@ export function captureError(opts) {
         && last.source === entry.source && last.severity === entry.severity) {
         last.repeat = (last.repeat || 1) + 1;
         last.ts = entry.ts;
+        _unseenCount++;
+        _notifyChange(true);
         _scheduleSave();
         return last;
     }
     _entries.push(entry);
     if (_entries.length > MAX_ENTRIES) _entries.splice(0, _entries.length - MAX_ENTRIES);
+    _unseenCount++;
+    _notifyChange(true);
     _scheduleSave();
     return entry;
 }
@@ -162,10 +172,33 @@ function _truncateContext(ctx) {
 export function getEntries() { return _entries.slice(); }
 export function entryCount() { return _entries.length; }
 
+// v6.15.4: observer hooks for the toolbar badge. addChangeListener is called
+// when a new entry is captured (or markSeen is called); the callback receives
+// {totalCount, unseenCount, isNew}. unseenCount is the count since the
+// inspector was last opened.
+export function addChangeListener(fn) {
+    if (typeof fn === 'function') _changeListeners.add(fn);
+    return () => _changeListeners.delete(fn);
+}
+export function unseenCount() { return _unseenCount; }
+export function markSeen() {
+    if (_unseenCount === 0) return;
+    _unseenCount = 0;
+    _notifyChange(false);
+}
+function _notifyChange(isNew) {
+    const payload = { totalCount: _entries.length, unseenCount: _unseenCount, isNew };
+    for (const fn of _changeListeners) {
+        try { fn(payload); } catch {}
+    }
+}
+
 export function clearAll() {
     _entries = [];
+    _unseenCount = 0;
     try { localStorage.removeItem(LS_KEY); } catch {}
     _dirty = true;
+    _notifyChange(false);
     return _flushNow();
 }
 
@@ -368,4 +401,6 @@ export function _resetForTests() {
     if (_flushTimer) { clearTimeout(_flushTimer); _flushTimer = null; }
     _spVersion = '';
     _stVersion = '';
+    _unseenCount = 0;
+    _changeListeners.clear();
 }
