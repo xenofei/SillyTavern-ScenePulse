@@ -1413,6 +1413,12 @@ if(rel.relType)hh+=`<span class="sp-rel-type-badge" data-ft="rel_type" title="${
         if(_sessionTokensUsed>0)fhtml+=`<span title="${t('Session total tokens')}" class="sp-gen-badge-session">\u03A3 ${_sessionTokensUsed>1000?(_sessionTokensUsed/1000).toFixed(1)+'k':_sessionTokensUsed}</span>`;
         // Inspect payload button
         if(currentSnapshotMesIdx>=0)fhtml+=`<span class="sp-gen-inspect" title="${t('Inspect')}"><svg viewBox="0 0 14 14" width="11" height="11" fill="none"><path d="M9.5 1.5h3v3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.5 1.5L8 6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><path d="M7 2H2.5a1 1 0 0 0-1 1v8.5a1 1 0 0 0 1 1H11a1 1 0 0 0 1-1V7" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg> ${t('Inspect')}</span>`;
+        // v6.16.1: Debug Inspector shortcut alongside Inspect/Analytics so users
+        // can reach the inspector without leaving the panel context. Bug-glyph
+        // icon + label. Discovered via Panel B's UX audit: the inspector was
+        // only reachable from settings, which is N+1 clicks from where users
+        // notice the failure indicators (the gen-footer itself).
+        fhtml+=`<span class="sp-gen-debug" title="${t('Open Debug Inspector (Ctrl+Shift+D)')}"><svg viewBox="0 0 14 14" width="11" height="11" fill="none"><path d="M5 3a2 2 0 0 1 4 0v1H5V3z" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/><rect x="3.5" y="4" width="7" height="6.5" rx="3" stroke="currentColor" stroke-width="1.1"/><line x1="2" y1="6" x2="3.5" y2="6.5" stroke="currentColor" stroke-width="1"/><line x1="12" y1="6" x2="10.5" y2="6.5" stroke="currentColor" stroke-width="1"/><line x1="2" y1="10" x2="3.5" y2="9" stroke="currentColor" stroke-width="1"/><line x1="12" y1="10" x2="10.5" y2="9" stroke="currentColor" stroke-width="1"/><line x1="7" y1="11" x2="7" y2="13" stroke="currentColor" stroke-width="1"/></svg> ${t('Debug')}</span>`;
         // Analytics button
         fhtml+=`<span class="sp-gen-analytics" title="${t('Token analytics')}"><svg viewBox="0 0 14 14" width="11" height="11" fill="none"><rect x="1.5" y="8" width="2" height="4.5" rx="0.4" fill="currentColor" opacity="0.4"/><rect x="4.5" y="5.5" width="2" height="7" rx="0.4" fill="currentColor" opacity="0.5"/><rect x="7.5" y="3" width="2" height="9.5" rx="0.4" fill="currentColor" opacity="0.6"/><rect x="10.5" y="1" width="2" height="11.5" rx="0.4" fill="currentColor" opacity="0.7"/></svg> ${t('Analytics')}</span>`;
         // Tool calling status indicator (Separate mode only)
@@ -1435,6 +1441,12 @@ if(rel.relType)hh+=`<span class="sp-rel-type-badge" data-ft="rel_type" title="${
         // Bind inspect button
         const inspectBtn=footer.querySelector('.sp-gen-inspect');
         if(inspectBtn)inspectBtn.addEventListener('click',()=>openDiffViewer(currentSnapshotMesIdx));
+        // v6.16.1: Bind Debug Inspector shortcut (Panel B audit — main panel
+        // had no path to the inspector except via settings drawer).
+        const debugBtn=footer.querySelector('.sp-gen-debug');
+        if(debugBtn)debugBtn.addEventListener('click',()=>{
+            import('./debug-inspector.js').then(m=>m.openDebugInspector()).catch(()=>{});
+        });
         // Bind analytics button
         const analyticsBtn=footer.querySelector('.sp-gen-analytics');
         if(analyticsBtn)analyticsBtn.addEventListener('click',()=>{

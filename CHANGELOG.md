@@ -2,6 +2,40 @@
 
 All notable changes to ScenePulse are documented in this file.
 
+### [6.16.1] — 2026-04-25
+
+#### Changed — Inspector quality pass: credibility, copy, polish (Panel B audit)
+
+A 3-panel review of v6.16.0 (~150 expert perspectives across browser-perf, inspector UX, and diagnostics data integrity) flagged credibility defects — features that worked but eroded trust. v6.16.1 ships the polish fixes; v6.16.2 + v6.17.0 follow with the architecture work.
+
+**Polish + naming**:
+- Snapshot sparkline relabeled — was `Snapshots: 2/2 ▁▁▁ (0 failed)`, ambiguous and misleading because v6.12.3-era crash entries lacked `mesIdx` in their auto-context (only added v6.15.3) so historic failures silently dropped from the count. Now reads `Snapshots: 2 in this chat ▁▁▁ failure tracking added v6.15.3` until v6.16.2 ships the backfill.
+- Tab "Last Response" → "Responses" — pair-navigator over the last 10 prompt+response tuples is plural reality, not a stream-of-one (Panel B).
+- Tokenizer-parity limitation copy fixed — previously said "within ~10%" but the FAIL threshold was 25%; the user's 13.8% delta passed correctly but the copy mismatched. Now reads "within 25%" with explicit "PASS does NOT guarantee perfect parity — only that the drift won't silently truncate prompts."
+
+**Visual polish**:
+- `i` info icon optical centering — was 0.25 above geometric center (typographic "i" looks bottom-heavy when geometrically centered, so should sit slightly *below* center per Material Icons / Heroicons / Lucide convention). Fixed: dot `cy=5.4 r=1.0`, stem `y1=7.6 y2=11.6 stroke-width=1.5`.
+- Header button hierarchy — Doctor + Diagnostics+i grouped tightly; wider 18px gap before Close so it reads as terminal/lower-weight (Panel B audit).
+
+**Doctor info popover** (matches Diagnostics treatment):
+- Wrapped in `.sp-di-doctor-wrap` with sibling `.sp-di-info-area` — same pattern as Diagnostics
+- Hover/focus reveals 420px popover with the Panel B-recommended ~60-word explanation: 5 checks (Storage / Model echo / Schema round-trip / Context budget / Tokenizer parity) + result format + the "no warnings — every limitation named in the row" promise
+- Uses the corrected `i` SVG geometry
+
+**Discoverability**:
+- Stats-line shortcut — new "Debug" link in the main panel's `.sp-gen-footer` between Inspect and Analytics. Clicking opens the Debug Inspector. Closes the gap that the inspector was previously only reachable from the settings drawer (N+1 clicks from where users notice failure indicators).
+- **Ctrl+Shift+D keyboard shortcut** opens the Debug Inspector from anywhere in SillyTavern (skipped when typing in inputs/textareas so it doesn't hijack text editing).
+
+**Auto-open badge**:
+- Persistent dot until inspector opens (Panel B: "the dot is a state indicator, not a notification")
+- Hover tooltip on the toolbar button shows `N new issues since last opened — click to inspect` while there are unseen entries
+
+All 620/620 tests still pass.
+
+**Coming v6.16.2**: Diagnostics bundle restructure (effective view + shadowed/orphan section per Panel C); profile migration backfill so root-shadowed data moves into the active profile; snapshot sparkline historic-mesIdx backfill (drops the v6.15.3 qualifier).
+
+**Coming v6.17.0**: Performance Monitor MVP (Panel A) — FPS/frame-time headline strip + 30s capture mode with component attribution via `performance.mark` instrumentation.
+
 ### [6.16.0] — 2026-04-25
 
 #### Added — Network log tab + Doctor button (real-path diagnostic checks)

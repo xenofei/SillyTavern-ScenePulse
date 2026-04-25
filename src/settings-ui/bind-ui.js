@@ -381,9 +381,9 @@ export function bindUI(){const s=getSettings();
     });
     // Initial crash count badge on the inspector button + v6.15.4 auto-open
     // signal: subscribe to crash-log changes so the badge updates live, AND
-    // briefly flash the inspector button when a NEW error fires. Per Panel B
-    // refinement: flash 3 times max, then steady-state dot. Never modal,
-    // never animate continuously.
+    // briefly flash the inspector button when a NEW error fires. v6.16.1
+    // (Panel B audit): persistent dot until inspector opens (no timeout) +
+    // tooltip showing unseen count.
     try {
         import('../crash-log.js').then(m => {
             const badge = document.getElementById('sp-crash-log-count');
@@ -392,21 +392,37 @@ export function bindUI(){const s=getSettings();
                 const n = m.entryCount();
                 if (badge) badge.textContent = n ? `(${n})` : '';
                 if (btn) {
-                    if (m.unseenCount() > 0) btn.classList.add('sp-di-has-unseen');
-                    else btn.classList.remove('sp-di-has-unseen');
+                    const unseen = m.unseenCount();
+                    if (unseen > 0) {
+                        btn.classList.add('sp-di-has-unseen');
+                        btn.setAttribute('title', `${unseen} new ${unseen === 1 ? 'issue' : 'issues'} since last opened — click to inspect`);
+                    } else {
+                        btn.classList.remove('sp-di-has-unseen');
+                        btn.removeAttribute('title');
+                    }
                 }
             };
             _updateBadge();
             m.addChangeListener(({ isNew }) => {
                 _updateBadge();
                 if (isNew && btn) {
-                    // Restart the flash by removing+re-adding the class on the next frame.
                     btn.classList.remove('sp-di-flash');
                     requestAnimationFrame(() => btn.classList.add('sp-di-flash'));
                 }
             });
         });
     } catch {}
+
+    // v6.16.1: Ctrl+Shift+D opens the Debug Inspector from anywhere in ST.
+    // Skip when typing in inputs/textareas so the shortcut doesn't hijack
+    // text editing. Esc-to-close already works via the inspector's own handler.
+    document.addEventListener('keydown', (e) => {
+        if (!(e.ctrlKey && e.shiftKey && (e.key === 'D' || e.key === 'd'))) return;
+        const tgt = e.target;
+        if (tgt && (tgt.tagName === 'INPUT' || tgt.tagName === 'TEXTAREA' || tgt.isContentEditable)) return;
+        e.preventDefault();
+        import('../ui/debug-inspector.js').then(m => m.openDebugInspector()).catch(() => {});
+    });
 
     // ── v6.13.0 (issue #15): Profile manager UI wiring ──
     bindProfileUI(s);

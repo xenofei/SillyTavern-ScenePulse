@@ -838,7 +838,17 @@ function _issuesTab(panel, ctx = {}) {
                 const lastFailStr = s.lastFailTurn != null
                     ? ` · ${t('last fail @ turn')} ${s.lastFailTurn}`
                     : '';
-                sparkEl.innerHTML = `${t('Snapshots')}: ${passed}/${s.totalTurns} <code class="sp-di-spark-text">${esc(s.spark)}</code> (${s.failCount} ${t('failed')}${lastFailStr})`;
+                // v6.16.1: Panel B note — historic v6.12.3 entries lack mesIdx
+                // in their auto-context (only added v6.15.3), so failures
+                // captured before the upgrade can't be attributed to a turn
+                // and silently drop out of the count. Until v6.16.2 lands the
+                // backfill, the qualifier prevents the metric from reading as
+                // a clean lie. After backfill, `s.backfilled === true` and
+                // the qualifier hides.
+                const qualifier = s.backfilled
+                    ? ` (${s.failCount} ${t('failed')}${lastFailStr})`
+                    : ` <span class="sp-di-spark-note">${t('failure tracking added v6.15.3')}</span>`;
+                sparkEl.innerHTML = `${t('Snapshots')}: ${s.totalTurns} ${t('in this chat')} <code class="sp-di-spark-text">${esc(s.spark)}</code>${qualifier}`;
             } else {
                 sparkEl.textContent = '';
             }
@@ -1208,7 +1218,10 @@ function _configTab(panel) {
 const TABS = [
     { id: 'crashes', label: 'Issues', render: _issuesTab, badge: () => crashEntryCount() },
     { id: 'activity', label: 'Activity', render: _activityTab },
-    { id: 'response', label: 'Last Response', render: _lastResponseTab },
+    // v6.16.1: renamed from "Last Response" — the tab is a pair-navigator
+    // over the last 10 prompt+response tuples, not a stream-of-one. Plural
+    // matches the reality (Panel B audit).
+    { id: 'response', label: 'Responses', render: _lastResponseTab },
     { id: 'network', label: 'Network', render: _netTab, badge: () => netEntryCount() },
     { id: 'config', label: 'Config', render: _configTab },
 ];
@@ -1229,15 +1242,43 @@ export function openDebugInspector(initialTab = 'crashes') {
         <div class="sp-cl-container sp-di-container">
             <div class="sp-cl-header">
                 <div class="sp-cl-title">${t('Debug Inspector')}</div>
-                <button class="sp-cl-export-btn sp-di-doctor" title="${t('Run real-path diagnostic checks (model echo, schema round-trip, storage, context budget, tokenizer parity)')}">${t('Doctor')}</button>
+                <div class="sp-di-doctor-wrap">
+                    <button class="sp-cl-export-btn sp-di-doctor">${t('Doctor')}</button>
+                    <span class="sp-di-info-area">
+                        <button class="sp-di-info" type="button" aria-label="${t('What does Doctor do?')}" tabindex="0">
+                            <svg viewBox="0 0 16 16" width="14" height="14" fill="none" aria-hidden="true">
+                                <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.4"/>
+                                <circle cx="8" cy="5.4" r="1.0" fill="currentColor"/>
+                                <path d="M8 7.6v4.0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                            </svg>
+                        </button>
+                        <div class="sp-di-info-popover" role="tooltip">
+                            <div class="sp-di-info-title">${t('Doctor')} <span class="sp-di-info-badge">${t('5 real-path checks · runs on demand')}</span></div>
+                            <div class="sp-di-info-body">
+                                ${t('One click → runs 5 checks against the actual ScenePulse code paths (no mocks):')}
+                                <ul>
+                                    <li><strong>${t('Storage')}:</strong> ${t('write + read + verify a probe file via /api/files/upload')}</li>
+                                    <li><strong>${t('Model echo')}:</strong> ${t('POST a 1-token prompt via the active connection — confirms the model responds')}</li>
+                                    <li><strong>${t('Schema round-trip')}:</strong> ${t('send a minimal generation + parse via the live JSON schema (skipped if model echo fails)')}</li>
+                                    <li><strong>${t('Context budget')}:</strong> ${t('local token estimate vs the active connection max_context')}</li>
+                                    <li><strong>${t('Tokenizer parity')}:</strong> ${t('local estimate vs the ST endpoint count for a known string — fails if drift > 25%')}</li>
+                                </ul>
+                                <div class="sp-di-info-divider"></div>
+                                <div class="sp-di-info-compare">
+                                    <strong>${t('Three states only:')}</strong> ${t('PASS / FAIL / SKIPPED. No yellow — every PASS row names what it does NOT guarantee, so a green is never mistaken for the wrong promise.')}
+                                </div>
+                            </div>
+                        </div>
+                    </span>
+                </div>
                 <div class="sp-di-diag-wrap">
                     <button class="sp-cl-export-btn sp-di-diagnostics">${t('Diagnostics')}</button>
                     <span class="sp-di-info-area">
                         <button class="sp-di-info" type="button" aria-label="${t('What does Diagnostics do?')}" tabindex="0">
                             <svg viewBox="0 0 16 16" width="14" height="14" fill="none" aria-hidden="true">
                                 <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.4"/>
-                                <circle cx="8" cy="4.6" r="0.9" fill="currentColor"/>
-                                <path d="M8 7.2v4.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                                <circle cx="8" cy="5.4" r="1.0" fill="currentColor"/>
+                                <path d="M8 7.6v4.0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
                             </svg>
                         </button>
                         <div class="sp-di-info-popover" role="tooltip">

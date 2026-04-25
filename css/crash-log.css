@@ -8,11 +8,16 @@
     animation: sp-glass-in 0.18s ease-out;
 }
 
-/* v6.16.0: Doctor button in the header — neutral styling so it doesn't
-   compete with the accent-colored Diagnostics. Pairs with the Doctor modal
-   below. Manual-trigger only per Panel C. */
+/* v6.16.0 → v6.16.1: Doctor button in the header — neutral styling so it
+   doesn't compete with accent-colored Diagnostics. Wrapped in .sp-di-doctor-wrap
+   for the info-popover treatment matching Diagnostics. Manual-trigger only per
+   Panel C. */
+.sp-di-doctor-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
 .sp-di-doctor {
-    margin-right: 6px;
     font-weight: 600;
 }
 .sp-di-doctor:hover {
@@ -20,6 +25,11 @@
     color: var(--sp-text);
     border-color: var(--sp-accent);
 }
+/* Header hierarchy (Panel B audit): action group (Doctor + Diagnostics+i)
+   tightly grouped, terminal action (Close) pushed apart by a wider gap so
+   it reads as lower-weight and harder to hit accidentally. */
+.sp-cl-header { gap: 8px; }
+.sp-cl-header .sp-cl-close { margin-left: 18px; }
 
 /* v6.16.0: Doctor results modal — appears INSIDE the inspector container,
    overlaying the active tab. Three states only (PASS / FAIL / SKIPPED — no
@@ -693,6 +703,16 @@ body.sp-reduce-effects #sp-btn-debug-inspector.sp-di-flash { animation: none; }
     border-radius: 2px;
     letter-spacing: 0;
     margin: 0 2px;
+}
+/* v6.16.1: qualifier appended to the sparkline pre-backfill (v6.12.3-era
+   crash entries lack mesIdx in their context, so historic failures don't
+   contribute to the count). Italic + dim so it reads as a footnote, not
+   a primary metric. */
+.sp-di-spark-note {
+    color: var(--sp-text-dim);
+    font-style: italic;
+    font-size: 9px;
+    margin-left: 4px;
 }
 .sp-cl-footer {
     display: flex; align-items: center; gap: 10px;

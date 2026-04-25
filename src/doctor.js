@@ -185,7 +185,7 @@ async function _checkContextBudget() {
 // known string. Skip if no tokenizer endpoint is reachable.
 async function _checkTokenizerParity() {
     return _wrap('tokenizer-parity', 'Tokenizer parity',
-        'Local token counter agrees (within ~10%) with the endpoint that will actually count tokens.',
+        'Local token counter agrees (within 25%) with the endpoint that will actually count tokens. PASS does NOT guarantee perfect parity — only that the drift won\'t silently truncate prompts.',
         async () => {
             const ctx = SillyTavern.getContext?.();
             const tokenizers = ctx?.getTextGenServer ? ctx : null;
