@@ -51,6 +51,48 @@
     font-size: 10px;
 }
 
+/* v6.15.6: Pair navigator on the Last Response tab. Prev/next buttons +
+   indicator + meta line showing timestamp/source/parse-failed badge. */
+.sp-di-pair-nav {
+    border-top: 1px solid var(--sp-border);
+    padding: 6px 14px;
+    background: rgba(0,0,0,0.12);
+}
+.sp-di-pair-indicator {
+    color: var(--sp-text); font-size: var(--sp-fs-xs);
+    font-weight: 600; min-width: 80px; text-align: center;
+}
+.sp-di-pair-meta {
+    color: var(--sp-text-dim); font-size: 10px;
+    font-family: var(--sp-font-mono);
+}
+.sp-di-pair-failed {
+    color: #fca5a5; font-weight: 700;
+    background: rgba(239,68,68,0.14);
+    padding: 1px 5px; border-radius: 3px;
+    margin-left: 4px;
+}
+.sp-di-prompt-details {
+    margin: 8px 0;
+    border: 1px solid var(--sp-border);
+    border-radius: 3px;
+    background: rgba(0,0,0,0.18);
+}
+.sp-di-prompt-details summary {
+    padding: 6px 10px;
+    cursor: pointer;
+    user-select: none;
+    margin: 0 !important;
+}
+.sp-di-prompt-details summary:hover {
+    background: rgba(255,255,255,0.03);
+}
+.sp-di-prompt-pre {
+    margin: 0; max-height: 280px;
+    border: none; border-top: 1px solid var(--sp-border);
+    border-radius: 0;
+}
+
 /* v6.15.5: Config tab — toggle for show-all-settings, label/value sections
    reuse .sp-cl-stack-label and .sp-cl-context for consistency with Issues. */
 .sp-di-toggle {

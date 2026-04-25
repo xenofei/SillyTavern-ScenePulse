@@ -2,6 +2,41 @@
 
 All notable changes to ScenePulse are documented in this file.
 
+### [6.15.6] — 2026-04-25
+
+#### Added — Raw (prompt, response) pair ring buffer for diagnosing prose-not-JSON failures
+Panel B's critical-missing addition from the v6.15.4 inspector synthesis: *"To diagnose JSON-mode dropouts you need the actual bytes the model emitted, before any cleaning, alongside the system prompt + last user turn that elicited it. Without it, every parse-fail report becomes a guessing game."*
+
+**New `src/raw-pairs.js` module:**
+- Ring buffer of last 10 `{ts, mesIdx, prompt, response, source, parseFailed, parseError}` pairs
+- `pushPair()` adds a pair (truncated to 200K chars per field as a safety bound)
+- `markLastPairParseFailed(errorMessage)` flags the most recent pair when cleanJson / parse-fail throws
+- `getPairs()`, `lastPair()`, `pairCount()`, `clearPairs()` accessors
+- Memory budget: ~130KB peak
+
+**Captured in `src/generation/engine.js`:**
+- Main extraction path: `pushPair({ prompt, response, mesIdx, source: 'engine' })` after `setLastRawResponse(rawStr)`
+- Continuation path: same with `source: 'continuation'`
+- `markLastPairParseFailed(e.message)` called from both `Parse fail (N)` catch blocks so failed pairs are flagged
+
+**Last Response tab now navigates pairs:**
+- Default view shows the LATEST pair: prompt collapsed in a `<details>` block + response below
+- Pair navigator with prev/next buttons + "Pair N / K" indicator + meta line (timestamp · source · "Parse failed" badge if applicable)
+- Two new actions: "Copy pair" (prompt + response together) and "Export TXT" (saves pair as a `.txt`)
+- Falls back to the legacy `lastRawResponse` if no pairs captured yet (upgrade-window grace)
+
+**Show in Last Response (v6.15.5) is now smarter:**
+- When jumping from a parse-error issue, navigates to the pair whose timestamp is closest to the issue's timestamp
+- Means clicking "Show in Last Response" on a `cleanJson` error from 9:32:21 lands you on the exact prompt+response that failed at 9:32:21
+
+**Diagnostics bundle includes the latest pair:**
+- "Latest pair" section with timestamp + source + parse-failed badge
+- "Prompt sent" subsection (truncated to 6000 chars, redacted)
+- "Response received" subsection (truncated to 4000 chars, redacted)
+- Replaces the old "Last response" section that only showed the response
+
+All 620/620 tests still pass.
+
 ### [6.15.5] — 2026-04-25
 
 #### Changed — Debug Inspector overhaul, Phase B: filter fields visually distinct, Diagnostics button, Config tab, Show-in-Last-Response

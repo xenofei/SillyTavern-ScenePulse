@@ -12,6 +12,9 @@ import {
     setInlineGenStartMs, setInlineExtractionDone, setPendingInlineIdx,
     addSessionTokens, setLastDeltaSavings
 } from '../state.js';
+// v6.15.6: also push the (prompt, response) pair into the ring buffer for the
+// Last Response tab + Diagnostics bundle (Panel B's critical-missing add).
+import { pushPair, markLastPairParseFailed } from '../raw-pairs.js';
 import {
     getSettings, getActiveSchema, getActivePrompt, getTrackerData,
     getLatestSnapshot, saveSnapshot, getSnapshotFor, ensureChatSaved,
@@ -320,6 +323,8 @@ export async function generateTracker(mesIdx,partKey,opts){
                 const rawStr=String(raw);
                 const rawLen=rawStr.length;
                 setLastRawResponse(rawStr); // store for debug copy
+                // v6.15.6: also capture the pair for the inspector's pair browser
+                try { pushPair({ prompt, response: rawStr, mesIdx, source: 'engine' }); } catch {}
                 // ── Check if response body IS an error message ──
                 const rawLow=rawStr.substring(0,500).toLowerCase();
                 if(rawLow.includes('"error"')||rawLow.includes('rate limit')||rawLow.includes('unauthorized')||rawLow.includes('forbidden')){
@@ -379,7 +384,7 @@ export async function generateTracker(mesIdx,partKey,opts){
                     }
                 }
                 return parsed;
-            }catch(e){err(`Parse fail (${a+1}):`,e?.message||String(e))}
+            }catch(e){err(`Parse fail (${a+1}):`,e?.message||String(e)); try { markLastPairParseFailed(e?.message || String(e)); } catch {}}
         }
         warn('All',settings.maxRetries+1,'attempts exhausted, returning null');
         toastr.error('All retry attempts failed \u2014 check SP Log for details','Generation failed');
@@ -569,6 +574,9 @@ Output the JSON object now:`;
             if(!raw||raw==='{}'){warn('Continuation: empty response');return null}
             const rawStr=String(raw);
             setLastRawResponse(rawStr);
+            // v6.15.6: capture continuation pair too — its prompt is built earlier
+            // in the same function. The variable name is `prompt` in this scope.
+            try { pushPair({ prompt, response: rawStr, mesIdx, source: 'continuation' }); } catch {}
             log('Continuation: got response,',rawStr.length,'chars');
             const parsed=cleanJson(rawStr);
             if(!parsed||typeof parsed!=='object'){warn('Continuation: parse returned non-object');return null}
@@ -581,7 +589,7 @@ Output the JSON object now:`;
             // itself). Return the raw parsed payload — the caller forwards it to
             // processExtraction which performs the (single) merge correctly.
             return parsed;
-        }catch(e){err('Continuation parse fail:',e?.message||String(e));return null}
+        }catch(e){err('Continuation parse fail:',e?.message||String(e)); try { markLastPairParseFailed(e?.message || String(e)); } catch {} return null}
     };
     let result;
     try{result=await withProfileAndPreset(profileOverride,presetOverride,doGen)}

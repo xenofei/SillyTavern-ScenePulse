@@ -22,6 +22,7 @@ import { t } from '../i18n.js';
 import { esc } from '../utils.js';
 import { debugLog } from '../logger.js';
 import { getLastRawResponse } from '../state.js';
+import { getPairs as rawGetPairs, lastPair as rawLastPair, pairCount as rawPairCount } from '../raw-pairs.js';
 import { getEntries as crashGetEntries, clearAll as crashClearAll, flushNow as crashFlushNow, entryCount as crashEntryCount, markSeen as crashMarkSeen } from '../crash-log.js';
 import { getSettings } from '../settings.js';
 import { getActiveProfile } from '../profiles.js';
@@ -130,11 +131,19 @@ function _nonDefaultSettings(s, defaults) {
 function _buildDiagnostics({ spVersion = '', stVersion = '' } = {}) {
     // Activity log: last 50 lines
     const activity = (debugLog || []).slice(-50).map(_redact).join('\n');
-    // Last response (truncated to 4000 chars to keep bundles paste-friendly)
-    const rawResp = getLastRawResponse() || '';
+    // v6.15.6: prefer the latest pair (prompt + response) over the bare last
+    // response — the prompt is what the maintainer actually needs to diagnose
+    // prose-not-JSON failures. Fall back to lastRawResponse for upgrade-window
+    // sessions where no pairs have been captured yet.
+    const lp = rawLastPair();
+    const rawResp = lp?.response || getLastRawResponse() || '';
+    const rawPrompt = lp?.prompt || '';
     const respTrunc = rawResp.length > 4000
         ? rawResp.slice(0, 4000) + `\n\n[…truncated, total ${rawResp.length} chars]`
         : rawResp;
+    const promptTrunc = rawPrompt.length > 6000
+        ? rawPrompt.slice(0, 6000) + `\n\n[…truncated, total ${rawPrompt.length} chars]`
+        : rawPrompt;
     // Last 10 issues, redacted, with diagnosis hints inline
     const issues = crashGetEntries().slice(-10).reverse().map(e => {
         const dx = _diagnose(e.message || '');
@@ -174,7 +183,13 @@ function _buildDiagnostics({ spVersion = '', stVersion = '' } = {}) {
         `## Recent issues (last ${Math.min(10, crashGetEntries().length)} of ${crashGetEntries().length})`,
         '```', issues || '(none)', '```',
         '',
-        '## Last response',
+        '## Latest pair',
+        lp ? `*${_fmtTs(lp.ts)} · source=${lp.source}${lp.parseFailed ? ' · **PARSE FAILED**' : ''}*` : '*no pair captured yet*',
+        '',
+        '### Prompt sent',
+        rawPrompt ? '```\n' + _redact(promptTrunc) + '\n```' : '(none)',
+        '',
+        '### Response received',
         rawResp ? '```\n' + _redact(respTrunc) + '\n```' : '(none captured)',
         '',
         `## Activity log (last ${Math.min(50, (debugLog || []).length)} lines)`,
@@ -370,53 +385,116 @@ function _activityTab(panel) {
 
 function _lastResponseTab(panel, ctx = {}) {
     const payload = ctx.payload || {};
+    // v6.15.6: navigate among the last 10 (prompt, response) pairs captured
+    // by raw-pairs.js. When arrived via "Show in Last Response" with an
+    // issue payload, jump to the pair whose ts is closest to the issue's ts.
+    const pairs = rawGetPairs(); // chronological, oldest first
+    const hasPairs = pairs.length > 0;
+    let activeIdx = pairs.length - 1; // default to latest
+    if (payload.fromIssue && pairs.length) {
+        const issueTs = new Date(payload.fromIssue.ts).getTime();
+        let bestIdx = activeIdx;
+        let bestDelta = Infinity;
+        for (let i = 0; i < pairs.length; i++) {
+            const dt = Math.abs(new Date(pairs[i].ts).getTime() - issueTs);
+            if (dt < bestDelta) { bestDelta = dt; bestIdx = i; }
+        }
+        activeIdx = bestIdx;
+    }
+
     panel.innerHTML = `
         <div class="sp-cl-toolbar">
-            <button class="sp-cl-export-btn sp-di-copy">${t('Copy')}</button>
+            <button class="sp-cl-export-btn sp-di-copy">${t('Copy response')}</button>
+            <button class="sp-cl-export-btn sp-di-copy-pair">${t('Copy pair')}</button>
             <button class="sp-cl-export-btn sp-di-export">${t('Export TXT')}</button>
             <span class="sp-di-stats sp-di-meta"></span>
             ${payload.fromIssue ? `<span class="sp-di-from-issue">${t('Opened from')} <code>${esc((payload.fromIssue.message || '').slice(0, 60))}…</code></span>` : ''}
         </div>
+        ${hasPairs && pairs.length > 1 ? `
+        <div class="sp-cl-toolbar sp-di-pair-nav">
+            <button class="sp-cl-export-btn sp-di-pair-prev" ${activeIdx === 0 ? 'disabled' : ''}>← ${t('Older')}</button>
+            <span class="sp-di-pair-indicator"></span>
+            <button class="sp-cl-export-btn sp-di-pair-next" ${activeIdx === pairs.length - 1 ? 'disabled' : ''}>${t('Newer')} →</button>
+            <span style="flex:1"></span>
+            <span class="sp-di-pair-meta"></span>
+        </div>` : ''}
         <div class="sp-di-response"></div>
     `;
     const stats = panel.querySelector('.sp-di-meta');
     const body = panel.querySelector('.sp-di-response');
+    const indicator = panel.querySelector('.sp-di-pair-indicator');
+    const pairMeta = panel.querySelector('.sp-di-pair-meta');
 
-    // v6.15.4: getter avoids the live-binding trap — reads current state value
-    // at render time, not the stale module-load-time snapshot.
-    const raw = getLastRawResponse();
-    if (!raw) {
+    // Fallback: no pairs captured yet, but there might still be a legacy
+    // lastRawResponse from a generation that ran before v6.15.6. Show that
+    // so the tab isn't useless during the upgrade transition.
+    const fallbackRaw = getLastRawResponse();
+    if (!hasPairs && !fallbackRaw) {
         stats.textContent = '';
         body.innerHTML = `<div class="sp-cl-empty">${t('No API response captured yet. Generate a scene first.')}</div>`;
         panel.querySelector('.sp-di-copy').disabled = true;
+        panel.querySelector('.sp-di-copy-pair').disabled = true;
         panel.querySelector('.sp-di-export').disabled = true;
         return () => {};
     }
 
-    // Pretty-print if valid JSON; otherwise show raw.
-    let rendered = raw;
-    let isJson = false;
-    try {
-        const parsed = JSON.parse(raw);
-        rendered = JSON.stringify(parsed, null, 2);
-        isJson = true;
-    } catch {}
-
-    stats.textContent = `${raw.length} ${t('chars')}${isJson ? ' · ' + t('valid JSON') : ' · ' + t('raw text')}`;
-    body.innerHTML = `<pre class="sp-di-response-pre">${esc(rendered)}</pre>`;
+    function _renderActive() {
+        const pair = hasPairs ? pairs[activeIdx] : null;
+        const promptStr = pair?.prompt || '';
+        const respStr = pair?.response || fallbackRaw || '';
+        let rendered = respStr;
+        let isJson = false;
+        try { rendered = JSON.stringify(JSON.parse(respStr), null, 2); isJson = true; } catch {}
+        stats.textContent = `${respStr.length} ${t('chars')}${isJson ? ' · ' + t('valid JSON') : ' · ' + t('raw text')}`;
+        if (indicator) indicator.textContent = `${t('Pair')} ${activeIdx + 1} / ${pairs.length}`;
+        if (pairMeta && pair) {
+            const fail = pair.parseFailed ? ` · <span class="sp-di-pair-failed">${t('Parse failed')}</span>` : '';
+            pairMeta.innerHTML = `${esc(_fmtTs(pair.ts))} · ${esc(pair.source)}${fail}`;
+        }
+        // Prompt block (collapsed by default) + response block
+        const promptBlock = promptStr ? `
+            <details class="sp-di-prompt-details">
+                <summary class="sp-cl-stack-label">${t('Prompt sent')} (${promptStr.length} ${t('chars')})</summary>
+                <pre class="sp-di-response-pre sp-di-prompt-pre">${esc(promptStr)}</pre>
+            </details>` : '';
+        const respLabel = `<div class="sp-cl-stack-label">${t('Response received')}</div>`;
+        body.innerHTML = promptBlock + respLabel + `<pre class="sp-di-response-pre">${esc(rendered)}</pre>`;
+        // Update prev/next disabled state
+        const prev = panel.querySelector('.sp-di-pair-prev');
+        const next = panel.querySelector('.sp-di-pair-next');
+        if (prev) prev.disabled = activeIdx === 0;
+        if (next) next.disabled = activeIdx === pairs.length - 1;
+    }
 
     panel.querySelector('.sp-di-copy').addEventListener('click', () => {
-        _copy(raw, t('Last response copied'));
+        const pair = hasPairs ? pairs[activeIdx] : null;
+        const text = pair?.response || fallbackRaw || '';
+        _copy(text, t('Response copied'));
+    });
+    panel.querySelector('.sp-di-copy-pair').addEventListener('click', () => {
+        const pair = hasPairs ? pairs[activeIdx] : null;
+        if (!pair) {
+            _copy(fallbackRaw || '', t('Response copied'));
+            return;
+        }
+        const text = `# Prompt sent (${pair.prompt.length} chars)\n\n${pair.prompt}\n\n---\n\n# Response received (${pair.response.length} chars) · source=${pair.source} · ${pair.parseFailed ? 'PARSE FAILED' : 'parsed OK'}\n\n${pair.response}`;
+        _copy(text, t('Pair copied'));
     });
     panel.querySelector('.sp-di-export').addEventListener('click', () => {
         const ts = new Date().toISOString().replace(/[:.]/g, '-');
-        _exportFile(raw, `scenepulse-last-response-${ts}.txt`);
+        const pair = hasPairs ? pairs[activeIdx] : null;
+        const text = pair
+            ? `# Prompt\n\n${pair.prompt}\n\n# Response (${pair.parseFailed ? 'PARSE FAILED' : 'OK'})\n\n${pair.response}`
+            : (fallbackRaw || '');
+        _exportFile(text, `scenepulse-pair-${ts}.txt`);
     });
+    const prev = panel.querySelector('.sp-di-pair-prev');
+    const next = panel.querySelector('.sp-di-pair-next');
+    if (prev) prev.addEventListener('click', () => { if (activeIdx > 0) { activeIdx--; _renderActive(); } });
+    if (next) next.addEventListener('click', () => { if (activeIdx < pairs.length - 1) { activeIdx++; _renderActive(); } });
 
-    // v6.15.5: when arrived from "Show in Last Response", scroll the response
-    // pane back to the top so the user starts at the beginning. Future:
-    // highlight the byte range where parsing failed (needs raw-pair ring
-    // buffer with column-from-error info, planned for v6.15.6).
+    _renderActive();
+
     if (payload.scrollToTop) {
         const pre = panel.querySelector('.sp-di-response-pre');
         if (pre) pre.scrollTop = 0;
