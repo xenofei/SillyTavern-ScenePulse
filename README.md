@@ -114,20 +114,59 @@ ScenePulse is a SillyTavern extension that automatically extracts and tracks sce
 - Live CSS variable switching — changes instantly, no reload
 - Theme selector in Settings > General
 
-### Slash Commands *(Experimental)*
-- `/sp status` — Show tracker state summary
-- `/sp regen [section]` — Regenerate tracker
+### Prompt + Schema Profiles
+- **Self-contained profile bundles** — each profile owns its own `{schema, systemPrompt, panels, fieldToggles, dashCards, customPanels}`
+- **Switch profiles via dropdown** in Settings → Prompts (e.g. Medieval Fantasy ↔ Pokemon ↔ Modern Slice-of-Life) without manually editing prompts and schemas
+- **Full Profile Manager overlay** — list view with active marker, inline rename / duplicate / clear panels / export / delete
+- **Per-chat override** — a chat can pin its own profile via `chatMetadata.scenepulse.activeProfileId` (resolution order: per-chat → global → first profile)
+- **Import / export** — share profiles as `.json` files; auto-suffixed name on collision, never overwrites
+- **Read-through architecture** — switching is `s.activeProfileId = newId`, no destructive copy, no risk of mid-edit data loss
+- Force-full regen on switch (delta against a different schema is nonsensical)
+- Existing setups auto-migrated into a "Default" profile on first load — nothing lost
+- `/sp-profile [name]` slash command for chat-input switching
+
+### Crash Log + Debug Inspector
+- **Combined crash log** — captures errors from both ScenePulse AND the host SillyTavern via `window.error`, `window.unhandledrejection`, and ScenePulse-internal `err()` calls. Tagged by source.
+- **Persistent across reloads** — hybrid storage (in-memory ring buffer + localStorage mirror + server file flush to `data/<user>/user/files/scenepulse-crash-log.json`)
+- **Privacy-conscious** — only stack + metadata + version, no message content by default
+- **Debug Inspector overlay** (Settings → Advanced → Debug → 🔍 Debug Inspector) with three tabs:
+  - **Activity** — chronological logger.js debug log with level filter, search, live refresh, copy, export
+  - **Last Response** — pretty-printed raw LLM JSON from the most recent generation
+  - **Crashes** — severity + source filters, expand-for-stack rows, copy entry, copy all, clear, **"Report on GitHub"** per row that pre-fills a new-issue template with the captured stack
+
+### Performance / Reduce Visual Effects
+- One-click **"Reduce visual effects"** toggle in Settings → General disables the animated dashboard canvas, particles, shimmers, and decorative blend modes — recommended for laptops or integrated GPUs
+- Honors OS-level `prefers-reduced-motion` automatically — no toggle needed
+- WDM canvas throttled to ~20fps and paused via `IntersectionObserver` when off-screen even when enabled
+
+### Slash Commands
+- `/sp status` — Show tracker state summary (with active profile)
+- `/sp regen [section]` — Regenerate tracker (optional: dashboard, scene, quests, relationships, characters, branches)
+- `/sp refresh` — Force a full-state regeneration (bypass delta mode, reset drift counter)
 - `/sp clear` — Clear all tracker data (with confirmation)
-- `/sp toggle <panel>` — Toggle panel on/off
-- `/sp export` — Export tracker history as JSON
+- `/sp toggle <panel>` — Toggle a panel on/off (built-in OR custom panel name; case-insensitive)
+- `/sp profile [name]` — List profiles, or switch to one by name (case-insensitive)
+- `/sp export` — Export tracker history + profiles as JSON
 - `/sp debug` — Show diagnostics
 - `/sp help` — List commands
 
-### Custom Macros *(Experimental)*
-Template variables for use in character cards, system prompts, Quick Replies:
+Standalone shortcuts: `/sp-status`, `/sp-regen`, `/sp-refresh`, `/sp-clear`, `/sp-toggle`, `/sp-profile`, `/sp-export`, `/sp-debug`, `/sp-help`. Alias: `/scenepulse <subcommand>`.
+
+### Custom Macros
+Template variables for use in character cards, system prompts, Quick Replies. Re-read live on every prompt build — values stay current across generations.
+
+**Scene state:**
 - `{{sp_location}}`, `{{sp_time}}`, `{{sp_date}}`, `{{sp_mood}}`, `{{sp_tension}}`
-- `{{sp_weather}}`, `{{sp_topic}}`, `{{sp_characters}}`, `{{sp_quests}}`
-- `{{sp_northstar}}`, `{{sp_summary}}`, `{{sp_temperature}}`
+- `{{sp_weather}}`, `{{sp_topic}}`, `{{sp_temperature}}`, `{{sp_summary}}`, `{{sp_northstar}}`
+
+**Aggregations:**
+- `{{sp_characters}}` — comma-separated names of characters present in the current scene
+- `{{sp_char_count}}` — present-character count (for `{{#if}}` conditionals)
+- `{{sp_relationships}}` — formatted `"Jenna (lover, aff:75), Reyes (rival, aff:30)"`
+- `{{sp_quests}}` — active quest names (main + side)
+- `{{sp_main_quests}}` / `{{sp_side_quests}}` — split tiers
+- `{{sp_quest_count}}` — non-resolved quest count
+- `{{sp_active_profile}}` — name of the active ScenePulse profile
 
 ### Inner Thoughts Panel *(Desktop)*
 - Floating, draggable panel showing each character's inner monologue
@@ -350,6 +389,9 @@ tests/
   vendor/                   ← Manual dev scripts for the vendored library
     jsonrepair.test.mjs     ← 106-case smoke suite
     compare.test.mjs        ← Old regex repair vs jsonrepair head-to-head
+  *.test.mjs                ← 559-case regression suite (delta, profiles, slash,
+                              macros, normalize, group chat, character aliases,
+                              wiki persistence, crash log, etc.)
 ```
 
 No bundler required — SillyTavern loads extensions as `<script type="module">`, so native ES imports work out of the box.
@@ -375,6 +417,7 @@ Access settings via **Extensions** → **ScenePulse** in SillyTavern's settings 
 | **Delta mode** | Enabled by default — LLM returns only changed fields, saving 66-77% output tokens. Auto-refreshes every 15 turns. Use `/sp-refresh` if data seems stale |
 | **Function tool calling** | Use structured tool calling in Separate mode (experimental) |
 | **Auto-generate** | Update tracker on every AI message |
+| **Reduce visual effects** | Disables the animated dashboard canvas, particles, and decorative blend modes. Recommended on laptops or integrated GPUs |
 | **Language** | UI + LLM output language (29 options, auto-detect) |
 | **Theme** | Visual theme preset (5 options) |
 | **Font scale** | Adjust text size (0.7x–1.5x) |
@@ -390,16 +433,17 @@ Access settings via **Extensions** → **ScenePulse** in SillyTavern's settings 
 ### Prompts Tab
 | Setting | Description |
 |---------|-------------|
-| **System prompt** | The instruction sent to the model |
-| **JSON schema** | Output structure definition (lockable) |
+| **Profile** | Active profile selector + new / duplicate / rename / export / import / delete / manage. Each profile bundles its own prompt + schema + panels |
+| **System prompt** | The instruction sent to the model (writes to the active profile) |
+| **JSON schema** | Output structure definition (writes to the active profile, lockable) |
 
 ### Advanced Tab
 | Setting | Description |
 |---------|-------------|
 | **Max snapshots** | Maximum scene snapshots stored per chat (0 = unlimited) |
 | **Generate / Clear / Reset** | Manual generation, data clearing, settings reset |
-| **Export / Import Config** | Save/load ScenePulse configuration as JSON |
-| **Debug tools** | SP Log, Console, Last Response, View Log |
+| **Export / Import Config** | Save/load ScenePulse configuration as JSON (includes profiles + per-chat panels) |
+| **Debug Inspector** | Tabbed overlay: Activity (live debug log), Last Response (raw LLM JSON), Crashes (persistent error log with "Report on GitHub") |
 
 ## Custom Panels
 
@@ -421,15 +465,15 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 - **Delta mode** — Enabled by default since v6.9.0. If you see incomplete or stale data after many turns, use `/sp-refresh` to force a full-state regeneration. The system auto-refreshes every 15 delta turns
 - **Payload visibility** — The regex filter and streaming hider work together to hide tracker JSON during streaming. In rare cases with very fast token rates, a brief flash may occur before the hider locks
 - **Function tool calling** — Experimental, Separate mode only. GLM-5.1 tool calling is inconsistent; some generations may miss the tool call and fall back to text prompt
-- **Slash commands / macros** — Experimental, need further testing ([#7](https://github.com/xenofei/SillyTavern-ScenePulse/issues/7), [#8](https://github.com/xenofei/SillyTavern-ScenePulse/issues/8))
 - **Mobile** — Weather effects, time-of-day tint, inner thoughts panel, and condense view are disabled on mobile to optimize performance
+- **GPU on integrated graphics** — If the panel feels heavy on a laptop or low-power GPU, toggle **Reduce visual effects** in Settings → General. The animated dashboard canvas alone can be expensive on weaker hardware
 - **Translations** — While all 29 languages have full translation coverage, some translations may be imperfect. Community corrections welcome — edit the JSON files in [`locales/`](https://github.com/xenofei/SillyTavern-ScenePulse/tree/main/locales)
 
 ## Changelog
 
 See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
-**Latest: v6.9.14** — Per-chat custom panels, per-field toggles, 13 genre templates, visual field overhaul, export/import.
+**Latest: v6.13.8** — Prompt + schema profiles, combined crash log + Debug Inspector, GPU load fix, slash command + macro audits with 100 new regression tests, character wiki + relationship persistence overhaul.
 
 ## Contributing
 

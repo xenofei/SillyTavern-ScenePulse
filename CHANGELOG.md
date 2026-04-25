@@ -2,6 +2,161 @@
 
 All notable changes to ScenePulse are documented in this file.
 
+### [6.13.8] — 2026-04-25
+
+#### Fixed — Meter alignment locked across every resolution
+Audited all 11 `.sp-meter-row` and `.sp-wiki-meter-row` grid declarations across `relationships.css`, `responsive.css` (5 breakpoints), `mobile.css` (2), `focus-mode.css`, and `character-wiki.css` (2). Each value column now uses `minmax(0, X)` so emoji/delta content can no longer expand the track and shrink the bar. `.sp-meter-value`, `.sp-meter-value-na`, `.sp-wiki-meter-val` get `min-width: 0; overflow: hidden`. Bar right edges and sparkline columns are now stable across viewport sizes (mobile / 1366×768 / desktop / QHD / 4K), all panel modes (mobile / compact), and the wiki overlay.
+
+### [6.13.7] — 2026-04-25
+
+#### Fixed — Meter bar width drifted with delta content (CSS grid gotcha)
+v6.13.6's `60px` fixed value column wasn't enough — grid items default to `min-width: auto`, so content like `100+99❤` still grew the track and shrank the bar. Switched to `minmax(0, 70px)` plus `min-width: 0; overflow: hidden` on the value cell. Sparkline canvas now right-aligned via `justify-self: end` (the previous `display: flex; justify-content: flex-end` was a no-op on a canvas with no flex children).
+
+### [6.13.6] — 2026-04-24
+
+#### Changed — Meter status labels capped at 4 words
+New `truncateWords()` helper in `utils.js` caps long LLM-emitted status labels (e.g. "growing sense of shared perspective") at 4 words with an ellipsis. Full original text preserved as a `title` tooltip. Applied to relationship meter labels in the main panel and wiki overlay.
+
+#### Fixed — Meter bar alignment across deltas (first attempt)
+Relationship meter row's third grid column was `auto`, so adding a `+5` delta indicator shrank the bar. Bumped to a fixed `60px` to keep the bar's right edge stable. Same fix applied to mobile + compact + ultra-narrow overrides.
+
+### [6.13.5] — 2026-04-25
+
+#### Fixed — `sp_characters` macro returned empty when present-list was empty (issue #8)
+`charactersPresent || characters` is broken in JS — empty array is truthy, so the fallback never reached `characters[]`. Now uses an explicit `Array.isArray(...) && .length` check. Same bug fixed in `sp_char_count`. Affected solo beats and any state where the LLM dropped `charactersPresent`.
+
+#### Added — 6 new macros
+`{{sp_relationships}}` (formatted summary), `{{sp_main_quests}}` / `{{sp_side_quests}}` (split tiers), `{{sp_quest_count}}` / `{{sp_char_count}}` (counts for `{{#if}}` conditionals), `{{sp_active_profile}}` (issue #15 follow-up). Original `{{sp_quests}}` preserved for backward compat.
+
+#### Changed — Macro handlers now error-contained
+Each handler is wrapped in try/catch at registration. A throw in any single macro returns `''` and logs to the Crash Log instead of breaking ST's prompt build. Macros are no longer marked experimental — exercised by 50 regression tests on every release.
+
+### [6.13.4] — 2026-04-25
+
+#### Fixed — `/sp-debug` showed hardcoded "30 max" snapshot limit (issue #7)
+Now honors the actual `s.maxSnapshots` setting (`N / 100` or `N / ∞`).
+
+#### Fixed — `/sp-export` omitted profiles from the JSON payload
+Stale since v6.13.0 — shared exports lost the prompt+schema bundle that produced the snapshots. Now includes `profiles`, `activeProfileId`, active profile name, and per-chat panels for parity with the in-app Export Config button.
+
+#### Fixed — `/sp-toggle` only knew built-in panels
+Now matches custom panel names case-insensitively against the chat's `chatPanels[]`. The no-arg listing and "unknown panel" suggestion both include built-ins AND custom panels.
+
+#### Added — `/sp-profile` (and `/sp profile`)
+Lists profiles with `*` marker on active, or switches by name case-insensitively. Triggers force-full regen on next turn (delta against a different schema is nonsensical).
+
+#### Changed — Slash commands no longer experimental
+Help text rewritten to list every command (including the `/scenepulse` alias). 50 regression tests exercise the dispatcher + every synchronous handler on every release. `/sp-status` now shows active profile to match `/sp-debug`.
+
+### [6.13.3] — 2026-04-25
+
+#### Fixed — Stacked confirm dialogs from rapid Delete clicks
+Single-dialog enforcement at the helper level in `utils.js`. Any `spConfirm`/`spPrompt` call dismisses an active dialog (resolves as cancel) before opening a new one. `_settled` guard prevents double-resolution. Applies everywhere — Profile Manager, settings actions, schema lock confirm.
+
+### [6.13.2] — 2026-04-25
+
+#### Changed — Profile UI polish
+Overlay buttons now styled (the previous `.sp-btn` rule was scoped to `#scenepulse-settings` and didn't reach overlays). New `spPrompt()` helper in `utils.js` matches the existing `spConfirm` pattern: backdrop, scaled-in dialog, focus on input, Enter to submit, Escape to cancel, optional inline validator. All `window.prompt()`/`confirm()` calls in the profile flow replaced with the styled dialogs. "Custom Panels" tag in Profile Manager now has a hover tooltip listing the panel names.
+
+#### Added — "Clear Panels" row action in Profile Manager
+Surgically removes all `customPanels` from a profile so they no longer seed new chats. Replaces the console-snippet workaround.
+
+### [6.13.1] — 2026-04-25
+
+#### Fixed — Deleted custom panels resurfaced on reload
+v6.13.0's `getActivePanels` fall-through used `cp.length > 0` — but empty `[]` is the user's authoritative "I deleted them all in this chat" state, not a missing-data state. Fix uses `Array.isArray(cp)` so empty stays empty.
+
+### [6.13.0] — 2026-04-25
+
+#### Added — Prompt + Schema Profiles (closes #15)
+Each profile is a self-contained `{schema, systemPrompt, panels, fieldToggles, dashCards, customPanels}` bundle. Switch profiles to swap setups (e.g. Medieval Fantasy vs Pokemon) without manually editing prompts and schemas. New "Profile" section in Settings → Prompts with active dropdown, +New / Duplicate / Rename / Export / Import / Delete buttons, and a Manage button that opens a full-screen Profile Manager overlay.
+
+**Architecture: read-through, not destructive copy.** Switching profiles is a single-line `s.activeProfileId = newId; saveSettings()`. The four chokepoint getters (`getActiveSchema`, `getActivePrompt`, `getActivePanels`, `ensureChatPanels`) resolve through the active profile. No copying, no risk of mid-edit data loss.
+
+**Migration**: existing legacy `s.schema` + `s.systemPrompt` + `s.panels` + `s.fieldToggles` + `s.dashCards` + `s.customPanels` are wrapped into a profile named "Default (migrated)" on first load. Idempotent — also repairs orphaned `activeProfileId` pointers if a profile gets deleted out-of-band.
+
+**Per-chat override**: a chat may set `chatMetadata.scenepulse.activeProfileId` for a per-chat profile pointer. Resolution order: per-chat → global → first profile.
+
+**Import safety**: `validateImportedProfile()` rejects malformed input (non-object, missing/empty name, non-string schema, schema doesn't parse as JSON, schema isn't an object, root `type !== "object"`, non-array `customPanels`). Imported profiles always get a fresh UUID. Name collisions auto-suffix as `Pokemon (2)`, never overwrite.
+
+**Force-full regen on switch** — diffing against a different schema is nonsensical. 52 regression tests cover migration, CRUD, per-chat override, import safety, export shape.
+
+### [6.12.9] — 2026-04-24
+
+#### Fixed — 80% GPU usage at idle (fixes #14)
+Reporter on RTX3060 saw extreme GPU load just from loading the extension. Two specialist agents traced it to the "Water Droplet Matrix" decorative canvas in the Time dashboard card — a 500×500 canvas redrawing ~17,500 path segments at 60fps via `requestAnimationFrame`, with `mix-blend-mode: screen` forcing per-frame compositor work.
+
+**Fixes**: WDM canvas gated behind a new "Reduce visual effects" setting AND `prefers-reduced-motion`. Throttled 60→20fps (phase increment scaled 3× to keep visual speed identical). Paused via `IntersectionObserver` when canvas leaves the viewport. Removed `mix-blend-mode` from `.sp-dash-overlay` and `.sp-wdm-canvas`. Dashboard particles + shimmers gated under `prefers-reduced-motion` and the new toggle. Weather overlay now properly torn down on disable instead of left attached. Removed 13 `will-change: transform` declarations from weather particles (was eagerly allocating GPU layers even when no weather active).
+
+Expected drop on reporter's hardware: 80% → ~25% on defaults, 80% → near-zero with new toggle on.
+
+### [6.12.8] — 2026-04-24
+
+#### Changed — Unified Debug Inspector replaces 4 debug buttons
+Settings → Advanced → Debug now has one `🔍 Debug Inspector` button opening a tabbed overlay with **Activity** (logger.js debug log with level filter, search, live refresh, copy, export), **Last Response** (raw LLM JSON pretty-printed if valid), and **Crashes** (the persistent error log from v6.12.5 — severity + source filters, expand-for-stack, copy entry, copy all, clear, "Report on GitHub" per row). Replaces SP Log, View Log, Last Response, and standalone Crash Log buttons.
+
+### [6.12.7] — 2026-04-24
+
+#### Removed — Console copy button (redundant with Crash Log)
+Crash Log captures the error subset that was the only useful part of the Console buffer. Dropped `consoleBuf`, `MAX_CONSOLE`, `_pushConsole` from logger.js. Layout consolidated to two debug rows.
+
+### [6.12.6] — 2026-04-24
+
+#### Fixed — Crash Log overlay dismissed the settings panel underneath
+Click + pointerdown events bubbled to ST's document-level outside-click handler. Added `stopPropagation` on bubble-phase mousedown/click/pointerdown at the overlay; ESC moved to capture phase so it beats ST's panel-closing keydown.
+
+### [6.12.5] — 2026-04-24
+
+#### Added — Combined crash log with in-settings viewer (closes #13)
+Captures errors from both ScenePulse AND SillyTavern (`window.error`, `window.unhandledrejection`, ScenePulse-internal `err()` calls — tagged by source via stack-frame analysis). Each entry stores: timestamp, source tag, severity, message, normalized stack (12 frames capped), context, ScenePulse + SillyTavern versions. Consecutive identical entries collapse with a repeat counter.
+
+**Hybrid persistence**: in-memory ring buffer (500 entries) + localStorage mirror on every capture (instant, survives reload) + server flush to `/user/files/scenepulse-crash-log.json` via ST's `/api/files/upload` (debounced 2s, also flushed on `beforeunload`). The user-data folder was the closest durable location — the literal extension folder isn't browser-writable from a ST extension.
+
+**Viewer**: severity + source filter pills, search, expand-for-stack rows, copy entry, copy all, clear, export TXT, "Report on GitHub" per row that pre-fills a new-issue template with the captured stack. 37 regression tests.
+
+### [6.12.4] — 2026-04-24
+
+#### Fixed — Character Wiki not surfacing previous characters (fixes #11)
+Three confirmed root causes from a 3-specialist audit:
+
+1. **Wiki only iterated `latest.characters`** — `getCharacterHistory()` was consulted only for metadata (firstSeen/appearances), never for the entry roster. Any character missing from the latest snap (e.g. dropped by a pre-fix generation) never got a wiki card. Rebuilt to walk the cumulative alias-aware roster across ALL snapshots and pull each character's freshest data from whichever snapshot most recently contained them.
+
+2. **Pipeline non-delta path silently dropped off-scene characters** — `engine.js` had off-scene preservation; `pipeline.js` (used for inline/together extractions) didn't. Every periodic forced full-state refresh (default every 15 turns) was wiping the off-scene roster. Ported the same preservation block.
+
+3. **`renderExisting` recovered only ONE prior snapshot when ScenePulse activated mid-chat** — scanned newest-first, broke at first hit. Earlier messages with tracker blocks were never extracted. Now walks every AI message chronologically, replays each through delta-merge, saves a snapshot per message. Idempotent.
+
+38 regression tests cover the four scenarios end-to-end.
+
+### [6.12.3] — 2026-04-24
+
+#### Added — Portrait upload from Character Wiki avatars
+Wiki avatars now accept the same upload-on-click + clear-on-right-click flow as character cards.
+
+### [6.12.2] — 2026-04-24
+
+#### Fixed — Thoughts portrait upload didn't work
+Click handler delegate wasn't registered on the dynamically-created thought panel.
+
+### [6.12.1] — 2026-04-24
+
+#### Fixed — Portrait upload on relationships + thoughts
+Clicking a relationship card portrait collapsed the card instead of opening the picker. Added an event-target guard to the rel-header click handler. Thought panel didn't get the delegate at all — now registered on `document.body` so it works regardless of when the panel materializes.
+
+### [6.12.0] — 2026-04-24
+
+#### Fixed — Character data loss across all generation paths
+Seven distinct paths could lose character/relationship data: full-state mode without preservation, section refresh array overwrite, prompt pruning feedback loop, pipeline save inconsistency, renderExisting recovery, portrait orphaning across identity reveals, and missing portrait upload locations. Each addressed with targeted fixes. Off-scene characters now preserved as `{name, role, aliases}` stubs in `_offSceneCharacters` during prompt cleaning. Section refresh uses entity-level merge instead of array overwrite. Pipeline saves normalized data (not raw extracted) for consistency with engine.js path.
+
+### [6.11.10] — 2026-04-24
+
+#### Fixed — Panel Manager collapsed to one line (fixes #12)
+`.sp-panel-mgr` is injected into `#sp-panel-body` — a flex column since v6.11.x. As a flex item with default `flex-shrink: 1`, it was being squeezed to ~1 line tall by sibling sections (`flex: 0 0 auto` + `max-height: 70vh`). Adding `flex-shrink: 0` preserves its intrinsic content height; existing `max-height: calc(100vh - 140px)` + `overflow-y: auto` still cap and scroll long custom panel lists.
+
+### [6.11.9] — 2026-04-11
+
+#### Fixed — Stuck scene transition overlay (fixes #10)
+`setTimeout(4500)` was unreliable in background tabs (browsers throttle inactive timers). Replaced with `animationend` event listener; card removed from DOM after animation. 6s safety fallback timer still fires if the event somehow doesn't.
+
 ### [6.11.8] — 2026-04-11
 
 #### Changed — Full panel architecture redesign
