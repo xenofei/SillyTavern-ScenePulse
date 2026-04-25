@@ -147,6 +147,65 @@
 
 /* Prompt/Schema section actions */
 .sp-prompt-actions { display: flex; gap: 4px; margin: 4px 0; }
+/* v6.21.0: prominence pass on the System Prompt section. The two primary
+   actions (Edit Slots, Browse Presets) get a side-by-side row with larger
+   buttons. The legacy textarea collapses into a <details> below them so
+   it stops dominating the visual hierarchy. */
+.sp-prompt-primary {
+    display: flex; gap: 8px; flex-wrap: wrap;
+    margin: 8px 0 4px;
+}
+.sp-prompt-primary .sp-btn {
+    flex: 1 1 220px;
+    padding: 8px 14px;
+    font-size: var(--sp-fs-sm);
+    font-weight: 600;
+    border-radius: 5px;
+    text-align: left;
+}
+.sp-prompt-edit-slots {
+    color: var(--sp-accent) !important;
+    border: 1px solid rgba(77,184,164,0.45) !important;
+    background: rgba(77,184,164,0.08) !important;
+}
+.sp-prompt-edit-slots:hover {
+    background: rgba(77,184,164,0.18) !important;
+    color: #fff !important;
+    border-color: var(--sp-accent) !important;
+}
+.sp-prompt-browse-presets {
+    color: #93c5fd !important;
+    border: 1px solid rgba(96,165,250,0.4) !important;
+    background: rgba(96,165,250,0.08) !important;
+}
+.sp-prompt-browse-presets:hover {
+    background: rgba(96,165,250,0.2) !important;
+    color: #fff !important;
+    border-color: #93c5fd !important;
+}
+.sp-prompt-primary-hint {
+    margin-bottom: 12px;
+}
+.sp-prompt-legacy {
+    margin-top: 10px;
+    border: 1px solid var(--sp-border);
+    border-radius: 5px;
+    padding: 6px 10px 4px;
+    background: rgba(0,0,0,0.12);
+}
+.sp-prompt-legacy summary {
+    cursor: pointer;
+    color: var(--sp-text-dim);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 4px 0;
+}
+.sp-prompt-legacy summary:hover { color: var(--sp-text); }
+.sp-prompt-legacy[open] summary { color: var(--sp-text); }
+.sp-prompt-legacy .sp-prompt-actions { margin-top: 6px; }
+.sp-prompt-legacy textarea { margin-top: 4px; }
 #scenepulse-settings .sp-btn-sm {
     padding: 3px 8px; font-size: var(--sp-fs-xs); background: var(--sp-surface);
     border: 1px solid var(--sp-border-strong); color: var(--sp-text-dim);

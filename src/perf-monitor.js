@@ -247,6 +247,34 @@ export function startCapture(durationMs = 30000) {
     });
 }
 
+/**
+ * Snapshot the in-flight capture without stopping it. Returns the same
+ * shape as `stopCapture()` so the inspector UI can render a live partial
+ * results table during the capture window. v6.21.0.
+ *
+ * Returns null if no capture is in progress.
+ */
+export function getCapturePartial() {
+    if (!_captureActive) return null;
+    const durationMs = performance.now() - _captureStartTs;
+    const components = Array.from(_captureBuckets.values())
+        .map(b => ({
+            name: b.name,
+            totalMs: Math.round(b.totalMs * 10) / 10,
+            count: b.count,
+            avgMs: b.count > 0 ? Math.round((b.totalMs / b.count) * 100) / 100 : 0,
+            maxMs: Math.round(b.maxMs * 10) / 10,
+            pctOfCapture: durationMs > 0 ? Math.round((b.totalMs / durationMs) * 1000) / 10 : 0,
+        }))
+        .sort((a, b) => b.totalMs - a.totalMs);
+    return {
+        durationMs: Math.round(durationMs),
+        components,
+        longTasks: _captureLongTasks,
+        partial: true,
+    };
+}
+
 /** Stop capture immediately. Returns the result. */
 export function stopCapture() {
     if (!_captureActive) return { durationMs: 0, components: [], longTasks: 0 };

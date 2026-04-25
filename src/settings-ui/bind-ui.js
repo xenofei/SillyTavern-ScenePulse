@@ -301,6 +301,15 @@ export function bindUI(){const s=getSettings();
             try { toastr.error(t('Failed to open prompt editor: ') + (e?.message || String(e))); } catch {}
         }
     });
+    // v6.21.0: Browse Presets button — lazy-imports the preset browser.
+    $('#sp-sysprompt-browse-presets').on('click', async () => {
+        try {
+            const mod = await import('../ui/preset-browser.js');
+            mod.openPresetBrowser();
+        } catch (e) {
+            try { toastr.error(t('Failed to open preset browser: ') + (e?.message || String(e))); } catch {}
+        }
+    });
     $('#sp-schema-default').on('click',()=>{updateActiveProfile(s,{schema:null});saveSettings();$('#sp-schema').val(JSON.stringify(buildDynamicSchema(s),null,2));toastr.info(t('Schema reset to default'))});
     $('#sp-schema-copy').on('click',()=>{navigator.clipboard.writeText($('#sp-schema').val());toastr.success(t('Schema copied'))});
     $('#sp-btn-refresh').on('click',()=>{

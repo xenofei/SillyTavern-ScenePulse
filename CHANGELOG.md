@@ -2,6 +2,54 @@
 
 All notable changes to ScenePulse are documented in this file.
 
+### [6.21.0] — 2026-04-25
+
+#### Fixed + Polished — User feedback round 1 (Performance UX, model detection, preset discoverability)
+
+Six items the user surfaced after testing v6.17.1–v6.20.0.
+
+**1. Live capture progress** in the Performance tab. Previously the tab sat frozen for 30s with one "capturing…" status line and no signal that anything was happening:
+- Countdown ticks down in the button label (`Cancel capture (24s)`).
+- Partial results table re-renders every ~1 second so users see component activity accumulating in real time. New `getCapturePartial()` in `src/perf-monitor.js` snapshots the live capture buckets without stopping the observer.
+- `LIVE` badge on the meta line during a partial render (animated pulse) so users know they're looking at in-flight data, not a final report.
+- Clicking the capture button mid-run now **cancels** rather than ignoring the click. The status line updates to "Capture cancelled. Showing partial results below." and the final results render from whatever was captured.
+- Empty state during a partial capture shows a friendlier "No instrumented activity yet — keep interacting" message rather than the explainer-style "no marks recorded" copy that's correct for finished captures.
+
+**1.2. Capture button styling**: was using the neutral `.sp-cl-export-btn` baseline, looked indistinguishable from the export buttons. Now primary-accent styled when idle (teal); danger-tinted with a subtle pulse animation when running (so users recognize "click again to cancel").
+
+**1.4. Capture verdict line**: every non-empty result now leads with a color-coded verdict block above the table:
+- **Healthy** (<1% of capture): green band, "no action needed"
+- **Acceptable** (1–5%): green band, "within budget"
+- **Heavy** (5–15%): amber band, "consider disabling expensive panels"
+- **Excessive** (>15%): red band, "investigate the top component"
+
+Plus inline warnings for `>3` long tasks (main-thread blocking) and any single component frame `>50ms` (exceeds frame budget). Users no longer have to interpret raw percentages — the verdict tells them whether the result is good, with one actionable next step if not.
+
+**2. Doctor button distinct color**: was visually identical to other inspector header buttons. Now uses a cool blue accent (`#93c5fd`) — different from Diagnostics' teal accent — so the two header tools read as separate actions. The paired `i` info icon picks up the same blue when hovered/focused so the cluster reads consistently.
+
+**3. spConfirm behind inspector**: the in-app confirmation dialog (Issues Clear, Network Clear, Discard changes, Apply preset) was rendering at `z-index: 99999`, *below* the Debug Inspector + Prompt Editor overlays at `100001`. Bumped to `100200` so confirmations always appear above any inspector-style modal. This fixes the user-reported "Clear issue log appears behind the main debug inspector window".
+
+**4. Extraction Failed Dismiss button** (in the recovery prompt that appears when AI omits tracker JSON): was rendering as raw white because `.sp-btn` is scoped to `#scenepulse-settings` and the recovery card lives outside that scope. Added explicit themed styles to `.sp-recovery-actions .sp-btn` so both Retry (primary teal) and Dismiss (neutral border) match the rest of the UI.
+
+**5. Model detection bug** (NanoGPT, custom OAI-compatible sources). The user reported the suggestion toast firing for the wrong preset on a NanoGPT connection running `deepseek/deepseek-v4-pro:thinking`. Root cause: v6.20.0's `getActiveModelId()` only probed `chatCompletionSettings.openai_model` / `model` and `textGenerationSettings.model` — missing the source-specific `*_model` fields that ST uses for every chat-completion backend. Rewrote with a four-tier resolution:
+1. **Source-aware lookup**: `chat_completion_source` → `${source}_model` (mirrors ST's own `getChatCompletionModel()` from `public/scripts/openai.js`). Covers Claude, OpenAI, Google, Vertex, OpenRouter, AI21, Mistral, Custom, Cohere, Perplexity, Groq, SiliconFlow, ElectronHub, Chutes, **NanoGPT**, DeepSeek, AIMLAPI, xAI, Pollinations, CometAPI, Moonshot, Fireworks, Azure OpenAI, ZAI.
+2. **Scan fallback**: any `*_model` key on `chatCompletionSettings` with a non-empty value (catches sources we don't have a static map for).
+3. **textgen settings**: `online_status_model` / `model` for local backends.
+4. **DOM fallback**: scrapes the visible model dropdown via `document.querySelectorAll('select[id^="model_"][id$="_select"]')` for the case where the user changed the dropdown but settings haven't persisted yet.
+
+Verified the `:thinking` suffix matches correctly (longest-match wins on tie — `deepseek-v4-pro` (15 chars) beats `deepseek-v4` (11 chars), so the model `deepseek/deepseek-v4-pro:thinking` correctly maps to the `deepseek-v4-pro` preset, which already includes the no-`<think>`-tags-in-output rule). Same treatment for `claude-opus-4-7-thinking` → `claude-opus-4-6` preset.
+
+**6. Preset / editor discoverability** (the user reported "I don't know where to find the prompt editor or how to setup which preset I want to use"):
+- New **Browse Model Presets** modal (`src/ui/preset-browser.js`): full-screen overlay listing all 30 bundled presets with search, family-pill filtering (claude / gpt / gemini / deepseek / kimi / glm / qwen / mistral-finetune / etc.), per-row Apply button, "matches your model" tag for the auto-detected preset, "applied" tag for the currently-applied preset.
+- The detection banner at the top names the active model id and either confirms a match or invites the user to contribute a preset.
+- Apply button uses the same `spConfirm` flow as the suggestion toast (with the same non-destructive guarantee) and updates the row in place so users see the change without closing the browser.
+- Settings UI **System Prompt section** got a prominence pass:
+  - Two large primary buttons at the top: **✎ Edit Prompt Slots** (teal) and **⊞ Browse Model Presets** (blue), side by side, with a hint underneath: "Recommended: use the per-slot editor to tweak specific sections, or apply a model-specific preset for your connection."
+  - The legacy textarea + Reset/Copy buttons collapse into a `<details>` block labeled "Legacy: full prompt override (advanced)" so they no longer dominate the section.
+  - Net effect: a new user opening the prompts tab now sees the recommended workflow first; the legacy override is one click away if they need it.
+
+**Tests**: 8 new cases for the model detection probing (NanoGPT, DeepSeek native, Claude, OpenRouter, scan-fallback, empty-context) + 2 regression cases for the `:thinking` suffix matching. Total: **1,317 tests pass** (1,309 prior + 8 new).
+
 ### [6.20.0] — 2026-04-25
 
 #### Added — 30 bundled model presets + community contribution folder

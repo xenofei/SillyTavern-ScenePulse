@@ -15,8 +15,19 @@
 //      without dropping unrelated user customizations.
 //   5. Empty / null model id returns null gracefully.
 
+// Stub SillyTavern context BEFORE importing registry, so getActiveModelId
+// (which closes over a global SillyTavern reference) can be exercised.
+globalThis.SillyTavern = {
+    getContext: () => ({ chatCompletionSettings: {}, textGenerationSettings: {} }),
+};
+if (typeof document === 'undefined') {
+    globalThis.document = {
+        querySelectorAll: () => [],
+    };
+}
+
 const { BUILT_IN_PRESETS, findPresetById, getPresetFamilies } = await import('../src/presets/built-in.js');
-const { findMatchingPreset, buildPresetPatch } = await import('../src/presets/registry.js');
+const { findMatchingPreset, buildPresetPatch, getActiveModelId } = await import('../src/presets/registry.js');
 
 let pass = 0, fail = 0;
 const failures = [];
@@ -105,6 +116,58 @@ console.log('\n── findMatchingPreset ──');
     // Plain cydonia still matches its own preset
     const plainCyd = findMatchingPreset('thedrummer/cydonia-24b-v2');
     assertEq('plain cydonia matches cydonia-24b-v2', plainCyd?.id, 'cydonia-24b-v2');
+
+    // v6.21.0 regression: model ids with feature suffixes ("thinking", etc.)
+    // must still match. NanoGPT in particular emits model ids like
+    // "deepseek/deepseek-v4-pro:thinking" — the previous v6.20.0 matcher
+    // worked but only because of substring fallthrough; capture the case
+    // explicitly so a future tightening of match logic doesn't regress it.
+    const dsThinking = findMatchingPreset('deepseek/deepseek-v4-pro:thinking');
+    assertEq('deepseek-v4-pro:thinking → deepseek-v4-pro preset', dsThinking?.id, 'deepseek-v4-pro');
+
+    const claudeThinking = findMatchingPreset('claude-opus-4-7-thinking');
+    assertEq('claude-opus-4-7-thinking → claude-opus-4-6 preset', claudeThinking?.id, 'claude-opus-4-6');
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// 3b. getActiveModelId — v6.21.0 fix for source-specific *_model fields
+// ═══════════════════════════════════════════════════════════════════════
+console.log('\n── getActiveModelId source-aware probing ──');
+{
+    function _setCtx(cc, tg) {
+        globalThis.SillyTavern.getContext = () => ({
+            chatCompletionSettings: cc || {},
+            textGenerationSettings: tg || {},
+        });
+    }
+    // 1. NanoGPT (the user's case): chat_completion_source=nanogpt + nanogpt_model
+    _setCtx({ chat_completion_source: 'nanogpt', nanogpt_model: 'deepseek/deepseek-v4-pro:thinking' });
+    assertEq('NanoGPT source picks up nanogpt_model',
+        getActiveModelId(), 'deepseek/deepseek-v4-pro:thinking');
+
+    // 2. DeepSeek native API: chat_completion_source=deepseek + deepseek_model
+    _setCtx({ chat_completion_source: 'deepseek', deepseek_model: 'deepseek-chat' });
+    assertEq('DeepSeek source picks up deepseek_model',
+        getActiveModelId(), 'deepseek-chat');
+
+    // 3. Claude
+    _setCtx({ chat_completion_source: 'claude', claude_model: 'claude-sonnet-4-6' });
+    assertEq('Claude source picks up claude_model',
+        getActiveModelId(), 'claude-sonnet-4-6');
+
+    // 4. OpenRouter
+    _setCtx({ chat_completion_source: 'openrouter', openrouter_model: 'anthropic/claude-opus-4-6' });
+    assertEq('OpenRouter source picks up openrouter_model',
+        getActiveModelId(), 'anthropic/claude-opus-4-6');
+
+    // 5. Source unset but a *_model field IS populated → scan-fallback wins
+    _setCtx({ openai_model: 'gpt-5.4' });
+    assertEq('Scan fallback finds *_model when source missing',
+        getActiveModelId(), 'gpt-5.4');
+
+    // 6. Empty everything → '' (must not throw)
+    _setCtx({}, {});
+    assertEq('Empty context → empty string', getActiveModelId(), '');
 }
 
 // ═══════════════════════════════════════════════════════════════════════

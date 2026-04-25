@@ -178,8 +178,32 @@ body:has(#sp-panel.sp-mode-mobile) .sp-loading-glass-fixed {
 .sp-recovery-title { font-size: var(--sp-fs-base); font-weight: 700; color: var(--sp-amber); }
 .sp-recovery-sub { font-size: var(--sp-fs-xs); color: var(--sp-text-dim); }
 .sp-recovery-actions { display: flex; gap: 6px; margin-top: 4px; }
-.sp-recovery-actions .sp-btn { font-size: var(--sp-fs-xs); padding: 3px 10px; }
-.sp-recovery-retry { background: var(--sp-accent-dim) !important; color: var(--sp-accent) !important; border: 1px solid var(--sp-accent) !important; }
+/* v6.21.0: sp-recovery-* buttons live OUTSIDE #scenepulse-settings, so the
+   scoped .sp-btn baseline doesn't apply — they were rendering with browser
+   default white. Add explicit themed styles so both buttons read as part of
+   the ScenePulse UI, with Retry primary-styled and Dismiss neutral. */
+.sp-recovery-actions .sp-btn {
+    font-size: var(--sp-fs-xs); padding: 3px 10px;
+    background: var(--sp-surface, rgba(20,22,30,0.92));
+    color: var(--sp-text-dim, #bbb);
+    border: 1px solid var(--sp-border, rgba(255,255,255,0.12));
+    border-radius: 4px;
+    font-family: var(--sp-font);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.sp-recovery-actions .sp-btn:hover {
+    color: var(--sp-text, #eee);
+    border-color: var(--sp-text-dim, #888);
+    background: var(--sp-surface-hover, rgba(255,255,255,0.04));
+}
+.sp-recovery-retry {
+    background: var(--sp-accent-dim) !important;
+    color: var(--sp-accent) !important;
+    border: 1px solid var(--sp-accent) !important;
+    font-weight: 600;
+}
+.sp-recovery-retry:hover { background: rgba(77,184,164,0.18) !important; color: #fff !important; }
 
 /* ═══ DIFF VIEWER OVERLAY ═══ */
 /* Appended to <html> (not body) to escape ST's body { overflow: hidden } at <=1000px */

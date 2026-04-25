@@ -29,7 +29,7 @@ import {
     startFpsSampling, stopFpsSampling, addFpsListener, computeFpsStats,
     getAnimationCount, getScenePulseLayerCount,
     startCapture, stopCapture, isCapturing,
-    getFpsHistory, INSTRUMENTED_MARKS,
+    getFpsHistory, INSTRUMENTED_MARKS, getCapturePartial,
 } from '../perf-monitor.js';
 import { getEntries as crashGetEntries, clearAll as crashClearAll, flushNow as crashFlushNow, entryCount as crashEntryCount, markSeen as crashMarkSeen } from '../crash-log.js';
 import { getSettings, getTrackerData } from '../settings.js';
@@ -1495,20 +1495,26 @@ function _perfTab(panel) {
     }
 
     function _renderResults(result) {
+        const isPartial = !!result?.partial;
         if (!result || !result.components.length) {
             // v6.17.1: empty-state lists what's actually instrumented so users
             // can confirm whether their slow component is in the manifest at
-            // all. Previously the message implied the user did something
-            // wrong; now it surfaces the actionable info.
+            // all. v6.21.0: partial captures with 0 marks yet show a friendlier
+            // "no activity yet — keep interacting" message instead of the full
+            // empty-state explainer, so the user understands the window is
+            // still open.
             const manifestRows = INSTRUMENTED_MARKS.map(m => `
                 <li>
                     <code>${esc(m.mark)}</code>
                     <span class="sp-di-perf-manifest-desc">${esc(t(m.desc))}</span>
                     <span class="sp-di-perf-manifest-mod">${esc(m.module)}</span>
                 </li>`).join('');
+            const headline = isPartial
+                ? `${t('No instrumented activity yet')} — ${t('keep interacting with the chat / panel for the rest of the window.')}`
+                : t('No sp:* marks recorded during this capture');
             resultsEl.innerHTML = `
                 <div class="sp-cl-empty sp-di-perf-empty">
-                    <div class="sp-di-perf-empty-title">${t('No sp:* marks recorded during this capture')}</div>
+                    <div class="sp-di-perf-empty-title">${esc(headline)}</div>
                     <div class="sp-di-perf-empty-body">
                         ${t('Either (a) no instrumented component ran, or (b) ScenePulse wasn’t actively rendering. Trigger the slowdown DURING the capture window so the observer can attribute it.')}
                     </div>
@@ -1569,9 +1575,55 @@ function _perfTab(panel) {
                 <td class="sp-di-perf-num">${c.pctOfCapture}%</td>
             </tr>
         `).join('');
+        // v6.21.0: capture verdict line. Computes total ScenePulse-attributed
+        // ms vs the capture window and bands it into a single-line verdict so
+        // users don't have to interpret raw percentages themselves. Bands
+        // borrow the language from `brew doctor` — "healthy" through
+        // "excessive" — so the meaning lands at a glance.
+        const totalSpMs = result.components.reduce((s, c) => s + c.totalMs, 0);
+        const totalSpPct = result.durationMs > 0 ? (totalSpMs / result.durationMs) * 100 : 0;
+        const maxFrameMs = result.components.reduce((m, c) => Math.max(m, c.maxMs), 0);
+        let verdictBand, verdictLabel, verdictMsg;
+        if (totalSpPct < 1) {
+            verdictBand = 'good';
+            verdictLabel = t('Healthy');
+            verdictMsg = t('ScenePulse contributed less than 1% of the capture window. No action needed.');
+        } else if (totalSpPct < 5) {
+            verdictBand = 'good';
+            verdictLabel = t('Acceptable');
+            verdictMsg = t('ScenePulse contributed a small fraction of the window. Within the cheap-monitoring budget.');
+        } else if (totalSpPct < 15) {
+            verdictBand = 'warn';
+            verdictLabel = t('Heavy');
+            verdictMsg = t('ScenePulse used a noticeable share of frame time. Consider disabling expensive panels (weather overlay, time-tint, dashboard sparklines).');
+        } else {
+            verdictBand = 'bad';
+            verdictLabel = t('Excessive');
+            verdictMsg = t('ScenePulse dominated the capture window. Investigate the top component below — usually a single panel or overlay is responsible.');
+        }
+        const longTaskWarn = result.longTasks > 3
+            ? `<div class="sp-di-perf-verdict-extra sp-di-perf-verdict-warn-extra">⚠ ${result.longTasks} ${t('long tasks (>50ms) — main-thread blocking detected.')}</div>`
+            : (result.longTasks > 0
+                ? `<div class="sp-di-perf-verdict-extra">ⓘ ${result.longTasks} ${t('long task (>50ms) — usually OK during interactions.')}</div>`
+                : '');
+        const frameWarn = maxFrameMs > 50
+            ? `<div class="sp-di-perf-verdict-extra sp-di-perf-verdict-warn-extra">⚠ ${t('Top component frame:')} ${Math.round(maxFrameMs)}ms — ${t('exceeds the 16ms frame budget.')}</div>`
+            : '';
+        const verdict = `
+            <div class="sp-di-perf-verdict sp-di-perf-verdict-${verdictBand}">
+                <div class="sp-di-perf-verdict-head">
+                    <span class="sp-di-perf-verdict-label">${esc(verdictLabel)}</span>
+                    <span class="sp-di-perf-verdict-stat">${totalSpPct.toFixed(1)}% ${t('of capture')} · ${Math.round(totalSpMs)}ms ${t('across')} ${result.components.length} ${result.components.length === 1 ? t('component') : t('components')}</span>
+                </div>
+                <div class="sp-di-perf-verdict-msg">${esc(verdictMsg)}</div>
+                ${longTaskWarn}
+                ${frameWarn}
+            </div>`;
+        const partialBadge = isPartial ? ` <span class="sp-di-perf-partial-badge">${t('LIVE')}</span>` : '';
         resultsEl.innerHTML = `
+            ${verdict}
             <div class="sp-di-perf-result-meta">
-                ${t('Capture')}: ${result.durationMs}ms · ${result.components.length} ${t('components')} · ${result.longTasks} ${t('long tasks (>50ms)')}
+                ${t('Capture')}: ${result.durationMs}ms · ${result.components.length} ${t('components')} · ${result.longTasks} ${t('long tasks (>50ms)')}${partialBadge}
             </div>
             ${stackedBar}
             <table class="sp-di-perf-table">
@@ -1588,21 +1640,61 @@ function _perfTab(panel) {
         `;
     }
 
+    // v6.21.0: live capture progress.
+    //  - Countdown in the button label + status banner
+    //  - Re-renders partial results every ~1s so the user sees activity
+    //    accumulating instead of a frozen "capturing…" message
+    //  - Button toggles to "Cancel capture" while running so users can
+    //    bail early without waiting out the timer
+    //  - On finish/cancel, full results render with a verdict line
+    let _captureTickTimer = null;
+    let _captureCancelled = false;
+    function _stopCaptureTicks() {
+        if (_captureTickTimer) { clearInterval(_captureTickTimer); _captureTickTimer = null; }
+    }
+    function _resetCaptureButton() {
+        captureBtn.disabled = false;
+        captureBtn.classList.remove('sp-di-perf-capture-running');
+        captureBtn.textContent = t('Start capture');
+        durSel.disabled = false;
+    }
     captureBtn.addEventListener('click', async () => {
-        if (isCapturing()) return;
-        const dur = parseInt(durSel.value, 10) || 30000;
-        captureBtn.disabled = true;
-        captureBtn.textContent = `${t('Capturing')} (${Math.round(dur/1000)}s)…`;
-        statusEl.innerHTML = `<div class="sp-di-perf-capturing">${t('Reproduce the issue now. Capture ends in')} ${Math.round(dur/1000)}s.</div>`;
+        // Mid-capture click → cancel (rather than ignore as v6.20.0 did).
+        if (isCapturing()) {
+            _captureCancelled = true;
+            try { stopCapture(); } catch {}
+            return;
+        }
+        const durMs = parseInt(durSel.value, 10) || 30000;
+        const startedAt = Date.now();
+        _captureCancelled = false;
+        captureBtn.classList.add('sp-di-perf-capture-running');
+        captureBtn.textContent = `${t('Cancel capture')} (${Math.round(durMs / 1000)}s)`;
+        durSel.disabled = true;
+        statusEl.innerHTML = `<div class="sp-di-perf-capturing">${t('Reproduce the issue now. Capture window is open — interact with the chat / panel / weather to attribute the work.')}</div>`;
+        // Tick: update countdown + render partial results once a second
+        _captureTickTimer = setInterval(() => {
+            if (!isCapturing()) { _stopCaptureTicks(); return; }
+            const elapsedMs = Date.now() - startedAt;
+            const remainingMs = Math.max(0, durMs - elapsedMs);
+            captureBtn.textContent = `${t('Cancel capture')} (${Math.ceil(remainingMs / 1000)}s)`;
+            const partial = getCapturePartial();
+            if (partial) _renderResults(partial);
+        }, 1000);
         try {
-            _lastResult = await startCapture(dur);
+            _lastResult = await startCapture(durMs);
+            _stopCaptureTicks();
+            if (_captureCancelled) {
+                statusEl.innerHTML = `<div class="sp-di-perf-capturing">${t('Capture cancelled.')} ${t('Showing partial results below.')}</div>`;
+            } else {
+                statusEl.innerHTML = '';
+            }
             _renderResults(_lastResult);
-            statusEl.innerHTML = '';
         } catch (e) {
+            _stopCaptureTicks();
             statusEl.innerHTML = `<div class="sp-cl-empty">${t('Capture failed')}: ${esc(e?.message || String(e))}</div>`;
         } finally {
-            captureBtn.disabled = false;
-            captureBtn.textContent = t('Start capture');
+            _resetCaptureButton();
         }
     });
 

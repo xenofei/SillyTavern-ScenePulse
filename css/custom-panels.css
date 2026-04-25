@@ -401,8 +401,13 @@
 }
 
 /* ── Confirm Dialog ── */
+/* v6.21.0: bumped z-index from 99999 → 100200. The previous value sat
+   BELOW the Debug Inspector overlay (100001) and the Prompt Editor
+   overlay (100001), so confirm dialogs opened from inside those tools
+   rendered behind them and were unclickable. 100200 leaves headroom
+   above any inspector-style overlay we ship. */
 .sp-confirm-overlay {
-    position: fixed; inset: 0; z-index: 99999;
+    position: fixed; inset: 0; z-index: 100200;
     background: rgba(0,0,0,0.7); backdrop-filter: blur(3px);
     display: flex; align-items: center; justify-content: center;
     opacity: 0; transition: opacity 0.15s ease;

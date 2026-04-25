@@ -19,25 +19,100 @@ import { BUILT_IN_PRESETS } from './built-in.js';
 
 /**
  * Resolve the model id reported by SillyTavern's active connection.
- * Tries several context fields because different backends populate
- * different ones. Returns '' if nothing identifiable is available.
+ *
+ * v6.21.0: rewritten because v6.20.0 only probed `openai_model` / `model` /
+ * `onlineStatus`, missing the source-specific *_model fields that ST uses
+ * for every chat-completion backend (NanoGPT, DeepSeek, Claude, Google,
+ * OpenRouter, Mistral, Cohere, Groq, xAI, Custom, etc.). Verified against
+ * SillyTavern openai.js getChatCompletionModel().
+ *
+ * Resolution order:
+ *  1. chat_completion_source → ${source}_model (the canonical lookup,
+ *     mirrors ST's own getChatCompletionModel())
+ *  2. Scan every *_model key on chatCompletionSettings for the first
+ *     non-empty value (catches sources we don't have a static map for,
+ *     e.g. brand-new backends added after this code was written)
+ *  3. textGenerationSettings.online_status_model / model
+ *  4. DOM fallback — the currently-:selected option in any #model_*_select
+ *     dropdown (last-resort but reliable when settings haven't been saved
+ *     since the user changed the dropdown)
+ *  5. ctx.model / ctx.onlineStatus (legacy + textgen fallback)
  */
+const _CC_SOURCE_TO_MODEL_KEY = {
+    claude: 'claude_model',
+    openai: 'openai_model',
+    makersuite: 'google_model',
+    vertexai: 'vertexai_model',
+    openrouter: 'openrouter_model',
+    ai21: 'ai21_model',
+    mistralai: 'mistralai_model',
+    custom: 'custom_model',
+    cohere: 'cohere_model',
+    perplexity: 'perplexity_model',
+    groq: 'groq_model',
+    siliconflow: 'siliconflow_model',
+    electronhub: 'electronhub_model',
+    chutes: 'chutes_model',
+    nanogpt: 'nanogpt_model',
+    deepseek: 'deepseek_model',
+    aimlapi: 'aimlapi_model',
+    xai: 'xai_model',
+    pollinations: 'pollinations_model',
+    cometapi: 'cometapi_model',
+    moonshot: 'moonshot_model',
+    fireworks: 'fireworks_model',
+    azure_openai: 'azure_openai_model',
+    zai: 'zai_model',
+};
+
+function _firstNonEmpty(...candidates) {
+    for (const c of candidates) {
+        if (typeof c === 'string' && c.trim()) return c.trim();
+    }
+    return '';
+}
+
 export function getActiveModelId() {
     try {
         const ctx = SillyTavern.getContext?.();
         if (!ctx) return '';
-        // Standard fields populated by SillyTavern across backend types.
-        const candidates = [
-            ctx.chatCompletionSettings?.openai_model,
-            ctx.chatCompletionSettings?.model,
-            ctx.textGenerationSettings?.model,
-            ctx.onlineStatus,
-            ctx.model,
-            ctx.connectionProfile?.api_url,
-        ];
-        for (const c of candidates) {
-            if (typeof c === 'string' && c.trim()) return c.trim();
+        const cc = ctx.chatCompletionSettings || {};
+
+        // 1. Source-specific lookup (mirrors ST's getChatCompletionModel).
+        const source = cc.chat_completion_source;
+        if (source && _CC_SOURCE_TO_MODEL_KEY[source]) {
+            const v = cc[_CC_SOURCE_TO_MODEL_KEY[source]];
+            if (typeof v === 'string' && v.trim()) return v.trim();
         }
+
+        // 2. Scan every *_model key on chatCompletionSettings. Catches sources
+        //    added after this file was written.
+        for (const [k, v] of Object.entries(cc)) {
+            if (k.endsWith('_model') && typeof v === 'string' && v.trim()) {
+                return v.trim();
+            }
+        }
+
+        // 3. textgen settings — local KoboldCpp / textgen webui / ollama etc.
+        const tg = ctx.textGenerationSettings || {};
+        const fromTg = _firstNonEmpty(tg.online_status_model, tg.model);
+        if (fromTg) return fromTg;
+
+        // 4. DOM fallback — read the visible model dropdown directly. SillyTavern
+        //    selects always have id="model_<source>_select". Useful when the
+        //    user changed the dropdown but settings haven't been persisted yet.
+        if (typeof document !== 'undefined') {
+            const sels = document.querySelectorAll(
+                'select[id^="model_"][id$="_select"], #custom_model_id, #openrouter_model'
+            );
+            for (const sel of sels) {
+                const v = sel?.value || sel?.options?.[sel.selectedIndex]?.value;
+                if (typeof v === 'string' && v.trim()) return v.trim();
+            }
+        }
+
+        // 5. Legacy / textgen catch-all
+        return _firstNonEmpty(ctx.model, ctx.onlineStatus);
     } catch {}
     return '';
 }

@@ -17,13 +17,22 @@
     align-items: center;
     gap: 4px;
 }
+/* v6.21.0: Doctor button now uses a cool-blue accent (distinct from
+   Diagnostics' teal accent) so the two header tools read as different
+   actions at a glance instead of looking like the same control twice.
+   Blue = "diagnostic / informational" matches the brew/flutter doctor
+   metaphor; teal stays "ScenePulse-branded primary" for Diagnostics. */
 .sp-di-doctor {
     font-weight: 600;
+    color: #93c5fd;
+    border-color: rgba(96,165,250,0.4);
+    background: rgba(96,165,250,0.08);
+    border-radius: 4px;
 }
 .sp-di-doctor:hover {
-    background: var(--sp-surface-hover);
-    color: var(--sp-text);
-    border-color: var(--sp-accent);
+    background: rgba(96,165,250,0.18);
+    color: #fff;
+    border-color: #93c5fd;
 }
 /* Header hierarchy (Panel B audit): action group (Doctor + Diagnostics+i)
    tightly grouped, terminal action (Close) pushed apart by a wider gap so
@@ -324,6 +333,90 @@
     font-family: inherit;
     cursor: pointer;
 }
+.sp-di-perf-duration:disabled { opacity: 0.5; cursor: not-allowed; }
+/* v6.21.0: Start capture button — primary accent treatment when idle so it
+   reads as the obvious primary action; danger-tinted when capturing so the
+   user knows clicking it again will cancel the in-flight capture. */
+.sp-di-perf-capture {
+    color: var(--sp-accent) !important;
+    border-color: rgba(77,184,164,0.45) !important;
+    background: rgba(77,184,164,0.08) !important;
+    font-weight: 600;
+}
+.sp-di-perf-capture:hover {
+    background: rgba(77,184,164,0.18) !important;
+    color: #fff !important;
+    border-color: var(--sp-accent) !important;
+}
+.sp-di-perf-capture-running,
+.sp-di-perf-capture-running:hover {
+    color: #fca5a5 !important;
+    border-color: rgba(252,165,165,0.5) !important;
+    background: rgba(212,80,80,0.12) !important;
+    /* Subtle pulse so the running state stays obvious in peripheral vision */
+    animation: sp-di-capture-pulse 2.4s ease-in-out infinite;
+}
+@keyframes sp-di-capture-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(252,165,165,0.0); }
+    50%      { box-shadow: 0 0 0 3px rgba(252,165,165,0.18); }
+}
+
+/* v6.21.0: capture verdict block — single-line summary above the table.
+   Color-coded by band: good (green), warn (amber), bad (red). The label
+   pill names the band; the message line explains it. */
+.sp-di-perf-verdict {
+    display: flex; flex-direction: column; gap: 4px;
+    padding: 10px 12px;
+    border-radius: 4px;
+    border: 1px solid var(--sp-border);
+    border-left-width: 3px;
+    background: rgba(255,255,255,0.02);
+    margin-bottom: 10px;
+}
+.sp-di-perf-verdict-good { border-left-color: #4ade80; background: rgba(74,222,128,0.05); }
+.sp-di-perf-verdict-warn { border-left-color: #fcd34d; background: rgba(245,158,11,0.06); }
+.sp-di-perf-verdict-bad  { border-left-color: #ef4444; background: rgba(239,68,68,0.07); }
+.sp-di-perf-verdict-head {
+    display: flex; align-items: baseline; gap: 10px;
+}
+.sp-di-perf-verdict-label {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 2px 8px; border-radius: 3px;
+    background: rgba(255,255,255,0.05);
+}
+.sp-di-perf-verdict-good .sp-di-perf-verdict-label { background: rgba(74,222,128,0.16); color: #4ade80; }
+.sp-di-perf-verdict-warn .sp-di-perf-verdict-label { background: rgba(245,158,11,0.16); color: #fcd34d; }
+.sp-di-perf-verdict-bad  .sp-di-perf-verdict-label { background: rgba(239,68,68,0.18); color: #fca5a5; }
+.sp-di-perf-verdict-stat {
+    color: var(--sp-text-dim);
+    font-size: 10px;
+    font-variant-numeric: tabular-nums;
+}
+.sp-di-perf-verdict-msg {
+    color: var(--sp-text);
+    font-size: var(--sp-fs-xs);
+    line-height: 1.5;
+}
+.sp-di-perf-verdict-extra {
+    color: var(--sp-text-dim);
+    font-size: 10px;
+    margin-top: 2px;
+}
+.sp-di-perf-verdict-warn-extra { color: #fcd34d; }
+
+/* v6.21.0: LIVE badge on the meta line during a capture-in-progress so the
+   user sees that what they're looking at is a partial, not a final, result. */
+.sp-di-perf-partial-badge {
+    display: inline-block;
+    background: rgba(77,184,164,0.18);
+    color: var(--sp-accent);
+    font-size: 9px; font-weight: 700;
+    letter-spacing: 0.08em;
+    padding: 1px 6px; border-radius: 3px;
+    margin-left: 8px;
+    animation: sp-di-step-pulse 1.5s ease-in-out infinite;
+}
 /* v6.17.1: FPS metric column gets a small inline sparkline below the value
    so users see the last 30 seconds at a glance, not just the spot reading. */
 .sp-di-perf-metric-fps { min-width: 200px; }
@@ -475,6 +568,21 @@
     color: var(--sp-accent);
     border-color: var(--sp-accent);
     outline: none;
+}
+/* v6.21.0: when the info icon is paired with the Doctor button, swap the
+   hover/focus accent to the Doctor blue so the cluster reads consistently
+   instead of teal-icon next to a blue button. */
+.sp-di-doctor-wrap .sp-di-info:hover,
+.sp-di-doctor-wrap .sp-di-info:focus-visible {
+    background: rgba(96,165,250,0.14);
+    color: #93c5fd;
+    border-color: #93c5fd;
+}
+.sp-di-doctor-wrap .sp-di-info-popover {
+    border-color: #93c5fd;
+}
+.sp-di-doctor-wrap .sp-di-info-title {
+    color: #93c5fd;
 }
 .sp-di-info svg { display: block; }
 /* Popover — only triggered by hovering the info-area or focusing the icon.
