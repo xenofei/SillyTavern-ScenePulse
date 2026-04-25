@@ -2,7 +2,7 @@
 // Extracted from index.js lines 5132-5368
 
 import { MODULE_NAME, DEFAULTS, SP_LS_KEY } from '../constants.js';
-import { log, warn, debugLog, consoleBuf } from '../logger.js';
+import { log, warn, debugLog } from '../logger.js';
 import { esc, clamp, spConfirm } from '../utils.js';
 import { buildDynamicSchema, buildDynamicPrompt } from '../schema.js';
 import { normalizeTracker } from '../normalize.js';
@@ -352,10 +352,6 @@ export function bindUI(){const s=getSettings();
         }catch(e){toastr.error('Failed to import: '+e?.message);warn('Import config:',e)}
     });
     $('#sp-btn-debug').on('click',()=>{const _t='ScenePulse Debug ('+new Date().toISOString()+')\n'+debugLog.join('\n');navigator.clipboard.writeText(_t).then(()=>toastr.success(t('SP Log copied')+' ('+debugLog.length+')')).catch(()=>{const ta=document.createElement('textarea');ta.value=_t;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);toastr.success(t('SP Log copied'))})});
-    $('#sp-btn-copy-console').on('click',()=>{
-        const _t='Browser Console Capture ('+new Date().toISOString()+')\nEntries: '+consoleBuf.length+'\n\n'+consoleBuf.join('\n');
-        navigator.clipboard.writeText(_t).then(()=>toastr.success(t('Console copied')+' ('+consoleBuf.length+')')).catch(()=>toastr.error(t('Copy failed')));
-    });
     $('#sp-btn-copy-response').on('click',()=>{
         if(!lastRawResponse){toastr.warning(t('No API response captured yet'));return}
         const _t='ScenePulse Last API Response ('+new Date().toISOString()+')\nLength: '+lastRawResponse.length+' chars\n\n'+lastRawResponse;
