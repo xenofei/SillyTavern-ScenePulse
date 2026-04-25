@@ -41,8 +41,38 @@
     .sp-update-dot,
     .sp-badge-pulse { animation: none !important; }
 
+    /* v6.13.9 (issue #14 follow-up): drawer icon + badge dot live in ST's
+       extensions list, OUTSIDE #sp-panel — so the descendant rule above
+       doesn't reach them. They keep glowing under reduced-motion without
+       these explicit gates. Animation disabled but element visibility
+       preserved (icon is the extension's identifier, dot indicates state). */
+    .sp-drawer-icon-wrap,
+    .sp-on .sp-drawer-badge-dot,
+    .sp-banner-icon {
+        animation: none !important;
+    }
+
     /* Disable scene transition */
     .sp-scene-transition { display: none !important; }
+}
+
+/* v6.13.9 (issue #14 follow-up): "Reduce visual effects" toggle now
+   covers the same outside-panel elements as the prefers-reduced-motion
+   block above, plus catches in-panel infinite animations that the
+   accessibility block only addresses under the user's OS preference.
+   These selectors mirror those in the @media block — animation-only
+   kill, no opacity change, since they're all functional elements
+   (icons, status indicators, update notification dots). */
+body.sp-reduce-effects #sp-panel .sp-brand-icon-wrap.sp-state-generating .sp-brand-icon,
+body.sp-reduce-effects #sp-panel .sp-brand-icon-wrap.sp-state-error .sp-brand-icon,
+body.sp-reduce-effects #sp-panel .sp-update-dot,
+body.sp-reduce-effects #sp-panel .sp-brand-icon-wrap:has(.sp-update-dot) .sp-brand-icon,
+body.sp-reduce-effects #sp-panel .sp-mascot-pulse,
+body.sp-reduce-effects #sp-panel .sp-egg-rainbow,
+body.sp-reduce-effects .sp-drawer-icon-wrap,
+body.sp-reduce-effects .sp-on .sp-drawer-badge-dot,
+body.sp-reduce-effects .sp-banner-icon {
+    animation: none !important;
 }
 
 /* Screen reader only class */

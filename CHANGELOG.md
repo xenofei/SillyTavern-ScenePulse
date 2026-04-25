@@ -2,6 +2,10 @@
 
 All notable changes to ScenePulse are documented in this file.
 
+### [6.13.9] — 2026-04-25
+
+#### Fixed — Reporter on issue #14 confirmed v6.12.9 dropped GPU 80% → 10-20%, but flagged two remaining offenders that weren't gated by the "Reduce visual effects" toggle: the drawer icon mascot pulse + "active" badge dot in ST's extensions list (outside `#sp-panel`, missed by the panel-scoped descendant rule), and the panel logo/brand-state animations. Added explicit gates to `accessibility.css` for both `body.sp-reduce-effects` and `prefers-reduced-motion` covering: `.sp-drawer-icon-wrap`, `.sp-on .sp-drawer-badge-dot`, `.sp-banner-icon` (mobile), brand-state generating/error glows, update dot pulse, mascot pulse, egg rainbow. Animation-only kill — element visibility preserved since these are all functional indicators (icon, status dot, update notification).
+
 ### [6.13.8] — 2026-04-25
 
 #### Fixed — Meter alignment locked across every resolution
