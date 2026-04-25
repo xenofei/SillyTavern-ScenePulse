@@ -592,8 +592,8 @@ function _issuesTab(panel, ctx = {}) {
                 </div>
             </div>
             <div class="sp-cl-toolbar-zone sp-cl-zone-actions">
-                <button class="sp-cl-export-btn sp-di-copy">${t('Copy All')}</button>
-                <button class="sp-cl-export-btn sp-di-export">${t('Export TXT')}</button>
+                <button class="sp-cl-export-btn sp-di-copy" title="${t('Copy only the issues list (this tab). For a full debug bundle, use Diagnostics in the header.')}">${t('Copy issues')}</button>
+                <button class="sp-cl-export-btn sp-di-export" title="${t('Save only the issues list as a .txt file')}">${t('Export issues')}</button>
             </div>
             <div class="sp-cl-toolbar-zone sp-cl-zone-danger">
                 <button class="sp-cl-export-btn sp-cl-danger sp-di-clear">${t('Clear')}</button>
@@ -939,11 +939,37 @@ export function openDebugInspector(initialTab = 'crashes') {
 
     const overlay = document.createElement('div');
     overlay.className = 'sp-cl-overlay';
+    // v6.15.7: visible info popover next to the Diagnostics button (the
+    // user couldn't tell at a glance how Diagnostics differs from the per-tab
+    // Copy/Export buttons). Native `title` is desktop-only and slow; a CSS
+    // hover popover is visible on every platform and discoverable.
     overlay.innerHTML = `
         <div class="sp-cl-container sp-di-container">
             <div class="sp-cl-header">
                 <div class="sp-cl-title">${t('Debug Inspector')}</div>
-                <button class="sp-cl-export-btn sp-di-diagnostics" title="${t('Copy a paste-ready report: recent activity, last response, errors, settings, versions')}">${t('Diagnostics')}</button>
+                <div class="sp-di-diag-wrap">
+                    <button class="sp-cl-export-btn sp-di-diagnostics">${t('Diagnostics')}</button>
+                    <button class="sp-di-info" type="button" aria-label="${t('What does Diagnostics do?')}" tabindex="0">i</button>
+                    <div class="sp-di-info-popover" role="tooltip">
+                        <div class="sp-di-info-title">${t('Diagnostics')} <span class="sp-di-info-badge">${t('whole-inspector bundle')}</span></div>
+                        <div class="sp-di-info-body">
+                            ${t('One click → paste-ready markdown report combining EVERYTHING the inspector knows:')}
+                            <ul>
+                                <li><strong>${t('Latest pair')}:</strong> ${t('the prompt sent + response received from the most recent generation')}</li>
+                                <li><strong>${t('Last 10 issues')}:</strong> ${t('with diagnosis hints inline')}</li>
+                                <li><strong>${t('Activity log')}:</strong> ${t('last 50 lines')}</li>
+                                <li><strong>${t('Active profile')} + ${t('non-default settings')}</strong></li>
+                                <li><strong>${t('Versions')}:</strong> ${t('SP, ST, browser, viewport')}</li>
+                                <li><strong>${t('6-char hash header')}:</strong> ${t('tells two pastes apart at a glance')}</li>
+                                <li><strong>${t('Auto-redacted')}:</strong> ${t('API keys, paths, emails')}</li>
+                            </ul>
+                            <div class="sp-di-info-divider"></div>
+                            <div class="sp-di-info-compare">
+                                <strong>${t('Versus the per-tab Copy / Export buttons:')}</strong> ${t('those copy ONLY the content of the current tab (e.g. Issues tab → only the issues list). Diagnostics gives you the full picture in one paste — best for filing a bug report.')}
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <button class="sp-cl-close">✕</button>
             </div>
             <div class="sp-di-tabs"></div>

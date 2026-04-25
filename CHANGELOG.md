@@ -2,6 +2,34 @@
 
 All notable changes to ScenePulse are documented in this file.
 
+### [6.15.7] — 2026-04-25
+
+#### Changed — Diagnostics info popover + scope-clarified per-tab buttons
+User feedback: *"What's the difference between the diagnostics button vs the copy all/export txt?"* — the buttons looked similar at a glance even though one bundles everything inspector-wide and the other copies a single tab's content.
+
+**New info popover next to the Diagnostics button**:
+- Small `i` icon button joined to the right of "Diagnostics" like a segmented control
+- Hover or keyboard-focus reveals a 420px popover explaining what's in the bundle:
+  - Latest pair (prompt + response)
+  - Last 10 issues with diagnosis hints
+  - Activity log (last 50 lines)
+  - Active profile + non-default settings
+  - Versions
+  - 6-char hash header
+  - Auto-redacted (API keys, paths, emails)
+- Includes an explicit "Versus the per-tab Copy / Export buttons" comparison line
+- Visible on every platform (CSS `:hover` + `:focus-visible`), unlike native `title` attribute
+- ARIA `role="tooltip"` and `aria-label` on the trigger for screen readers
+
+**Renamed Issues toolbar buttons for scope clarity**:
+- `Copy All` → `Copy issues` — makes it obvious the button only copies the issues list, not the whole inspector
+- `Export TXT` → `Export issues`
+- Both got `title` attributes pointing users to Diagnostics for the full bundle
+
+This is purely a UX/labeling change; behavior is identical to v6.15.6.
+
+All 620/620 tests still pass.
+
 ### [6.15.6] — 2026-04-25
 
 #### Added — Raw (prompt, response) pair ring buffer for diagnosing prose-not-JSON failures

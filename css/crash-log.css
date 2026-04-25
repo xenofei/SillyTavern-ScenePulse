@@ -10,18 +10,120 @@
 
 /* v6.15.5: Diagnostics button in the inspector header — distinct accent
    color so it reads as a "primary action you can take from any tab", not
-   another tab. Tooltip carries the longer description. */
-.sp-cl-header .sp-di-diagnostics {
+   another tab. v6.15.7 adds a sibling info button + popover so the
+   distinction from per-tab Copy/Export is discoverable. */
+.sp-di-diag-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
     margin-right: 6px;
+}
+.sp-di-diag-wrap .sp-di-diagnostics {
     color: var(--sp-accent);
     border-color: rgba(77,184,164,0.4);
     background: rgba(77,184,164,0.08);
     font-weight: 600;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
 }
-.sp-cl-header .sp-di-diagnostics:hover {
+.sp-di-diag-wrap .sp-di-diagnostics:hover {
     background: rgba(77,184,164,0.16);
     border-color: var(--sp-accent);
     color: #fff;
+}
+/* Info button — joined to the right of Diagnostics like a segmented control,
+   styled as a quiet secondary so it reads as "explain this" not "another
+   primary action". */
+.sp-di-info {
+    width: 22px; height: 22px;
+    margin-left: -1px;
+    background: rgba(77,184,164,0.08);
+    border: 1px solid rgba(77,184,164,0.4);
+    border-left: 1px solid rgba(77,184,164,0.25);
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    border-top-right-radius: 4px;
+    border-bottom-right-radius: 4px;
+    color: var(--sp-accent);
+    font-family: var(--sp-font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    font-style: italic;
+    cursor: help;
+    padding: 0;
+    line-height: 1;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.sp-di-info:hover, .sp-di-info:focus-visible {
+    background: rgba(77,184,164,0.2);
+    color: #fff;
+    border-color: var(--sp-accent);
+    outline: none;
+}
+/* Popover — shown on hover OR when the info button has focus (keyboard
+   accessibility). Positioned below the button. Auto-hides on mouseout. */
+.sp-di-info-popover {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    width: min(420px, calc(100vw - 32px));
+    background: var(--sp-surface);
+    border: 1px solid var(--sp-accent);
+    border-radius: 6px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.5);
+    padding: 12px 14px;
+    z-index: 100002;
+    color: var(--sp-text);
+    font-size: var(--sp-fs-xs);
+    line-height: 1.5;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-4px);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    text-transform: none;
+    letter-spacing: normal;
+}
+.sp-di-diag-wrap:hover .sp-di-info-popover,
+.sp-di-info:focus-visible ~ .sp-di-info-popover,
+.sp-di-info:hover + .sp-di-info-popover {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+.sp-di-info-title {
+    font-weight: 700;
+    color: var(--sp-accent);
+    font-size: var(--sp-fs-sm);
+    margin-bottom: 6px;
+    display: flex; align-items: center; gap: 6px;
+}
+.sp-di-info-badge {
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--sp-text-dim);
+    background: rgba(255,255,255,0.05);
+    padding: 1px 6px;
+    border-radius: 3px;
+}
+.sp-di-info-body { color: var(--sp-text); }
+.sp-di-info-body ul {
+    margin: 6px 0 6px 0;
+    padding-left: 18px;
+    color: var(--sp-text-dim);
+}
+.sp-di-info-body ul li { margin-bottom: 2px; }
+.sp-di-info-body strong { color: var(--sp-text); font-weight: 600; }
+.sp-di-info-divider {
+    height: 1px; background: var(--sp-border);
+    margin: 8px 0;
+}
+.sp-di-info-compare {
+    color: var(--sp-text-dim);
+    font-size: 11px;
+    line-height: 1.5;
 }
 
 /* v6.15.5: "Show in Last Response" inline action — secondary styling so it
