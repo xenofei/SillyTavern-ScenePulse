@@ -5,6 +5,7 @@ import { MODULE_NAME, DEFAULTS } from './constants.js';
 import { log, warn } from './logger.js';
 import { esc } from './utils.js';
 import { buildDynamicSchema, buildDynamicPrompt } from './schema.js';
+import { assemblePrompt } from './prompts/assembler.js';
 import { t } from './i18n.js';
 import { consolidateQuests } from './generation/delta-merge.js';
 import { getActiveProfile, migrateLegacySettingsToProfile, migrateOrphanRootData } from './profiles.js';
@@ -709,9 +710,13 @@ export function getActivePrompt(opts){
     if(migrateLegacySettingsToProfile(s)) saveSettings();
     if(migrateOrphanRootData(s) > 0) saveSettings();
     const profile = getActiveProfile(s);
-    if (profile.systemPrompt) return profile.systemPrompt;
+    // v6.18.0: route through the slot-aware assembler so per-slot overrides
+    // in profile.promptOverrides take effect. Legacy profile.systemPrompt
+    // (full-text override) still wins inside the assembler. Settings UI
+    // preview and slash-command preview keep using buildDynamicPrompt(s)
+    // (no profile) so they always render the slot defaults.
     const sView = _buildProfileView(s, profile);
-    return buildDynamicPrompt(sView, opts);
+    return assemblePrompt(sView, profile, opts);
 }
 
 // Construct a settings-shaped view where panels/fieldToggles/dashCards

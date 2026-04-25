@@ -48,7 +48,19 @@ export function makeProfile(partial = {}) {
         updatedAt: partial.updatedAt || _nowIso(),
         description: partial.description || '',
         schema: partial.schema || null,
+        // v6.18.0: legacy full-text override. New profiles should prefer
+        // `promptOverrides` (per-slot) so they only diverge from defaults
+        // where intentional. systemPrompt still wins over the slot system
+        // for backward compatibility with hand-authored prompts.
         systemPrompt: partial.systemPrompt || null,
+        // v6.18.0: per-slot prompt overrides keyed by slot id (see
+        // src/prompts/slots.js SLOT_IDS). Each value is a string that
+        // replaces the default text for that slot. Empty string or missing
+        // key means "use the default". The editor in v6.19.0 reads/writes
+        // this map; v6.20.0 model presets apply by writing into it.
+        promptOverrides: partial.promptOverrides && typeof partial.promptOverrides === 'object'
+            ? { ...partial.promptOverrides }
+            : {},
         panels: partial.panels && typeof partial.panels === 'object' ? { ...partial.panels } : {},
         fieldToggles: partial.fieldToggles && typeof partial.fieldToggles === 'object' ? { ...partial.fieldToggles } : {},
         dashCards: partial.dashCards && typeof partial.dashCards === 'object' ? { ...partial.dashCards } : {},
@@ -382,6 +394,10 @@ export function validateImportedProfile(raw) {
         description: raw.description || '',
         schema: raw.schema || null,
         systemPrompt: raw.systemPrompt || null,
+        // v6.18.0: per-slot prompt overrides survive export/import so users
+        // can share customized prompts via the existing profile JSON file.
+        promptOverrides: raw.promptOverrides && typeof raw.promptOverrides === 'object'
+            ? raw.promptOverrides : {},
         panels: raw.panels || {},
         fieldToggles: raw.fieldToggles || {},
         dashCards: raw.dashCards || {},

@@ -2,6 +2,41 @@
 
 All notable changes to ScenePulse are documented in this file.
 
+### [6.18.0] — 2026-04-25
+
+#### Architecture — Prompt slot system (v6.18.0–v6.20.0 series, part 1 of 3)
+
+This is the first of three layered releases delivering "user-editable prompts with revert" plus model-specific presets. v6.18.0 ships the **architecture only** — no UI yet, no presets yet. Behavior is unchanged for every existing user.
+
+**New `src/prompts/` module**:
+- `slots.js` — names 7 prompt slots (`role`, `criticalRules`, `language`, `fields`, `nameAwareness`, `questValidation`, `deltaMode`), exports their default text as `DEFAULT_SLOT_TEXT`, and provides `SLOT_META` describing each slot for the editor UI (name, description, section, editability flag, render order, optional template variables). Six are static text; one (`fields`) is dynamically generated from your enabled panels and toggles.
+- `assembler.js` — exports `assemblePrompt(s, profile, opts)`. Replaces the previous monolithic 220-line `buildDynamicPrompt` body in `src/schema.js`. Composes the final prompt by interleaving static slots (text from `slots.js`, optionally overridden per profile) with dynamic field-spec sections (from settings).
+
+**Per-profile overrides**: `profile.promptOverrides` is a new field — a string-keyed map where each key is a slot id and each value is the user's custom text for that slot. Empty string / whitespace-only / null override falls through to the default. The legacy `profile.systemPrompt` (full-text override) still wins over the slot system entirely — anyone with a hand-authored prompt sees zero behavior change.
+
+**`src/schema.js`**: shrunk from 339 lines to 138. The 220-line inline `buildDynamicPrompt` body was deleted (logic moved into `assembler.js`); the wrapper now reads `return assemblePrompt(s, null, opts)`. Settings UI preview, slash-command preview, and the doctor's schema round-trip check (the only callers passing settings without a profile) keep their existing default-text behavior.
+
+**`src/settings.js` `getActivePrompt`**: now calls `assemblePrompt(sView, profile, opts)` directly instead of inlining the legacy systemPrompt check. Per-slot overrides take effect for the active profile.
+
+**`src/profiles.js`**: `makeProfile()` and `parseProfile()` (import path) both pick up the new `promptOverrides` field. Existing profiles load with `promptOverrides: {}` (empty map → default behavior). New tests in `tests/profile-orphan-migration.test.mjs` continue passing — `promptOverrides` is not subject to the orphan migration because it lives at `profile.promptOverrides`, not at the root.
+
+**Tests** — `tests/prompt-assembler.test.mjs`, 61 new cases:
+- Default output contains every expected section (role, critical rules, language, dashboard, scene, characters, name-awareness, quests, quest-validation, relationships, story ideas, delta mode).
+- Delta mode appears only when `isDelta:true` passed.
+- Per-slot override replaces only the targeted slot; other slots unchanged.
+- Multiple slot overrides compose correctly.
+- Legacy `profile.systemPrompt` overrides everything (slot overrides ignored).
+- Empty / whitespace / null overrides revert cleanly to defaults.
+- `nameAwareness` only renders when `panels.characters` is enabled.
+- `questValidation` only renders when `mainQuests` or `sideQuests` toggles are on.
+- `SLOT_IDS` × `DEFAULT_SLOT_TEXT` consistency (every id has matching text except the dynamic `fields` slot).
+- `getSlotText` / `isSlotOverridden` helpers behave correctly.
+- Language slot: `${language}` template substitution works for both default and overridden text.
+
+Total test count: 747 (686 prior + 61 new). Backward compat verified — every legacy test still passes.
+
+**Why ship the architecture before the UI**: the v6.19.0 editor needs a stable persistence shape to read/write against, and the v6.20.0 model presets need a stable target for `applyPreset(profile, preset)`. Shipping the data plumbing first gives both downstream releases a fixed target. Users who don't care about prompt editing see no UI change in v6.18.0.
+
 ### [6.17.1] — 2026-04-25
 
 #### Polished — Inspector visual + UX cleanup pass (Panel A + B + C synthesis)
