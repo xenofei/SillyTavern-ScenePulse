@@ -117,7 +117,10 @@
 
 /* Meters — matches main panel grid pattern */
 .sp-wiki-meters { margin-top: 4px; }
-.sp-wiki-meter-row { display: grid; grid-template-columns: 80px 1fr 105px; gap: 8px; align-items: center; font-size: var(--sp-fs-xs); padding: 2px 0; }
+/* v6.13.7: minmax-locked value column. Same gotcha as the main panel
+   (.sp-meter-row in css/relationships.css) — fixed track size still
+   grows when content overflows unless the item is min-width:0 too. */
+.sp-wiki-meter-row { display: grid; grid-template-columns: 80px 1fr minmax(0, 105px); gap: 8px; align-items: center; font-size: var(--sp-fs-xs); padding: 2px 0; }
 .sp-wiki-meter-row.sp-wiki-meter-has-tag { grid-template-rows: auto auto; }
 .sp-wiki-meter-row.sp-wiki-meter-has-tag > .sp-wiki-meter-label { grid-row: 2; }
 .sp-wiki-meter-row.sp-wiki-meter-has-tag > .sp-wiki-meter-bar { grid-row: 2; }
@@ -130,7 +133,10 @@
 .sp-wiki-meter-fill[data-meter="desire"] { background: #a78bfa; }
 .sp-wiki-meter-fill[data-meter="stress"] { background: #facc15; }
 .sp-wiki-meter-fill[data-meter="compatibility"] { background: #34d399; }
-.sp-wiki-meter-val { text-align: right; color: var(--sp-text-dim); font-size: var(--sp-fs-xs); display: flex; align-items: center; justify-content: flex-end; gap: 2px; }
+/* v6.13.7: min-width:0 + overflow:hidden lock the val cell to its
+   minmax(0, 105px) track. Without these, "100+99❤" content would
+   expand the column past 105px and shrink the bar (1fr) below. */
+.sp-wiki-meter-val { text-align: right; color: var(--sp-text-dim); font-size: var(--sp-fs-xs); min-width: 0; overflow: hidden; display: flex; align-items: center; justify-content: flex-end; gap: 2px; }
 .sp-wiki-meter-na { opacity: 0.5; font-style: italic; }
 .sp-wiki-meter-tag { grid-column: 2 / 3; grid-row: 1; font-size: var(--sp-fs-xs); font-style: italic; color: var(--sp-text-dim); opacity: 0.6; text-align: right; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: -1px; }
 /* Delta indicators */
@@ -234,7 +240,8 @@
     .sp-wiki-name { font-size: var(--sp-fs-sm); }
     .sp-wiki-preview { font-size: var(--sp-fs-xs); }
     .sp-wiki-grid { grid-template-columns: 65px 1fr; font-size: var(--sp-fs-base); }
-    .sp-wiki-meter-row { grid-template-columns: 75px 1fr 90px; gap: 8px; font-size: var(--sp-fs-xs); }
+    /* v6.13.7: minmax-locked value column. See css/relationships.css. */
+    .sp-wiki-meter-row { grid-template-columns: 75px 1fr minmax(0, 90px); gap: 8px; font-size: var(--sp-fs-xs); }
     .sp-wiki-meter-bar { height: 6px; }
     .sp-wiki-close { padding: 6px 12px; font-size: var(--sp-fs-md); min-width: 44px; min-height: 44px; }
     .sp-wiki-role { max-width: 120px; }

@@ -66,7 +66,9 @@
 #sp-panel.sp-compact .sp-sparkline { width: 24px !important; height: 10px !important; }
 #sp-panel.sp-compact .sp-meter-label { font-size: var(--sp-fs-xs); min-width: 40px; }
 #sp-panel.sp-compact .sp-meter-bar-wrap, #sp-panel.sp-compact .sp-meter-bar-na { height: 5px; border-radius: 3px; }
-#sp-panel.sp-compact .sp-meter-value, #sp-panel.sp-compact .sp-meter-value-na { font-size: var(--sp-fs-xs); min-width: 20px; }
+/* v6.13.7: keep min-width: 0 from base — compact mode previously set
+   min-width: 20px which re-broke the alignment fix at this breakpoint. */
+#sp-panel.sp-compact .sp-meter-value, #sp-panel.sp-compact .sp-meter-value-na { font-size: var(--sp-fs-xs); min-width: 0; overflow: hidden; }
 #sp-panel.sp-compact .sp-meter-tag { display: none; }
 #sp-panel.sp-compact .sp-meter-delta { font-size: var(--sp-fs-xs); }
 #sp-panel.sp-compact .sp-meter-face { display: none; }
