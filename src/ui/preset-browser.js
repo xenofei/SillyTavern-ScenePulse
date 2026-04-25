@@ -112,7 +112,7 @@ export function openPresetBrowser(opts = {}) {
                         <div class="sp-pb-row-actions">
                             <button class="sp-cl-export-btn sp-pb-create" data-preset-id="${esc(p.id)}"
                                 title="${t('Create a NEW profile seeded from this template. Your existing profiles are untouched.')}">${t('+ New profile')}</button>
-                            <button class="sp-cl-export-btn sp-pb-overlay" data-preset-id="${esc(p.id)}" ${isApplied ? 'disabled' : ''}
+                            <button class="sp-cl-export-btn sp-pb-apply-overlay" data-preset-id="${esc(p.id)}" ${isApplied ? 'disabled' : ''}
                                 title="${t('Apply this template ON TOP of your currently-active profile. Replaces matching prompt slots; preserves your other settings. Reversible.')}">${isApplied ? t('Applied') : t('Apply to current')}</button>
                         </div>
                     </div>
@@ -128,7 +128,7 @@ export function openPresetBrowser(opts = {}) {
         listEl.querySelectorAll('.sp-pb-create').forEach(btn => {
             btn.addEventListener('click', () => _createFromTemplate(btn.dataset.presetId));
         });
-        listEl.querySelectorAll('.sp-pb-overlay').forEach(btn => {
+        listEl.querySelectorAll('.sp-pb-apply-overlay').forEach(btn => {
             btn.addEventListener('click', () => _apply(btn.dataset.presetId));
         });
     }

@@ -17,9 +17,19 @@ export function startStreamingHider(){
     document.head.appendChild(styleEl);
     set_streamHiderStyleEl(styleEl);
     let _safeH=0;let _locked=false;let _observer=null;let _mesId=null;let _lastMes=null;
+    // v6.23.6: snapshot the count of existing .mes_text elements at hook
+    // start so we can distinguish the new streaming bubble from the user's
+    // prior message. Pre-v6.23.6 the observer locked onto the LAST existing
+    // .mes_text on the very first 20ms tick — which, before ST creates the
+    // new assistant bubble, is the user's message. The observer then watched
+    // a static element while the streaming JSON appeared in a sibling bubble
+    // it couldn't see, leaving the hider effectively disabled (the v6.23.5
+    // diagnostic dump showed `StreamHider: started` with no `LOCKED` line
+    // for the entire 2-minute generation despite the JSON clearly streaming).
+    let _initialMesCount=-1;
     log('StreamHider: started');
 
-    const _hasJson=(txt)=>{
+    const _hasJson=(txt,el)=>{
         if(txt.includes('SP_TRACKER'))return true;    // Any part of SP_TRACKER_START or _END
         if(txt.includes('<!--SP_'))return true;       // Earliest partial marker (just 7 chars)
         if(txt.includes('[SCENE TRACKER'))return true; // Echoed instruction header
@@ -36,6 +46,21 @@ export function startStreamingHider(){
         // Detect opening brace followed by "time" key near the end of message
         const lo=txt.lastIndexOf('{');
         if(lo>50&&txt.indexOf('"time"',lo)!==-1&&txt.indexOf('"time"',lo)-lo<80)return true;
+        // v6.23.6: walk Comment DOM nodes for SP_TRACKER markers. Markdown
+        // renderers preserve <!--...--> as Comment nodes whose text is NOT
+        // included in Element.textContent — so the textContent-only checks
+        // above miss markers entirely when they're rendered as real HTML
+        // comments. Catching them here lets the hider lock at the earliest
+        // possible moment (before any JSON keys appear in textContent).
+        if(el){
+            try{
+                const walker=document.createTreeWalker(el,NodeFilter.SHOW_COMMENT);
+                let n;
+                while((n=walker.nextNode())){
+                    if(n.data&&n.data.indexOf('SP_')!==-1)return true;
+                }
+            }catch{}
+        }
         return false;
     };
 
@@ -64,7 +89,7 @@ export function startStreamingHider(){
         if(!_lastMes||!currentStyleEl)return;
         if(_locked)return;
         const txt=_lastMes.textContent||'';
-        if(_hasJson(txt)){
+        if(_hasJson(txt,_lastMes)){
             // JSON detected — freeze at LAST safe height (do not remeasure;
             // the current text already contains tracker tokens).
             _locked=true;
@@ -90,16 +115,33 @@ export function startStreamingHider(){
         currentStyleEl.textContent=`${_sel()}{max-height:${capPx}px!important;overflow:hidden!important}`;
     };
 
-    // MutationObserver: fires on every DOM change to last message
+    // MutationObserver: fires on every DOM change to last message.
+    //
+    // v6.23.6: wait for a NEW .mes_text to appear (count grew past initial)
+    // before locking the observer. Pre-v6.23.6 the observer attached to the
+    // LAST existing element on the first 20ms tick, which was the user's
+    // prior message — and that element never receives streaming JSON, so
+    // the hider was silently inert. Snapshot the count once, then wait for
+    // growth (typical ST flow: ~50–500ms after generation start). Fall back
+    // to last-existing after 3s for "Continue" / regen flows where ST
+    // streams into an existing bubble without creating a new one.
     const _setupObserver=()=>{
         if(_observer)return;
         const mesTexts=document.querySelectorAll('.mes_text');
         if(!mesTexts.length)return;
+        if(_initialMesCount===-1){
+            _initialMesCount=mesTexts.length;
+            return; // first sighting — record baseline, wait for new bubble
+        }
+        const grew=mesTexts.length>_initialMesCount;
+        const elapsed=Date.now()-_streamHiderStart;
+        if(!grew && elapsed<3000)return; // still waiting for new bubble
         _lastMes=mesTexts[mesTexts.length-1];
         _mesId=_lastMes.closest('.mes')?.getAttribute('mesid');
         _observer=new MutationObserver(_updateCap);
         set_streamHiderObserver(_observer); // Store at module level for cleanup
         _observer.observe(_lastMes,{childList:true,subtree:true,characterData:true});
+        log('StreamHider: observer locked on mesid='+_mesId+' (initialCount='+_initialMesCount+', currentCount='+mesTexts.length+', mode='+(grew?'new-bubble':'continue-fallback')+')');
     };
 
     // Polling fallback at 20ms (aggressive detection)

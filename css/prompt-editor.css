@@ -81,19 +81,28 @@
     color: #fff !important;
     border-color: var(--sp-accent) !important;
 }
-.sp-pb-overlay {
+/* v6.23.6: renamed from .sp-pb-overlay to break a class-name collision —
+   the preset-browser modal div also carried .sp-pb-overlay (alongside
+   .sp-cl-overlay) for identification. The button-styling rules here used
+   `background: transparent !important` and a `:hover` blue tint that
+   cascaded onto the modal element. Result: the modal backdrop became
+   transparent (revealing ST chat behind it) and turned blue whenever the
+   cursor was anywhere in the viewport — exactly as the v6.23.x feedback
+   reports described. Renaming the button class isolates the rule to the
+   actual button element. */
+.sp-pb-apply-overlay {
     color: var(--sp-text-dim) !important;
     border-color: var(--sp-border) !important;
     background: transparent !important;
     font-weight: 500;
     font-size: 10px !important;
 }
-.sp-pb-overlay:hover:not(:disabled) {
+.sp-pb-apply-overlay:hover:not(:disabled) {
     color: #93c5fd !important;
     border-color: rgba(96,165,250,0.5) !important;
     background: rgba(96,165,250,0.08) !important;
 }
-.sp-pb-overlay:disabled { opacity: 0.4; cursor: not-allowed; }
+.sp-pb-apply-overlay:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* "Pick a template to create a NEW profile from..." banner shown when
    the browser opens via Profile Manager's + New from template button */
@@ -436,7 +445,9 @@
  * list of all bundled presets with search + family-pill filtering. Apply
  * button per row. Auto-detected preset gets a "matches your model" tag;
  * already-applied preset gets an "applied" tag and a disabled button. */
-.sp-pb-overlay { /* inherits */ }
+/* .sp-pb-overlay is the modal-identifier class on the preset-browser overlay
+   div (paired with .sp-cl-overlay for backdrop styling). No rules target it
+   directly here — see the rename note for .sp-pb-apply-overlay above. */
 .sp-pb-container {
     width: min(900px, calc(100vw - 32px));
     max-height: calc(100vh - 32px);

@@ -2046,6 +2046,64 @@ const TABS = [
     { id: 'config', label: 'Config', render: _configTab },
 ];
 
+// v6.23.6: portal-style positioning for the .sp-di-info-popover tooltips
+// (Doctor and Diagnostics). The CSS-only `position: absolute; right: 0;`
+// approach clipped at narrow inspector widths because the popover (~420px)
+// was wider than its anchor's containing block. Round 1 (v6.23.2) tried
+// left:0, round 2 (v6.23.3) tried translateX center, round 3 (v6.23.5) tried
+// matching Diagnostics' default — all CSS-only attempts left clipping at
+// some viewport. JS-computed `position: fixed` against the icon's
+// getBoundingClientRect() — clamped to the viewport — keeps the popover
+// fully visible at every resolution from 320px to 4K. The CSS hover state
+// machine still drives the fade; JS only overrides position at show time.
+function _wireInfoPopovers(overlay) {
+    const areas = overlay.querySelectorAll('.sp-di-info-area');
+    const _disposers = [];
+    areas.forEach(area => {
+        const icon = area.querySelector('.sp-di-info');
+        const pop = area.querySelector('.sp-di-info-popover');
+        if (!icon || !pop) return;
+        const _position = () => {
+            const r = icon.getBoundingClientRect();
+            // Match CSS rule `width: min(420px, calc(100vw - 32px))`.
+            const popW = Math.min(420, window.innerWidth - 32);
+            // 8px below the icon; right edge of popover anchored to right
+            // edge of icon, clamped horizontally so the popover never spills
+            // off the viewport. Clamp also keeps the icon within the popover's
+            // x-range so the ::before hover bridge always covers the gap.
+            const top = r.bottom + 8;
+            let left = r.right - popW;
+            if (left < 8) left = 8;
+            if (left + popW > window.innerWidth - 8) left = window.innerWidth - 8 - popW;
+            pop.style.position = 'fixed';
+            pop.style.top = `${top}px`;
+            pop.style.left = `${left}px`;
+            pop.style.right = 'auto';
+            pop.style.width = `${popW}px`;
+        };
+        let _shown = false;
+        const _show = () => { _position(); _shown = true; };
+        const _hide = () => { _shown = false; };
+        const _reposition = () => { if (_shown) _position(); };
+        area.addEventListener('mouseenter', _show);
+        area.addEventListener('mouseleave', _hide);
+        icon.addEventListener('focus', _show);
+        icon.addEventListener('blur', _hide);
+        // Capture-phase scroll listener so any scrolling ancestor re-positions
+        // the fixed popover (without this, scrolling the inspector body while
+        // the popover is open would leave the popover floating).
+        const _onScroll = () => _reposition();
+        const _onResize = () => _reposition();
+        window.addEventListener('scroll', _onScroll, true);
+        window.addEventListener('resize', _onResize);
+        _disposers.push(() => {
+            window.removeEventListener('scroll', _onScroll, true);
+            window.removeEventListener('resize', _onResize);
+        });
+    });
+    return () => { _disposers.forEach(fn => { try { fn(); } catch {} }); };
+}
+
 export function openDebugInspector(initialTab = 'crashes') {
     document.querySelector('.sp-cl-overlay')?.remove();
     // v6.15.4: opening the inspector marks all captured entries as "seen" so the
@@ -2131,6 +2189,9 @@ export function openDebugInspector(initialTab = 'crashes') {
     const tabPanel = overlay.querySelector('.sp-di-tabpanel');
     let activeTab = initialTab;
     let _disposeTab = () => {};
+    // v6.23.6: position the Doctor + Diagnostics info popovers via JS so they
+    // never clip — see _wireInfoPopovers() above for the why.
+    const _disposeInfoPopovers = _wireInfoPopovers(overlay);
 
     for (const tab of TABS) {
         const btn = document.createElement('button');
@@ -2171,6 +2232,7 @@ export function openDebugInspector(initialTab = 'crashes') {
     const _esc = (e) => { if (e.key === 'Escape') { _close(); e.stopPropagation(); } };
     function _close() {
         try { _disposeTab(); } catch {}
+        try { _disposeInfoPopovers(); } catch {}
         overlay.remove();
         document.removeEventListener('keydown', _esc, true);
     }
