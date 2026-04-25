@@ -2,6 +2,40 @@
 
 All notable changes to ScenePulse are documented in this file.
 
+### [6.17.1] — 2026-04-25
+
+#### Polished — Inspector visual + UX cleanup pass (Panel A + B + C synthesis)
+
+The user shipped an 11-item polish list after the v6.17.0 Perf MVP landed. Items 1, 2, 3, 8, 9, 10, and 11 land in this patch (items 4–7 covering the prompt-architecture overhaul ship as v6.18.0–v6.20.0).
+
+**Inspector chrome**:
+- **Less transparent backdrop** — bumped from `rgba(0,0,0,0.55) + blur(4px)` to `rgba(8,10,16,0.82) + blur(14px) saturate(120%)`. The chat is no longer competing with stack traces for visual focus.
+- **Replaced the `i` info icon** — dropped the outer SVG circle entirely. The icon was three concentric circles (button border + SVG ring + dot), which is what made the glyph read as off-center no matter how the inner stroke was tuned. New SVG is just a dot + rounded rectangle stem on `currentColor` fill, geometric centroid at (8, 8). Replaces the v6.15.7 / v6.15.8 / v6.16.1 attempts.
+- **Doctor ↔ Diagnostics gap** widened from 8px to 16px so the two header tools no longer read as a single button cluster.
+- **"Perf" tab → "Performance"** with a CSS cascade: full word at desktop, "Perf" at < 720px, compressed padding/font at < 560px, ultra-compact at < 420px.
+
+**Issues + Network "Clear" actions**: native `confirm()` replaced with the styled `spConfirm()` dialog. New microcopy names the count being deleted ("This permanently deletes 47 captured entries from this device") so accidental nukes are visible.
+
+**Doctor progress UX**: the previous opaque spinner was replaced with a vertical step list. All 5 checks render upfront in a "queued" state; each one swaps to "running" with a pulsing pill while it executes, then settles to "PASS / FAIL / SKIPPED / CANCELLED" with elapsed-ms and a one-line summary. New **Cancel** button uses an `AbortController` to stop scheduling new checks — currently in-flight checks complete (they don't have a signal hook), but remaining unstarted checks resolve as `cancelled`. The Storage check additionally passes the signal into its `fetch` calls so it aborts mid-request.
+
+**`runDoctor()` API** picked up `{ onStep, signal }` parameters and a `'cancelled'` status. New exported `DOCTOR_STEPS` manifest lets the inspector pre-render the step list before the run starts. Refactored `_wrap()` to honor `e._skip = true` for clean skipped-status propagation (replacing the previous string-match on stack text).
+
+**Performance tab improvements** (v6.17.0 felt MVP-thin per Panel A's polish review):
+- **30s FPS sparkline** under the FPS metric — devicePixelRatio-aware canvas, accent-colored line, 30fps reference rule. Trend matters more than spot reading; a steady 60 and a 60 spike between two 20s look identical without history.
+- **Stacked horizontal bar above the results table** — proportional component breakdown with legend. Top 6 components get distinct palette colors; everything else collapses to "other"; remaining capture window time (idle/unattributed) shows as a faint segment so percentages always sum visually to 100%.
+- **Instrumentation manifest in the empty state** — when a capture records 0 marks, the empty state now lists the 4 currently-instrumented modules (`sp:weather-update`, `sp:time-tint`, `sp:thoughts-update`, `sp:panel-update`) with their source files. Users can confirm whether their slow component is even being attributed (vs the silent failure mode of "looks fine, must be elsewhere" when really the slow code isn't instrumented at all).
+
+**Responsive audit** at 720 / 700 / 560 / 420 breakpoints:
+- Tab bar uses dual `<span>` labels (`<span class="sp-di-tab-long">` + `<span class="sp-di-tab-short">`) so CSS can swap full word for short form instead of mid-word truncation.
+- Header buttons compress padding at < 720; sub-headlines hide at < 560.
+- Doctor stats line wraps Copy button to its own row at < 700.
+- Doctor step rows reflow grid at < 560 (pill stays left-edge, name/elapsed share row 1, summary spans).
+- Perf headline stacks single-column at < 420; metrics become labeled rows.
+- Diagnostics info popover anchors to viewport edge at < 560 to prevent left-overflow.
+- Inspector container drops to `calc(100vw - 8px)` at < 420 (was `calc(100vw - 16px)` at < 600).
+
+No behavior change to the captured measurements, the doctor checks themselves, or any data shape. All polish + responsive — same 686 tests still pass.
+
 ### [6.17.0] — 2026-04-25
 
 #### Added — Performance Monitor MVP (Panel A): FPS headline + capture-mode component attribution

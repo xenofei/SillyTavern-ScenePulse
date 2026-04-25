@@ -1,17 +1,25 @@
-// src/doctor.js — Real-path diagnostic checks (v6.16.0)
+// src/doctor.js — Real-path diagnostic checks (v6.16.0, progress API v6.17.1)
 //
 // Panel C's "Checks" reshape: ship as a manual button (not a tab), 5
 // real-path tests, three states (PASS / FAIL / SKIPPED — kill yellow,
 // it's where false confidence lives), each result names its own
 // limitation explicitly, no auto-run, no background polling.
 //
+// v6.17.1: runDoctor accepts { onStep, signal } so the inspector UI can
+// render a vertical step list that updates per-check (queued → running →
+// pass/fail/skipped), and a Cancel button can short-circuit between
+// checks via AbortController. Cancel does NOT interrupt a check that's
+// currently in-flight (model-echo / schema can take seconds and the
+// generateRaw pipeline does not surface a signal hook); remaining
+// unstarted checks are marked status:'cancelled' and the run resolves.
+//
 // Industry mental model: `brew doctor`, `flutter doctor`, JetBrains
 // Doctor — on-demand diagnosis when the user suspects something is
 // wrong. Manual-only neutralizes alarm fatigue (the "boy who cried
 // wolf in reverse" problem with persistent green dashboards).
 
-import { log, warn } from './logger.js';
-import { getSettings, getActiveSchema, getActivePrompt } from './settings.js';
+import { log } from './logger.js';
+import { getActiveSchema, getActivePrompt } from './settings.js';
 import { cleanJson } from './generation/extraction.js';
 
 const FILE_NAME = 'scenepulse-doctor-probe.json';
@@ -21,7 +29,7 @@ const SERVER_PATH = '/user/files/' + FILE_NAME;
  * @typedef {Object} CheckResult
  * @property {string} id
  * @property {string} name
- * @property {'pass'|'fail'|'skipped'} status
+ * @property {'pass'|'fail'|'skipped'|'cancelled'|'running'|'queued'} status
  * @property {string} summary       One-line outcome
  * @property {string} limitation    What PASS does NOT mean (per Panel C — anti-false-confidence)
  * @property {string|null} detail   Verbatim error or extra info
@@ -57,8 +65,11 @@ async function _wrap(id, name, limitation, fn) {
             ts: new Date().toISOString(),
         };
     } catch (e) {
+        // v6.17.1: errors thrown with `e._skip = true` propagate as 'skipped'
+        // instead of 'fail' — replaces the previous string-match on stack text.
         return {
-            id, name, status: 'fail',
+            id, name,
+            status: e?._skip ? 'skipped' : 'fail',
             summary: e?.message || String(e),
             limitation,
             detail: e?.stack ? String(e.stack).slice(0, 500) : null,
@@ -72,22 +83,23 @@ async function _wrap(id, name, limitation, fn) {
 //
 // Cheap; runs first so a config-broken environment fails fast without
 // burning API calls on the model probes below.
-async function _checkStorage() {
+async function _checkStorage(signal) {
     return _wrap('storage', 'Storage write+read+delete',
         'Confirms ScenePulse can persist scene data. Does NOT mean prior corrupted files will heal.',
         async () => {
             const probe = { ts: Date.now(), nonce: Math.random().toString(36) };
             const payload = JSON.stringify(probe);
             const data = _b64encode(payload);
-            // WRITE
+            // WRITE — pass signal so a cancel mid-fetch aborts the request.
             const wRes = await fetch('/api/files/upload', {
                 method: 'POST',
                 headers: _getHeaders(),
                 body: JSON.stringify({ name: FILE_NAME, data }),
+                signal,
             });
             if (!wRes.ok) throw new Error(`Write HTTP ${wRes.status}`);
             // READ
-            const rRes = await fetch(SERVER_PATH, { cache: 'no-store' });
+            const rRes = await fetch(SERVER_PATH, { cache: 'no-store', signal });
             if (!rRes.ok) throw new Error(`Read HTTP ${rRes.status}`);
             const back = await rRes.json();
             if (!back || back.nonce !== probe.nonce) throw new Error('Round-trip nonce mismatch');
@@ -97,6 +109,7 @@ async function _checkStorage() {
                     method: 'POST',
                     headers: _getHeaders(),
                     body: JSON.stringify({ name: FILE_NAME }),
+                    signal,
                 });
             } catch {}
             return { summary: 'Wrote + read + verified probe file' };
@@ -188,7 +201,6 @@ async function _checkTokenizerParity() {
         'Local token counter agrees (within 25%) with the endpoint that will actually count tokens. PASS does NOT guarantee perfect parity — only that the drift won\'t silently truncate prompts.',
         async () => {
             const ctx = SillyTavern.getContext?.();
-            const tokenizers = ctx?.getTextGenServer ? ctx : null;
             const probe = 'The quick brown fox jumps over the lazy dog. Now is the time for all good people to come to the aid of their party.';
             const localEstimate = Math.round(probe.length / 4);
             // Try ST's getTokenCount API if it exists; otherwise SKIP rather than fail.
@@ -211,38 +223,76 @@ async function _checkTokenizerParity() {
         });
 }
 
-/** Run all checks sequentially (cheap-first, model-probes last). */
-export async function runDoctor() {
+// v6.17.1: ordered step manifest exposed for the inspector UI so it can
+// render the vertical step list (queued → running → final-state) BEFORE
+// runDoctor returns. `phase` groups checks visually: "cheap" runs fast,
+// "connection" hits the LLM endpoint and may take seconds.
+export const DOCTOR_STEPS = [
+    { id: 'storage',          name: 'Storage write+read+delete', phase: 'cheap' },
+    { id: 'model-echo',       name: 'Model echo',                phase: 'connection' },
+    { id: 'schema',           name: 'Schema round-trip',         phase: 'connection' },
+    { id: 'context-budget',   name: 'Context budget',            phase: 'cheap' },
+    { id: 'tokenizer-parity', name: 'Tokenizer parity',          phase: 'cheap' },
+];
+
+/**
+ * Run all checks sequentially. v6.17.1 progress API.
+ * @param {object} [opts]
+ * @param {(ev: {index:number, id:string, name:string, status:string, [k:string]:any}) => void} [opts.onStep]
+ *        Fired with status 'running' before each check, then with the final result after.
+ * @param {AbortSignal} [opts.signal]
+ *        Cancel between checks. Storage check also passes signal to its fetch calls.
+ * @returns {Promise<CheckResult[]>}
+ */
+export async function runDoctor(opts = {}) {
+    const { onStep = null, signal = null } = opts;
     const results = [];
-    // Storage first — fail fast without burning API
-    results.push(await _checkStorage());
-    // Model echo before schema round-trip (cheaper, isolates connection vs schema)
-    results.push(await _checkModelEcho());
-    // Schema only if model echo passed (otherwise the failure is upstream)
-    const echoOk = results[results.length - 1].status === 'pass';
-    if (echoOk) {
-        results.push(await _checkSchemaRoundtrip());
-    } else {
-        results.push({
-            id: 'schema', name: 'Schema round-trip',
-            status: 'skipped',
-            summary: 'Skipped — model echo failed first',
-            limitation: 'Real test only runs when the connection is alive.',
-            detail: null,
-            elapsedMs: 0, ts: new Date().toISOString(),
-        });
-    }
-    // Cheap local checks
-    results.push(await _checkContextBudget());
-    // Tokenizer parity — special skip handling for missing API
-    const tk = await _checkTokenizerParity();
-    if (tk.status === 'fail' && tk.detail?.includes('not available') === false) {
-        // Real failure — keep
-        results.push(tk);
-    } else if (tk.status === 'fail') {
-        results.push({ ...tk, status: 'skipped', summary: tk.summary });
-    } else {
-        results.push(tk);
+    const _emit = (ev) => { try { onStep?.(ev); } catch {} };
+
+    for (let i = 0; i < DOCTOR_STEPS.length; i++) {
+        const step = DOCTOR_STEPS[i];
+        // Cancel check between steps: mark this + remaining as cancelled and exit.
+        if (signal?.aborted) {
+            for (let j = i; j < DOCTOR_STEPS.length; j++) {
+                const s = DOCTOR_STEPS[j];
+                const cancelled = {
+                    id: s.id, name: s.name, status: 'cancelled',
+                    summary: 'Cancelled before check could run',
+                    limitation: 'No information gathered for this check.',
+                    detail: null, elapsedMs: 0, ts: new Date().toISOString(),
+                };
+                results.push(cancelled);
+                _emit({ index: j, ...cancelled });
+            }
+            break;
+        }
+        // Schema depends on model-echo PASS — short-circuit to skipped if it didn't pass.
+        if (step.id === 'schema') {
+            const echo = results.find(r => r.id === 'model-echo');
+            if (echo?.status !== 'pass') {
+                const skipped = {
+                    id: step.id, name: step.name, status: 'skipped',
+                    summary: 'Skipped — model echo did not pass',
+                    limitation: 'Real test only runs when the connection is alive.',
+                    detail: null, elapsedMs: 0, ts: new Date().toISOString(),
+                };
+                results.push(skipped);
+                _emit({ index: i, ...skipped });
+                continue;
+            }
+        }
+        _emit({ index: i, id: step.id, name: step.name, status: 'running' });
+        let r;
+        switch (step.id) {
+            case 'storage':          r = await _checkStorage(signal); break;
+            case 'model-echo':       r = await _checkModelEcho(); break;
+            case 'schema':           r = await _checkSchemaRoundtrip(); break;
+            case 'context-budget':   r = await _checkContextBudget(); break;
+            case 'tokenizer-parity': r = await _checkTokenizerParity(); break;
+            default: continue;
+        }
+        results.push(r);
+        _emit({ index: i, ...r });
     }
     log('Doctor: completed', results.length, 'checks,',
         results.filter(r => r.status === 'pass').length, 'passed');

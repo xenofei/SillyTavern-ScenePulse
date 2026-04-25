@@ -37,6 +37,11 @@ let _fpsLastTimestamp = 0;
 let _fpsFrames = [];           // ring of frame deltas (last ~120 frames)
 const _MAX_FRAME_BUFFER = 120;
 let _fpsListeners = new Set();
+// v6.17.1: rolling 30-second FPS history for the inspector sparkline. Each
+// entry is one ~1Hz snapshot {ts, fps, frameP95Ms}. Capped at 60 entries so
+// the sparkline can show up to a 60s trend; the UI selects the trailing 30s.
+let _fpsHistory = [];
+const _MAX_FPS_HISTORY = 60;
 
 function _sampleTick(ts) {
     if (!_fpsSamplingActive) return;
@@ -54,10 +59,20 @@ function _sampleTick(ts) {
 
 function _notifyFps() {
     const stats = computeFpsStats();
+    // v6.17.1: append to rolling history before notifying — listeners can pull
+    // the sparkline data from getFpsHistory() if they want a trend chart.
+    _fpsHistory.push({ ts: Date.now(), fps: stats.fps, frameP95Ms: stats.frameP95Ms });
+    if (_fpsHistory.length > _MAX_FPS_HISTORY) _fpsHistory.shift();
     for (const fn of _fpsListeners) {
         try { fn(stats); } catch {}
     }
 }
+
+/**
+ * Return the rolling FPS history (newest last). Each entry: {ts, fps, frameP95Ms}.
+ * v6.17.1: powers the inspector's 30s FPS sparkline.
+ */
+export function getFpsHistory() { return _fpsHistory.slice(); }
 
 /** Compute FPS / frame-time stats from the current ring buffer. */
 export function computeFpsStats() {
@@ -77,6 +92,7 @@ export function startFpsSampling() {
     _fpsSamplingActive = true;
     _fpsLastTimestamp = 0;
     _fpsFrames = [];
+    _fpsHistory = [];
     _fpsRafId = requestAnimationFrame(_sampleTick);
 }
 
@@ -118,6 +134,19 @@ export function getScenePulseLayerCount() {
         return els.length;
     } catch { return 0; }
 }
+
+// v6.17.1: static manifest of components that emit sp:* marks. The inspector's
+// Perf tab uses this to surface "what's instrumented" in the empty state when
+// a capture records 0 measures (so users know if their slow component is even
+// being attributed). Keep in sync with actual markStart/markEnd call sites —
+// adding a new instrumented module without listing it here just means users
+// won't see it in the empty-state hint.
+export const INSTRUMENTED_MARKS = [
+    { mark: 'sp:weather-update',  module: 'src/ui/weather.js',     desc: 'Weather overlay update pass' },
+    { mark: 'sp:time-tint',       module: 'src/ui/time-tint.js',   desc: 'Day/night tint compositing' },
+    { mark: 'sp:thoughts-update', module: 'src/ui/thoughts.js',    desc: 'Inner-thought panel re-render' },
+    { mark: 'sp:panel-update',    module: 'src/ui/update-panel.js',desc: 'Main scene panel update pass' },
+];
 
 // ── ScenePulse instrumentation marks ───────────────────────────────────
 //

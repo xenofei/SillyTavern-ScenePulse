@@ -19,16 +19,17 @@
 // lives in css/crash-log.css alongside the existing overlay styles.
 
 import { t } from '../i18n.js';
-import { esc } from '../utils.js';
+import { esc, spConfirm } from '../utils.js';
 import { debugLog } from '../logger.js';
 import { getLastRawResponse } from '../state.js';
 import { getPairs as rawGetPairs, lastPair as rawLastPair, pairCount as rawPairCount } from '../raw-pairs.js';
 import { getEntries as netGetEntries, addChangeListener as netAddChangeListener, clearAll as netClearAll, entryCount as netEntryCount } from '../network-log.js';
-import { runDoctor } from '../doctor.js';
+import { runDoctor, DOCTOR_STEPS } from '../doctor.js';
 import {
     startFpsSampling, stopFpsSampling, addFpsListener, computeFpsStats,
     getAnimationCount, getScenePulseLayerCount,
     startCapture, stopCapture, isCapturing,
+    getFpsHistory, INSTRUMENTED_MARKS,
 } from '../perf-monitor.js';
 import { getEntries as crashGetEntries, clearAll as crashClearAll, flushNow as crashFlushNow, entryCount as crashEntryCount, markSeen as crashMarkSeen } from '../crash-log.js';
 import { getSettings, getTrackerData } from '../settings.js';
@@ -1070,7 +1071,18 @@ function _issuesTab(panel, ctx = {}) {
         _exportFile(_crashAllToText(crashGetEntries()), `scenepulse-crash-log-${ts}.txt`);
     });
     panel.querySelector('.sp-di-clear').addEventListener('click', async () => {
-        if (!confirm(t('Clear all crash log entries? This cannot be undone.'))) return;
+        // v6.17.1: replace native confirm() (jarring, blocks event loop, unstyled)
+        // with the in-app spConfirm dialog. Microcopy names the COUNT being
+        // deleted so users don't accidentally nuke 200 entries thinking it's 5.
+        const count = crashEntryCount();
+        const ok = await spConfirm(
+            t('Clear issue log?'),
+            count
+                ? t(`This permanently deletes ${count} captured ${count === 1 ? 'entry' : 'entries'} from this device. The actual errors are NOT undone — only the log is cleared.`)
+                : t('The log is already empty.'),
+            { okLabel: t('Delete log'), cancelLabel: t('Keep'), danger: true }
+        );
+        if (!ok) return;
         await crashClearAll();
         try { toastr.success(t('Crash log cleared')); } catch {}
         _render();
@@ -1191,8 +1203,18 @@ function _netTab(panel, ctx = {}) {
         const text = all.map(_entryToText).join('\n\n' + '─'.repeat(40) + '\n\n');
         _copy(text, t('Network log copied'));
     });
-    panel.querySelector('.sp-di-net-clear').addEventListener('click', () => {
-        if (!confirm(t('Clear network log?'))) return;
+    panel.querySelector('.sp-di-net-clear').addEventListener('click', async () => {
+        // v6.17.1: spConfirm replaces native confirm — same in-app styling as
+        // every other ScenePulse confirmation dialog.
+        const count = netEntryCount();
+        const ok = await spConfirm(
+            t('Clear network log?'),
+            count
+                ? t(`This deletes ${count} captured network ${count === 1 ? 'entry' : 'entries'}. Future requests will still be captured.`)
+                : t('The network log is already empty.'),
+            { okLabel: t('Clear'), cancelLabel: t('Keep'), danger: true }
+        );
+        if (!ok) return;
         netClearAll();
         _render();
     });
@@ -1209,46 +1231,108 @@ function _netTab(panel, ctx = {}) {
 // result names its limitation explicitly.
 
 let _doctorRunning = false;
+let _doctorAbort = null;
 async function _runDoctorAndShow(overlay) {
     if (_doctorRunning) return;
     _doctorRunning = true;
+    _doctorAbort = new AbortController();
     // Render a modal-style overlay panel inside the inspector container.
     const existing = overlay.querySelector('.sp-di-doctor-modal');
     if (existing) existing.remove();
     const modal = document.createElement('div');
     modal.className = 'sp-di-doctor-modal';
+    // v6.17.1: prerender the vertical step list BEFORE runDoctor starts so the
+    // user sees what's about to run (and what's currently running) instead of
+    // a single opaque spinner. Each step row swaps state pills as the doctor
+    // emits onStep events. Cancel button aborts the AbortController; runDoctor
+    // marks remaining steps as 'cancelled'.
+    const stepRowsHtml = DOCTOR_STEPS.map((s, i) => `
+        <li class="sp-di-doctor-step sp-di-doctor-step-queued"
+            data-step-index="${i}" data-step-id="${esc(s.id)}">
+            <span class="sp-di-doctor-step-pill sp-di-doctor-step-pill-queued">${t('queued')}</span>
+            <span class="sp-di-doctor-step-name">${esc(t(s.name))}</span>
+            <span class="sp-di-doctor-step-phase">${esc(t(s.phase))}</span>
+            <span class="sp-di-doctor-step-elapsed"></span>
+        </li>
+    `).join('');
     modal.innerHTML = `
         <div class="sp-di-doctor-header">
             <div class="sp-di-doctor-title">${t('Doctor')} <span class="sp-di-doctor-sub">${t('real-path diagnostic checks · runs once on demand')}</span></div>
-            <button class="sp-cl-close sp-di-doctor-close">✕</button>
+            <button class="sp-cl-close sp-di-doctor-close" type="button" aria-label="${t('Close Doctor')}">✕</button>
         </div>
         <div class="sp-di-doctor-body">
-            <div class="sp-di-doctor-running">
-                <div class="sp-tp-spinner"></div>
-                <div>${t('Running checks…')}</div>
+            <div class="sp-di-doctor-progress-wrap">
+                <div class="sp-di-doctor-progress-head">
+                    <span class="sp-di-doctor-progress-label">${t('Running 5 checks against the live ScenePulse code paths…')}</span>
+                    <button class="sp-di-doctor-cancel" type="button">${t('Cancel')}</button>
+                </div>
+                <ul class="sp-di-doctor-steps">${stepRowsHtml}</ul>
             </div>
         </div>
     `;
     overlay.querySelector('.sp-cl-container').appendChild(modal);
+    const _cleanup = () => { _doctorRunning = false; _doctorAbort = null; };
     modal.querySelector('.sp-di-doctor-close').addEventListener('click', () => {
+        try { _doctorAbort?.abort(); } catch {}
         modal.remove();
-        _doctorRunning = false;
+        _cleanup();
     });
+    modal.querySelector('.sp-di-doctor-cancel').addEventListener('click', () => {
+        try { _doctorAbort?.abort(); } catch {}
+        const btn = modal.querySelector('.sp-di-doctor-cancel');
+        if (btn) { btn.disabled = true; btn.textContent = t('Cancelling…'); }
+    });
+
+    // Per-step UI updater — flips the state pill and elapsed timer.
+    const _stepEl = (idx) => modal.querySelector(`.sp-di-doctor-step[data-step-index="${idx}"]`);
+    const onStep = (ev) => {
+        const li = _stepEl(ev.index);
+        if (!li) return;
+        // Reset state classes before applying the new one
+        li.classList.remove(
+            'sp-di-doctor-step-queued', 'sp-di-doctor-step-running',
+            'sp-di-doctor-step-pass', 'sp-di-doctor-step-fail',
+            'sp-di-doctor-step-skipped', 'sp-di-doctor-step-cancelled',
+        );
+        li.classList.add(`sp-di-doctor-step-${ev.status}`);
+        const pill = li.querySelector('.sp-di-doctor-step-pill');
+        if (pill) {
+            pill.className = `sp-di-doctor-step-pill sp-di-doctor-step-pill-${ev.status}`;
+            pill.textContent = t(ev.status);
+        }
+        const elapsed = li.querySelector('.sp-di-doctor-step-elapsed');
+        if (elapsed && typeof ev.elapsedMs === 'number' && ev.status !== 'running') {
+            elapsed.textContent = `${ev.elapsedMs}ms`;
+        }
+        // Inline summary on completed rows so the user gets a one-line preview
+        // before the full results table renders below.
+        if (ev.status !== 'running' && ev.status !== 'queued' && ev.summary) {
+            let sumEl = li.querySelector('.sp-di-doctor-step-summary');
+            if (!sumEl) {
+                sumEl = document.createElement('span');
+                sumEl.className = 'sp-di-doctor-step-summary';
+                li.appendChild(sumEl);
+            }
+            sumEl.textContent = ev.summary;
+        }
+    };
+
     let results = [];
     try {
-        results = await runDoctor();
+        results = await runDoctor({ onStep, signal: _doctorAbort.signal });
     } catch (e) {
         modal.querySelector('.sp-di-doctor-body').innerHTML =
             `<div class="sp-cl-empty">${t('Doctor failed to run')}: ${esc(e?.message || String(e))}</div>`;
-        _doctorRunning = false;
+        _cleanup();
         return;
     }
-    // Build results UI
-    const passes = results.filter(r => r.status === 'pass').length;
-    const fails = results.filter(r => r.status === 'fail').length;
-    const skips = results.filter(r => r.status === 'skipped').length;
+    // Build results UI — full detail table replaces the progress wrap once done.
+    const passes    = results.filter(r => r.status === 'pass').length;
+    const fails     = results.filter(r => r.status === 'fail').length;
+    const skips     = results.filter(r => r.status === 'skipped').length;
+    const cancelled = results.filter(r => r.status === 'cancelled').length;
     const rows = results.map(r => {
-        const sev = r.status === 'pass' ? 'pass' : r.status === 'fail' ? 'fail' : 'skipped';
+        const sev = ['pass', 'fail', 'skipped', 'cancelled'].includes(r.status) ? r.status : 'skipped';
         const detail = r.detail ? `<pre class="sp-cl-context sp-di-doctor-detail">${esc(r.detail)}</pre>` : '';
         return `
             <div class="sp-di-doctor-row sp-di-doctor-${sev}">
@@ -1262,11 +1346,15 @@ async function _runDoctorAndShow(overlay) {
                 <div class="sp-di-doctor-limit">${esc(r.limitation)}</div>
             </div>`;
     }).join('');
+    const cancelledStat = cancelled
+        ? `<span><strong class="sp-di-doctor-status-cancelled">${cancelled}</strong> ${t('cancelled')}</span>`
+        : '';
     modal.querySelector('.sp-di-doctor-body').innerHTML = `
         <div class="sp-di-doctor-stats">
             <span><strong class="sp-di-doctor-status-pass">${passes}</strong> ${t('passed')}</span>
             <span><strong class="sp-di-doctor-status-fail">${fails}</strong> ${t('failed')}</span>
             <span><strong class="sp-di-doctor-status-skipped">${skips}</strong> ${t('skipped')}</span>
+            ${cancelledStat}
             <span style="flex:1"></span>
             <button class="sp-cl-export-btn sp-di-doctor-copy">${t('Copy results')}</button>
         </div>
@@ -1278,7 +1366,7 @@ async function _runDoctorAndShow(overlay) {
         ).join('\n\n');
         _copy(text, t('Doctor results copied'));
     });
-    _doctorRunning = false;
+    _cleanup();
 }
 
 // ── Tab: Perf (v6.17.0) ─────────────────────────────────────────────────
@@ -1310,9 +1398,14 @@ function _perfTab(panel) {
             <button class="sp-cl-export-btn sp-di-perf-copy">${t('Copy results')}</button>
         </div>
         <div class="sp-di-perf-headline">
-            <div class="sp-di-perf-metric">
+            <div class="sp-di-perf-metric sp-di-perf-metric-fps">
                 <span class="sp-di-perf-metric-label">${t('FPS')}</span>
                 <span class="sp-di-perf-metric-value sp-di-perf-fps">—</span>
+                <!-- v6.17.1: 30s FPS trend sparkline. Trends matter more than
+                     spot reading — a steady 60fps and a 60fps spike between
+                     two 20fps drops look identical without history. -->
+                <canvas class="sp-di-perf-fps-spark" width="180" height="32"
+                        aria-label="${t('FPS over the last 30 seconds')}"></canvas>
             </div>
             <div class="sp-di-perf-metric">
                 <span class="sp-di-perf-metric-label">${t('p95 frame')}</span>
@@ -1349,6 +1442,46 @@ function _perfTab(panel) {
     const copyBtn = panel.querySelector('.sp-di-perf-copy');
     let _lastResult = null;
 
+    const sparkEl = panel.querySelector('.sp-di-perf-fps-spark');
+    function _drawFpsSparkline() {
+        if (!sparkEl) return;
+        const ctx = sparkEl.getContext?.('2d');
+        if (!ctx) return;
+        // High-DPI: size the backing store to devicePixelRatio so the line
+        // doesn't render fuzzy on retina/4K displays.
+        const dpr = window.devicePixelRatio || 1;
+        const cssW = sparkEl.clientWidth || 180;
+        const cssH = sparkEl.clientHeight || 32;
+        if (sparkEl.width !== cssW * dpr) {
+            sparkEl.width = cssW * dpr;
+            sparkEl.height = cssH * dpr;
+        }
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, cssW, cssH);
+        const history = getFpsHistory().slice(-30); // trailing 30s
+        if (history.length < 2) return;
+        // Use 60fps as the visual ceiling; clamp the floor to 0. A horizontal
+        // reference line at 30fps signals the "noticeable jank" threshold.
+        const max = 60;
+        const xStep = cssW / (history.length - 1);
+        // Reference line at 30fps
+        ctx.strokeStyle = 'rgba(255,255,255,0.10)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        const refY = cssH - (30 / max) * cssH;
+        ctx.moveTo(0, refY); ctx.lineTo(cssW, refY); ctx.stroke();
+        // FPS line — accent color so it reads as the primary signal
+        ctx.strokeStyle = 'rgba(77,184,164,0.95)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        history.forEach((pt, i) => {
+            const fps = Math.max(0, Math.min(max, pt.fps || 0));
+            const x = i * xStep;
+            const y = cssH - (fps / max) * cssH;
+            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+    }
     function _refreshHeadline() {
         const stats = computeFpsStats();
         if (stats.fps > 0) fpsEl.textContent = stats.fps;
@@ -1358,13 +1491,74 @@ function _perfTab(panel) {
         try {
             reduceEl.textContent = document.body?.classList?.contains('sp-reduce-effects') ? 'on' : 'off';
         } catch { reduceEl.textContent = '?'; }
+        _drawFpsSparkline();
     }
 
     function _renderResults(result) {
         if (!result || !result.components.length) {
-            resultsEl.innerHTML = `<div class="sp-cl-empty">${t('No sp:* marks recorded during this capture. Either (a) no instrumented components ran, or (b) ScenePulse isn’t actively rendering. Reproduce the slowdown during the capture window for attribution.')}</div>`;
+            // v6.17.1: empty-state lists what's actually instrumented so users
+            // can confirm whether their slow component is in the manifest at
+            // all. Previously the message implied the user did something
+            // wrong; now it surfaces the actionable info.
+            const manifestRows = INSTRUMENTED_MARKS.map(m => `
+                <li>
+                    <code>${esc(m.mark)}</code>
+                    <span class="sp-di-perf-manifest-desc">${esc(t(m.desc))}</span>
+                    <span class="sp-di-perf-manifest-mod">${esc(m.module)}</span>
+                </li>`).join('');
+            resultsEl.innerHTML = `
+                <div class="sp-cl-empty sp-di-perf-empty">
+                    <div class="sp-di-perf-empty-title">${t('No sp:* marks recorded during this capture')}</div>
+                    <div class="sp-di-perf-empty-body">
+                        ${t('Either (a) no instrumented component ran, or (b) ScenePulse wasn’t actively rendering. Trigger the slowdown DURING the capture window so the observer can attribute it.')}
+                    </div>
+                    <details class="sp-di-perf-manifest">
+                        <summary>${t('Currently instrumented modules')} (${INSTRUMENTED_MARKS.length})</summary>
+                        <ul>${manifestRows}</ul>
+                    </details>
+                </div>`;
             return;
         }
+        // v6.17.1: stacked horizontal bar above the table. Gives at-a-glance
+        // proportion of each component's share of the capture window — the
+        // table has the precise numbers, the bar communicates "this component
+        // dominated" without forcing the user to read percentages.
+        // Top 6 components get distinct colors; the rest collapse to "other".
+        const PALETTE = [
+            '#4db8a4', '#f59e0b', '#a78bfa', '#60a5fa', '#f472b6', '#34d399',
+        ];
+        const top = result.components.slice(0, 6);
+        const rest = result.components.slice(6);
+        const restPct = rest.reduce((sum, c) => sum + (c.pctOfCapture || 0), 0);
+        const segments = top.map((c, i) => ({
+            name: c.name, pct: c.pctOfCapture, color: PALETTE[i],
+        }));
+        if (restPct > 0) segments.push({ name: 'other', pct: Math.round(restPct * 10) / 10, color: 'rgba(255,255,255,0.18)' });
+        const totalPct = segments.reduce((s, g) => s + g.pct, 0);
+        const idleSegment = totalPct < 100 ? { name: 'idle', pct: Math.round((100 - totalPct) * 10) / 10, color: 'rgba(255,255,255,0.04)' } : null;
+        const allSegments = idleSegment ? [...segments, idleSegment] : segments;
+        const stackedBar = `
+            <div class="sp-di-perf-stack" role="img"
+                 aria-label="${t('Capture share by component')}">
+                ${allSegments.filter(s => s.pct > 0.1).map(s => `
+                    <span class="sp-di-perf-stack-seg"
+                          style="flex:${s.pct};background:${s.color}"
+                          title="${esc(s.name)} · ${s.pct}%"></span>`).join('')}
+            </div>
+            <div class="sp-di-perf-stack-legend">
+                ${segments.map((s) => `
+                    <span class="sp-di-perf-stack-key">
+                        <span class="sp-di-perf-stack-swatch" style="background:${s.color}"></span>
+                        <code>${esc(s.name)}</code>
+                        <span class="sp-di-perf-stack-pct">${s.pct}%</span>
+                    </span>`).join('')}
+                ${idleSegment ? `
+                    <span class="sp-di-perf-stack-key sp-di-perf-stack-key-idle">
+                        <span class="sp-di-perf-stack-swatch" style="background:${idleSegment.color}"></span>
+                        <span>${t('idle / unattributed')}</span>
+                        <span class="sp-di-perf-stack-pct">${idleSegment.pct}%</span>
+                    </span>` : ''}
+            </div>`;
         const rows = result.components.map(c => `
             <tr>
                 <td><code>${esc(c.name)}</code></td>
@@ -1379,6 +1573,7 @@ function _perfTab(panel) {
             <div class="sp-di-perf-result-meta">
                 ${t('Capture')}: ${result.durationMs}ms · ${result.components.length} ${t('components')} · ${result.longTasks} ${t('long tasks (>50ms)')}
             </div>
+            ${stackedBar}
             <table class="sp-di-perf-table">
                 <thead><tr>
                     <th>${t('Component')}</th>
@@ -1611,7 +1806,9 @@ const TABS = [
     // matches the reality (Panel B audit).
     { id: 'response', label: 'Responses', render: _lastResponseTab },
     { id: 'network', label: 'Network', render: _netTab, badge: () => netEntryCount() },
-    { id: 'perf', label: 'Perf', render: _perfTab },
+    // v6.17.1: full word "Performance" in the tab; CSS cascades down to "Perf"
+    // at <720px and an icon at <420px so the bar never wraps.
+    { id: 'perf', label: 'Performance', shortLabel: 'Perf', render: _perfTab },
     { id: 'config', label: 'Config', render: _configTab },
 ];
 
@@ -1635,10 +1832,9 @@ export function openDebugInspector(initialTab = 'crashes') {
                     <button class="sp-cl-export-btn sp-di-doctor">${t('Doctor')}</button>
                     <span class="sp-di-info-area">
                         <button class="sp-di-info" type="button" aria-label="${t('What does Doctor do?')}" tabindex="0">
-                            <svg viewBox="0 0 16 16" width="14" height="14" fill="none" aria-hidden="true">
-                                <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.4"/>
-                                <circle cx="8" cy="5.4" r="1.0" fill="currentColor"/>
-                                <path d="M8 7.6v4.0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                            <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+                                <circle cx="8" cy="4.25" r="1.25" fill="currentColor"/>
+                                <rect x="7" y="6.75" width="2" height="6.5" rx="1" fill="currentColor"/>
                             </svg>
                         </button>
                         <div class="sp-di-info-popover" role="tooltip">
@@ -1664,10 +1860,9 @@ export function openDebugInspector(initialTab = 'crashes') {
                     <button class="sp-cl-export-btn sp-di-diagnostics">${t('Diagnostics')}</button>
                     <span class="sp-di-info-area">
                         <button class="sp-di-info" type="button" aria-label="${t('What does Diagnostics do?')}" tabindex="0">
-                            <svg viewBox="0 0 16 16" width="14" height="14" fill="none" aria-hidden="true">
-                                <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.4"/>
-                                <circle cx="8" cy="5.4" r="1.0" fill="currentColor"/>
-                                <path d="M8 7.6v4.0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                            <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+                                <circle cx="8" cy="4.25" r="1.25" fill="currentColor"/>
+                                <rect x="7" y="6.75" width="2" height="6.5" rx="1" fill="currentColor"/>
                             </svg>
                         </button>
                         <div class="sp-di-info-popover" role="tooltip">
@@ -1708,7 +1903,12 @@ export function openDebugInspector(initialTab = 'crashes') {
         btn.className = 'sp-di-tab';
         btn.dataset.tab = tab.id;
         const badge = tab.badge ? tab.badge() : 0;
-        btn.innerHTML = `${esc(t(tab.label))}${badge ? ` <span class="sp-di-tab-badge">${badge}</span>` : ''}`;
+        // v6.17.1: dual-label spans let CSS swap full-word ("Performance") for
+        // a short form ("Perf") at narrow widths instead of truncating mid-word.
+        const longHtml = `<span class="sp-di-tab-long">${esc(t(tab.label))}</span>`;
+        const shortHtml = tab.shortLabel ? `<span class="sp-di-tab-short">${esc(t(tab.shortLabel))}</span>` : '';
+        const badgeHtml = badge ? ` <span class="sp-di-tab-badge">${badge}</span>` : '';
+        btn.innerHTML = `${longHtml}${shortHtml}${badgeHtml}`;
         btn.addEventListener('click', () => _switchTo(tab.id));
         tabsBar.appendChild(btn);
     }

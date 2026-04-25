@@ -68,6 +68,105 @@
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     height: 100%; gap: 14px; color: var(--sp-text-dim);
 }
+/* v6.17.1: vertical step list shown WHILE the doctor is running (replaces the
+   single opaque spinner). Each step row carries a state pill that swaps from
+   "queued" → "running" → "pass/fail/skipped/cancelled" as runDoctor emits
+   onStep events. Phase tag dims to indicate "cheap" vs "connection" so users
+   know which checks may take longer. Cancel button aborts the controller. */
+.sp-di-doctor-progress-wrap {
+    display: flex; flex-direction: column; gap: 10px;
+}
+.sp-di-doctor-progress-head {
+    display: flex; align-items: center; gap: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--sp-border);
+}
+.sp-di-doctor-progress-label {
+    flex: 1; color: var(--sp-text-dim); font-size: var(--sp-fs-xs);
+}
+.sp-di-doctor-cancel {
+    background: transparent; color: #fca5a5;
+    border: 1px solid rgba(252,165,165,0.35); border-radius: 4px;
+    padding: 4px 12px; font-size: var(--sp-fs-xs); font-weight: 600;
+    cursor: pointer; transition: all 0.15s ease;
+    font-family: inherit;
+}
+.sp-di-doctor-cancel:hover { background: rgba(212,80,80,0.12); border-color: rgba(252,165,165,0.6); color: #ff8888; }
+.sp-di-doctor-cancel:disabled { opacity: 0.5; cursor: not-allowed; }
+.sp-di-doctor-steps {
+    list-style: none; padding: 0; margin: 0;
+    display: flex; flex-direction: column; gap: 4px;
+}
+.sp-di-doctor-step {
+    display: grid;
+    grid-template-columns: 88px 1fr auto auto;
+    grid-template-areas: 'pill name phase elapsed' 'pill summary summary summary';
+    align-items: center; column-gap: 12px; row-gap: 2px;
+    padding: 8px 12px;
+    border: 1px solid var(--sp-border);
+    border-left-width: 3px;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.015);
+    transition: border-color 0.18s ease, background 0.18s ease;
+}
+.sp-di-doctor-step-pill {
+    grid-area: pill;
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 3px 8px; border-radius: 3px;
+    font-size: 9px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: rgba(255,255,255,0.05); color: var(--sp-text-dim);
+    min-width: 70px;
+}
+.sp-di-doctor-step-name {
+    grid-area: name;
+    color: var(--sp-text); font-size: var(--sp-fs-sm); font-weight: 600;
+}
+.sp-di-doctor-step-phase {
+    grid-area: phase;
+    color: var(--sp-text-dim); font-size: 9px;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    padding: 2px 6px; border-radius: 3px;
+    background: rgba(255,255,255,0.03);
+}
+.sp-di-doctor-step-elapsed {
+    grid-area: elapsed;
+    color: var(--sp-text-dim); font-size: 10px; font-variant-numeric: tabular-nums;
+    min-width: 48px; text-align: right;
+}
+.sp-di-doctor-step-summary {
+    grid-area: summary;
+    color: var(--sp-text-dim); font-size: 10px;
+    line-height: 1.4;
+}
+/* State coloring — borrows from the result-row palette so users see one
+   consistent vocabulary across the run-time and post-run views. */
+.sp-di-doctor-step-queued { border-left-color: var(--sp-border); }
+.sp-di-doctor-step-pill-queued { background: rgba(255,255,255,0.05); color: var(--sp-text-dim); }
+.sp-di-doctor-step-running { border-left-color: var(--sp-accent); background: rgba(77,184,164,0.04); }
+.sp-di-doctor-step-pill-running {
+    background: rgba(77,184,164,0.18); color: var(--sp-accent);
+    /* Subtle pulsing dot via animated opacity — visible "in-flight" cue. */
+    animation: sp-di-step-pulse 1.2s ease-in-out infinite;
+}
+@keyframes sp-di-step-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+.sp-di-doctor-step-pass { border-left-color: #4ade80; }
+.sp-di-doctor-step-pill-pass { background: rgba(74,222,128,0.16); color: #4ade80; }
+.sp-di-doctor-step-fail { border-left-color: #ef4444; }
+.sp-di-doctor-step-pill-fail { background: rgba(239,68,68,0.18); color: #fca5a5; }
+.sp-di-doctor-step-skipped { border-left-color: rgba(255,255,255,0.15); opacity: 0.78; }
+.sp-di-doctor-step-pill-skipped { background: rgba(255,255,255,0.06); color: var(--sp-text-dim); }
+.sp-di-doctor-step-cancelled { border-left-color: rgba(252,165,165,0.35); opacity: 0.6; }
+.sp-di-doctor-step-pill-cancelled { background: rgba(252,165,165,0.12); color: #fca5a5; }
+/* cancelled-stat pill in the post-run summary line */
+.sp-di-doctor-status-cancelled { color: #fca5a5; }
+@media (max-width: 560px) {
+    .sp-di-doctor-step {
+        grid-template-columns: 76px 1fr auto;
+        grid-template-areas: 'pill name elapsed' 'pill phase phase' 'summary summary summary';
+    }
+    .sp-di-doctor-step-summary { padding-top: 2px; }
+}
 .sp-di-doctor-stats {
     display: flex; align-items: center; gap: 16px;
     padding: 8px 0 12px; border-bottom: 1px solid var(--sp-border);
@@ -225,6 +324,92 @@
     font-family: inherit;
     cursor: pointer;
 }
+/* v6.17.1: FPS metric column gets a small inline sparkline below the value
+   so users see the last 30 seconds at a glance, not just the spot reading. */
+.sp-di-perf-metric-fps { min-width: 200px; }
+.sp-di-perf-fps-spark {
+    width: 180px; height: 32px;
+    margin-top: 4px;
+    background: rgba(0,0,0,0.18);
+    border-radius: 3px;
+}
+/* v6.17.1: stacked horizontal bar + legend above the capture results table.
+   Communicates component proportions without forcing the reader to scan
+   percentages in the table — the bar shows shape, the table shows numbers. */
+.sp-di-perf-stack {
+    display: flex;
+    width: 100%; height: 14px;
+    border-radius: 3px;
+    overflow: hidden;
+    background: rgba(255,255,255,0.04);
+    margin-bottom: 6px;
+    border: 1px solid var(--sp-border);
+}
+.sp-di-perf-stack-seg {
+    transition: filter 0.12s ease;
+    min-width: 1px;
+}
+.sp-di-perf-stack-seg:hover { filter: brightness(1.2); }
+.sp-di-perf-stack-legend {
+    display: flex; flex-wrap: wrap; gap: 8px 14px;
+    margin-bottom: 12px;
+    font-size: 10px; color: var(--sp-text-dim);
+}
+.sp-di-perf-stack-key {
+    display: inline-flex; align-items: center; gap: 4px;
+}
+.sp-di-perf-stack-swatch {
+    display: inline-block; width: 10px; height: 10px; border-radius: 2px;
+    border: 1px solid rgba(255,255,255,0.08);
+}
+.sp-di-perf-stack-pct { font-variant-numeric: tabular-nums; color: var(--sp-text); font-weight: 600; }
+.sp-di-perf-stack-key-idle { opacity: 0.6; font-style: italic; }
+/* v6.17.1: empty-state for capture-with-zero-marks — shows the instrumentation
+   manifest so users can confirm whether their slow component is even being
+   attributed (vs a silent failure mode where the user thinks "nothing wrong"
+   when really the slow code isn't instrumented at all). */
+.sp-di-perf-empty {
+    display: flex; flex-direction: column; gap: 10px;
+    text-align: left;
+    padding: 14px 16px;
+}
+.sp-di-perf-empty-title {
+    color: var(--sp-text); font-weight: 600; font-size: var(--sp-fs-sm);
+}
+.sp-di-perf-empty-body {
+    color: var(--sp-text-dim); font-size: var(--sp-fs-xs); line-height: 1.5;
+}
+.sp-di-perf-manifest {
+    border: 1px solid var(--sp-border); border-radius: 4px;
+    background: rgba(0,0,0,0.18);
+    padding: 6px 10px;
+    font-size: 11px;
+}
+.sp-di-perf-manifest summary {
+    cursor: pointer; color: var(--sp-text-dim); font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.05em; font-size: 10px;
+    padding: 2px 0;
+}
+.sp-di-perf-manifest summary:hover { color: var(--sp-text); }
+.sp-di-perf-manifest ul {
+    list-style: none; padding: 8px 0 4px; margin: 0;
+    display: flex; flex-direction: column; gap: 4px;
+}
+.sp-di-perf-manifest li {
+    display: grid;
+    grid-template-columns: minmax(160px, max-content) 1fr auto;
+    column-gap: 10px;
+    padding: 4px 0;
+    border-top: 1px dashed rgba(255,255,255,0.05);
+    align-items: center;
+}
+.sp-di-perf-manifest li:first-child { border-top: 0; }
+.sp-di-perf-manifest code {
+    background: rgba(0,0,0,0.3); padding: 1px 5px; border-radius: 3px;
+    color: var(--sp-accent); font-family: var(--sp-font-mono); font-size: 10px;
+}
+.sp-di-perf-manifest-desc { color: var(--sp-text); }
+.sp-di-perf-manifest-mod { color: var(--sp-text-dim); font-family: var(--sp-font-mono); font-size: 9px; }
 
 /* v6.16.0: Network tab — slow-request indicator (>10s gets the amber pill). */
 .sp-di-net-slow {
@@ -245,6 +430,11 @@
     align-items: center;
     gap: 4px;
     margin-right: 6px;
+    /* v6.17.1: 8px sibling margin + 8px header flex gap = 16px total between
+       Doctor and Diagnostics. The two buttons were reading as one cluster at
+       8px (they look like related siblings); 16px establishes them as
+       independent header tools. */
+    margin-left: 8px;
 }
 .sp-di-diag-wrap .sp-di-diagnostics {
     color: var(--sp-accent);
@@ -927,6 +1117,24 @@ body.sp-reduce-effects #sp-btn-debug-inspector.sp-di-flash { animation: none; }
     padding: 1px 5px; border-radius: 3px;
     min-width: 14px; text-align: center;
 }
+/* v6.17.1: dual-label cascade. Long form ("Performance") shows on roomy
+   widths; CSS swaps in the short form ("Perf") under 720px so the tab bar
+   never wraps. The short span is hidden by default so non-Performance tabs
+   (which have no shortLabel) display normally. */
+.sp-di-tab-short { display: none; }
+@media (max-width: 720px) {
+    .sp-di-tab .sp-di-tab-long:not(:only-child) { display: none; }
+    .sp-di-tab .sp-di-tab-short { display: inline; }
+    .sp-di-tab { padding: 6px 10px; }
+}
+@media (max-width: 560px) {
+    .sp-di-tab { padding: 6px 8px; font-size: 10px; }
+    .sp-di-tabs { padding: 6px 10px 0; }
+}
+@media (max-width: 420px) {
+    .sp-di-tab { padding: 5px 6px; font-size: 9.5px; letter-spacing: 0.02em; }
+    .sp-di-tab-badge { margin-left: 2px; padding: 0 4px; font-size: 8px; }
+}
 
 .sp-di-tabpanel {
     flex: 1; min-height: 0;
@@ -1017,4 +1225,74 @@ body.sp-reduce-effects #sp-btn-debug-inspector.sp-di-flash { animation: none; }
     background: rgba(77,184,164,0.12); color: var(--sp-accent);
     font-size: 9px; font-weight: 700; letter-spacing: 0.04em;
     text-transform: uppercase; margin-left: 4px; cursor: help;
+}
+
+/* ── v6.17.1: Inspector responsive cascade (720 / 700 / 560 / 420) ─────
+   Audit pass — keep the inspector usable down to phone widths. The 560
+   and 420 breakpoints handle small-tablet and phone-portrait. The 720
+   and 700 breakpoints handle compact laptops and the docked DevTools
+   case (chrome eats horizontal space). Tab cascade lives near the tab
+   styles above; this block addresses header overflow, perf headline
+   wrap, doctor stats wrap, and toolbar wrap risk.
+*/
+@media (max-width: 720px) {
+    /* Header: shrink the inspector title so Doctor + Diag + Close fit on
+       one row. The title stays uppercase but loses some letter-spacing. */
+    .sp-cl-title { font-size: var(--sp-fs-sm); letter-spacing: 0.02em; }
+    /* Tighter padding around action buttons so the row doesn't wrap. */
+    .sp-cl-export-btn { padding: 4px 8px; font-size: 10px; }
+    /* Perf headline metrics may wrap to 2 rows — reduce the gap so the
+       second row is visibly an overflow continuation, not a new section. */
+    .sp-di-perf-headline { gap: 14px; padding: 10px 12px; }
+    .sp-di-perf-metric-fps { min-width: 160px; }
+    .sp-di-perf-fps-spark { width: 140px; }
+}
+@media (max-width: 700px) {
+    /* Issues toolbar three-zone collapses cleanly because each zone wraps
+       independently — but the danger zone's wide isolation gap looks odd
+       once stacked. Tighten it. */
+    .sp-cl-zone-danger { margin-left: auto; }
+    /* Doctor stats line: wrap allowed; move Copy button to its own row. */
+    .sp-di-doctor-stats { flex-wrap: wrap; row-gap: 8px; }
+    .sp-di-doctor-stats .sp-cl-export-btn { margin-left: auto; }
+}
+@media (max-width: 560px) {
+    /* Hide the Doctor sub-headline tagline at this width — title alone
+       is enough; tagline forces the close button onto a second row. */
+    .sp-di-doctor-sub { display: none; }
+    /* Perf headline: drop the larger min-width on the FPS column so it
+       can shrink. Sparkline still shows but at half width. */
+    .sp-di-perf-metric-fps { min-width: auto; flex: 1 0 100%; }
+    .sp-di-perf-fps-spark { width: 100%; max-width: 240px; }
+    /* Honesty banner gets longer at narrow widths — let it breathe. */
+    .sp-di-perf-honesty { font-size: 10px; line-height: 1.45; padding: 8px 12px; }
+    /* Diagnostics info popover positioning: at narrow widths the popover
+       can overflow off the left edge. Anchor to the viewport instead. */
+    .sp-di-info-popover {
+        right: auto; left: 0;
+        width: min(calc(100vw - 24px), 360px);
+    }
+    /* Copy / Clear buttons in tab toolbars get tighter padding. */
+    .sp-di-tabpanel .sp-cl-toolbar { padding: 6px 10px; gap: 4px; }
+}
+@media (max-width: 420px) {
+    /* Smallest supported viewport — phone portrait. Trim padding everywhere
+       so the inspector still fits without a horizontal scrollbar. */
+    .sp-cl-container { width: calc(100vw - 8px); max-height: calc(100vh - 8px); }
+    .sp-cl-header { padding: 8px 10px; gap: 6px; }
+    .sp-cl-header .sp-cl-close { margin-left: 8px; }
+    /* Header buttons go icon-tight to keep Doctor + Diagnostics + Close on one row. */
+    .sp-di-doctor, .sp-di-diagnostics { padding: 4px 8px; font-size: 10px; }
+    .sp-di-diag-wrap { margin-left: 4px; margin-right: 2px; }
+    /* Perf headline: stacked single-column at this width. */
+    .sp-di-perf-headline { flex-direction: column; gap: 8px; padding: 8px 10px; }
+    .sp-di-perf-metric { flex-direction: row; align-items: baseline; gap: 8px; }
+    .sp-di-perf-metric-label { min-width: 90px; }
+    .sp-di-perf-metric-fps { flex-direction: column; align-items: stretch; gap: 4px; }
+    /* Stacked bar + table: column resizes. Force tabular numbers smaller. */
+    .sp-di-perf-table { font-size: 10px; }
+    .sp-di-perf-table th, .sp-di-perf-table td { padding: 4px 5px; }
+    /* Doctor step pill labels can shrink to fit. */
+    .sp-di-doctor-step-pill { min-width: 60px; font-size: 8px; padding: 2px 5px; }
+    .sp-di-doctor-step-name { font-size: var(--sp-fs-xs); }
 }
