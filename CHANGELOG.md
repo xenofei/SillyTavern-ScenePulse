@@ -2,6 +2,38 @@
 
 All notable changes to ScenePulse are documented in this file.
 
+### [6.16.0] — 2026-04-25
+
+#### Added — Network log tab + Doctor button (real-path diagnostic checks)
+
+Conclusion of the 3-panel review for the v6.16 inspector phase. Two substantial new features ship together; both were reshaped from their original spec by panel guidance.
+
+**New `Network` tab** (Panel B specification):
+- New `src/network-log.js` module: 50-entry ring buffer with `record(entry)` and `instrumentedFetch(label, input, init)` helpers
+- **Scoped capture, not global** — wraps only ScenePulse-controlled fetch sites via `instrumentedFetch`. No `window.fetch` monkeypatching (Panel B was emphatic: global interception "eventually breaks something six months later").
+- **Metadata-only schema**: `{id, ts, label, method, urlRedacted, status, latencyMs, reqBytes, respBytes, errorKind, pairId}`. Bodies live in `raw-pairs.js`; storing them again here would double the leak surface.
+- **Redaction on capture** (not on render — a renderer bug then can't leak): URL query strings stripped wholesale; secret-shaped path segments matching `sk-…`, `AIza…`, generic 32+ char tokens replaced with `[KEY]`
+- **`pairId` linkage** (Panel B's "killer feature"): generation entries link back to the raw-pairs entry via stable id. Network row gets a "Show pair" button that jumps to Last Response with the matching pair active.
+- **Failure highlighting**: status ≥ 400 = red, transport failure = red, latency > 10s = amber pill
+- **Instrumented call sites**: `update-check.js` (version + update endpoints) wrapped with `instrumentedFetch`; engine.js generation site adds a synthetic `record()` after `pushPair()` linking the pair via `pairId` (since SillyTavern's `generateRaw` is not a direct fetch we can wrap, but the metadata is what users actually want)
+- New `raw-pairs.js` `id` field added so cross-references work
+
+**New `Doctor` button** (Panel C reshape — was originally "Checks tab"):
+- New `src/doctor.js` module with 5 real-path checks (Panel C: must exercise the actual subsystem, not its prerequisites):
+  1. **Storage write+read+delete** — probe file round-trip via `/api/files/upload`
+  2. **Model echo** — POST a 1-token "reply with: ok" prompt via `ctx.generateRaw`, parse response
+  3. **Schema round-trip** — minimal generation prompt via the LIVE active schema + system prompt; parsed via `cleanJson`. Skipped if model echo fails (saves an API call)
+  4. **Context budget** — local 4-chars-per-token estimate vs the active connection's `max_context`
+  5. **Tokenizer parity** (Panel C's critical missing check) — local estimate vs `ctx.getTokenCountAsync` with a known string; flag if delta > 25%. Skipped if API not available
+- **Three states only** — PASS / FAIL / SKIPPED (Panel C: "kill yellow, it's where false confidence lives")
+- **Each result names its limitation** explicitly so users learn what each color reliably indicates and don't develop false confidence ("PASS — model answered. Does NOT mean the model will follow ScenePulse's schema.")
+- **Manual trigger only** — no auto-run, no background polling, no API burn (Panel C: "alarm-fatigue bait at 1 user / 7 events/day")
+- "Doctor" button placed in inspector header next to Diagnostics; results render as a modal-style panel overlaying the active tab; "Copy results" produces a paste-ready markdown block
+
+All 620/620 tests still pass.
+
+**Phase complete**: per the 3-panel synthesis, Snapshots tab and Reproduce button were dropped (footer sparkline and Copy-to-Workbench shipped instead in v6.15.9), and Checks tab was reshaped to Doctor button. The originally-planned "Network + Reproduce + Checks" v6.16.0 became "Network log + Doctor" via panel guidance.
+
 ### [6.15.9] — 2026-04-25
 
 #### Added — Issues footer sparkline + "Copy → Workbench" button (per 50-panel review for next two phases)

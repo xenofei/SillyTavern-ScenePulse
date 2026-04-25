@@ -15,6 +15,11 @@ import {
 // v6.15.6: also push the (prompt, response) pair into the ring buffer for the
 // Last Response tab + Diagnostics bundle (Panel B's critical-missing add).
 import { pushPair, markLastPairParseFailed } from '../raw-pairs.js';
+// v6.16.0: synthetic network entry per generation, linked to its pair via
+// pairId. SillyTavern's generateRaw is not a direct fetch we can wrap, so
+// we synthesize the entry from the metadata we already have (latency,
+// status proxy, byte counts).
+import { record as recordNetwork } from '../network-log.js';
 import {
     getSettings, getActiveSchema, getActivePrompt, getTrackerData,
     getLatestSnapshot, saveSnapshot, getSnapshotFor, ensureChatSaved,
@@ -323,8 +328,22 @@ export async function generateTracker(mesIdx,partKey,opts){
                 const rawStr=String(raw);
                 const rawLen=rawStr.length;
                 setLastRawResponse(rawStr); // store for debug copy
-                // v6.15.6: also capture the pair for the inspector's pair browser
-                try { pushPair({ prompt, response: rawStr, mesIdx, source: 'engine' }); } catch {}
+                // v6.15.6: also capture the pair for the inspector's pair browser.
+                // v6.16.0: synthesize a network log entry linked to the pair via id.
+                let _capturedPair = null;
+                try { _capturedPair = pushPair({ prompt, response: rawStr, mesIdx, source: 'engine' }); } catch {}
+                try {
+                    recordNetwork({
+                        label: 'generate',
+                        method: 'POST',
+                        url: '(SillyTavern generate)',
+                        status: 200, // we got a response; HTTP-level errors short-circuit earlier
+                        latencyMs: (Date.now() - genStartMs),
+                        reqBytes: prompt.length,
+                        respBytes: rawStr.length,
+                        pairId: _capturedPair?.id || null,
+                    });
+                } catch {}
                 // ── Check if response body IS an error message ──
                 const rawLow=rawStr.substring(0,500).toLowerCase();
                 if(rawLow.includes('"error"')||rawLow.includes('rate limit')||rawLow.includes('unauthorized')||rawLow.includes('forbidden')){

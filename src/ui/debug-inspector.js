@@ -23,6 +23,8 @@ import { esc } from '../utils.js';
 import { debugLog } from '../logger.js';
 import { getLastRawResponse } from '../state.js';
 import { getPairs as rawGetPairs, lastPair as rawLastPair, pairCount as rawPairCount } from '../raw-pairs.js';
+import { getEntries as netGetEntries, addChangeListener as netAddChangeListener, clearAll as netClearAll, entryCount as netEntryCount } from '../network-log.js';
+import { runDoctor } from '../doctor.js';
 import { getEntries as crashGetEntries, clearAll as crashClearAll, flushNow as crashFlushNow, entryCount as crashEntryCount, markSeen as crashMarkSeen } from '../crash-log.js';
 import { getSettings, getTrackerData } from '../settings.js';
 import { getActiveProfile } from '../profiles.js';
@@ -887,6 +889,206 @@ function _issuesTab(panel, ctx = {}) {
     return () => {};
 }
 
+// ── Tab: Network (v6.16.0) ──────────────────────────────────────────────
+//
+// Panel B: scoped network log, metadata-only (bodies live in raw-pairs),
+// 50-entry ring, redaction-on-capture (already done in network-log.js),
+// reuses Issues row template, fail highlighting via left border, click-to-
+// expand row body, pairId linkage to raw-pairs.
+
+function _netTab(panel, ctx = {}) {
+    const switchTo = ctx.switchTo || (() => {});
+    panel.innerHTML = `
+        <div class="sp-cl-toolbar">
+            <span class="sp-di-stats sp-di-net-stats"></span>
+            <span style="flex:1"></span>
+            <button class="sp-cl-export-btn sp-di-net-copy">${t('Copy all')}</button>
+            <button class="sp-cl-export-btn sp-cl-danger sp-di-net-clear">${t('Clear')}</button>
+        </div>
+        <div class="sp-cl-list sp-di-net-list"></div>
+        <div class="sp-cl-footer">
+            <span class="sp-cl-footer-text"></span>
+            <span class="sp-cl-footer-hint">${t('Last 50 outbound requests · metadata only · auto-redacted')}</span>
+        </div>
+    `;
+    const stats = panel.querySelector('.sp-di-net-stats');
+    const list = panel.querySelector('.sp-di-net-list');
+    const footerText = panel.querySelector('.sp-cl-footer-text');
+
+    function _entryToText(e) {
+        return [
+            `[${_fmtTs(e.ts)}] ${e.method} ${e.urlRedacted}`,
+            `Label: ${e.label}`,
+            `Status: ${e.status ?? 'transport-failure'} · Latency: ${e.latencyMs}ms · req=${e.reqBytes}B resp=${e.respBytes}B`,
+            e.errorKind ? `Error: ${e.errorKind}${e.errorMessage ? ' — ' + e.errorMessage : ''}` : '',
+            e.pairId ? `Pair: ${e.pairId}` : '',
+        ].filter(Boolean).join('\n');
+    }
+
+    function _renderRow(e) {
+        // Row severity: 4xx/5xx red; transport failure red; >10s amber; else neutral.
+        let sev = 'info';
+        if (e.errorKind || (e.status && e.status >= 400)) sev = 'error';
+        else if (e.latencyMs > 10000) sev = 'warning';
+        const row = document.createElement('div');
+        row.className = 'sp-cl-row sp-cl-sev-' + sev;
+        const statusBadge = e.status != null
+            ? `<span class="sp-cl-sev-pill sp-cl-sev-pill-${sev}">${e.status}</span>`
+            : `<span class="sp-cl-sev-pill sp-cl-sev-pill-error">ERR</span>`;
+        const latencyBadge = e.latencyMs > 10000
+            ? `<span class="sp-di-net-slow" title="${t('Slow request')}">${(e.latencyMs/1000).toFixed(1)}s</span>`
+            : `<span class="sp-cl-ts">${e.latencyMs}ms</span>`;
+        const pairBtn = e.pairId
+            ? `<button class="sp-btn sp-cl-show-response sp-di-net-jump-pair" data-pair="${esc(e.pairId)}">${t('Show pair')}</button>`
+            : '';
+        row.innerHTML = `
+            <div class="sp-cl-row-header">
+                <span class="sp-cl-chevron">▶</span>
+                ${statusBadge}
+                <span class="sp-cl-src">${esc(e.method)}</span>
+                <span class="sp-cl-msg">${esc(e.label)} · ${esc(e.urlRedacted)}</span>
+                ${latencyBadge}
+                <span class="sp-cl-ts">${esc(_fmtTs(e.ts))}</span>
+            </div>
+            <div class="sp-cl-row-body">
+                <div class="sp-cl-stack-label">${t('Details')}</div>
+                <pre class="sp-cl-context">${esc(_entryToText(e))}</pre>
+                <div class="sp-cl-row-actions">
+                    <button class="sp-btn sp-cl-copy-one">${t('Copy')}</button>
+                    ${pairBtn}
+                </div>
+            </div>
+        `;
+        row.querySelector('.sp-cl-row-header').addEventListener('click', () => row.classList.toggle('sp-cl-open'));
+        row.querySelector('.sp-cl-copy-one').addEventListener('click', ev => {
+            ev.stopPropagation();
+            _copy(_entryToText(e), t('Entry copied'));
+        });
+        const jumpBtn = row.querySelector('.sp-di-net-jump-pair');
+        if (jumpBtn) {
+            jumpBtn.addEventListener('click', ev => {
+                ev.stopPropagation();
+                // Build a fake "fromIssue" payload so the response tab navigator
+                // jumps to the pair whose ts is closest to this network row's ts.
+                switchTo('response', {
+                    fromIssue: { ts: e.ts, message: `network row pair=${e.pairId}` },
+                    scrollToTop: true,
+                });
+            });
+        }
+        return row;
+    }
+
+    function _render() {
+        const all = netGetEntries().slice().reverse();
+        const errs = all.filter(e => e.errorKind || (e.status && e.status >= 400)).length;
+        stats.textContent = `${all.length} ${t('captured')} · ${errs} ${t('failed')}`;
+        list.innerHTML = '';
+        if (!all.length) {
+            list.innerHTML = `<div class="sp-cl-empty">${t('No outbound requests captured yet. ScenePulse network calls (generate, update check, file persist) will appear here.')}</div>`;
+        } else {
+            const frag = document.createDocumentFragment();
+            for (const e of all) frag.appendChild(_renderRow(e));
+            list.appendChild(frag);
+        }
+        footerText.textContent = `${all.length} ${t('shown')}`;
+    }
+
+    panel.querySelector('.sp-di-net-copy').addEventListener('click', () => {
+        const all = netGetEntries().slice().reverse();
+        const text = all.map(_entryToText).join('\n\n' + '─'.repeat(40) + '\n\n');
+        _copy(text, t('Network log copied'));
+    });
+    panel.querySelector('.sp-di-net-clear').addEventListener('click', () => {
+        if (!confirm(t('Clear network log?'))) return;
+        netClearAll();
+        _render();
+    });
+    const _unsub = netAddChangeListener(() => _render());
+
+    _render();
+    return () => { try { _unsub(); } catch {} };
+}
+
+// ── Doctor (v6.16.0) ────────────────────────────────────────────────────
+//
+// Panel C: ship as a manual button in the header next to Diagnostics,
+// not a tab. Three states (PASS / FAIL / SKIPPED — kill yellow). Each
+// result names its limitation explicitly.
+
+let _doctorRunning = false;
+async function _runDoctorAndShow(overlay) {
+    if (_doctorRunning) return;
+    _doctorRunning = true;
+    // Render a modal-style overlay panel inside the inspector container.
+    const existing = overlay.querySelector('.sp-di-doctor-modal');
+    if (existing) existing.remove();
+    const modal = document.createElement('div');
+    modal.className = 'sp-di-doctor-modal';
+    modal.innerHTML = `
+        <div class="sp-di-doctor-header">
+            <div class="sp-di-doctor-title">${t('Doctor')} <span class="sp-di-doctor-sub">${t('real-path diagnostic checks · runs once on demand')}</span></div>
+            <button class="sp-cl-close sp-di-doctor-close">✕</button>
+        </div>
+        <div class="sp-di-doctor-body">
+            <div class="sp-di-doctor-running">
+                <div class="sp-tp-spinner"></div>
+                <div>${t('Running checks…')}</div>
+            </div>
+        </div>
+    `;
+    overlay.querySelector('.sp-cl-container').appendChild(modal);
+    modal.querySelector('.sp-di-doctor-close').addEventListener('click', () => {
+        modal.remove();
+        _doctorRunning = false;
+    });
+    let results = [];
+    try {
+        results = await runDoctor();
+    } catch (e) {
+        modal.querySelector('.sp-di-doctor-body').innerHTML =
+            `<div class="sp-cl-empty">${t('Doctor failed to run')}: ${esc(e?.message || String(e))}</div>`;
+        _doctorRunning = false;
+        return;
+    }
+    // Build results UI
+    const passes = results.filter(r => r.status === 'pass').length;
+    const fails = results.filter(r => r.status === 'fail').length;
+    const skips = results.filter(r => r.status === 'skipped').length;
+    const rows = results.map(r => {
+        const sev = r.status === 'pass' ? 'pass' : r.status === 'fail' ? 'fail' : 'skipped';
+        const detail = r.detail ? `<pre class="sp-cl-context sp-di-doctor-detail">${esc(r.detail)}</pre>` : '';
+        return `
+            <div class="sp-di-doctor-row sp-di-doctor-${sev}">
+                <div class="sp-di-doctor-row-head">
+                    <span class="sp-di-doctor-status sp-di-doctor-status-${sev}">${esc(r.status.toUpperCase())}</span>
+                    <span class="sp-di-doctor-name">${esc(r.name)}</span>
+                    <span class="sp-cl-ts">${r.elapsedMs}ms</span>
+                </div>
+                <div class="sp-di-doctor-summary">${esc(r.summary)}</div>
+                ${detail}
+                <div class="sp-di-doctor-limit">${esc(r.limitation)}</div>
+            </div>`;
+    }).join('');
+    modal.querySelector('.sp-di-doctor-body').innerHTML = `
+        <div class="sp-di-doctor-stats">
+            <span><strong class="sp-di-doctor-status-pass">${passes}</strong> ${t('passed')}</span>
+            <span><strong class="sp-di-doctor-status-fail">${fails}</strong> ${t('failed')}</span>
+            <span><strong class="sp-di-doctor-status-skipped">${skips}</strong> ${t('skipped')}</span>
+            <span style="flex:1"></span>
+            <button class="sp-cl-export-btn sp-di-doctor-copy">${t('Copy results')}</button>
+        </div>
+        ${rows}
+    `;
+    modal.querySelector('.sp-di-doctor-copy').addEventListener('click', () => {
+        const text = `# ScenePulse Doctor — ${new Date().toISOString()}\n\n` + results.map(r =>
+            `## ${r.status.toUpperCase()} · ${r.name} · ${r.elapsedMs}ms\n${r.summary}\nLimitation: ${r.limitation}${r.detail ? '\nDetail: ' + r.detail : ''}`
+        ).join('\n\n');
+        _copy(text, t('Doctor results copied'));
+    });
+    _doctorRunning = false;
+}
+
 // ── Tab: Config (v6.15.5) ───────────────────────────────────────────────
 //
 // Active profile + chat metadata + non-default settings, paste-ready. Per
@@ -1002,10 +1204,12 @@ function _configTab(panel) {
 // not just crashes. Tab id stays 'crashes' for back-compat with openDebugInspector
 // callers that pass the initial tab name.
 // v6.15.5: Config tab added (Panel C: "Config" not "Settings dump").
+// v6.16.0: Network tab added (Panel B: scoped fetch capture, metadata-only).
 const TABS = [
     { id: 'crashes', label: 'Issues', render: _issuesTab, badge: () => crashEntryCount() },
     { id: 'activity', label: 'Activity', render: _activityTab },
     { id: 'response', label: 'Last Response', render: _lastResponseTab },
+    { id: 'network', label: 'Network', render: _netTab, badge: () => netEntryCount() },
     { id: 'config', label: 'Config', render: _configTab },
 ];
 
@@ -1025,6 +1229,7 @@ export function openDebugInspector(initialTab = 'crashes') {
         <div class="sp-cl-container sp-di-container">
             <div class="sp-cl-header">
                 <div class="sp-cl-title">${t('Debug Inspector')}</div>
+                <button class="sp-cl-export-btn sp-di-doctor" title="${t('Run real-path diagnostic checks (model echo, schema round-trip, storage, context budget, tokenizer parity)')}">${t('Doctor')}</button>
                 <div class="sp-di-diag-wrap">
                     <button class="sp-cl-export-btn sp-di-diagnostics">${t('Diagnostics')}</button>
                     <span class="sp-di-info-area">
@@ -1109,6 +1314,11 @@ export function openDebugInspector(initialTab = 'crashes') {
     // v6.15.5: Diagnostics button — bundles activity + response + issues +
     // non-default settings + active profile + versions into a paste-ready
     // markdown block, copies to clipboard, optionally saves as a .md file.
+    // v6.16.0: Doctor button — runs 5 real-path checks on demand. Manual
+    // trigger only (no auto-run, no background polling per Panel C).
+    overlay.querySelector('.sp-di-doctor').addEventListener('click', () => {
+        _runDoctorAndShow(overlay);
+    });
     overlay.querySelector('.sp-di-diagnostics').addEventListener('click', () => {
         let spVersion = '', stVersion = '';
         try {

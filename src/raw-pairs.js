@@ -37,6 +37,9 @@ function _truncate(s, n) {
 export function pushPair(opts) {
     if (!opts || typeof opts !== 'object') return null;
     const pair = {
+        // v6.16.0: stable id for cross-references — Network tab rows link
+        // back to their pair via this id.
+        id: 'pair-' + Math.random().toString(36).slice(2, 10),
         ts: new Date().toISOString(),
         mesIdx: typeof opts.mesIdx === 'number' ? opts.mesIdx : null,
         prompt: _truncate(opts.prompt, MAX_FIELD_CHARS),

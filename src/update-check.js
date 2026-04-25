@@ -5,6 +5,7 @@
 import { log, warn } from './logger.js';
 import { EXTENSION_NAME } from './constants.js';
 import { t } from './i18n.js';
+import { instrumentedFetch } from './network-log.js';
 
 let _updateInfo = null;
 
@@ -19,7 +20,7 @@ function _getHeaders() {
  */
 export async function checkForUpdate() {
     try {
-        const response = await fetch('/api/extensions/version', {
+        const response = await instrumentedFetch('update-check.version', '/api/extensions/version', {
             method: 'POST',
             headers: _getHeaders(),
             body: JSON.stringify({ extensionName: EXTENSION_NAME, global: false }),
@@ -107,7 +108,7 @@ export function showUpdateBanner() {
         installBtn.textContent = t('Updating...');
         banner.classList.add('sp-update-banner-installing');
         try {
-            const resp = await fetch('/api/extensions/update', {
+            const resp = await instrumentedFetch('update-check.update', '/api/extensions/update', {
                 method: 'POST',
                 headers: _getHeaders(),
                 body: JSON.stringify({ extensionName: EXTENSION_NAME, global: false }),
