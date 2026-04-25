@@ -2,6 +2,7 @@
 // Merges a delta JSON response (only changed fields) with a previous full snapshot
 
 import { log, warn } from '../logger.js';
+import { getSettings, saveSettings } from '../settings.js';
 
 // Array fields merged by 'name' key (entity merge)
 const ENTITY_ARRAYS = {
@@ -418,6 +419,19 @@ function mergeEntityArray(prevArr, deltaArr, keyField, useFuzzy, useAliases) {
                 const newLow = _lowKey(merged[keyField]);
                 if (oldLow && prevMap.get(oldLow) === existingIdx) prevMap.delete(oldLow);
                 if (newLow) prevMap.set(newLow, existingIdx);
+                // Migrate portrait override from old name to new name
+                // so user-uploaded photos survive identity reveals
+                try {
+                    const _s = getSettings();
+                    if (_s.charPortraits && oldLow && newLow && oldLow !== newLow) {
+                        if (_s.charPortraits[oldLow] && !_s.charPortraits[newLow]) {
+                            _s.charPortraits[newLow] = _s.charPortraits[oldLow];
+                            delete _s.charPortraits[oldLow];
+                            saveSettings();
+                            log('Portrait migrated:', oldName, '→', merged[keyField]);
+                        }
+                    }
+                } catch (_) { /* settings not available in test context */ }
             }
             _rebuildAliasIndex(existingIdx);
         } else {

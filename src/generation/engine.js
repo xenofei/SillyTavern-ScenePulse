@@ -230,7 +230,7 @@ export async function generateTracker(mesIdx,partKey,opts){
         const ctxText=recent.map(m=>`${m.is_user?'{{user}}':(m.name||'{{char}}')}: ${m.mes}`).join('\n\n');
         const lastSnap=getLatestSnapshot();
         // Filter resolved quests from snapshot before embedding in prompt
-        function _cleanSnapForPrompt(s){const c={...s};for(const k of['mainQuests','sideQuests']){if(Array.isArray(c[k]))c[k]=c[k].filter(q=>q.urgency!=='resolved')}delete c.activeTasks;delete c._spMeta;if(Array.isArray(c.charactersPresent)&&c.charactersPresent.length>0){const ps=new Set(c.charactersPresent.map(n=>(n||'').toLowerCase().trim()));if(Array.isArray(c.characters))c.characters=c.characters.filter(ch=>ps.has((ch.name||'').toLowerCase().trim()));if(Array.isArray(c.relationships))c.relationships=c.relationships.filter(r=>ps.has((r.name||'').toLowerCase().trim()))}return c}
+        function _cleanSnapForPrompt(s){const c={...s};for(const k of['mainQuests','sideQuests']){if(Array.isArray(c[k]))c[k]=c[k].filter(q=>q.urgency!=='resolved')}delete c.activeTasks;delete c._spMeta;if(Array.isArray(c.charactersPresent)&&c.charactersPresent.length>0){const ps=new Set(c.charactersPresent.map(n=>(n||'').toLowerCase().trim()));if(Array.isArray(c.characters)){const present=c.characters.filter(ch=>ps.has((ch.name||'').toLowerCase().trim()));const offScene=c.characters.filter(ch=>!ps.has((ch.name||'').toLowerCase().trim())).map(ch=>({name:ch.name,role:ch.role||'',aliases:ch.aliases||[]}));c.characters=present;if(offScene.length)c._offSceneCharacters=offScene}if(Array.isArray(c.relationships))c.relationships=c.relationships.filter(r=>ps.has((r.name||'').toLowerCase().trim()))}return c}
         let snapCtx='';
         if(lastSnap){
             const allSnaps=getTrackerData().snapshots;
@@ -360,9 +360,23 @@ export async function generateTracker(mesIdx,partKey,opts){
                 setLastDeltaPayload(null);
                 setLastDeltaSavings(0);
                 log('Parsed JSON keys:',Object.keys(parsed).join(', '));
-                for(const[pk,pv]of Object.entries(parsed)){
-                    if(pv&&typeof pv==='object'&&!Array.isArray(pv)){log('  nested object:',pk,'\u2192 keys:',Object.keys(pv).join(', '))}
-                    else if(Array.isArray(pv)){log('  array:',pk,'\u2192 length:',pv.length,pv[0]?'first-keys:'+Object.keys(pv[0]).join(','):'(empty)')}
+                // Full-state mode: preserve off-scene characters/relationships
+                // from the previous snapshot. The LLM only returns characters
+                // in the current scene, but we must keep accumulated data for
+                // characters who left (for wiki, returning-character support).
+                if(lastSnap){
+                    for(const k of['characters','relationships']){
+                        if(Array.isArray(parsed[k])&&Array.isArray(lastSnap[k])){
+                            const newNames=new Set((parsed[k]||[]).map(e=>(e.name||'').toLowerCase().trim()));
+                            for(const prev of lastSnap[k]){
+                                const pn=(prev.name||'').toLowerCase().trim();
+                                if(pn&&!newNames.has(pn)){
+                                    parsed[k].push(JSON.parse(JSON.stringify(prev)));
+                                    log('Full-state: preserved off-scene entity:',prev.name,'in',k);
+                                }
+                            }
+                        }
+                    }
                 }
                 return parsed;
             }catch(e){err(`Parse fail (${a+1}):`,e?.message||String(e))}
@@ -401,8 +415,27 @@ export async function generateTracker(mesIdx,partKey,opts){
                 if(existingSnap){
                     const merged=normalizeTracker(existingSnap);
                     if(allowedFields){
-                        for(const f of allowedFields){if(result[f]!==undefined)merged[f]=result[f]}
-                        log('Section merge: partKey=',partKey,'accepted fields:',allowedFields.join(','),'preserved',Object.keys(merged).length-allowedFields.length,'existing fields');
+                        const _entityArrays={characters:'name',relationships:'name',mainQuests:'name',sideQuests:'name'};
+                        for(const f of allowedFields){
+                            if(result[f]===undefined)continue;
+                            // Entity arrays: merge per-entity to preserve entries
+                            // not in the new response (e.g. off-scene characters)
+                            if(_entityArrays[f]&&Array.isArray(result[f])&&Array.isArray(merged[f])){
+                                const keyField=_entityArrays[f];
+                                const newNames=new Set(result[f].map(e=>(e[keyField]||'').toLowerCase().trim()));
+                                // Update/add entities from result
+                                for(const newE of result[f]){
+                                    const nk=(newE[keyField]||'').toLowerCase().trim();
+                                    const existIdx=merged[f].findIndex(e=>(e[keyField]||'').toLowerCase().trim()===nk);
+                                    if(existIdx>=0)merged[f][existIdx]=newE;
+                                    else merged[f].push(newE);
+                                }
+                                log('Section merge: entity-merged',f,'(',result[f].length,'new,',merged[f].length,'total)');
+                            }else{
+                                merged[f]=result[f];
+                            }
+                        }
+                        log('Section merge: partKey=',partKey,'accepted fields:',allowedFields.join(','));
                     } else {
                         // Custom panel — accept only its field keys
                         const s=getSettings();
@@ -498,7 +531,7 @@ export async function continuationReprompt(narrativeText, opts){
     const lastSnap=getLatestSnapshot();
     let prevState='';
     if(lastSnap){
-        function _cleanSnap(s){const c={...s};for(const k of['mainQuests','sideQuests']){if(Array.isArray(c[k]))c[k]=c[k].filter(q=>q.urgency!=='resolved')}delete c.activeTasks;delete c._spMeta;if(Array.isArray(c.charactersPresent)&&c.charactersPresent.length>0){const ps=new Set(c.charactersPresent.map(n=>(n||'').toLowerCase().trim()));if(Array.isArray(c.characters))c.characters=c.characters.filter(ch=>ps.has((ch.name||'').toLowerCase().trim()));if(Array.isArray(c.relationships))c.relationships=c.relationships.filter(r=>ps.has((r.name||'').toLowerCase().trim()))}return c}
+        function _cleanSnap(s){const c={...s};for(const k of['mainQuests','sideQuests']){if(Array.isArray(c[k]))c[k]=c[k].filter(q=>q.urgency!=='resolved')}delete c.activeTasks;delete c._spMeta;if(Array.isArray(c.charactersPresent)&&c.charactersPresent.length>0){const ps=new Set(c.charactersPresent.map(n=>(n||'').toLowerCase().trim()));if(Array.isArray(c.characters)){const present=c.characters.filter(ch=>ps.has((ch.name||'').toLowerCase().trim()));const offScene=c.characters.filter(ch=>!ps.has((ch.name||'').toLowerCase().trim())).map(ch=>({name:ch.name,role:ch.role||'',aliases:ch.aliases||[]}));c.characters=present;if(offScene.length)c._offSceneCharacters=offScene}if(Array.isArray(c.relationships))c.relationships=c.relationships.filter(r=>ps.has((r.name||'').toLowerCase().trim()))}return c}
         prevState=`\n\nPREVIOUS STATE (carry forward unchanged details, update only what changed):\n${JSON.stringify(_cleanSnap(lastSnap),null,2)}`;
     }
     // v6.9.1: use the shared shouldUseDelta() helper to respect the

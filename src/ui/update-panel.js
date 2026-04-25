@@ -197,7 +197,49 @@ function _openPortraitPicker(characterName) {
     input.click();
 }
 
+// Delegated portrait click handler on document.body — catches ANY
+// .sp-char-portrait click regardless of which panel it's in (main,
+// thoughts, wiki, relationship web). Registered once.
+let _portraitDelegateRegistered=false;
+function _ensurePortraitDelegate(){
+    if(_portraitDelegateRegistered)return;
+    _portraitDelegateRegistered=true;
+    // Helper: find character name from nearest card context
+    function _nameFromPortrait(portrait){
+        const card=portrait.closest('.sp-char-card,.sp-rel-block,.sp-wiki-entry,.sp-char-offscene-stub,.sp-tp-card,.sp-tp-name,.sp-wiki-grid-inner');
+        if(!card)return null;
+        const nameEl=card.querySelector('.sp-char-name,.sp-rel-name,.sp-wiki-name,.sp-char-offscene-name,.sp-tp-name-text,.sp-wiki-grid-name');
+        return nameEl?.textContent?.trim()||null;
+    }
+    document.body.addEventListener('click',(e)=>{
+        // Match both main panel portraits AND wiki avatars
+        const portrait=e.target.closest('.sp-char-portrait,.sp-wiki-avatar-slot,.sp-wiki-avatar');
+        if(!portrait)return;
+        // Only handle ScenePulse portraits (inside #sp-panel, #sp-thought-panel, or .sp-wiki)
+        if(!portrait.closest('#sp-panel,#sp-thought-panel,.sp-wiki-overlay'))return;
+        const name=_nameFromPortrait(portrait);
+        if(!name)return;
+        e.stopPropagation();
+        _openPortraitPicker(name);
+    });
+    document.body.addEventListener('contextmenu',(e)=>{
+        const portrait=e.target.closest('.sp-char-portrait,.sp-wiki-avatar-slot,.sp-wiki-avatar');
+        if(!portrait)return;
+        if(!portrait.closest('#sp-panel,#sp-thought-panel,.sp-wiki-overlay'))return;
+        const name=_nameFromPortrait(portrait);
+        if(!name)return;
+        e.preventDefault();e.stopPropagation();
+        if(getSettings().charPortraits?.[name.toLowerCase().trim()]){
+            clearPortraitOverride(name);
+            toastr.info(t('Portrait cleared'),name);
+            const snap=getLatestSnapshot();
+            if(snap)updatePanel(normalizeTracker(snap),true);
+        }
+    });
+}
+
 export function updatePanel(d,_force=false){
+    _ensurePortraitDelegate();
     // Debounce: skip if called within 150ms of last update (unless forced)
     const _now=performance.now();
     if(!_force&&_now-_lastPanelUpdate<150){return}
@@ -696,7 +738,7 @@ export function updatePanel(d,_force=false){
         // is a canonical form that matches an ST character by alias.
         // Falls back to a bare {name} stub if no character matched.
         const _relPortraitHtml=getPortraitHtml(matchedChar||{name:displayName,aliases:[]},cc.accent,_relPortraitIdx);
-        let hh=`<div class="sp-rel-header">${_relPortraitHtml}<span class="sp-rel-chevron">\u25B6</span><span class="sp-rel-name">${esc(displayName)}</span>`;if(rel.relType)hh+=`<span class="sp-rel-type-badge" data-ft="rel_type">${esc(rel.relType)}</span>`;if(rel.relPhase)hh+=`<span class="sp-rel-phase-badge" data-ft="rel_phase">${esc(rel.relPhase)}</span>`;hh+=`</div>`;bl.innerHTML=hh;bl.querySelector('.sp-rel-header').addEventListener('click',()=>{bl.classList.toggle('sp-card-open')});
+        let hh=`<div class="sp-rel-header">${_relPortraitHtml}<span class="sp-rel-chevron">\u25B6</span><span class="sp-rel-name">${esc(displayName)}</span>`;if(rel.relType)hh+=`<span class="sp-rel-type-badge" data-ft="rel_type">${esc(rel.relType)}</span>`;if(rel.relPhase)hh+=`<span class="sp-rel-phase-badge" data-ft="rel_phase">${esc(rel.relPhase)}</span>`;hh+=`</div>`;bl.innerHTML=hh;bl.querySelector('.sp-rel-header').addEventListener('click',(e)=>{if(e.target.closest('.sp-char-portrait'))return;bl.classList.toggle('sp-card-open')});
         const _body=document.createElement('div');_body.className='sp-rel-body';
         {const meta=document.createElement('div');meta.className='sp-rel-meta';{const ttItem=document.createElement('div');ttItem.className='sp-rel-meta-item';ttItem.dataset.ft='rel_timeknown';ttItem.innerHTML=`<span class="sp-rel-meta-label">${t('Time Known')}</span>`;const ttVal=document.createElement('span');ttVal.textContent=rel.timeTogether||'\u2014';if(!rel.timeTogether){ttItem.classList.add('sp-empty-field');ttVal.dataset.placeholder='Time known'}mkEditable(ttVal,()=>rel.timeTogether||'',v=>{rel.timeTogether=v;const snap=getLatestSnapshot();if(snap){const sr=snap.relationships?.find(r=>r.name===rel.name);if(sr)sr.timeTogether=v}});ttItem.appendChild(ttVal);meta.appendChild(ttItem)}{const msItem=document.createElement('div');msItem.className='sp-rel-meta-item sp-rel-milestone';msItem.dataset.ft='rel_milestone';msItem.innerHTML=`<span class="sp-rel-meta-label">${t('Milestone')}</span>`;const msVal=document.createElement('span');msVal.textContent=rel.milestone||'\u2014';if(!rel.milestone){msItem.classList.add('sp-empty-field');msVal.dataset.placeholder='Milestone'}mkEditable(msVal,()=>rel.milestone||'',v=>{rel.milestone=v;const snap=getLatestSnapshot();if(snap){const sr=snap.relationships?.find(r=>r.name===rel.name);if(sr)sr.milestone=v}});msItem.appendChild(msVal);meta.appendChild(msItem)}_body.appendChild(meta)}
         // Unique per-meter delta icons — emotionally distinct UP and DOWN variants
@@ -889,31 +931,8 @@ export function updatePanel(d,_force=false){
                 e.stopPropagation();
                 await _openMergePicker(ch.name, (d.characters||[]).map(c=>c.name).filter(n=>n&&n!==ch.name));
             });
-            // v6.8.20: click portrait → file picker to upload a replacement
-            // image. Stores as a data: URL in settings.charPortraits so it
-            // persists across reloads without needing file-system access.
-            // Right-click (or long-press) clears the override and falls
-            // back to ST avatar / monogram.
-            const _portraitEl=cd.querySelector('.sp-char-portrait');
-            if(_portraitEl){
-                _portraitEl.addEventListener('click',(e)=>{
-                    e.stopPropagation();
-                    _openPortraitPicker(ch.name);
-                });
-                _portraitEl.addEventListener('contextmenu',async(e)=>{
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const ok=await spConfirm(
-                        t('Clear portrait'),
-                        t('Remove the custom portrait for') + ' "' + ch.name + '"? ' +
-                        t('The tracker will fall back to the SillyTavern avatar or a monogram.')
-                    );
-                    if(!ok)return;
-                    clearPortraitOverride(ch.name);
-                    const snap=getLatestSnapshot();
-                    if(snap)updatePanel(normalizeTracker(snap),true);
-                });
-            }
+            // Portrait upload handled by delegated handler on #sp-panel-body
+            // (click any .sp-char-portrait anywhere → file picker)
             const _cbody=document.createElement('div');_cbody.className='sp-char-body';
 
             // v6.8.17: Per-section icon constants. Each subsection gets a

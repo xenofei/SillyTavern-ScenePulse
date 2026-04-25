@@ -169,13 +169,17 @@
     flex-shrink: 0; border: 1px solid var(--char-border, var(--sp-border));
     display: inline-flex; align-items: center; justify-content: center;
     box-sizing: border-box; overflow: hidden;
+    cursor: pointer; transition: transform 120ms ease, border-color 120ms ease;
 }
+.sp-wiki-avatar:hover { transform: scale(1.06); border-color: var(--char-accent, var(--sp-accent)); }
 .sp-wiki-avatar-slot {
     width: 28px; height: 28px; border-radius: 50%; overflow: hidden;
     flex-shrink: 0; border: 1px solid var(--char-border, var(--sp-border));
     display: inline-flex; align-items: center; justify-content: center;
     box-sizing: border-box;
+    cursor: pointer; transition: transform 120ms ease, border-color 120ms ease;
 }
+.sp-wiki-avatar-slot:hover { transform: scale(1.06); border-color: var(--char-accent, var(--sp-accent)); }
 .sp-wiki-avatar-slot .sp-wiki-avatar { border: none; width: 100%; height: 100%; }
 .sp-wiki-avatar-monogram {
     color: var(--sp-text-bright); font-weight: 700; font-size: var(--sp-fs-sm); line-height: 1;

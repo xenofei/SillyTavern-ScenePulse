@@ -57,12 +57,25 @@ function _getNote(name) { return _getNotes()[name.toLowerCase().trim()] || ''; }
 function _getAvatarUrl() { return buildPortraitIndex(); }
 
 // ── Build wiki entries from snapshot data ──
+//
+// v6.12.4 (issue #11): rebuilt to draw from the cumulative character
+// history (every snapshot, alias-aware) rather than just the latest
+// snapshot's `characters[]`. Previously a character who left the scene
+// and was no longer carried in `latest.characters` would never appear
+// in the wiki, even though the data still lived in earlier snapshots.
+// Now the wiki entry list is sourced from getCharacterHistory() (which
+// walks every snapshot once, alias-resolved), and the per-character
+// data is fetched from the freshest snapshot containing that character.
 function _buildEntries() {
-    const latest = getLatestSnapshot();
+    const data = getTrackerData();
+    const snapKeys = Object.keys(data.snapshots).map(Number).sort((a, b) => a - b);
+    if (!snapKeys.length) return [];
+
+    const latestKey = snapKeys[snapKeys.length - 1];
+    const latest = data.snapshots[String(latestKey)] || null;
     if (!latest) return [];
+
     const norm = normalizeTracker(latest);
-    const chars = norm.characters || [];
-    const rels = norm.relationships || [];
     const cp = (norm.charactersPresent || []).map(n => (n || '').toLowerCase().trim());
     const presentSet = new Set(cp);
 
@@ -73,10 +86,8 @@ function _buildEntries() {
     // lowercased name with the same shape the old inline walker used
     // plus an `aliasesLow` set and `canonical` display name.
     const meta = getCharacterHistory();
-    const data = getTrackerData();
-    const snapKeys = Object.keys(data.snapshots).map(Number).sort((a, b) => a - b);
 
-    const prevSnap = getPrevSnapshot(currentSnapshotMesIdx || snapKeys[snapKeys.length - 1] || 0);
+    const prevSnap = getPrevSnapshot(currentSnapshotMesIdx || latestKey || 0);
     const prevRelMap = {};
     if (prevSnap?.relationships) {
         for (const pr of (Array.isArray(prevSnap.relationships) ? prevSnap.relationships : []))
@@ -91,25 +102,56 @@ function _buildEntries() {
     const stIdx = buildPortraitIndex();
     const _resolve = (ch) => resolvePortraitUrl(ch, stIdx) || '';
     const _describe = (ch, accent) => getPortraitDescriptor(ch, accent, stIdx);
+
+    // v6.12.4: walk snapshots newest-first to find the freshest character /
+    // relationship data for any canonical name. Matches by canonical name OR
+    // any alias the character has ever been recorded under (so a character
+    // who appeared as "Stranger" in snap 0 and "Jenna" in snap 5 with
+    // aliases=["Stranger"] resolves to the snap 5 Jenna entry when looked
+    // up by either name).
+    const _findLatest = (kind, aliasesLow) => {
+        for (let i = snapKeys.length - 1; i >= 0; i--) {
+            const snap = data.snapshots[String(snapKeys[i])];
+            const arr = snap && Array.isArray(snap[kind]) ? snap[kind] : null;
+            if (!arr) continue;
+            for (const item of arr) {
+                const nm = (item?.name || '').toLowerCase().trim();
+                if (!nm) continue;
+                if (aliasesLow.has(nm)) return item;
+                if (Array.isArray(item.aliases)) {
+                    for (const a of item.aliases) {
+                        const al = (a || '').toLowerCase().trim();
+                        if (al && aliasesLow.has(al)) return item;
+                    }
+                }
+            }
+        }
+        return null;
+    };
+
     const entries = [];
     const seen = new Set();
-    for (const ch of chars) {
-        const cn = (ch.name || '').toLowerCase().trim();
-        if (!cn || cn === '?' || seen.has(cn)) continue;
-        seen.add(cn);
-        let rel = rels.find(r => _nameMatch(r.name, ch.name)) || null;
-        // v6.8.29: if the LLM didn't emit a user-facing relationships[]
-        // entry for this character (common for pets — the 5-meter shape
-        // doesn't feel natural for animal NPCs), synthesize a zero-meter
-        // stub so the wiki and relationship web can still show the
-        // character has SOME connection to {{user}}. The relationship
-        // web renders zero-meter stubs as faint gray edges with an
-        // "unspecified" label so users see the tie exists even if the
-        // LLM never quantified it. This matches the behavior
-        // filterForView provides for the main panel.
+
+    // Pass 1: walk character-history's canonical roster — this surfaces
+    // every character ever tracked, regardless of whether they're still
+    // in latest.characters.
+    for (const [canonLow, m] of meta.entries()) {
+        if (!canonLow || canonLow === '?' || seen.has(canonLow)) continue;
+        const aliasesLow = m.aliasesLow || new Set([canonLow]);
+        const ch = _findLatest('characters', aliasesLow);
+        if (!ch) continue;
+        seen.add(canonLow);
+        // Mark every alias as seen so the relationships fallback below
+        // doesn't double-add the same person under an old name.
+        for (const al of aliasesLow) seen.add(al);
+
+        const displayName = m.canonical || ch.name;
+        let rel = _findLatest('relationships', aliasesLow);
+        // v6.8.29: synthesize zero-meter stub when no relationships entry
+        // exists (common for pets). Same shape filterForView provides.
         if (!rel) {
             rel = {
-                name: ch.name,
+                name: displayName,
                 relType: '',
                 relPhase: '',
                 timeTogether: '',
@@ -122,18 +164,33 @@ function _buildEntries() {
                 _spStub: true,
             };
         }
-        const inScene = presentSet.has(cn) || cp.some(p => _nameMatch(p, cn));
-        const m = meta.get(cn) || {};
-        const prevRel = prevRelMap[cn] || null;
-        const cc1 = charColor(ch.name);
+
+        // In-scene check matches against canonical OR any historical alias.
+        let inScene = false;
+        for (const al of aliasesLow) {
+            if (presentSet.has(al)) { inScene = true; break; }
+        }
+        if (!inScene) inScene = cp.some(p => aliasesLow.has(p) || _nameMatch(p, displayName));
+
+        const prevRel = prevRelMap[canonLow] || prevRelMap[(rel.name || '').toLowerCase()] || null;
+        const cc = charColor(displayName);
+        // Use the canonical display name on the entry so the wiki shows
+        // the latest known identity even if the freshest character record
+        // was found under an older alias.
+        const chDisplay = ch.name === displayName ? ch : { ...ch, name: displayName };
         entries.push({
-            name: ch.name, character: ch, relationship: rel, prevRelationship: prevRel, inScene,
+            name: displayName, character: chDisplay, relationship: rel, prevRelationship: prevRel, inScene,
             firstSeen: m.firstSeen || 0, lastSeen: m.lastSeen || 0,
             appearances: m.appearances || 0, lastLocation: m.lastLocation || '',
-            color: cc1, avatarUrl: _resolve(ch), portrait: _describe(ch, cc1.accent),
+            color: cc, avatarUrl: _resolve(chDisplay), portrait: _describe(chDisplay, cc.accent),
         });
     }
-    for (const rel of rels) {
+
+    // Pass 2: relationships in the latest snapshot whose target never
+    // appeared in characters[] anywhere. Rare but possible — the model
+    // sometimes emits a relationship for a character it never fleshed out.
+    const latestRels = Array.isArray(norm.relationships) ? norm.relationships : [];
+    for (const rel of latestRels) {
         const rn = (rel.name || '').toLowerCase().trim();
         if (!rn || seen.has(rn)) continue;
         if ([...seen].some(s => _nameMatch(s, rn))) continue;
@@ -359,7 +416,11 @@ function _renderEntry(e, viewMode) {
         <span class="sp-wiki-status ${statusCls}">${esc(statusText)}</span>
     </div><div class="sp-wiki-entry-body"></div>`;
 
-    card.querySelector('.sp-wiki-entry-header').addEventListener('click', () => card.classList.toggle('sp-card-open'));
+    card.querySelector('.sp-wiki-entry-header').addEventListener('click', (e) => {
+        // Don't toggle card when clicking the avatar (portrait upload handler fires instead)
+        if(e.target.closest('.sp-wiki-avatar-slot,.sp-wiki-avatar,.sp-char-portrait'))return;
+        card.classList.toggle('sp-card-open');
+    });
 
     const body = card.querySelector('.sp-wiki-entry-body');
     let bodyHtml = '';

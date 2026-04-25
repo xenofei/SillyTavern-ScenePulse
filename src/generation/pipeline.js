@@ -54,6 +54,26 @@ export async function processExtraction(mesIdx, extracted, source, opts = {}) {
     } else {
         setLastDeltaPayload(null);
         setLastDeltaSavings(0);
+        // Full-state mode (no prev OR periodic-refresh / deltaMode=off):
+        // preserve off-scene characters/relationships from the previous snapshot.
+        // The LLM only returns characters in the current scene; without this
+        // block, every periodic full-state refresh (default every 15 turns)
+        // permanently drops the off-scene roster from the saved snapshot.
+        // Mirrors engine.js:367-380. (Issue #11)
+        if (prevSnap) {
+            for (const k of ['characters', 'relationships']) {
+                if (Array.isArray(extracted[k]) && Array.isArray(prevSnap[k])) {
+                    const newNames = new Set(extracted[k].map(e => (e.name || '').toLowerCase().trim()));
+                    for (const prev of prevSnap[k]) {
+                        const pn = (prev.name || '').toLowerCase().trim();
+                        if (pn && !newNames.has(pn)) {
+                            extracted[k].push(JSON.parse(JSON.stringify(prev)));
+                            log('Pipeline full-state: preserved off-scene entity:', prev.name, 'in', k);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     // Validate against schema (warnings only, never rejects)
@@ -72,7 +92,10 @@ export async function processExtraction(mesIdx, extracted, source, opts = {}) {
     // Attach metadata (persists per-snapshot for historical browsing)
     // v6.8.50: track deltaTurnsSinceFull for the periodic refresh counter.
     const _prevCounter = (prevSnap?._spMeta?.deltaTurnsSinceFull ?? 0);
-    extracted._spMeta = {
+    // Attach metadata to the NORMALIZED data (not raw extracted) so the
+    // saved snapshot matches what the panel displays. This aligns with
+    // engine.js which also saves normalized data.
+    norm._spMeta = {
         promptTokens,
         completionTokens,
         elapsed,
@@ -83,8 +106,8 @@ export async function processExtraction(mesIdx, extracted, source, opts = {}) {
         deltaTurnsSinceFull: _useDelta ? _prevCounter + 1 : 0,
     };
 
-    // Save snapshot
-    saveSnapshot(mesIdx, extracted);
+    // Save normalized snapshot (consistent with engine.js path)
+    saveSnapshot(mesIdx, norm);
 
     // Update panel
     updatePanel(norm);

@@ -36,7 +36,14 @@ export function buildInlineTrackerPrompt(){
         // this pruning is prompt-only so the LLM sees a focused roster.
         if(Array.isArray(c.charactersPresent)&&c.charactersPresent.length>0){
             const presentSet=new Set(c.charactersPresent.map(n=>(n||'').toLowerCase().trim()));
-            if(Array.isArray(c.characters))c.characters=c.characters.filter(ch=>presentSet.has((ch.name||'').toLowerCase().trim()));
+            // Keep full details for present characters; preserve off-scene
+            // characters as name+role stubs so the LLM can reference them
+            if(Array.isArray(c.characters)){
+                const present=c.characters.filter(ch=>presentSet.has((ch.name||'').toLowerCase().trim()));
+                const offScene=c.characters.filter(ch=>!presentSet.has((ch.name||'').toLowerCase().trim())).map(ch=>({name:ch.name,role:ch.role||'',aliases:ch.aliases||[]}));
+                c.characters=present;
+                if(offScene.length)c._offSceneCharacters=offScene;
+            }
             if(Array.isArray(c.relationships))c.relationships=c.relationships.filter(r=>presentSet.has((r.name||'').toLowerCase().trim()));
         }
         return c;
