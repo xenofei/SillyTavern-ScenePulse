@@ -2,6 +2,31 @@
 
 All notable changes to ScenePulse are documented in this file.
 
+### [6.15.9] — 2026-04-25
+
+#### Added — Issues footer sparkline + "Copy → Workbench" button (per 50-panel review for next two phases)
+
+A 3-panel review (~150 perspectives across timeline-viz, observability tooling, and system-health-check design) reshaped the originally-planned Snapshots tab and Reproduce button. v6.15.9 ships the panel-recommended substitutes; v6.16.0 follows with the substantial Network log + Doctor button.
+
+**Issues tab footer sparkline** (Panel A: skip the dedicated Snapshots tab; a green/red tick strip duplicates surfaces the inspector already has — Issues grouping, pair browser, snapshot browser. Add a footer sparkline instead):
+- 20-bucket unicode block sparkline (`▁▁▁▂▁▁▅▇▂▁▁▁`) showing per-turn snapshot failure density across the current chat
+- Counter format: `Snapshots: 47/52 turns ▁▁▁▂▁▁▅▇▂▁▁▁ (5 failed · last fail @ turn 87)`
+- Failed turns inferred from `crash-log` entries that are scenepulse-source + parse-related + have `mesIdx` in their auto-context (added in v6.15.3)
+- Zero new tab, zero new mental model, ~50 LOC total
+
+**"Copy → Workbench" button on each Last Response pair** (Panel B's safer alternative to a Reproduce button — *"Anthropic Workbench / OpenAI Playground already ARE 'send arbitrary prompt safely' tools. Don't rebuild them inside ScenePulse with worse safety."*):
+- Splits the captured prompt into system + user parts heuristically (looks for `RECENT:` / `Narrative:` markers ScenePulse uses)
+- Outputs `=== SYSTEM ===\n…\n\n=== USER ===\n…` format paste-friendly for both Anthropic Workbench and OpenAI Playground
+- Zero API calls from ScenePulse; user pastes into the official playground which already has every safety property a sandboxed Reproduce would need to build
+- ~80% of the diagnostic value of a Reproduce button at ~5% of the engineering and risk cost
+
+All 620/620 tests still pass.
+
+**Coming next in v6.16.0**: Network log tab (scoped fetch capture, redaction-on-capture, pairId linkage) + Doctor button (5 real-path checks: model echo, schema round-trip, storage probe, context budget, tokenizer parity).
+
+**Dropped per panels**: Snapshots dedicated tab (Panel A), Reproduce button (Panel B — soft no-go in current scope).
+**Reshaped per panels**: Checks tab → Doctor button (Panel C: manual trigger only, kill yellow, each result names its own limitation).
+
 ### [6.15.8] — 2026-04-25
 
 #### Fixed — Diagnostics info popover scope + cleaner visual treatment

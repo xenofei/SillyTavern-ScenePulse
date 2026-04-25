@@ -24,7 +24,7 @@ import { debugLog } from '../logger.js';
 import { getLastRawResponse } from '../state.js';
 import { getPairs as rawGetPairs, lastPair as rawLastPair, pairCount as rawPairCount } from '../raw-pairs.js';
 import { getEntries as crashGetEntries, clearAll as crashClearAll, flushNow as crashFlushNow, entryCount as crashEntryCount, markSeen as crashMarkSeen } from '../crash-log.js';
-import { getSettings } from '../settings.js';
+import { getSettings, getTrackerData } from '../settings.js';
 import { getActiveProfile } from '../profiles.js';
 import { DEFAULTS as DEFAULT_SETTINGS } from '../constants.js';
 
@@ -224,6 +224,47 @@ function _isParseRelated(message) {
     return m.includes('cleanjson') || m.includes('no json object') || m.includes('parse fail');
 }
 
+// v6.15.9: Issues footer sparkline (Panel A's recommended substitute for the
+// dropped Snapshots tab). Builds a 20-char unicode block sparkline showing
+// per-turn snapshot success/fail density across the current chat. Failed
+// turns = highest blocks; successful turns = lowest. Cheap to render — no
+// canvas, no SVG, just text.
+const _SPARK_BLOCKS = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
+function _buildSnapshotSparkline() {
+    let snaps = {};
+    try { snaps = getTrackerData()?.snapshots || {}; } catch {}
+    const turnIds = Object.keys(snaps).map(Number).filter(n => !isNaN(n)).sort((a, b) => a - b);
+    if (turnIds.length === 0) return null;
+    const failedTurnSet = new Set();
+    const fails = crashGetEntries().filter(e =>
+        e.source === 'scenepulse'
+        && _isParseRelated(e.message || '')
+        && e.context?.mesIdx != null);
+    for (const e of fails) failedTurnSet.add(Number(e.context.mesIdx));
+    const totalTurns = turnIds.length;
+    const failCount = failedTurnSet.size;
+    const lastFailTurn = fails.length ? Math.max(...fails.map(e => Number(e.context.mesIdx))) : null;
+    if (totalTurns === 0) return null;
+    // Bucket the turn range into BUCKETS bins; each bin's height = fail count / max bin
+    const BUCKETS = 20;
+    const minId = turnIds[0];
+    const maxId = turnIds[turnIds.length - 1];
+    const span = Math.max(1, maxId - minId);
+    const bins = new Array(BUCKETS).fill(0);
+    for (const turnId of failedTurnSet) {
+        const idx = Math.min(BUCKETS - 1, Math.floor((turnId - minId) / span * BUCKETS));
+        bins[idx]++;
+    }
+    const maxBin = Math.max(1, ...bins);
+    const spark = bins.map(v => {
+        if (v === 0) return _SPARK_BLOCKS[0];
+        const ratio = v / maxBin;
+        const idx = Math.min(_SPARK_BLOCKS.length - 1, Math.ceil(ratio * (_SPARK_BLOCKS.length - 1)));
+        return _SPARK_BLOCKS[idx];
+    }).join('');
+    return { spark, totalTurns, failCount, lastFailTurn };
+}
+
 // v6.15.3: pattern-match common error messages to a one-line cause hint.
 // Returns '' when no pattern matches — callers should not render the section.
 // Keep these short; the goal is to orient the user, not write documentation.
@@ -406,6 +447,7 @@ function _lastResponseTab(panel, ctx = {}) {
         <div class="sp-cl-toolbar">
             <button class="sp-cl-export-btn sp-di-copy">${t('Copy response')}</button>
             <button class="sp-cl-export-btn sp-di-copy-pair">${t('Copy pair')}</button>
+            <button class="sp-cl-export-btn sp-di-copy-workbench" title="${t('Copy formatted for paste into Anthropic Workbench / OpenAI Playground')}">${t('Copy → Workbench')}</button>
             <button class="sp-cl-export-btn sp-di-export">${t('Export TXT')}</button>
             <span class="sp-di-stats sp-di-meta"></span>
             ${payload.fromIssue ? `<span class="sp-di-from-issue">${t('Opened from')} <code>${esc((payload.fromIssue.message || '').slice(0, 60))}…</code></span>` : ''}
@@ -479,6 +521,26 @@ function _lastResponseTab(panel, ctx = {}) {
         }
         const text = `# Prompt sent (${pair.prompt.length} chars)\n\n${pair.prompt}\n\n---\n\n# Response received (${pair.response.length} chars) · source=${pair.source} · ${pair.parseFailed ? 'PARSE FAILED' : 'parsed OK'}\n\n${pair.response}`;
         _copy(text, t('Pair copied'));
+    });
+    // v6.15.9: "Copy → Workbench" — Panel B's safer alternative to a Reproduce
+    // button. Formats the captured pair so the user can paste straight into
+    // Anthropic Workbench / OpenAI Playground and re-run there. Zero API
+    // risk, zero state mutation, zero recursive triage. The format below is
+    // accepted by both Workbench (system + user) and Playground.
+    panel.querySelector('.sp-di-copy-workbench').addEventListener('click', () => {
+        const pair = hasPairs ? pairs[activeIdx] : null;
+        if (!pair || !pair.prompt) {
+            try { toastr.warning(t('No prompt captured for this pair')); } catch {}
+            return;
+        }
+        // ScenePulse's prompt is built as `${sysPr}\n\nRECENT:\n${ctxText}…`
+        // — the system part is everything before the first "RECENT:" or "Narrative:"
+        // marker. Split heuristically; fall back to "all-as-user" if no split point.
+        const splitMatch = pair.prompt.match(/\n\n(RECENT:|Narrative:)/);
+        const sysPart = splitMatch ? pair.prompt.slice(0, splitMatch.index) : '';
+        const userPart = splitMatch ? pair.prompt.slice(splitMatch.index + 2) : pair.prompt;
+        const wb = `=== SYSTEM ===\n${sysPart || '(no system prompt extracted — paste this whole block as the user message)'}\n\n=== USER ===\n${userPart}`;
+        _copy(wb, t('Workbench format copied'));
     });
     panel.querySelector('.sp-di-export').addEventListener('click', () => {
         const ts = new Date().toISOString().replace(/[:.]/g, '-');
@@ -602,11 +664,13 @@ function _issuesTab(panel, ctx = {}) {
         <div class="sp-cl-list sp-di-crash-list"></div>
         <div class="sp-cl-footer">
             <span class="sp-cl-footer-text"></span>
+            <span class="sp-di-spark" title="${t('Snapshot success per turn — last 20 buckets')}"></span>
             <span class="sp-cl-footer-hint">${t('Stored in your user data folder.')}</span>
         </div>
     `;
     const list = panel.querySelector('.sp-di-crash-list');
     const footerText = panel.querySelector('.sp-cl-footer-text');
+    const sparkEl = panel.querySelector('.sp-di-spark');
 
     function _windowCutoff() {
         const w = TIME_WINDOWS.find(x => x.key === timeWindow);
@@ -763,6 +827,20 @@ function _issuesTab(panel, ctx = {}) {
         footerText.textContent = groupCount === eventCount
             ? `${groupCount} ${t('shown')} · ${allChrono.length} ${t('total')}`
             : `${groupCount} ${t('groups')} · ${eventCount} ${t('events')} · ${allChrono.length} ${t('total')}`;
+        // v6.15.9: snapshot-success sparkline in the footer (Panel A's substitute
+        // for a dedicated Snapshots tab — same diagnostic value, zero new tab).
+        if (sparkEl) {
+            const s = _buildSnapshotSparkline();
+            if (s) {
+                const passed = s.totalTurns - s.failCount;
+                const lastFailStr = s.lastFailTurn != null
+                    ? ` · ${t('last fail @ turn')} ${s.lastFailTurn}`
+                    : '';
+                sparkEl.innerHTML = `${t('Snapshots')}: ${passed}/${s.totalTurns} <code class="sp-di-spark-text">${esc(s.spark)}</code> (${s.failCount} ${t('failed')}${lastFailStr})`;
+            } else {
+                sparkEl.textContent = '';
+            }
+        }
     }
 
     let _searchT;
