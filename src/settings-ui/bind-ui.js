@@ -12,7 +12,7 @@ import {
     getLatestSnapshot, getTrackerData,
     refreshLorebookDisplay, updateLorebookRec
 } from '../settings.js';
-import { genNonce, genMeta, lastGenSource, setLastGenSource, lastRawResponse } from '../state.js';
+import { genNonce, genMeta, setLastGenSource } from '../state.js';
 import { updatePanel } from '../ui/update-panel.js';
 import { hidePanel, _applyFontScale as _applyFontScaleFromUI, updateFeatBadge } from '../ui/panel.js';
 import { updateThoughts } from '../ui/thoughts.js';
@@ -351,64 +351,16 @@ export function bindUI(){const s=getSettings();
             toastr.success('Config imported from '+file.name);log('Config imported:',Object.keys(imported).join(', '));
         }catch(e){toastr.error('Failed to import: '+e?.message);warn('Import config:',e)}
     });
-    $('#sp-btn-debug').on('click',()=>{const _t='ScenePulse Debug ('+new Date().toISOString()+')\n'+debugLog.join('\n');navigator.clipboard.writeText(_t).then(()=>toastr.success(t('SP Log copied')+' ('+debugLog.length+')')).catch(()=>{const ta=document.createElement('textarea');ta.value=_t;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);toastr.success(t('SP Log copied'))})});
-    $('#sp-btn-copy-response').on('click',()=>{
-        if(!lastRawResponse){toastr.warning(t('No API response captured yet'));return}
-        const _t='ScenePulse Last API Response ('+new Date().toISOString()+')\nLength: '+lastRawResponse.length+' chars\n\n'+lastRawResponse;
-        navigator.clipboard.writeText(_t).then(()=>toastr.success(t('Last response copied')+' ('+lastRawResponse.length+')')).catch(()=>toastr.error(t('Copy failed')));
-    });
-    let debugRefreshInterval=null;
-    function refreshDebugViewer(){
-        const body=document.getElementById('sp-debug-body');
-        const count=document.getElementById('sp-debug-count');
-        if(!body)return;
-        const errs=debugLog.filter(e=>e.includes('[ERROR')).length;
-        const warns=debugLog.filter(e=>e.includes('[WARN')).length;
-        const audits=debugLog.filter(e=>e.includes('AUDIT')).length;
-        if(count)count.textContent=`(${debugLog.length} entries \u00B7 ${errs} errors \u00B7 ${warns} warnings \u00B7 ${audits} audits)`;
-        // Only full rebuild if count changed
-        if(body.children.length!==debugLog.length){
-            body.innerHTML='';
-            for(const entry of debugLog){
-                const line=document.createElement('div');
-                line.className='sp-debug-line';
-                if(entry.includes('[ERROR'))line.classList.add('sp-debug-error');
-                else if(entry.includes('[WARN'))line.classList.add('sp-debug-warn');
-                else if(entry.includes('AUDIT'))line.classList.add('sp-debug-audit');
-                else if(entry.includes('==='))line.classList.add('sp-debug-section');
-                else if(entry.includes('Unwrap:'))line.classList.add('sp-debug-unwrap');
-                line.textContent=entry;
-                body.appendChild(line);
-            }
-            body.scrollTop=body.scrollHeight;
-        }
-    }
-    $('#sp-btn-debug-view').on('click',()=>{
-        const viewer=document.getElementById('sp-debug-viewer');if(!viewer)return;
-        const isVisible=viewer.style.display!=='none';
-        viewer.style.display=isVisible?'none':'block';
-        if(!isVisible){
-            refreshDebugViewer();
-            debugRefreshInterval=setInterval(refreshDebugViewer,1500);
-        }else{
-            if(debugRefreshInterval){clearInterval(debugRefreshInterval);debugRefreshInterval=null}
-        }
-    });
-    $('#sp-debug-close').on('click',()=>{const v=document.getElementById('sp-debug-viewer');if(v)v.style.display='none';if(debugRefreshInterval){clearInterval(debugRefreshInterval);debugRefreshInterval=null}});
-    $('#sp-debug-copy-inline').on('click',()=>{const _t='ScenePulse Debug ('+new Date().toISOString()+')\n'+debugLog.join('\n');navigator.clipboard.writeText(_t).then(()=>toastr.success(t('Debug log copied'))).catch(()=>toastr.error(t('Copy failed')))});
-    // v6.12.5 (issue #13): crash log viewer — lazy-imported so the
-    // viewer module isn't pulled in unless the user opens it.
-    $('#sp-btn-crash-log').on('click',async()=>{
+    // v6.12.8 (issue #13 follow-up): single Debug Inspector button replaces
+    // SP Log / View Log / Last Response / Crash Log. Module is lazy-imported
+    // so the viewer code isn't loaded until the user actually opens it.
+    $('#sp-btn-debug-inspector').on('click',async()=>{
         try {
-            const m = await import('../ui/crash-log-viewer.js');
-            m.openCrashLogViewer();
-            // Refresh the count badge after the viewer is opened (and again
-            // periodically while it's open via the count update on close).
-            const badge = document.getElementById('sp-crash-log-count');
-            if (badge) badge.textContent = m.getCrashLogCount() ? `(${m.getCrashLogCount()})` : '';
-        } catch (e) { warn('Crash log viewer:', e?.message); }
+            const m = await import('../ui/debug-inspector.js');
+            m.openDebugInspector();
+        } catch (e) { warn('Debug inspector:', e?.message); }
     });
-    // Initial badge update
+    // Initial crash count badge on the inspector button
     try {
         import('../crash-log.js').then(m => {
             const badge = document.getElementById('sp-crash-log-count');
