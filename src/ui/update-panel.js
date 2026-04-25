@@ -2,6 +2,10 @@
 import { log } from '../logger.js';
 import { esc, clamp, str, spConfirm } from '../utils.js';
 import { relPhaseFamily } from '../rel-phase.js';
+// v6.17.0: instrument the main panel render so the perf-monitor's capture
+// mode can attribute paint cost to ScenePulse's biggest hot path. Marks
+// fire on every call but are only OBSERVED during capture.
+import { markStart as _spPmStart, markEnd as _spPmEnd } from '../perf-monitor.js';
 import { t } from '../i18n.js';
 import { DEFAULTS } from '../constants.js';
 import { getSettings, saveSettings } from '../settings.js';
@@ -240,6 +244,11 @@ function _ensurePortraitDelegate(){
 }
 
 export function updatePanel(d,_force=false){
+    _spPmStart('sp:panel-update');
+    try { return _updatePanelInner(d, _force); }
+    finally { _spPmEnd('sp:panel-update'); }
+}
+function _updatePanelInner(d,_force=false){
     _ensurePortraitDelegate();
     // Debounce: skip if called within 150ms of last update (unless forced)
     const _now=performance.now();

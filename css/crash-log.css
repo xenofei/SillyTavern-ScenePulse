@@ -122,6 +122,110 @@
     padding-top: 4px; border-top: 1px dashed rgba(255,255,255,0.05);
 }
 
+/* v6.17.0: Perf tab — Panel A MVP. Headline strip with FPS + p95 +
+   animation count + SP layer count + reduce-effects state. Honesty
+   tooltip. Capture button + sortable component-attribution table. */
+.sp-di-perf-headline {
+    display: flex; gap: 18px; flex-wrap: wrap;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--sp-border);
+    background: rgba(0,0,0,0.12);
+}
+.sp-di-perf-metric {
+    display: flex; flex-direction: column; gap: 2px;
+}
+.sp-di-perf-metric-label {
+    color: var(--sp-text-dim);
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+.sp-di-perf-metric-value {
+    color: var(--sp-text);
+    font-size: var(--sp-fs-md);
+    font-weight: 700;
+    font-family: var(--sp-font-mono);
+}
+.sp-di-perf-honesty {
+    padding: 8px 14px;
+    background: rgba(91,140,196,0.06);
+    border-bottom: 1px solid var(--sp-border);
+    color: var(--sp-text);
+    font-size: 11px;
+    line-height: 1.5;
+}
+.sp-di-perf-honesty strong {
+    color: var(--sp-blue);
+    margin-right: 4px;
+    font-weight: 600;
+}
+.sp-di-perf-status { padding: 0 14px; }
+.sp-di-perf-capturing {
+    padding: 10px 12px;
+    margin: 8px 0;
+    background: rgba(245,158,11,0.08);
+    border-left: 3px solid #fcd34d;
+    border-radius: 3px;
+    color: var(--sp-text);
+    font-size: var(--sp-fs-xs);
+}
+.sp-di-perf-results {
+    flex: 1; min-height: 0; overflow-y: auto;
+    padding: 8px 14px;
+}
+.sp-di-perf-result-meta {
+    color: var(--sp-text-dim);
+    font-size: 10px;
+    padding: 4px 0 8px;
+    border-bottom: 1px dashed rgba(255,255,255,0.05);
+    margin-bottom: 8px;
+}
+.sp-di-perf-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--sp-fs-xs);
+}
+.sp-di-perf-table th {
+    text-align: left;
+    padding: 6px 8px;
+    color: var(--sp-text-dim);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 9px;
+    border-bottom: 1px solid var(--sp-border);
+}
+.sp-di-perf-table td {
+    padding: 6px 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    color: var(--sp-text);
+}
+.sp-di-perf-table tr:hover td { background: rgba(255,255,255,0.02); }
+.sp-di-perf-table code {
+    background: rgba(0,0,0,0.25);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--sp-text);
+    font-family: var(--sp-font-mono);
+    font-size: 10px;
+}
+.sp-di-perf-num {
+    text-align: right;
+    font-family: var(--sp-font-mono);
+    font-variant-numeric: tabular-nums;
+}
+.sp-di-perf-duration {
+    background: var(--sp-surface);
+    color: var(--sp-text);
+    border: 1px solid var(--sp-border);
+    border-radius: 3px;
+    padding: 3px 6px;
+    font-size: var(--sp-fs-xs);
+    font-family: inherit;
+    cursor: pointer;
+}
+
 /* v6.16.0: Network tab — slow-request indicator (>10s gets the amber pill). */
 .sp-di-net-slow {
     flex-shrink: 0; color: #fcd34d;

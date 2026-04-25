@@ -25,6 +25,11 @@ import { getLastRawResponse } from '../state.js';
 import { getPairs as rawGetPairs, lastPair as rawLastPair, pairCount as rawPairCount } from '../raw-pairs.js';
 import { getEntries as netGetEntries, addChangeListener as netAddChangeListener, clearAll as netClearAll, entryCount as netEntryCount } from '../network-log.js';
 import { runDoctor } from '../doctor.js';
+import {
+    startFpsSampling, stopFpsSampling, addFpsListener, computeFpsStats,
+    getAnimationCount, getScenePulseLayerCount,
+    startCapture, stopCapture, isCapturing,
+} from '../perf-monitor.js';
 import { getEntries as crashGetEntries, clearAll as crashClearAll, flushNow as crashFlushNow, entryCount as crashEntryCount, markSeen as crashMarkSeen } from '../crash-log.js';
 import { getSettings, getTrackerData } from '../settings.js';
 import { getActiveProfile } from '../profiles.js';
@@ -1276,6 +1281,167 @@ async function _runDoctorAndShow(overlay) {
     _doctorRunning = false;
 }
 
+// ── Tab: Perf (v6.17.0) ─────────────────────────────────────────────────
+//
+// Panel A's MVP scope. Headline strip (FPS, p95 frame, animation count,
+// ScenePulse layer count) — always sampled when this tab is open. Capture
+// button to start a 30s window with full PerformanceObserver instrumentation
+// — produces a sortable component-attribution table from sp:* marks.
+//
+// Honest tooltip: "Proxy metrics — browsers don't expose true GPU load".
+// Refuses to confabulate a synthesized GPU% number (Panel A: "destroys
+// trust in every other number on the panel").
+
+function _perfTab(panel) {
+    let _fpsUnsub = null;
+    let _strip = null;
+    let _refreshTimer = null;
+
+    panel.innerHTML = `
+        <div class="sp-cl-toolbar">
+            <select class="sp-di-perf-duration sp-cl-export-btn">
+                <option value="10000">${t('Capture 10s')}</option>
+                <option value="30000" selected>${t('Capture 30s')}</option>
+                <option value="60000">${t('Capture 60s')}</option>
+                <option value="120000">${t('Capture 120s')}</option>
+            </select>
+            <button class="sp-cl-export-btn sp-di-perf-capture">${t('Start capture')}</button>
+            <span style="flex:1"></span>
+            <button class="sp-cl-export-btn sp-di-perf-copy">${t('Copy results')}</button>
+        </div>
+        <div class="sp-di-perf-headline">
+            <div class="sp-di-perf-metric">
+                <span class="sp-di-perf-metric-label">${t('FPS')}</span>
+                <span class="sp-di-perf-metric-value sp-di-perf-fps">—</span>
+            </div>
+            <div class="sp-di-perf-metric">
+                <span class="sp-di-perf-metric-label">${t('p95 frame')}</span>
+                <span class="sp-di-perf-metric-value sp-di-perf-p95">—</span>
+            </div>
+            <div class="sp-di-perf-metric">
+                <span class="sp-di-perf-metric-label">${t('Animations')}</span>
+                <span class="sp-di-perf-metric-value sp-di-perf-anim">—</span>
+            </div>
+            <div class="sp-di-perf-metric">
+                <span class="sp-di-perf-metric-label">${t('SP layers')}</span>
+                <span class="sp-di-perf-metric-value sp-di-perf-layers">—</span>
+            </div>
+            <div class="sp-di-perf-metric">
+                <span class="sp-di-perf-metric-label">${t('Reduce effects')}</span>
+                <span class="sp-di-perf-metric-value sp-di-perf-reduce">—</span>
+            </div>
+        </div>
+        <div class="sp-di-perf-honesty">
+            <strong>${t('ⓘ Proxy metrics:')}</strong> ${t('browsers don’t expose true GPU load. We measure FPS, frame variance, animation count, and ScenePulse-attributed paint via instrumented marks. Capture mode attaches a PerformanceObserver to attribute paint cost to specific ScenePulse components (sp:* marks); always-on stays cheap.')}
+        </div>
+        <div class="sp-di-perf-status"></div>
+        <div class="sp-di-perf-results"></div>
+    `;
+    const fpsEl = panel.querySelector('.sp-di-perf-fps');
+    const p95El = panel.querySelector('.sp-di-perf-p95');
+    const animEl = panel.querySelector('.sp-di-perf-anim');
+    const layersEl = panel.querySelector('.sp-di-perf-layers');
+    const reduceEl = panel.querySelector('.sp-di-perf-reduce');
+    const statusEl = panel.querySelector('.sp-di-perf-status');
+    const resultsEl = panel.querySelector('.sp-di-perf-results');
+    const captureBtn = panel.querySelector('.sp-di-perf-capture');
+    const durSel = panel.querySelector('.sp-di-perf-duration');
+    const copyBtn = panel.querySelector('.sp-di-perf-copy');
+    let _lastResult = null;
+
+    function _refreshHeadline() {
+        const stats = computeFpsStats();
+        if (stats.fps > 0) fpsEl.textContent = stats.fps;
+        if (stats.frameP95Ms > 0) p95El.textContent = stats.frameP95Ms + 'ms';
+        animEl.textContent = getAnimationCount();
+        layersEl.textContent = getScenePulseLayerCount();
+        try {
+            reduceEl.textContent = document.body?.classList?.contains('sp-reduce-effects') ? 'on' : 'off';
+        } catch { reduceEl.textContent = '?'; }
+    }
+
+    function _renderResults(result) {
+        if (!result || !result.components.length) {
+            resultsEl.innerHTML = `<div class="sp-cl-empty">${t('No sp:* marks recorded during this capture. Either (a) no instrumented components ran, or (b) ScenePulse isn’t actively rendering. Reproduce the slowdown during the capture window for attribution.')}</div>`;
+            return;
+        }
+        const rows = result.components.map(c => `
+            <tr>
+                <td><code>${esc(c.name)}</code></td>
+                <td class="sp-di-perf-num">${c.totalMs}</td>
+                <td class="sp-di-perf-num">${c.count}</td>
+                <td class="sp-di-perf-num">${c.avgMs}</td>
+                <td class="sp-di-perf-num">${c.maxMs}</td>
+                <td class="sp-di-perf-num">${c.pctOfCapture}%</td>
+            </tr>
+        `).join('');
+        resultsEl.innerHTML = `
+            <div class="sp-di-perf-result-meta">
+                ${t('Capture')}: ${result.durationMs}ms · ${result.components.length} ${t('components')} · ${result.longTasks} ${t('long tasks (>50ms)')}
+            </div>
+            <table class="sp-di-perf-table">
+                <thead><tr>
+                    <th>${t('Component')}</th>
+                    <th class="sp-di-perf-num">${t('Total ms')}</th>
+                    <th class="sp-di-perf-num">${t('Calls')}</th>
+                    <th class="sp-di-perf-num">${t('Avg ms')}</th>
+                    <th class="sp-di-perf-num">${t('Max ms')}</th>
+                    <th class="sp-di-perf-num">${t('% of capture')}</th>
+                </tr></thead>
+                <tbody>${rows}</tbody>
+            </table>
+        `;
+    }
+
+    captureBtn.addEventListener('click', async () => {
+        if (isCapturing()) return;
+        const dur = parseInt(durSel.value, 10) || 30000;
+        captureBtn.disabled = true;
+        captureBtn.textContent = `${t('Capturing')} (${Math.round(dur/1000)}s)…`;
+        statusEl.innerHTML = `<div class="sp-di-perf-capturing">${t('Reproduce the issue now. Capture ends in')} ${Math.round(dur/1000)}s.</div>`;
+        try {
+            _lastResult = await startCapture(dur);
+            _renderResults(_lastResult);
+            statusEl.innerHTML = '';
+        } catch (e) {
+            statusEl.innerHTML = `<div class="sp-cl-empty">${t('Capture failed')}: ${esc(e?.message || String(e))}</div>`;
+        } finally {
+            captureBtn.disabled = false;
+            captureBtn.textContent = t('Start capture');
+        }
+    });
+
+    copyBtn.addEventListener('click', () => {
+        if (!_lastResult) {
+            try { toastr.warning(t('Run a capture first')); } catch {}
+            return;
+        }
+        const lines = [
+            `# ScenePulse Perf Capture — ${new Date().toISOString()}`,
+            `Duration: ${_lastResult.durationMs}ms · ${_lastResult.components.length} components · ${_lastResult.longTasks} long tasks`,
+            '',
+            'Component | Total ms | Calls | Avg ms | Max ms | % of capture',
+            '---|---|---|---|---|---',
+            ..._lastResult.components.map(c =>
+                `${c.name} | ${c.totalMs} | ${c.count} | ${c.avgMs} | ${c.maxMs} | ${c.pctOfCapture}%`),
+        ];
+        _copy(lines.join('\n'), t('Perf results copied'));
+    });
+
+    // Wire FPS sampler — start when tab opens, stop when disposed
+    startFpsSampling();
+    _fpsUnsub = addFpsListener(_refreshHeadline);
+    _refreshHeadline();
+    // Refresh headline once a second even if FPS hasn't notified yet
+    _refreshTimer = setInterval(_refreshHeadline, 1000);
+
+    return () => {
+        if (_fpsUnsub) try { _fpsUnsub(); } catch {}
+        stopFpsSampling();
+        if (_refreshTimer) clearInterval(_refreshTimer);
+    };
+}
+
 // ── Tab: Config (v6.15.5) ───────────────────────────────────────────────
 //
 // Active profile + chat metadata + non-default settings, paste-ready. Per
@@ -1435,6 +1601,8 @@ function _configTab(panel) {
 // callers that pass the initial tab name.
 // v6.15.5: Config tab added (Panel C: "Config" not "Settings dump").
 // v6.16.0: Network tab added (Panel B: scoped fetch capture, metadata-only).
+// v6.17.0: Perf tab added (Panel A MVP: FPS headline + capture mode for
+// component attribution via sp:* marks).
 const TABS = [
     { id: 'crashes', label: 'Issues', render: _issuesTab, badge: () => crashEntryCount() },
     { id: 'activity', label: 'Activity', render: _activityTab },
@@ -1443,6 +1611,7 @@ const TABS = [
     // matches the reality (Panel B audit).
     { id: 'response', label: 'Responses', render: _lastResponseTab },
     { id: 'network', label: 'Network', render: _netTab, badge: () => netEntryCount() },
+    { id: 'perf', label: 'Perf', render: _perfTab },
     { id: 'config', label: 'Config', render: _configTab },
 ];
 

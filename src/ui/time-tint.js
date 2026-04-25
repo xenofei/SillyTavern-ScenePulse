@@ -2,8 +2,15 @@
 import { getSettings } from '../settings.js';
 import { currentTimePeriod, setCurrentTimePeriod } from '../state.js';
 import { spDetectMode } from './mobile.js';
+// v6.17.0: instrumented for perf-monitor capture (Panel A MVP).
+import { markStart, markEnd } from '../perf-monitor.js';
 
 export function updateTimeTint(timeStr){
+    markStart('sp:time-tint');
+    try { return _updateTimeTintInner(timeStr); }
+    finally { markEnd('sp:time-tint'); }
+}
+function _updateTimeTintInner(timeStr){
     const s=getSettings();
     if(s.timeTint===false)return;
     const mode=spDetectMode();if(mode==='mobile'||mode==='tablet'){clearTimeTint();return}

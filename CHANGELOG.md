@@ -2,6 +2,58 @@
 
 All notable changes to ScenePulse are documented in this file.
 
+### [6.17.0] — 2026-04-25
+
+#### Added — Performance Monitor MVP (Panel A): FPS headline + capture-mode component attribution
+
+The original "resource graph" feature ask was reshaped by a 10-panel review of browser performance APIs. The full feature was killed at the planning stage:
+- True GPU% is NOT exposed by any Web API; we can only proxy.
+- `performance.memory` is Chrome-only; user runs Firefox 150.
+- Always-on detailed monitoring at attribution-grade resolution becomes a measurable contributor to the jank it diagnoses (the observer-effect trap).
+
+What ships instead is the MVP that earns its keep:
+
+**New `src/perf-monitor.js` module**:
+- `startFpsSampling()` / `stopFpsSampling()` — cheap rAF-based FPS sampler, ~120-frame ring buffer, notifies listeners ~once per second
+- `computeFpsStats()` — returns `{fps, frameP95Ms, sampleCount}` from the buffer
+- `getAnimationCount()` — `document.getAnimations().length` (compositor-pressure proxy)
+- `getScenePulseLayerCount()` — count of ScenePulse elements with `will-change` / `transform` / known canvas overlays
+- `markStart(name)` / `markEnd(name)` / `measure(name, fn)` — instrumentation wrappers using `performance.mark` + `performance.measure`. Always emit (microsecond cost); only OBSERVED during capture.
+- `startCapture(durationMs=30000, max=120000)` / `stopCapture()` — attaches a `PerformanceObserver` for `measure` + `longtask` entries, accumulates per-component buckets, returns sortable component-attribution table (sorted by total ms descending). Auto-stops after the duration.
+
+**Self-instrumented components** (5 expensive call sites):
+- `sp:weather-update` — weather overlay updates (the canonical pre-v6.13 GPU offender)
+- `sp:time-tint` — time-of-day ambient tint
+- `sp:thoughts-update` — live-updating thoughts panel renders
+- `sp:panel-update` — main panel renders (the largest hot path)
+- (Two slots reserved for future instrumentation as components are identified)
+
+Marks fire on every component call but observers only attach during a capture window — keeps always-on cost near zero.
+
+**New "Perf" tab in the Debug Inspector** (Panel A's exact UI spec):
+- **Headline strip** (always sampled when tab is open): FPS · p95 frame · animation count · ScenePulse layer count · reduce-effects state
+- **Honesty tooltip** at the top: *"ⓘ Proxy metrics: browsers don't expose true GPU load. We measure FPS, frame variance, animation count, and ScenePulse-attributed paint via instrumented marks. Capture mode attaches a PerformanceObserver to attribute paint cost to specific ScenePulse components (sp:* marks); always-on stays cheap."*
+- **Duration selector** (10s / 30s / 60s / 120s) + **Start capture** button — auto-stops at the selected duration, status row prompts user to "Reproduce the issue now"
+- **Sortable results table** — Component / Total ms / Calls / Avg ms / Max ms / % of capture (default sort: total ms descending — biggest offenders first)
+- **Empty state** when no `sp:*` marks recorded during capture: explains the user must reproduce the slowdown during the window for attribution to work
+- **Copy results** button — paste-ready markdown table
+
+**Hard NO** (per Panel A unanimous):
+- ❌ `performance.memory` as a primary metric (Chrome-only; Firefox 150 doesn't expose)
+- ❌ Synthesized "GPU load: 73%" number ("destroys trust in every other number on the panel")
+- ❌ Pass/fail thresholds with red/green coloring (cargo-cult risk)
+- ❌ Persistent capture history / comparison
+- ❌ Flame chart / timeline viz (overkill at this scale)
+- ❌ Auto-capture-on-jank (observer-effect trap)
+- ❌ Always-on PerformanceObserver at attribution resolution
+
+All 686/686 tests still pass.
+
+**This concludes the v6.16+ inspector overhaul plan.** Phase summary:
+- v6.16.1: credibility polish (icon centering, sparkline relabel, Doctor popover, stats-line shortcut, Ctrl+Shift+D, badge tooltip)
+- v6.16.2: data integrity (effective+shadowed Diagnostics, profile orphan migration, sparkline backfill, Config tab cleanup affordance)
+- v6.17.0: Perf Monitor MVP (this release)
+
 ### [6.16.2] — 2026-04-25
 
 #### Changed — Diagnostics data integrity: effective view + shadowed-data section + orphan migration (Panel C)

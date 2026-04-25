@@ -197,7 +197,14 @@ export function createThoughtPanel(){
     log('Thought panel created');
 }
 
+// v6.17.0: instrumented for perf-monitor capture (Panel A MVP).
+import { markStart as _spMarkStart, markEnd as _spMarkEnd } from '../perf-monitor.js';
 export function updateThoughts(d){
+    _spMarkStart('sp:thoughts-update');
+    try { return _updateThoughtsInner(d); }
+    finally { _spMarkEnd('sp:thoughts-update'); }
+}
+function _updateThoughtsInner(d){
     createThoughtPanel();
     const panel=document.getElementById('sp-thought-panel');if(!panel){warn('Thought panel not found');return}
     const body=document.getElementById('sp-tp-body');if(!body){warn('Thought body not found');return}body.innerHTML='';

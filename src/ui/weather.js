@@ -3,8 +3,16 @@ import { log } from '../logger.js';
 import { currentWeatherType, setCurrentWeatherType } from '../state.js';
 import { getSettings } from '../settings.js';
 import { spDetectMode } from './mobile.js';
+// v6.17.0: instrumented for the perf-monitor capture mode (Panel A MVP).
+// Marks fire on every call but are only OBSERVED during a capture window.
+import { markStart, markEnd } from '../perf-monitor.js';
 
 export function updateWeatherOverlay(weatherStr){
+    markStart('sp:weather-update');
+    try { return _updateWeatherOverlayInner(weatherStr); }
+    finally { markEnd('sp:weather-update'); }
+}
+function _updateWeatherOverlayInner(weatherStr){
     const s=getSettings();
     // v6.12.9 (issue #14): when the user disables weather (or turns on
     // reduceVisualEffects), tear down any existing overlay instead of
