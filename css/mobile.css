@@ -168,9 +168,9 @@ body:has(#sp-panel.sp-mode-mobile.sp-visible) #top-settings-holder { display: no
 #sp-panel.sp-mode-mobile .sp-rel-type-badge, #sp-panel.sp-mode-mobile .sp-rel-phase-badge { font-size: var(--sp-fs-xs); padding: 3px 8px; }
 #sp-panel.sp-mode-mobile .sp-rel-meta-label { font-size: var(--sp-fs-xs); min-width: 70px; }
 #sp-panel.sp-mode-mobile .sp-rel-meta-value { font-size: var(--sp-fs-base); }
-/* v6.13.6: fixed value-column width keeps the bar's right edge stable
-   regardless of delta presence. See css/relationships.css for rationale. */
-#sp-panel.sp-mode-mobile .sp-meter-row { grid-template-columns: auto 1fr 60px 44px; gap: 4px; padding: 3px 0; }
+/* v6.13.7: minmax(0, X) locks the column width regardless of content.
+   See css/relationships.css for rationale. */
+#sp-panel.sp-mode-mobile .sp-meter-row { grid-template-columns: auto 1fr minmax(0, 70px) 44px; gap: 4px; padding: 3px 0; }
 #sp-panel.sp-mode-mobile .sp-sparkline { width: 40px !important; height: 16px !important; }
 #sp-panel.sp-mode-mobile .sp-meter-label { font-size: var(--sp-fs-xs); }
 #sp-panel.sp-mode-mobile .sp-meter-bar-wrap { height: 14px; border-radius: 7px; }
@@ -259,8 +259,8 @@ body:has(#sp-panel.sp-mode-mobile) .sp-tour-spotlight { z-index: 100003; }
     #sp-panel.sp-mode-mobile .sp-brand-title-wrap { display: none !important; }
     #sp-panel.sp-mode-mobile .sp-dashboard .sp-dash-card { flex: 1 1 100%; }
     #sp-panel.sp-mode-mobile .sp-char-grid { grid-template-columns: 1fr; }
-    /* v6.13.6: fixed value column — see css/relationships.css */
-    #sp-panel.sp-mode-mobile .sp-meter-row { grid-template-columns: auto 1fr 50px 30px; }
+    /* v6.13.7: minmax-locked value column — see css/relationships.css */
+    #sp-panel.sp-mode-mobile .sp-meter-row { grid-template-columns: auto 1fr minmax(0, 60px) 30px; }
     #sp-panel.sp-mode-mobile .sp-meter-face { display: none !important; }
     #sp-panel.sp-mode-mobile .sp-sparkline { width: 28px !important; height: 12px !important; }
 }

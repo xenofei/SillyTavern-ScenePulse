@@ -60,9 +60,9 @@
 #sp-panel.sp-compact .sp-rel-name { font-size: var(--sp-fs-xs); }
 #sp-panel.sp-compact .sp-rel-type-badge, #sp-panel.sp-compact .sp-rel-phase-badge { font-size: var(--sp-fs-xs); padding: 0 3px; }
 #sp-panel.sp-compact .sp-rel-meta { display: none; }
-/* v6.13.6: fixed value-column width keeps the bar's right edge stable
-   regardless of delta presence. See css/relationships.css for rationale. */
-#sp-panel.sp-compact .sp-meter-row { grid-template-columns: auto 1fr 50px 26px; gap: 4px; }
+/* v6.13.7: minmax(0, 50px) prevents grid item content from expanding
+   the column past 50px. See css/relationships.css for rationale. */
+#sp-panel.sp-compact .sp-meter-row { grid-template-columns: auto 1fr minmax(0, 50px) 26px; gap: 4px; }
 #sp-panel.sp-compact .sp-sparkline { width: 24px !important; height: 10px !important; }
 #sp-panel.sp-compact .sp-meter-label { font-size: var(--sp-fs-xs); min-width: 40px; }
 #sp-panel.sp-compact .sp-meter-bar-wrap, #sp-panel.sp-compact .sp-meter-bar-na { height: 5px; border-radius: 3px; }

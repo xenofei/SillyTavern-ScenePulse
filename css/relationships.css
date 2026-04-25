@@ -41,11 +41,15 @@
    breakpoint overrides this width to match its font-size. */
 /* Label column uses auto to fit content at any font size.
    This prevents label/bar overlap when --sp-fs-xs scales up.
-   v6.13.6: third column (value + delta + face emoji) was `auto` so
-   the bar shrank whenever a delta appeared. Fixed 60px keeps the
-   bar's right edge stable so bars stay the same length whether or
-   not a value changed this turn. Fits "100+99❤" worst case. */
-.sp-meter-row { display: grid; grid-template-columns: auto 1fr 60px 44px; align-items: center; gap: 4px; padding: 2px 0; }
+   v6.13.7: third column uses minmax(0, 70px) — the previous `60px`
+   fixed value still allowed the cell to grow because grid items
+   default to `min-width: auto`, so content like "100+99❤" pushed
+   the bar narrower. minmax(0, X) caps the maximum AND sets
+   min-content to 0, locking the column at exactly 70px regardless
+   of content. Combined with min-width:0 + overflow:hidden on
+   .sp-meter-value below, the bar's right edge is now stable across
+   rows whether or not the value changed this turn. */
+.sp-meter-row { display: grid; grid-template-columns: auto 1fr minmax(0, 70px) 44px; align-items: center; gap: 4px; padding: 2px 0; }
 .sp-meter-row.sp-meter-has-tag { grid-template-rows: auto auto; }
 .sp-meter-row.sp-meter-has-tag > .sp-meter-label { grid-row: 2; }
 .sp-meter-row.sp-meter-has-tag > .sp-meter-bar-wrap { grid-row: 2; }
@@ -53,8 +57,12 @@
 .sp-meter-row.sp-meter-has-tag > .sp-meter-value,
 .sp-meter-row.sp-meter-has-tag > .sp-meter-value-na { grid-row: 2; }
 .sp-meter-row.sp-meter-has-tag > .sp-sparkline { grid-row: 2; }
-/* Sparkline occupies the 4th grid column — constrained to column width */
-.sp-meter-row > .sp-sparkline { display: flex; align-items: center; justify-content: flex-end; max-width: 100%; overflow: hidden; }
+/* v6.13.7: sparkline pinned to the right edge of its 44px column via
+   justify-self: end. The previous `display: flex; justify-content: flex-end`
+   on the canvas itself was a no-op (canvas has no flex children), so the
+   canvas defaulted to start-aligned within the column with 4px slack on
+   the right — different per row depending on canvas redraw width. */
+.sp-meter-row > .sp-sparkline { justify-self: end; align-self: center; max-width: 100%; }
 /* v6.9.10: padding-right on the label creates clear separation
    between the meter name and the bar's left edge. This is independent
    of the grid gap (which controls bar→value spacing) so both spacings
@@ -80,8 +88,12 @@
     margin-left: 2px; vertical-align: middle;
 }
 .sp-meter-face svg { width: 13px; height: 13px; flex-shrink: 0; animation: sp-delta-pop 0.4s ease-out; }
-.sp-meter-value { font-size: var(--sp-fs-xs); font-weight: 700; font-family: var(--sp-font-mono); color: var(--sp-text-dim); text-align: right; min-width: 22px; display: flex; align-items: center; justify-content: flex-end; gap: 2px; white-space: nowrap; }
-.sp-meter-value-na { font-size: var(--sp-fs-xs); color: var(--sp-text-dim); font-style: italic; text-align: right; }
+/* v6.13.7: min-width:0 + overflow:hidden lock the value cell to its
+   grid track width (70px from .sp-meter-row). Without these, grid items
+   default to min-width:auto and content like "100+99❤" pushes the cell
+   wider, which shrinks the bar. */
+.sp-meter-value { font-size: var(--sp-fs-xs); font-weight: 700; font-family: var(--sp-font-mono); color: var(--sp-text-dim); text-align: right; min-width: 0; overflow: hidden; display: flex; align-items: center; justify-content: flex-end; gap: 2px; white-space: nowrap; }
+.sp-meter-value-na { font-size: var(--sp-fs-xs); color: var(--sp-text-dim); font-style: italic; text-align: right; min-width: 0; overflow: hidden; }
 .sp-meter-tag { grid-column: 2 / 4; grid-row: 1; font-size: var(--sp-fs-xs); font-style: italic; color: var(--sp-text-dim); opacity: 0.6; text-align: right; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 1px; margin-bottom: -1px; }
 /* Delta indicators */
 .sp-meter-delta { font-size: var(--sp-fs-xs); font-weight: 700; font-family: var(--sp-font-mono); line-height: 1; white-space: nowrap; display: inline-flex; align-items: center; gap: 1px; animation: sp-delta-pop 0.4s ease-out; }
