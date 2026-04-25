@@ -72,14 +72,18 @@ export function getActivePanels(s) {
     if (!s) s = getSettings();
     try {
         const cp = SillyTavern.getContext().chatMetadata?.scenepulse?.chatPanels;
-        if (Array.isArray(cp) && cp.length > 0) return cp;
+        // v6.13.1: if chatPanels exists at all (even as empty []), it
+        // is authoritative — empty means the user deleted everything in
+        // this chat and that intent must stick across reloads. The prior
+        // `cp.length > 0` check incorrectly fell back to profile panels
+        // when the user emptied chatPanels, causing deleted panels to
+        // resurface on every reload.
+        if (Array.isArray(cp)) return cp;
     } catch {}
-    // v6.13.0 (issue #15): when the chat has no per-chat panels, fall
-    // back to the active profile's customPanels. This makes profiles
-    // self-sufficient for new chats while preserving the per-chat-edit
-    // semantics: editing a panel still triggers the chatPanels migration
-    // (deep-clone profile panels into chatMetadata) so subsequent edits
-    // stay local to that chat.
+    // chatPanels truly never set on this chat — seed from active profile.
+    // Used by brand-new chats so profile-defined panels appear without
+    // requiring an initial edit. Once any edit happens, ensureChatPanels
+    // materializes chatPanels and the branch above takes over.
     try {
         const profile = getActiveProfile(s);
         if (profile && Array.isArray(profile.customPanels) && profile.customPanels.length > 0) {
