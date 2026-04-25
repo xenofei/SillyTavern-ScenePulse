@@ -225,11 +225,22 @@ export function openCrashLogViewer() {
     }
 
     // Close handlers
-    const _esc = (e) => { if (e.key === 'Escape') _close(); };
-    function _close() { overlay.remove(); document.removeEventListener('keydown', _esc); }
+    const _esc = (e) => { if (e.key === 'Escape') { _close(); e.stopPropagation(); } };
+    function _close() { overlay.remove(); document.removeEventListener('keydown', _esc, true); }
     overlay.querySelector('.sp-cl-close').addEventListener('click', _close);
     overlay.addEventListener('click', e => { if (e.target === overlay) _close(); });
-    document.addEventListener('keydown', _esc);
+
+    // Stop pointer events from bubbling to SillyTavern's document-level
+    // outside-click handler — without this, clicking anywhere inside the
+    // overlay (including the close X) was interpreted by ST as a click
+    // outside the settings panel and dismissed it. Bubble-phase listener
+    // fires AFTER our internal handlers, so close/copy/filter still work.
+    const _stop = (e) => e.stopPropagation();
+    overlay.addEventListener('mousedown', _stop);
+    overlay.addEventListener('click', _stop);
+    overlay.addEventListener('pointerdown', _stop);
+    // ESC capture-phase so we beat ST's keydown handler on the panel.
+    document.addEventListener('keydown', _esc, true);
 
     // Search
     let _t;
