@@ -2,6 +2,20 @@
 
 All notable changes to ScenePulse are documented in this file.
 
+### [6.23.5] — 2026-04-25
+
+#### Fixed — Doctor popover (round 4), backdrop bleed (round 3), stale VERSION constant
+
+**#1 Doctor i popover** — fourth attempt. v6.23.2 anchored `left:0` (overflowed RIGHT), v6.23.3 centered with `translateX(-50%)` (still clipped on screenshot 1). v6.23.5 just **removes all Doctor-specific overrides**. Doctor's popover now uses the EXACT same `right: 0` positioning as Diagnostics — both anchor right edge of their info-area, opening leftward into the inspector container. Diagnostics works because its info-area sits at the right side of the header; Doctor's info-area is to the LEFT of Diagnostics but still well within the container width, so the leftward-opening popover stays inside.
+
+**#2 Blue backdrop bleed** — third attempt. v6.23.2 dropped `saturate(120%)`, v6.23.3 bumped alpha 0.86→0.96. Both still left enough transparency for `backdrop-filter: blur()` to read ST's chat hover states (link colors, message highlights) — the filter applies to ANY non-100% pixel, so even at 0.96 alpha the 4% transparency was being filtered. v6.23.5 **removes the backdrop-filter entirely and goes fully opaque** (`#0a0d14` solid). The slight glassy effect was cosmetic; eliminating the filter eliminates the bleed completely.
+
+**Stale VERSION constant** — found while diagnosing the prior issue. `src/constants.js` had `export const VERSION = '6.12.3'` hardcoded, never bumped since the v6.12.3 release. Every subsequent release updated `manifest.json` but missed this constant — so the activity log line `[time] v6.12.3 init` was misreporting the actual version. Fixed: VERSION = '6.23.5' in sync with manifest. **Going forward, every version bump must update both manifest.json AND src/constants.js VERSION.**
+
+**#3 Streaming JSON visible during generation** — investigating. Now that the v6.23.4 generation regression is fixed and JSON is actually being produced, the streaming hider's behavior is observable again. The hider's `_hasJson` detector + `data-sp-has-tracker` CSS rule should hide the JSON during streaming, but the user reports it's visible. Need a Diagnostics dump captured **after** seeing the JSON visibility issue to inspect the actual model output (the Latest Pair section will show what tracker markers — if any — the model emitted, and the activity log will show whether `StreamHider: LOCKED` fired). Awaiting that to fix.
+
+**Tests**: 1,338 still pass.
+
 ### [6.23.4] — 2026-04-25
 
 #### URGENT — Fixed: Together-mode generation silently skipped (v6.22.1 regression)

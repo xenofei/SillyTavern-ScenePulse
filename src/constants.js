@@ -2,7 +2,11 @@
 // Extracted from index.js lines 1-365, plus TOUR_EXAMPLE_DATA (~4720-4747)
 
 export const MODULE_NAME='scenepulse';
-export const VERSION = '6.12.3';
+// v6.23.5: bumped to match manifest. This constant has been stale since
+// v6.12.3 — every release bumped manifest.json but missed this. Activity
+// log + diagnostic version field were misreporting. Keep in sync with
+// manifest.json on every version bump going forward.
+export const VERSION = '6.23.5';
 
 // v6.8.19: canonical list of character archetype enum values.
 // Shared between schema validation, normalize, prompt builder, UI filter,

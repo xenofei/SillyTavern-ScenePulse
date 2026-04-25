@@ -16,9 +16,13 @@
        colors, message highlights) to bleed through the blurred backdrop
        as a subtle blue shift. 0.96 makes the bleed imperceptible while
        preserving a slight glassy feel from the blur. */
-    background: rgba(8,10,16,0.96);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    /* v6.23.5: fully opaque solid dim, NO backdrop-filter. Earlier
+       attempts (alpha 0.86 in v6.23.2 → 0.96 in v6.23.3) still left
+       enough transparency for the backdrop-filter to read ST chat
+       hover states. Removing the filter entirely + going fully opaque
+       eliminates the bleed completely; the slight glassy effect was
+       cosmetic. */
+    background: #0a0d14;
     display: flex; align-items: stretch; justify-content: center;
     animation: sp-glass-in 0.18s ease-out;
 }
@@ -711,20 +715,16 @@
 .sp-di-doctor-wrap .sp-di-info-title {
     color: #93c5fd;
 }
-/* v6.23.2 → v6.23.3: Doctor's popover positioning. v6.23.2 anchored
-   left:0 to fix overflow on the LEFT edge, but that just moved the
-   overflow to the RIGHT edge (popover extended past the inspector's
-   right side into the chat area). v6.23.3 centers the popover under
-   the i icon via translateX(-50%) — width spans equally on both
-   sides of the icon, so it stays inside the container regardless of
-   where in the header the icon sits. Width also dropped to 380px
-   for better fit on mid-width inspectors. */
-.sp-di-doctor-wrap .sp-di-info-popover {
-    right: auto;
-    left: 50%;
-    transform: translateX(-50%);
-    width: min(380px, calc(100vw - 32px));
-}
+/* v6.23.5: Doctor popover now uses the EXACT same positioning as
+   Diagnostics (the default `right: 0` from .sp-di-info-popover above).
+   No Doctor-specific overrides — both popovers anchor right edge of
+   their info-area, opening leftward into the inspector container.
+   v6.23.2 (left:0) and v6.23.3 (translateX center) were both clipping
+   in different directions; the simplest answer is "do what Diagnostics
+   does." Diagnostics works because its info-area sits at the right
+   side of the header — Doctor's info-area is to the LEFT of
+   Diagnostics but still well within the container width, so the
+   leftward-opening popover stays inside. */
 .sp-di-info svg { display: block; }
 /* Popover — only triggered by hovering the info-area or focusing the icon.
    Positioned relative to the info-area so it appears under the icon, not
