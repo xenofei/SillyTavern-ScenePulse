@@ -14,7 +14,8 @@ import {
     inlineExtractionDone, setInlineExtractionDone,
     inlineGenStartMs, setInlineGenStartMs,
     pendingInlineIdx, setPendingInlineIdx,
-    _inlineWaitTimerId, set_inlineWaitTimerId
+    _inlineWaitTimerId, set_inlineWaitTimerId,
+    cancelRequested
 } from '../state.js';
 import { generateTracker, continuationReprompt } from '../generation/engine.js';
 import { extractInlineTracker } from '../generation/extraction.js';
@@ -209,7 +210,18 @@ export async function onCharMsg(idx){
                     }
 
                     // ── Tier 2: full separate generation (if continuation skipped or failed) ──
-                    if(!result){
+                    // v6.23.7: skip Tier 2 if the user cancelled during Tier 1.
+                    // Pre-v6.23.7 the cancel flag was only consulted by individual
+                    // generation functions, so cancelling continuation immediately
+                    // kicked off a fresh full-context separate-generation call —
+                    // and that one ALSO did the visible preset switch via
+                    // withProfileAndPreset, which the user reasonably read as "I
+                    // cancelled but it kept going AND swapped my preset." Treat
+                    // a manual cancel as a hard stop on the whole recovery chain.
+                    if(!result && cancelRequested){
+                        log('Together fallback: Tier 2 skipped — user cancelled during Tier 1');
+                        result=null;
+                    } else if(!result){
                         warn('Together mode: falling back to full separate generation ('+msgLen+' chars, '+_failureKind+')');
                         setLastGenSource('auto:together:fallback');
                         result=await generateTracker(idx,null,{profile:fbProfile,preset:fbPreset});

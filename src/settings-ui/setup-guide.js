@@ -74,14 +74,14 @@ export function showSetupGuide(){
                             ${profiles.map(p=>`<option value="${esc(p.id)}"${p.id===s.fallbackProfile?' selected':''}>${esc(p.name)}</option>`).join('')}
                         </select>
                     </div>
-                    <p>Optionally, choose a preset optimized for JSON output:</p>
+                    <p>Optionally pick a different preset for tracker generation. <strong>(Same as current)</strong> uses your active preset unchanged — recommended unless you have a JSON-tuned preset saved.</p>
                     <div class="sp-setup-select-wrap">
                         <select id="sp-setup-fb-preset" class="sp-setup-select">
-                            <option value="">(Built-in: ScenePulse GLM-5)</option>
+                            <option value="">(Same as current)</option>
                             ${presets.map(p=>`<option value="${esc(p.id)}"${p.id===s.fallbackPreset?' selected':''}>${esc(p.name)}</option>`).join('')}
                         </select>
                     </div>
-                    <div class="sp-setup-note">The built-in preset uses temp=0.6, top_p=0.95, freq_pen=0.15 — optimized for structured output.</div>
+                    <div class="sp-setup-note">Picking a different preset will visibly switch SillyTavern's preset dropdown during tracker generation, then restore. Pick "(Same as current)" to avoid the switch.</div>
                     <div class="sp-setup-nav"><button class="sp-setup-btn" data-goto="2">← Back</button><button class="sp-setup-btn sp-setup-btn-primary" data-goto="4">Next →</button></div>
                 </div>
             </div>

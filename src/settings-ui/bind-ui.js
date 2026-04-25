@@ -108,12 +108,12 @@ export function loadUI(){const s=getSettings();$('#sp-enabled').prop('checked',s
     };
     let ph='<option value="">(Current)</option>';for(const p of profiles)ph+=`<option value="${esc(p.id)}">${esc(p.name)}</option>`;
     $('#sp-profile').html(ph);s.connectionProfile=_smartVal('#sp-profile',s.connectionProfile,profiles,'connectionProfile');
-    let prh='<option value="">(Built-in: ScenePulse GLM-5)</option>';for(const p of presets)prh+=`<option value="${esc(p.id)}">${esc(p.name)}</option>`;
+    let prh='<option value="">(Same as current)</option>';for(const p of presets)prh+=`<option value="${esc(p.id)}">${esc(p.name)}</option>`;
     $('#sp-preset').html(prh);s.chatPreset=_smartVal('#sp-preset',s.chatPreset,presets,'chatPreset');
     // Fallback settings — rebuild options from DOM
     let fph='<option value="">(Same as current)</option>';for(const p of profiles)fph+=`<option value="${esc(p.id)}">${esc(p.name)}</option>`;
     $('#sp-fallback-profile').html(fph);s.fallbackProfile=_smartVal('#sp-fallback-profile',s.fallbackProfile,profiles,'fallbackProfile');
-    let fpre='<option value="">(Built-in: ScenePulse GLM-5)</option>';for(const p of presets)fpre+=`<option value="${esc(p.id)}">${esc(p.name)}</option>`;
+    let fpre='<option value="">(Same as current)</option>';for(const p of presets)fpre+=`<option value="${esc(p.id)}">${esc(p.name)}</option>`;
     $('#sp-fallback-preset').html(fpre);s.fallbackPreset=_smartVal('#sp-fallback-preset',s.fallbackPreset,presets,'fallbackPreset');
     $('#sp-fallback-enabled').prop('checked',s.fallbackEnabled!==false);
     $('#sp-fallback-settings').toggle(s.fallbackEnabled!==false);
@@ -324,13 +324,13 @@ export function bindUI(){const s=getSettings();
     $('#sp-btn-refresh').on('click',()=>{
         const _rp=getConnectionProfiles(),_rpr=getChatPresets();
         let h='<option value="">(Current)</option>';for(const p of _rp)h+=`<option value="${esc(p.id)}">${esc(p.name)}</option>`;$('#sp-profile').html(h).val(s.connectionProfile||'');
-        let pr='<option value="">(Built-in: ScenePulse GLM-5)</option>';for(const p of _rpr)pr+=`<option value="${esc(p.id)}">${esc(p.name)}</option>`;$('#sp-preset').html(pr).val(s.chatPreset||'');
+        let pr='<option value="">(Same as current)</option>';for(const p of _rpr)pr+=`<option value="${esc(p.id)}">${esc(p.name)}</option>`;$('#sp-preset').html(pr).val(s.chatPreset||'');
         toastr.info(t('Profiles refreshed'));
     });
     $('#sp-btn-refresh-fb').on('click',()=>{
         const _rp=getConnectionProfiles(),_rpr=getChatPresets();
         let fh='<option value="">(Same as current)</option>';for(const p of _rp)fh+=`<option value="${esc(p.id)}">${esc(p.name)}</option>`;$('#sp-fallback-profile').html(fh).val(s.fallbackProfile||'');
-        let fp='<option value="">(Built-in: ScenePulse GLM-5)</option>';for(const p of _rpr)fp+=`<option value="${esc(p.id)}">${esc(p.name)}</option>`;$('#sp-fallback-preset').html(fp).val(s.fallbackPreset||'');
+        let fp='<option value="">(Same as current)</option>';for(const p of _rpr)fp+=`<option value="${esc(p.id)}">${esc(p.name)}</option>`;$('#sp-fallback-preset').html(fp).val(s.fallbackPreset||'');
         toastr.info(t('Fallback profiles refreshed'));
     });
     $('#sp-btn-refresh-lore').on('click',()=>{

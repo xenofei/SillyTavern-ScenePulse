@@ -70,18 +70,19 @@ export function restorePresetValues(){
 }
 
 export async function withProfileAndPreset(pid,pre,fn){
-    const ctx=SillyTavern.getContext();let pp=null,pr=null;let usedBuiltin=false;
+    const ctx=SillyTavern.getContext();let pp=null,pr=null;
     // Save chat BEFORE switching profile — prevents message loss if switch triggers CHAT_CHANGED
     if(pid||pre)await ensureChatSaved();
     if(pid){try{pp=document.querySelector('#connection_profiles, #connection_profile')?.value;if(typeof ctx.setConnectionProfile==='function')await ctx.setConnectionProfile(pid);else{const s=document.querySelector('#connection_profiles, #connection_profile');if(s){s.value=pid;s.dispatchEvent(new Event('change'));await new Promise(r=>setTimeout(r,300))}}}catch(e){warn('Profile:',e)}}
+    // v6.23.7: empty preset is "(Same as current)" — leave the active preset
+    // alone (no switch, no sampler mutation). Pre-v6.23.7 the empty branch
+    // implicitly called applyBuiltinPreset() to swap in GLM-5 sampler values
+    // (temp 0.6, top_p 0.95, etc.), which (a) made user sliders move
+    // unexpectedly during fallback and (b) was inconsistent with the profile
+    // dropdown's clean "(Same as current)" semantics. Users who want
+    // GLM-5 samplers can now save them as an explicit preset and select it.
     if(pre){try{for(const sel of['#settings_preset_openai','#settings_preset_chat']){const el=document.querySelector(sel);if(el){const has=Array.from(el.options).some(o=>o.value===pre);if(has){pr=el.value;el.value=pre;el.dispatchEvent(new Event('change'));await new Promise(r=>setTimeout(r,200));break}}}}catch(e){warn('Preset:',e)}}
-    else{
-        // No custom preset selected — apply built-in GLM-5 sampler values
-        applyBuiltinPreset();usedBuiltin=true;
-    }
     try{return await fn()}finally{
-        // Restore built-in preset values if we applied them
-        if(usedBuiltin)restorePresetValues();
         // Save chat BEFORE restoring profile — the generation may have saved new data
         await ensureChatSaved();
         // Longer delay: profile restore triggers connection_profile_loaded → other extensions → CHAT_CHANGED
