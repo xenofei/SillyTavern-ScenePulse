@@ -328,5 +328,28 @@ export async function runDoctor(opts = {}) {
     return results;
 }
 
+/**
+ * Re-run a single Doctor check by id. v6.22.1 — wired to the per-row
+ * "Retry" button on FAIL results so users can re-test a transient failure
+ * (502 / timeout / rate-limit) without re-running the full suite.
+ *
+ * Schema check still requires the model-echo guard: if a previous full
+ * run failed model-echo, retrying schema directly would silently skip
+ * (matches the full-run behavior). Caller should retry model-echo first.
+ *
+ * @param {string} id  One of DOCTOR_STEPS[].id
+ * @returns {Promise<CheckResult|null>}
+ */
+export async function runSingleDoctorCheck(id) {
+    switch (id) {
+        case 'storage':          return _checkStorage(null);
+        case 'model-echo':       return _checkModelEcho();
+        case 'schema':           return _checkSchemaRoundtrip();
+        case 'context-budget':   return _checkContextBudget();
+        case 'tokenizer-parity': return _checkTokenizerParity();
+        default: return null;
+    }
+}
+
 /** Test reset hook (no internal state, but kept for API parity). */
 export function _resetForTests() {}

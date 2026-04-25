@@ -24,7 +24,7 @@ import { debugLog } from '../logger.js';
 import { getLastRawResponse } from '../state.js';
 import { getPairs as rawGetPairs, lastPair as rawLastPair, pairCount as rawPairCount } from '../raw-pairs.js';
 import { getEntries as netGetEntries, addChangeListener as netAddChangeListener, clearAll as netClearAll, entryCount as netEntryCount } from '../network-log.js';
-import { runDoctor, DOCTOR_STEPS } from '../doctor.js';
+import { runDoctor, DOCTOR_STEPS, runSingleDoctorCheck } from '../doctor.js';
 import {
     startFpsSampling, stopFpsSampling, addFpsListener, computeFpsStats,
     getAnimationCount, getScenePulseLayerCount,
@@ -1334,12 +1334,20 @@ async function _runDoctorAndShow(overlay) {
     const rows = results.map(r => {
         const sev = ['pass', 'fail', 'skipped', 'cancelled'].includes(r.status) ? r.status : 'skipped';
         const detail = r.detail ? `<pre class="sp-cl-context sp-di-doctor-detail">${esc(r.detail)}</pre>` : '';
+        // v6.22.1: per-row Retry button on FAIL rows so users can re-run
+        // a single transient failure (502 / timeout / rate-limit) without
+        // re-running the whole suite. Especially useful for the schema
+        // round-trip which can take 30+ seconds on reasoning models.
+        const retryBtn = (r.status === 'fail')
+            ? `<button class="sp-di-doctor-retry" data-doctor-id="${esc(r.id)}" title="${t('Re-run only this check')}">${t('Retry')}</button>`
+            : '';
         return `
-            <div class="sp-di-doctor-row sp-di-doctor-${sev}">
+            <div class="sp-di-doctor-row sp-di-doctor-${sev}" data-doctor-id="${esc(r.id)}">
                 <div class="sp-di-doctor-row-head">
                     <span class="sp-di-doctor-status sp-di-doctor-status-${sev}">${esc(r.status.toUpperCase())}</span>
                     <span class="sp-di-doctor-name">${esc(r.name)}</span>
                     <span class="sp-cl-ts">${r.elapsedMs}ms</span>
+                    ${retryBtn}
                 </div>
                 <div class="sp-di-doctor-summary">${esc(r.summary)}</div>
                 ${detail}
@@ -1365,6 +1373,58 @@ async function _runDoctorAndShow(overlay) {
             `## ${r.status.toUpperCase()} · ${r.name} · ${r.elapsedMs}ms\n${r.summary}\nLimitation: ${r.limitation}${r.detail ? '\nDetail: ' + r.detail : ''}`
         ).join('\n\n');
         _copy(text, t('Doctor results copied'));
+    });
+    // v6.22.1: wire per-row Retry buttons. Re-runs ONE check, swaps the row
+    // in place with the new result. Keeps total results array in sync so
+    // Copy results reflects the latest state. Event delegation from the
+    // body so newly-rendered retry buttons (after a previous retry) keep
+    // working without re-binding.
+    modal.querySelector('.sp-di-doctor-body').addEventListener('click', async (ev) => {
+        const btn = ev.target.closest('.sp-di-doctor-retry');
+        if (!btn) return;
+        const id = btn.dataset.doctorId;
+        const idx = results.findIndex(r => r.id === id);
+        if (idx < 0) return;
+        btn.disabled = true;
+        btn.textContent = t('Retrying…');
+        try {
+            const fresh = await runSingleDoctorCheck(id);
+            if (!fresh) { btn.disabled = false; btn.textContent = t('Retry'); return; }
+            results[idx] = fresh;
+            const row = modal.querySelector(`.sp-di-doctor-row[data-doctor-id="${id}"]`);
+            if (row) {
+                const sev = ['pass','fail','skipped','cancelled'].includes(fresh.status) ? fresh.status : 'skipped';
+                const detail = fresh.detail ? `<pre class="sp-cl-context sp-di-doctor-detail">${esc(fresh.detail)}</pre>` : '';
+                const newRetryBtn = (fresh.status === 'fail')
+                    ? `<button class="sp-di-doctor-retry" data-doctor-id="${esc(fresh.id)}" title="${t('Re-run only this check')}">${t('Retry')}</button>`
+                    : '';
+                row.className = `sp-di-doctor-row sp-di-doctor-${sev}`;
+                row.innerHTML = `
+                    <div class="sp-di-doctor-row-head">
+                        <span class="sp-di-doctor-status sp-di-doctor-status-${sev}">${esc(fresh.status.toUpperCase())}</span>
+                        <span class="sp-di-doctor-name">${esc(fresh.name)}</span>
+                        <span class="sp-cl-ts">${fresh.elapsedMs}ms</span>
+                        ${newRetryBtn}
+                    </div>
+                    <div class="sp-di-doctor-summary">${esc(fresh.summary)}</div>
+                    ${detail}
+                    <div class="sp-di-doctor-limit">${esc(fresh.limitation)}</div>`;
+            }
+            const statsEl = modal.querySelector('.sp-di-doctor-stats');
+            if (statsEl) {
+                const passes2 = results.filter(r => r.status === 'pass').length;
+                const fails2  = results.filter(r => r.status === 'fail').length;
+                const skips2  = results.filter(r => r.status === 'skipped').length;
+                statsEl.querySelectorAll('strong').forEach((el, i) => {
+                    if (i === 0) el.textContent = passes2;
+                    if (i === 1) el.textContent = fails2;
+                    if (i === 2) el.textContent = skips2;
+                });
+            }
+        } catch (e) {
+            btn.disabled = false;
+            btn.textContent = t('Retry');
+        }
     });
     _cleanup();
 }
@@ -1672,9 +1732,15 @@ function _perfTab(panel) {
         captureBtn.textContent = `${t('Cancel capture')} (${Math.round(durMs / 1000)}s)`;
         durSel.disabled = true;
         statusEl.innerHTML = `<div class="sp-di-perf-capturing">${t('Reproduce the issue now. Capture window is open — interact with the chat / panel / weather to attribute the work.')}</div>`;
-        // v6.22.0: mount the floating overlay so the capture survives if the
-        // user closes the inspector mid-window. The overlay self-manages its
-        // countdown and unmounts when the capture ends.
+        // v6.22.1: kick off startCapture FIRST so _captureActive flips true
+        // synchronously. Previously the overlay mounted before startCapture
+        // ran, so its `if (!isCapturing()) return` guard short-circuited and
+        // the overlay never rendered. Capturing the promise here lets us
+        // mount the overlay + start the tick timer, then await the result.
+        const capturePromise = startCapture(durMs);
+        // v6.22.0/.1: mount the floating overlay so the capture survives if
+        // the user closes the inspector mid-window. The overlay self-manages
+        // its countdown and unmounts when the capture ends.
         try {
             const ov = await import('./perf-capture-overlay.js');
             ov.mountCaptureOverlay();
@@ -1689,7 +1755,7 @@ function _perfTab(panel) {
             if (partial) _renderResults(partial);
         }, 1000);
         try {
-            _lastResult = await startCapture(durMs);
+            _lastResult = await capturePromise;
             _stopCaptureTicks();
             if (_captureCancelled) {
                 statusEl.innerHTML = `<div class="sp-di-perf-capturing">${t('Capture cancelled.')} ${t('Showing partial results below.')}</div>`;

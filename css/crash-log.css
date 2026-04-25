@@ -168,6 +168,26 @@
 .sp-di-doctor-step-pill-cancelled { background: rgba(252,165,165,0.12); color: #fca5a5; }
 /* cancelled-stat pill in the post-run summary line */
 .sp-di-doctor-status-cancelled { color: #fca5a5; }
+/* v6.22.1: per-row Retry button on FAIL Doctor results */
+.sp-di-doctor-retry {
+    margin-left: 8px;
+    background: rgba(96,165,250,0.08);
+    color: #93c5fd;
+    border: 1px solid rgba(96,165,250,0.4);
+    border-radius: 4px;
+    padding: 2px 10px;
+    font-size: 10px;
+    font-family: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.sp-di-doctor-retry:hover:not(:disabled) {
+    background: rgba(96,165,250,0.2);
+    color: #fff;
+    border-color: #93c5fd;
+}
+.sp-di-doctor-retry:disabled { opacity: 0.5; cursor: not-allowed; }
 @media (max-width: 560px) {
     .sp-di-doctor-step {
         grid-template-columns: 76px 1fr auto;

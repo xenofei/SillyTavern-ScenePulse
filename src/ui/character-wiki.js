@@ -3,7 +3,7 @@ import { log } from '../logger.js';
 import { t } from '../i18n.js';
 import { esc, clamp } from '../utils.js';
 import { relPhaseFamily } from '../rel-phase.js';
-import { getTrackerData, getLatestSnapshot, getPrevSnapshot, getSettings, saveSettings } from '../settings.js';
+import { getTrackerData, getLatestSnapshot, getPrevSnapshot, getSettings, saveSettings, getWikiArchive } from '../settings.js';
 import { normalizeTracker } from '../normalize.js';
 import { charColor } from '../color.js';
 import { createSparklineCanvas, _scrollToMessage } from './sparklines.js';
@@ -130,24 +130,66 @@ function _buildEntries() {
         return null;
     };
 
+    // v6.22.1: Wiki Permanence Archive lookup. When _findLatest misses
+    // (character was pruned from snapshots, or never had a characters[]
+    // record but only appeared in charactersPresent), check the
+    // append-only archive that saveSnapshot maintains. The archive lives
+    // at data._spArchive and is keyed by lowercase name OR alias.
+    const _archive = (() => { try { return getWikiArchive(); } catch { return { characters: {}, relationships: {} }; } })();
+    const _findArchived = (kind, aliasesLow) => {
+        const map = _archive[kind] || {};
+        for (const al of aliasesLow) {
+            if (map[al]) return map[al];
+        }
+        return null;
+    };
+
     const entries = [];
     const seen = new Set();
 
     // Pass 1: walk character-history's canonical roster — this surfaces
     // every character ever tracked, regardless of whether they're still
     // in latest.characters.
+    //
+    // v6.22.1: APPEND-ONLY GUARANTEE. The wiki must NEVER drop a character
+    // that has ever been seen in this chat. Three-tier fallback:
+    //   1. _findLatest(snapshots) — current behavior, walks live snapshots
+    //   2. _findArchived(archive)  — pulls from persistent _spArchive
+    //                                that survives pruning + delta-merge
+    //   3. _spStub from meta       — bare-bones synthesis (canonical name
+    //                                + aliases) so the entry never silently
+    //                                disappears even if archive somehow
+    //                                also misses
+    // The previous v6.12.4 code did `if (!ch) continue` which silently
+    // dropped any character whose record was no longer in characters[].
     for (const [canonLow, m] of meta.entries()) {
         if (!canonLow || canonLow === '?' || seen.has(canonLow)) continue;
         const aliasesLow = m.aliasesLow || new Set([canonLow]);
-        const ch = _findLatest('characters', aliasesLow);
-        if (!ch) continue;
+        let ch = _findLatest('characters', aliasesLow);
+        if (!ch) ch = _findArchived('characters', aliasesLow);
+        if (!ch) {
+            // Final safety net: synthesize a minimal stub. The wiki entry
+            // shows up with the canonical name + last-known location and
+            // a "limited data" affordance from the renderer.
+            ch = {
+                name: m.canonical || canonLow,
+                aliases: [...(aliasesLow || [])].filter(a => a !== canonLow),
+                role: '',
+                _spStub: true,
+            };
+        }
         seen.add(canonLow);
         // Mark every alias as seen so the relationships fallback below
         // doesn't double-add the same person under an old name.
         for (const al of aliasesLow) seen.add(al);
 
         const displayName = m.canonical || ch.name;
+        // v6.22.1: same three-tier fallback for relationships (snapshots →
+        // archive → stub). Pets / brief NPCs have always fallen through
+        // to the stub case, but pruning could now silently lose a real
+        // relationship record without the archive layer.
         let rel = _findLatest('relationships', aliasesLow);
+        if (!rel) rel = _findArchived('relationships', aliasesLow);
         // v6.8.29: synthesize zero-meter stub when no relationships entry
         // exists (common for pets). Same shape filterForView provides.
         if (!rel) {

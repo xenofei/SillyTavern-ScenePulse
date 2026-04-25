@@ -157,6 +157,12 @@ export function openProfilesManager(onChange) {
         )) return;
         p.customPanels = [];
         p.updatedAt = new Date().toISOString();
+        // v6.22.1: also drain the legacy root-level mirror so the orphan
+        // migration in src/profiles.js doesn't promote it back into the
+        // profile on the next read.
+        if (Array.isArray(s.customPanels) && s.customPanels.length) {
+            s.customPanels = [];
+        }
         saveSettings(); _notify(); render();
         try { toastr.success(t('Cleared') + ' ' + n + ' ' + t('panel(s) from profile')); } catch {}
     }

@@ -45,13 +45,28 @@ export function startStreamingHider(){
     // When JSON is detected, the cap freezes — JSON is behind overflow:hidden.
     // To measure true content height while a cap is active, we temporarily
     // remove the cap, read scrollHeight, then reapply.
+    //
+    // v6.22.1 FIX (issue #15 comment): the previous order was REMOVE-CAP →
+    // MEASURE → CHECK-JSON → REAPPLY. That meant we briefly stripped the
+    // cap on EVERY mutation, including ones where the tracker JSON had
+    // already started appearing but _hasJson hadn't fired yet (the JSON
+    // sentinels are 7+ chars long; the first frame of a streamed `{` is
+    // detected on the SECOND mutation). Result: a 1-frame flash of the
+    // partial JSON at the bottom of the message, exactly as reported.
+    //
+    // New order: CHECK-JSON FIRST. If JSON is detected, lock at the
+    // PREVIOUS safe height — never measure tracker-tainted content into
+    // _safeH. Only when text is provably tracker-free do we remove the
+    // cap to remeasure. This eliminates the leak window because the cap
+    // never comes off during the frames when JSON is on screen.
     const _updateCap=()=>{
         const currentStyleEl=_streamHiderStyleEl;
         if(!_lastMes||!currentStyleEl)return;
         if(_locked)return;
         const txt=_lastMes.textContent||'';
         if(_hasJson(txt)){
-            // JSON detected — freeze at last safe height
+            // JSON detected — freeze at LAST safe height (do not remeasure;
+            // the current text already contains tracker tokens).
             _locked=true;
             const capPx=Math.max(40,Math.ceil(_safeH));
             currentStyleEl.textContent=`${_sel()}{max-height:${capPx}px!important;overflow:hidden!important}`;
@@ -59,11 +74,18 @@ export function startStreamingHider(){
             log('StreamHider: LOCKED at',capPx+'px mesid='+_mesId);
             return;
         }
-        // No JSON — measure true content height by briefly removing cap
-        currentStyleEl.textContent=''; // Remove cap temporarily
-        const trueH=_lastMes.scrollHeight; // Measure full content height
+        // No JSON detected this tick — safe to remeasure. Snapshot the
+        // current cap, swap to no-cap to read true height, then restore.
+        // (CSS recompute happens synchronously inside scrollHeight read.)
+        const prevCap=currentStyleEl.textContent;
+        currentStyleEl.textContent='';
+        const trueH=_lastMes.scrollHeight;
+        // Restore PREVIOUS cap immediately, before computing the new one,
+        // so any ongoing paint sees a capped element. Without this restore
+        // the brief uncap leaks any not-yet-detected tracker prefix on
+        // very fast streams.
+        if(prevCap) currentStyleEl.textContent=prevCap;
         if(trueH>_safeH)_safeH=trueH;
-        // Reapply cap at measured height + small buffer (1 line)
         const capPx=Math.ceil(_safeH+22);
         currentStyleEl.textContent=`${_sel()}{max-height:${capPx}px!important;overflow:hidden!important}`;
     };

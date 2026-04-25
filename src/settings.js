@@ -181,6 +181,16 @@ export function getTrackerData(){
             try{SillyTavern.getContext().saveMetadata()}catch(e){warn('Migration save failed:',e?.message)}
         }
     }
+    // ── v6.22.1 migration: backfill the wiki archive ─────────────────────
+    // Build the persistent character/relationship archive from existing
+    // snapshots if the chat predates v6.22.1. Idempotent: _backfillWikiArchive
+    // skips if archive is already populated. Runs once per chat load (the
+    // first non-empty result fingerprint will then short-circuit).
+    if(!m.scenepulse._spWikiArchiveBackfilled){
+        try { _backfillWikiArchive(m.scenepulse); } catch(e) { warn('Wiki archive backfill:', e?.message); }
+        m.scenepulse._spWikiArchiveBackfilled = true;
+        try{SillyTavern.getContext().saveMetadata()}catch(e){warn('Backfill save failed:',e?.message)}
+    }
     // ── v6.8.14 migration: strip {{user}} from characters/relationships/charactersPresent ──
     // Heals chats where the model emitted the user as a character entry
     // before v6.8.14's normalize/filterForView guards landed. Walks every
@@ -656,6 +666,85 @@ export function clearForceFullState() {
     _forceFullNextTurn = false;
 }
 
+// v6.22.1: Wiki Permanence Archive — guarantees the Character Wiki shows
+// EVERY character ever observed in this chat, even if their snapshot got
+// pruned out of the rolling buffer (maxSnapshots > 0) or if the model
+// stopped emitting them in characters[]. Lives at data._spArchive,
+// mirroring the same shape as a single snapshot's character/relationship
+// records but keyed by lowercase canonical name. Latest write per name
+// wins; entries are NEVER deleted.
+//
+// The wiki module reads this as a third-tier fallback after _findLatest
+// (snapshots) misses. See src/ui/character-wiki.js.
+function _ensureArchive(data){
+    if(!data._spArchive || typeof data._spArchive !== 'object'){
+        data._spArchive = { characters: {}, relationships: {}, builtAt: new Date().toISOString() };
+    }
+    if(!data._spArchive.characters || typeof data._spArchive.characters !== 'object') data._spArchive.characters = {};
+    if(!data._spArchive.relationships || typeof data._spArchive.relationships !== 'object') data._spArchive.relationships = {};
+    return data._spArchive;
+}
+function _updateWikiArchive(data, snap){
+    if(!snap || typeof snap !== 'object') return;
+    const arc = _ensureArchive(data);
+    if(Array.isArray(snap.characters)){
+        for(const ch of snap.characters){
+            const nm = (ch?.name || '').toLowerCase().trim();
+            if(!nm || nm === '?') continue;
+            // Latest write wins. Stash a deep copy so future delta merges
+            // mutating the original snapshot don't bleed into the archive.
+            arc.characters[nm] = { ...ch, _spArchivedAt: new Date().toISOString() };
+            // Index by aliases too so the wiki can look up by old placeholder.
+            // Always reassign — if the model reveals "Karen had alias Stranger",
+            // the alias key should resolve to the Karen entry, not whatever
+            // earlier record happened to be saved under "stranger".
+            if(Array.isArray(ch.aliases)){
+                for(const a of ch.aliases){
+                    const al = String(a||'').toLowerCase().trim();
+                    if(al) arc.characters[al] = arc.characters[nm];
+                }
+            }
+        }
+    }
+    if(Array.isArray(snap.relationships)){
+        for(const rel of snap.relationships){
+            const nm = (rel?.name || '').toLowerCase().trim();
+            if(!nm) continue;
+            arc.relationships[nm] = { ...rel, _spArchivedAt: new Date().toISOString() };
+        }
+    }
+}
+
+/**
+ * Backfill the wiki archive from existing snapshots if missing. Runs once
+ * per chat metadata load (idempotent — does nothing if archive already
+ * present and non-empty). Called from getTrackerData().
+ */
+function _backfillWikiArchive(data){
+    if(!data || typeof data !== 'object') return;
+    if(data._spArchive && data._spArchive.characters &&
+       Object.keys(data._spArchive.characters).length > 0) return;
+    if(!data.snapshots || typeof data.snapshots !== 'object') return;
+    const keys = Object.keys(data.snapshots).map(Number).sort((a,b)=>a-b);
+    if(!keys.length) return;
+    _ensureArchive(data);
+    for(const k of keys) _updateWikiArchive(data, data.snapshots[String(k)]);
+    log('Wiki archive backfilled from', keys.length, 'snapshots,',
+        Object.keys(data._spArchive.characters).length, 'characters');
+}
+
+/**
+ * Read the wiki archive for the current chat. Used by character-wiki.js
+ * as a fallback when a character is no longer present in any snapshot's
+ * characters[] array (pruned, dropped by model, etc.).
+ *
+ * @returns {{characters: Object<string, object>, relationships: Object<string, object>}}
+ */
+export function getWikiArchive(){
+    const data = getTrackerData();
+    return _ensureArchive(data);
+}
+
 export function saveSnapshot(id,j){
     const data=getTrackerData();
     // v6.16.2: stamp savedAt on every snapshot at write time so the inspector's
@@ -667,6 +756,10 @@ export function saveSnapshot(id,j){
         j._spMeta.savedAt = new Date().toISOString();
     }
     data.snapshots[String(id)]=j;
+    // v6.22.1: update the wiki archive BEFORE pruning, so even if this
+    // save triggers a prune of the oldest snapshot, every character it
+    // contained is still in the archive forever.
+    try { _updateWikiArchive(data, j); } catch(e) { warn('Wiki archive update failed:', e?.message); }
     // Prune: user-configurable max snapshots (0 = unlimited)
     const keys=Object.keys(data.snapshots).map(Number).sort((a,b)=>a-b);
     const s=getSettings();
@@ -674,7 +767,8 @@ export function saveSnapshot(id,j){
     if(MAX_STORED>0&&keys.length>MAX_STORED){
         const toRemove=keys.slice(0,keys.length-MAX_STORED);
         for(const k of toRemove)delete data.snapshots[String(k)];
-        log('Pruned',toRemove.length,'old snapshots, keeping',MAX_STORED);
+        log('Pruned',toRemove.length,'old snapshots, keeping',MAX_STORED,
+            '(wiki archive preserves all characters)');
     }
     SillyTavern.getContext().saveMetadata();
 }

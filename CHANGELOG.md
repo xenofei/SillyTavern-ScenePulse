@@ -2,6 +2,50 @@
 
 All notable changes to ScenePulse are documented in this file.
 
+### [6.22.1] — 2026-04-25
+
+#### Fixed — Critical bugs from feedback round 3 + GitHub issue #15 comment
+
+Four blocker-class bugs found by parallel expert panels, all fixed in this patch.
+
+**Wiki Permanence (issue #15 comment / user "wiki must be permanent")**:
+
+The Character Wiki was silently dropping characters when their last `characters[]` record was no longer in any retained snapshot. Multiple paths hit this — model omission, off-scene pruning by interceptor, snapshot pruning when `maxSnapshots > 0`. v6.22.1 adds a **persistent append-only Wiki Archive**:
+
+- New `data._spArchive = { characters: {...}, relationships: {...} }` on chat metadata.
+- `saveSnapshot()` updates the archive on every write — latest record per name wins, NEVER deleted, alias keys resolve to canonical entries.
+- One-time backfill on first read for chats predating v6.22.1 (idempotent — `_spWikiArchiveBackfilled` flag).
+- `character-wiki.js` uses a **3-tier fallback**: `_findLatest(snapshots)` → `_findArchived(_spArchive)` → bare-bones stub from history meta. Final tier guarantees the entry NEVER silently disappears.
+- `character-history.js` walks the archive in pass 2.5 to ensure pruned-only characters still appear in the meta map (so wiki pass 1 iterates them).
+- 21 new tests in `tests/wiki-permanence.test.mjs` covering: capture on save, latest-write-wins, alias indexing, model omission, snapshot pruning, relationship archive, backfill from existing snapshots.
+
+**Orphan custom panels resurrect after Clear** (the user's "Default still shows 2 custom panels" report):
+
+- Root cause: `migrateOrphanRootData` ran on EVERY `getActiveProfile`-adjacent read with no idempotency guard. After the user cleared `profile.customPanels`, the migration on the next read saw root.customPanels still populated (v6.13.0 COPIED rather than MOVED) and "promoted" them right back into the profile, undoing the clear.
+- Fix: **one-shot guard** via `s._spOrphanMigrationDone` flag — migration runs at most once per upgrade. After it runs, root data is drained and the promote/clear branches never fire again.
+- Defense in depth: `_clearPanels` in profiles-manager.js also drains the legacy root mirror at clear time, so even if the guard were somehow bypassed the migration would have nothing to promote.
+- Same systemic protection now applies to the other three overlay fields (panels, fieldToggles, dashCards) for any future "clear" affordances.
+
+**Floating capture overlay never appeared** (from user report on v6.22.0):
+
+- Root cause: `mountCaptureOverlay()` was called BEFORE `startCapture()` in `debug-inspector.js`. The overlay's `if (!isCapturing()) return` guard short-circuited because `_captureActive` hadn't flipped to true yet.
+- Fix: kick off `startCapture(durMs)` first (captures the promise), THEN mount the overlay, THEN await the promise. The overlay now reads `getCaptureMeta()` correctly on its first tick.
+- Defense in depth: removed the `isCapturing()` early-return from `mountCaptureOverlay()` itself — the `_tick()` loop already handles "capture ended (or never started)" via `getCaptureMeta()` returning null.
+
+**Together-mode tracker JSON briefly visible at end of message** (issue #15 comment):
+
+- Root cause: `streaming.js` `_updateCap` measured BEFORE checking `_hasJson`. When tracker tokens started appearing but `_hasJson` hadn't fired yet (sentinels are 7+ chars), the cap was briefly removed to remeasure → 1-frame flash of partial JSON visible.
+- Fix: **reorder** to check `_hasJson` FIRST. If JSON detected → freeze at LAST safe height (don't remeasure tracker-tainted content). Only when text is provably tracker-free do we remove the cap to remeasure. The "uncap to measure" trick now restores the previous cap immediately, before computing the new one, so any in-flight paint always sees a capped element.
+
+**Doctor per-row Retry button** (the DeepSeek V4 thinking 502 case):
+
+- New `runSingleDoctorCheck(id)` in `src/doctor.js` re-runs ONE check by id without re-running the full suite.
+- Per-row Retry button on FAIL results in the inspector's Doctor panel — re-runs in place, swaps the row with the fresh result, updates the stats line counts. Uses event delegation so re-render keeps it working.
+- Cool-blue styling matching the Doctor button itself.
+- Especially useful for the 30+ second schema round-trip on reasoning models — no need to re-run Storage / Model echo when only Schema 502'd.
+
+**Tests**: 1,338 pass (1,317 prior + 21 new wiki-permanence cases).
+
 ### [6.22.0] — 2026-04-25
 
 #### Fixed + Polished — Feedback round 2 (capture overlay, hardcoded prompt audit, profile badge, legacy removal)

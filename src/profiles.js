@@ -150,6 +150,21 @@ export function migrateOrphanRootData(s) {
     if (!Array.isArray(s.profiles) || !s.profiles.length || !s.activeProfileId) return 0;
     const profile = s.profiles.find(p => p && p.id === s.activeProfileId);
     if (!profile) return 0;
+
+    // v6.22.1: ONE-SHOT GUARD. Previously this ran on EVERY getActivePrompt /
+    // getActiveSchema call, which created a race with user actions: the user
+    // would clear customPanels via Profile Manager, the migration would fire
+    // on the next read, see profile.customPanels=[] AND root.customPanels
+    // still populated (because v6.13.0 COPIED rather than MOVED), and
+    // promote root → profile, undoing the user's clear.
+    //
+    // Fix: a per-installation flag on `s` itself so the migration runs at
+    // most ONCE post-upgrade. After it runs, root data is drained and the
+    // promote/clear branches never fire again. Users who explicitly clear
+    // a profile's overlay field at the manager level will see their clear
+    // stick because the migration won't be re-running on every read.
+    if (s._spOrphanMigrationDone) return 0;
+
     let touched = 0;
 
     // Always-overlaid object/array fields
@@ -193,6 +208,10 @@ export function migrateOrphanRootData(s) {
             touched++;
         }
     }
+
+    // Set the one-shot flag whether or not anything was touched — running
+    // once and finding nothing to do is the success state.
+    s._spOrphanMigrationDone = true;
 
     if (touched > 0) {
         profile.updatedAt = new Date().toISOString();

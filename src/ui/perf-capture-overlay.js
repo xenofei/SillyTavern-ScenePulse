@@ -18,7 +18,12 @@ const _OVERLAY_ID = 'sp-perf-capture-overlay';
 export function mountCaptureOverlay() {
     // Idempotent — re-mount replaces any stale instance.
     unmountCaptureOverlay();
-    if (!isCapturing()) return;
+    // v6.22.1: removed the `if (!isCapturing()) return` early-return guard.
+    // It created an order-of-operations trap: callers had to remember to
+    // start the capture BEFORE mounting, otherwise the overlay would
+    // silently no-op. The _tick() loop below already handles the "capture
+    // ended (or never started)" case via getCaptureMeta() returning null
+    // → unmount. So mounting unconditionally is safe.
 
     const el = document.createElement('div');
     el.id = _OVERLAY_ID;

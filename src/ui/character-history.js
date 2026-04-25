@@ -146,6 +146,52 @@ function _buildHistory() {
         }
     }
 
+    // ── Pass 2.5: backfill from the wiki archive (v6.22.1) ─────────
+    // The archive is append-only and survives snapshot pruning; if a
+    // character was pruned out of all snapshots they'd be missing from
+    // the meta map even though their data is preserved. Walk the archive
+    // and add any names not already in `out`. Use msg index 0 + 0
+    // appearances since their snapshot context is gone.
+    try {
+        const arc = data?._spArchive || {};
+        const archChars = arc.characters || {};
+        for (const [nameLow, archCh] of Object.entries(archChars)) {
+            if (!nameLow || nameLow === '?') continue;
+            // Resolve via canonLookup in case the archived name is an
+            // alias the snapshots already canonicalized differently.
+            const canon = resolve(archCh?.name || nameLow);
+            const canonLow = canon.toLowerCase();
+            if (!canonLow || out.has(canonLow)) continue;
+            // Check alias overlap with any existing meta to avoid creating
+            // duplicate entries for the same person.
+            let merged = false;
+            for (const [, existing] of out) {
+                if (existing.aliasesLow.has(canonLow) || existing.aliasesLow.has(nameLow)) {
+                    existing.aliasesLow.add(canonLow);
+                    existing.aliasesLow.add(nameLow);
+                    merged = true;
+                    break;
+                }
+            }
+            if (merged) continue;
+            // Genuinely new entry — synthesize meta from archive only.
+            const aliasesLow = new Set([canonLow, nameLow]);
+            if (Array.isArray(archCh.aliases)) {
+                for (const a of archCh.aliases) {
+                    const al = String(a || '').toLowerCase().trim();
+                    if (al) aliasesLow.add(al);
+                }
+            }
+            out.set(canonLow, {
+                firstSeen: 0, lastSeen: 0, appearances: 0,
+                lastLocation: '',
+                canonical: canon || archCh.name || nameLow,
+                aliasesLow,
+                _archivedOnly: true,
+            });
+        }
+    } catch (e) { /* archive optional — never fail history build */ }
+
     // ── Pass 3: post-hoc consolidation ──────────────────────────────
     // Walk the output map once and merge any entry whose aliasesLow
     // overlaps with another entry's canonical key. This catches edge
