@@ -2,6 +2,39 @@
 
 All notable changes to ScenePulse are documented in this file.
 
+### [6.15.5] — 2026-04-25
+
+#### Changed — Debug Inspector overhaul, Phase B: filter fields visually distinct, Diagnostics button, Config tab, Show-in-Last-Response
+
+**Toolbar filter fields are now visually distinct selectors** (user feedback on v6.15.4: even with extra spacing, the severity and source filters still read as one continuous row of pills). Each filter group is now a labeled SEGMENTED CONTROL — joined options inside a single rounded container with internal dividers, with an uppercase micro-label above (`SEVERITY` / `SOURCE` / `SINCE`). Apple HIG / Material segmented-control pattern: communicates "pick one of these mutually-exclusive options" instead of "many independent buttons". Active option uses inset box-shadow for the accent color (red/amber/blue for severity) so the joined segments stay visually unified. ARIA `role="radiogroup"` and `aria-checked` for screen readers.
+
+**Diagnostics button** (Panel B's #1 MUST, Panel C's name) — single button in the inspector header that bundles a paste-ready markdown report:
+- Activity log (last 50 lines, redacted)
+- Last response (redacted, truncated to 4000 chars with "…truncated, total N chars")
+- Last 10 issues with diagnosis hints inline (redacted)
+- Active profile summary (id, name, has-custom-schema, has-custom-prompt, panel count)
+- Non-default settings only (massively cuts paste size vs full settings tree)
+- Versions (SP, ST, UA, viewport)
+- 6-char DJB2 hash header so the maintainer can tell two pastes apart at a glance
+- Auto-redact: API keys (`sk-…`, `Bearer xxx`, `api_key=…`), absolute paths (`C:\Users\…`, `/home/…`, `/Users/…`), file URLs, email addresses
+- Copies to clipboard with toast confirmation
+
+**New `Config` tab** (Panel C: "Config" not "Settings dump" — "dump" leaks implementation):
+- Active profile summary
+- Chat metadata (chatId, mesIdx, character, group, mainApi, viewport)
+- Non-default settings only by default (Panel B refinement); "Show all settings (not just non-defaults)" toggle reveals the full tree
+- Same redaction as Diagnostics
+- Copy / Export TXT actions
+
+**Show-in-Last-Response button** (Panel B's MUST, Panel C's name "Show in" not "Open in"):
+- Appears on parse-related issue entries (cleanJson / no JSON object / Parse fail)
+- Inline action button in the entry's body
+- Switches to Last Response tab + scrolls response pane to top
+- Last Response shows an "Opened from" pill referencing the source issue
+- Tab render contract extended: `tab.render(panel, { switchTo, payload })` so any tab can navigate to any other with context
+
+All 620/620 tests still pass.
+
 ### [6.15.4] — 2026-04-25
 
 #### Changed — Debug Inspector overhaul, Phase A: rename, toolbar, grouping, Last Response fix, time filter, auto-open badge

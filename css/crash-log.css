@@ -8,6 +8,63 @@
     animation: sp-glass-in 0.18s ease-out;
 }
 
+/* v6.15.5: Diagnostics button in the inspector header — distinct accent
+   color so it reads as a "primary action you can take from any tab", not
+   another tab. Tooltip carries the longer description. */
+.sp-cl-header .sp-di-diagnostics {
+    margin-right: 6px;
+    color: var(--sp-accent);
+    border-color: rgba(77,184,164,0.4);
+    background: rgba(77,184,164,0.08);
+    font-weight: 600;
+}
+.sp-cl-header .sp-di-diagnostics:hover {
+    background: rgba(77,184,164,0.16);
+    border-color: var(--sp-accent);
+    color: #fff;
+}
+
+/* v6.15.5: "Show in Last Response" inline action — secondary styling so it
+   doesn't compete with Copy / Report on GitHub. */
+.sp-cl-show-response {
+    background: rgba(77,184,164,0.06);
+    border-color: rgba(77,184,164,0.25);
+    color: var(--sp-accent);
+}
+.sp-cl-show-response:hover {
+    background: rgba(77,184,164,0.14);
+    border-color: var(--sp-accent);
+}
+
+/* v6.15.5: Last Response "opened from" pill — appears when arriving via the
+   Show-in-Last-Response button so the user remembers WHY they're here. */
+.sp-di-from-issue {
+    color: var(--sp-text-dim);
+    font-size: var(--sp-fs-xs);
+    margin-left: 8px;
+}
+.sp-di-from-issue code {
+    background: rgba(0,0,0,0.25);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--sp-text);
+    font-size: 10px;
+}
+
+/* v6.15.5: Config tab — toggle for show-all-settings, label/value sections
+   reuse .sp-cl-stack-label and .sp-cl-context for consistency with Issues. */
+.sp-di-toggle {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--sp-text-dim); font-size: var(--sp-fs-xs);
+    cursor: pointer;
+}
+.sp-di-toggle input { accent-color: var(--sp-accent); }
+.sp-di-config-body {
+    flex: 1; min-height: 0; overflow-y: auto;
+    padding: 8px 14px;
+}
+.sp-di-config-body .sp-cl-context { max-height: 320px; }
+
 /* v6.15.4: Auto-open badge for the Debug Inspector toolbar button.
    Two states:
      .sp-di-has-unseen — steady-state amber dot at top-right, persists until
@@ -95,8 +152,15 @@ body.sp-reduce-effects #sp-btn-debug-inspector.sp-di-flash { animation: none; }
 }
 .sp-cl-zone-query {
     flex: 1 1 auto; min-width: 0;
-    /* internal gap a touch wider so sibling filter groups read as separate */
-    gap: 10px;
+    /* internal gap a touch wider so sibling filter fields read as separate */
+    gap: 14px;
+    /* labels sit above their segmented controls, so align-items moves to the
+       BASELINE of the segmented controls (skip the label row by aligning end) */
+    align-items: flex-end;
+}
+.sp-cl-zone-query .sp-cl-search {
+    /* keep search baseline-aligned with the segmented controls below their labels */
+    align-self: flex-end;
 }
 .sp-cl-zone-actions {
     margin-left: auto;
@@ -118,8 +182,9 @@ body.sp-reduce-effects #sp-btn-debug-inspector.sp-di-flash { animation: none; }
 .sp-cl-search:focus { outline: none; border-color: var(--sp-accent); }
 .sp-cl-filters { display: flex; gap: 2px; align-items: center; }
 .sp-cl-filter-label {
-    color: var(--sp-text-dim); font-size: var(--sp-fs-xs);
-    margin-right: 4px; font-weight: 500;
+    color: var(--sp-text-dim); font-size: 9px;
+    font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;
+    margin-bottom: 2px; opacity: 0.7;
 }
 .sp-cl-filter {
     background: var(--sp-surface); color: var(--sp-text-dim);
@@ -129,11 +194,61 @@ body.sp-reduce-effects #sp-btn-debug-inspector.sp-di-flash { animation: none; }
 }
 .sp-cl-filter:hover { color: var(--sp-text); }
 .sp-cl-filter-active { color: var(--sp-accent); border-color: var(--sp-accent); background: rgba(77,184,164,0.08); }
+
+/* v6.15.5: Filter FIELDS — each (Severity, Source, Since) is a labeled
+   segmented control. The label sits above the segmented group with an
+   uppercase micro-typography treatment so users see "this is a labeled
+   selector" rather than "another row of pills". The segmented control
+   itself joins all options into ONE rounded container with internal
+   dividers — communicating "pick one of these, mutually exclusive"
+   instead of "many independent buttons" (Apple HIG / Material segmented
+   control guidance). Three labeled fields = three obviously distinct
+   choices. */
+.sp-cl-filter-field {
+    display: flex; flex-direction: column; align-items: flex-start;
+    gap: 0;
+}
+.sp-cl-segmented {
+    display: inline-flex; gap: 0;
+    border: 1px solid var(--sp-border);
+    border-radius: 4px;
+    overflow: hidden;
+    background: rgba(0,0,0,0.18);
+}
+.sp-cl-segmented .sp-cl-filter {
+    border: none;
+    border-right: 1px solid var(--sp-border);
+    border-radius: 0;
+    background: transparent;
+    padding: 4px 10px;
+}
+.sp-cl-segmented .sp-cl-filter:last-child { border-right: none; }
+.sp-cl-segmented .sp-cl-filter:hover {
+    background: rgba(255,255,255,0.04);
+    color: var(--sp-text);
+}
+.sp-cl-segmented .sp-cl-filter.sp-cl-filter-active {
+    background: rgba(77,184,164,0.14);
+    color: var(--sp-accent);
+    border-color: transparent;
+    box-shadow: inset 0 0 0 1px rgba(77,184,164,0.35);
+}
 /* v6.15.4: severity-active accent colors — only on the selected severity chip,
-   not on inactive ones. Color = data, not chrome (Tufte / Sentry pattern). */
-.sp-cl-filter-error.sp-cl-filter-active   { color: #fca5a5; border-color: rgba(252,165,165,0.55); background: rgba(239,68,68,0.10); }
-.sp-cl-filter-warn.sp-cl-filter-active    { color: #fcd34d; border-color: rgba(252,211,77,0.55);  background: rgba(245,158,11,0.10); }
-.sp-cl-filter-info.sp-cl-filter-active    { color: #93c5fd; border-color: rgba(147,197,253,0.55); background: rgba(96,165,250,0.10); }
+   not on inactive ones. Color = data, not chrome (Tufte / Sentry pattern).
+   v6.15.5: applied inside segmented control via inset box-shadow instead of
+   border so the joined segments stay visually unified. */
+.sp-cl-segmented .sp-cl-filter-error.sp-cl-filter-active {
+    color: #fca5a5; background: rgba(239,68,68,0.14);
+    box-shadow: inset 0 0 0 1px rgba(252,165,165,0.45);
+}
+.sp-cl-segmented .sp-cl-filter-warn.sp-cl-filter-active {
+    color: #fcd34d; background: rgba(245,158,11,0.14);
+    box-shadow: inset 0 0 0 1px rgba(252,211,77,0.45);
+}
+.sp-cl-segmented .sp-cl-filter-info.sp-cl-filter-active {
+    color: #93c5fd; background: rgba(96,165,250,0.14);
+    box-shadow: inset 0 0 0 1px rgba(147,197,253,0.45);
+}
 /* v6.15.4: danger button for Clear — outlined-danger variant, not solid red.
    Solid red on a frequently-visible toolbar fatigues the eye (Sentry/Bugsnag
    pattern); outlined-danger reads "destructive" without alarming. */

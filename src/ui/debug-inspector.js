@@ -23,6 +23,9 @@ import { esc } from '../utils.js';
 import { debugLog } from '../logger.js';
 import { getLastRawResponse } from '../state.js';
 import { getEntries as crashGetEntries, clearAll as crashClearAll, flushNow as crashFlushNow, entryCount as crashEntryCount, markSeen as crashMarkSeen } from '../crash-log.js';
+import { getSettings } from '../settings.js';
+import { getActiveProfile } from '../profiles.js';
+import { DEFAULTS as DEFAULT_SETTINGS } from '../constants.js';
 
 const REPO_NEW_ISSUE = 'https://github.com/xenofei/SillyTavern-ScenePulse/issues/new';
 
@@ -64,6 +67,125 @@ function _exportFile(text, filename) {
     }
 }
 
+// ── Diagnostics bundle (v6.15.5) ────────────────────────────────────────
+//
+// Per Panel B's MUST tier: one click → paste-ready markdown bundle that kills
+// the back-and-forth in bug reports. Auto-redacts API keys, absolute paths,
+// emails. 6-char hash header so the maintainer can tell two pastes apart at
+// a glance. Per Panel C: button label is "Diagnostics" (not "Diagnostic
+// Bundle" — bundle is webpack-coded; the action is to gather diagnostics).
+
+const _REDACT_PATTERNS = [
+    [/sk-(?:ant-)?[A-Za-z0-9_\-]{20,}/g, '[REDACTED:api_key]'],
+    [/(?:gsk|pk_live|pk_test|sk_live|sk_test)_[A-Za-z0-9_\-]{16,}/g, '[REDACTED:api_key]'],
+    [/Bearer\s+[A-Za-z0-9._\-]{16,}/gi, 'Bearer [REDACTED]'],
+    [/\b(?:api[_-]?key|token|secret|password|auth)["'\s:=]+["']?[A-Za-z0-9_\-./+=]{12,}["']?/gi, '$1=[REDACTED]'],
+    [/[A-Z]:\\Users\\[^\\\s"'<>|]+/g, '[REDACTED:user_path]'],
+    [/\/(?:home|Users)\/[^\/\s"'<>]+/g, '[REDACTED:user_path]'],
+    [/\bfile:\/\/\/?[^\s"'<>]+/g, '[REDACTED:file_url]'],
+    [/\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}/g, '[REDACTED:email]'],
+];
+function _redact(text) {
+    if (typeof text !== 'string' || !text) return text;
+    let out = text;
+    for (const [re, repl] of _REDACT_PATTERNS) out = out.replace(re, repl);
+    return out;
+}
+// Cheap deterministic 6-char hash (DJB2 variant) — purely for distinguishing
+// pastes, not cryptographic. Lets the maintainer say "are these the same?"
+// at a glance when reviewing two reports.
+function _shortHash(s) {
+    let h = 5381;
+    for (let i = 0; i < s.length; i++) h = ((h << 5) + h) ^ s.charCodeAt(i);
+    return (h >>> 0).toString(16).padStart(8, '0').slice(0, 6);
+}
+// Diff settings against DEFAULTS, returning only values that differ.
+// Recurses one level for nested objects (panels, dashCards, fieldToggles).
+function _nonDefaultSettings(s, defaults) {
+    const out = {};
+    for (const k of Object.keys(defaults)) {
+        const v = s?.[k];
+        const d = defaults[k];
+        if (v === undefined) continue;
+        if (typeof d === 'object' && d !== null && !Array.isArray(d)) {
+            const sub = {};
+            for (const sk of Object.keys(d)) {
+                if (v && v[sk] !== d[sk] && v[sk] !== undefined) sub[sk] = v[sk];
+            }
+            if (Object.keys(sub).length) out[k] = sub;
+        } else if (Array.isArray(d)) {
+            // Always include arrays if non-empty AND not the same length-0 default
+            if (Array.isArray(v) && v.length > 0) out[k] = v;
+        } else if (v !== d) {
+            out[k] = v;
+        }
+    }
+    // Capture any keys present in settings but absent from defaults (custom user data)
+    for (const k of Object.keys(s || {})) {
+        if (!(k in defaults) && !k.startsWith('_')) out[k] = s[k];
+    }
+    return out;
+}
+
+function _buildDiagnostics({ spVersion = '', stVersion = '' } = {}) {
+    // Activity log: last 50 lines
+    const activity = (debugLog || []).slice(-50).map(_redact).join('\n');
+    // Last response (truncated to 4000 chars to keep bundles paste-friendly)
+    const rawResp = getLastRawResponse() || '';
+    const respTrunc = rawResp.length > 4000
+        ? rawResp.slice(0, 4000) + `\n\n[…truncated, total ${rawResp.length} chars]`
+        : rawResp;
+    // Last 10 issues, redacted, with diagnosis hints inline
+    const issues = crashGetEntries().slice(-10).reverse().map(e => {
+        const dx = _diagnose(e.message || '');
+        return `[${_fmtTs(e.ts)}] ${(e.severity || 'error').toUpperCase()} (${e.source})${e.repeat > 1 ? ` ×${e.repeat}` : ''}\n`
+            + `Message: ${_redact(e.message || '(empty)')}\n`
+            + (dx ? `Likely: ${dx}\n` : '')
+            + (e.context ? `Context: ${_redact(JSON.stringify(e.context))}\n` : '')
+            + (e.stack ? `Stack:\n${_redact(e.stack)}\n` : '');
+    }).join('\n---\n\n');
+    // Settings (non-default only) + active profile
+    let settingsBlock = '';
+    let profileBlock = '';
+    try {
+        const s = getSettings();
+        const nonDef = _nonDefaultSettings(s, DEFAULT_SETTINGS);
+        settingsBlock = _redact(JSON.stringify(nonDef, null, 2));
+        const prof = getActiveProfile(s);
+        if (prof) {
+            const pSafe = { id: prof.id, name: prof.name, hasSchema: !!prof.schema, hasPrompt: !!prof.systemPrompt, panels: prof.panels?.length || 0 };
+            profileBlock = JSON.stringify(pSafe, null, 2);
+        }
+    } catch (e) { settingsBlock = '(unavailable: ' + (e?.message || '') + ')'; }
+    // Build the bundle, then prepend the hash header so the hash covers content.
+    const body = [
+        '## Versions',
+        `- ScenePulse: ${spVersion || '(unknown)'}`,
+        `- SillyTavern: ${stVersion || '(unknown)'}`,
+        `- UA: ${(typeof navigator !== 'undefined' && navigator.userAgent) || '(unknown)'}`,
+        `- Viewport: ${typeof window !== 'undefined' ? `${window.innerWidth}x${window.innerHeight}` : '(unknown)'}`,
+        '',
+        '## Active profile',
+        '```json', profileBlock || '(none)', '```',
+        '',
+        '## Non-default settings',
+        '```json', settingsBlock, '```',
+        '',
+        `## Recent issues (last ${Math.min(10, crashGetEntries().length)} of ${crashGetEntries().length})`,
+        '```', issues || '(none)', '```',
+        '',
+        '## Last response',
+        rawResp ? '```\n' + _redact(respTrunc) + '\n```' : '(none captured)',
+        '',
+        `## Activity log (last ${Math.min(50, (debugLog || []).length)} lines)`,
+        '```', activity || '(empty)', '```',
+    ].join('\n');
+    const hash = _shortHash(body);
+    return `# ScenePulse Diagnostics — ${new Date().toISOString()}\n`
+        + `**Bundle ID:** \`${hash}\` · API keys / paths / emails auto-redacted.\n\n`
+        + body;
+}
+
 // ── Crash Log helpers (port of crash-log-viewer.js) ─────────────────────
 
 function _crashEntryToText(e) {
@@ -77,6 +199,14 @@ function _crashEntryToText(e) {
     if (e.spVersion) lines.push('ScenePulse: ' + e.spVersion);
     if (e.stVersion) lines.push('SillyTavern: ' + e.stVersion);
     return lines.join('\n');
+}
+
+// v6.15.5: detect parse-related errors (cleanJson / Parse fail / no JSON object).
+// Used to decide whether to render the "Show in Last Response" jump button.
+function _isParseRelated(message) {
+    if (!message) return false;
+    const m = message.toLowerCase();
+    return m.includes('cleanjson') || m.includes('no json object') || m.includes('parse fail');
 }
 
 // v6.15.3: pattern-match common error messages to a one-line cause hint.
@@ -238,12 +368,14 @@ function _activityTab(panel) {
 
 // ── Tab: Last Response ──────────────────────────────────────────────────
 
-function _lastResponseTab(panel) {
+function _lastResponseTab(panel, ctx = {}) {
+    const payload = ctx.payload || {};
     panel.innerHTML = `
         <div class="sp-cl-toolbar">
             <button class="sp-cl-export-btn sp-di-copy">${t('Copy')}</button>
             <button class="sp-cl-export-btn sp-di-export">${t('Export TXT')}</button>
             <span class="sp-di-stats sp-di-meta"></span>
+            ${payload.fromIssue ? `<span class="sp-di-from-issue">${t('Opened from')} <code>${esc((payload.fromIssue.message || '').slice(0, 60))}…</code></span>` : ''}
         </div>
         <div class="sp-di-response"></div>
     `;
@@ -280,6 +412,15 @@ function _lastResponseTab(panel) {
         const ts = new Date().toISOString().replace(/[:.]/g, '-');
         _exportFile(raw, `scenepulse-last-response-${ts}.txt`);
     });
+
+    // v6.15.5: when arrived from "Show in Last Response", scroll the response
+    // pane back to the top so the user starts at the beginning. Future:
+    // highlight the byte range where parsing failed (needs raw-pair ring
+    // buffer with column-from-error info, planned for v6.15.6).
+    if (payload.scrollToTop) {
+        const pre = panel.querySelector('.sp-di-response-pre');
+        if (pre) pre.scrollTop = 0;
+    }
 
     return () => {};
 }
@@ -331,7 +472,8 @@ function _groupParsePairs(entries) {
     return grouped;
 }
 
-function _issuesTab(panel) {
+function _issuesTab(panel, ctx = {}) {
+    const switchTo = ctx.switchTo || (() => {});
     let severity = 'all';
     let source = 'all';
     let search = '';
@@ -346,21 +488,29 @@ function _issuesTab(panel) {
         <div class="sp-cl-toolbar sp-di-issues-toolbar">
             <div class="sp-cl-toolbar-zone sp-cl-zone-query">
                 <input class="sp-cl-search sp-di-crash-search" type="text" placeholder="${t('Search messages and stacks...')}">
-                <div class="sp-cl-filters sp-cl-filters-severity" data-group="severity">
-                    <button class="sp-cl-filter sp-cl-filter-active" data-sev="all">${t('All')}</button>
-                    <button class="sp-cl-filter sp-cl-filter-error" data-sev="error">${t('Errors')}</button>
-                    <button class="sp-cl-filter sp-cl-filter-warn" data-sev="warning">${t('Warnings')}</button>
-                    <button class="sp-cl-filter sp-cl-filter-info" data-sev="info">${t('Info')}</button>
+                <div class="sp-cl-filter-field">
+                    <span class="sp-cl-filter-label">${t('Severity')}</span>
+                    <div class="sp-cl-filters sp-cl-segmented sp-cl-filters-severity" data-group="severity" role="radiogroup" aria-label="${t('Severity')}">
+                        <button class="sp-cl-filter sp-cl-filter-active" data-sev="all" role="radio" aria-checked="true">${t('All')}</button>
+                        <button class="sp-cl-filter sp-cl-filter-error" data-sev="error" role="radio" aria-checked="false">${t('Errors')}</button>
+                        <button class="sp-cl-filter sp-cl-filter-warn" data-sev="warning" role="radio" aria-checked="false">${t('Warnings')}</button>
+                        <button class="sp-cl-filter sp-cl-filter-info" data-sev="info" role="radio" aria-checked="false">${t('Info')}</button>
+                    </div>
                 </div>
-                <div class="sp-cl-filters" data-group="source">
-                    <button class="sp-cl-filter sp-cl-filter-active" data-src="all">${t('All sources')}</button>
-                    <button class="sp-cl-filter" data-src="scenepulse">ScenePulse</button>
-                    <button class="sp-cl-filter" data-src="sillytavern">SillyTavern</button>
-                    <button class="sp-cl-filter" data-src="unknown">${t('Unknown')}</button>
+                <div class="sp-cl-filter-field">
+                    <span class="sp-cl-filter-label">${t('Source')}</span>
+                    <div class="sp-cl-filters sp-cl-segmented" data-group="source" role="radiogroup" aria-label="${t('Source')}">
+                        <button class="sp-cl-filter sp-cl-filter-active" data-src="all" role="radio" aria-checked="true">${t('All')}</button>
+                        <button class="sp-cl-filter" data-src="scenepulse" role="radio" aria-checked="false">ScenePulse</button>
+                        <button class="sp-cl-filter" data-src="sillytavern" role="radio" aria-checked="false">SillyTavern</button>
+                        <button class="sp-cl-filter" data-src="unknown" role="radio" aria-checked="false">${t('Unknown')}</button>
+                    </div>
                 </div>
-                <div class="sp-cl-filters sp-cl-filters-time" data-group="time">
-                    <span class="sp-cl-filter-label">${t('Since:')}</span>
-                    ${tw}
+                <div class="sp-cl-filter-field">
+                    <span class="sp-cl-filter-label">${t('Since')}</span>
+                    <div class="sp-cl-filters sp-cl-segmented sp-cl-filters-time" data-group="time" role="radiogroup" aria-label="${t('Since')}">
+                        ${tw}
+                    </div>
                 </div>
             </div>
             <div class="sp-cl-toolbar-zone sp-cl-zone-actions">
@@ -480,6 +630,7 @@ function _issuesTab(panel) {
                 ${bodyParts.join('')}
                 <div class="sp-cl-row-actions">
                     <button class="sp-btn sp-cl-copy-one">${t('Copy')}</button>
+                    ${_isParseRelated(e.message) ? `<button class="sp-btn sp-cl-show-response">${t('Show in Last Response')}</button>` : ''}
                     <button class="sp-btn sp-cl-report-one">${t('Report on GitHub')}</button>
                 </div>
             </div>
@@ -495,6 +646,17 @@ function _issuesTab(panel) {
                 : _crashEntryToText(e);
             _copy(text, t('Entry copied'));
         });
+        // v6.15.5: jump to Last Response tab for parse-related entries — Panel B's
+        // MUST. The payload tells the response tab to scroll to where parsing
+        // likely failed (top of the buffer for now; precise byte-range highlight
+        // is a v6.15.6+ enhancement once we have the raw-pair ring buffer).
+        const showBtn = row.querySelector('.sp-cl-show-response');
+        if (showBtn) {
+            showBtn.addEventListener('click', ev => {
+                ev.stopPropagation();
+                switchTo('response', { fromIssue: e, scrollToTop: true });
+            });
+        }
         row.querySelector('.sp-cl-report-one').addEventListener('click', ev => {
             ev.stopPropagation();
             _reportOnGitHub(e);
@@ -530,33 +692,26 @@ function _issuesTab(panel) {
         clearTimeout(_searchT);
         _searchT = setTimeout(() => { search = e.target.value; _render(); }, 150);
     });
-    panel.querySelectorAll('.sp-cl-filters[data-group="severity"] .sp-cl-filter').forEach(btn => {
-        btn.addEventListener('click', () => {
-            panel.querySelectorAll('.sp-cl-filters[data-group="severity"] .sp-cl-filter')
-                .forEach(b => b.classList.remove('sp-cl-filter-active'));
-            btn.classList.add('sp-cl-filter-active');
-            severity = btn.dataset.sev;
-            _render();
+    // v6.15.5: Helper for segmented controls — single-select among siblings
+    // in the same data-group, with aria-checked sync for screen readers.
+    const _wireSegmented = (group, onChange) => {
+        const buttons = panel.querySelectorAll(`.sp-cl-filters[data-group="${group}"] .sp-cl-filter`);
+        buttons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                buttons.forEach(b => {
+                    b.classList.remove('sp-cl-filter-active');
+                    b.setAttribute('aria-checked', 'false');
+                });
+                btn.classList.add('sp-cl-filter-active');
+                btn.setAttribute('aria-checked', 'true');
+                onChange(btn);
+                _render();
+            });
         });
-    });
-    panel.querySelectorAll('.sp-cl-filters[data-group="source"] .sp-cl-filter').forEach(btn => {
-        btn.addEventListener('click', () => {
-            panel.querySelectorAll('.sp-cl-filters[data-group="source"] .sp-cl-filter')
-                .forEach(b => b.classList.remove('sp-cl-filter-active'));
-            btn.classList.add('sp-cl-filter-active');
-            source = btn.dataset.src;
-            _render();
-        });
-    });
-    panel.querySelectorAll('.sp-cl-filters[data-group="time"] .sp-cl-filter').forEach(btn => {
-        btn.addEventListener('click', () => {
-            panel.querySelectorAll('.sp-cl-filters[data-group="time"] .sp-cl-filter')
-                .forEach(b => b.classList.remove('sp-cl-filter-active'));
-            btn.classList.add('sp-cl-filter-active');
-            timeWindow = btn.dataset.tw;
-            _render();
-        });
-    });
+    };
+    _wireSegmented('severity', btn => { severity = btn.dataset.sev; });
+    _wireSegmented('source',   btn => { source   = btn.dataset.src; });
+    _wireSegmented('time',     btn => { timeWindow = btn.dataset.tw; });
     panel.querySelector('.sp-di-copy').addEventListener('click', () => {
         _copy(_crashAllToText(crashGetEntries()), t('Crash log copied'));
     });
@@ -576,15 +731,126 @@ function _issuesTab(panel) {
     return () => {};
 }
 
+// ── Tab: Config (v6.15.5) ───────────────────────────────────────────────
+//
+// Active profile + chat metadata + non-default settings, paste-ready. Per
+// Panel C: name is "Config" (not "Settings dump" — "dump" leaks the
+// implementation; the user wants to see CONFIG). Per Panel B refinement:
+// non-default values are the default view (massively cuts paste size); a
+// "show all" toggle reveals the full settings tree for completeness.
+function _configTab(panel) {
+    let showAll = false;
+    panel.innerHTML = `
+        <div class="sp-cl-toolbar">
+            <label class="sp-di-toggle"><input type="checkbox" class="sp-di-show-all"> ${t('Show all settings (not just non-defaults)')}</label>
+            <span style="flex:1"></span>
+            <button class="sp-cl-export-btn sp-di-copy">${t('Copy')}</button>
+            <button class="sp-cl-export-btn sp-di-export">${t('Export TXT')}</button>
+        </div>
+        <div class="sp-di-config-body"></div>
+    `;
+    const body = panel.querySelector('.sp-di-config-body');
+
+    function _build() {
+        const s = (() => { try { return getSettings(); } catch { return null; } })();
+        let profileBlock = '(unavailable)';
+        let metaBlock = '(unavailable)';
+        let settingsBlock = '(unavailable)';
+        if (s) {
+            try {
+                const prof = getActiveProfile(s);
+                if (prof) {
+                    profileBlock = JSON.stringify({
+                        id: prof.id,
+                        name: prof.name,
+                        hasCustomSchema: !!prof.schema,
+                        hasCustomPrompt: !!prof.systemPrompt,
+                        customPanels: prof.panels?.length || 0,
+                        fieldToggleOverrides: Object.keys(prof.fieldToggles || {}).length,
+                    }, null, 2);
+                } else {
+                    profileBlock = '(no profile active — running on raw settings)';
+                }
+            } catch (e) { profileBlock = '(error: ' + (e?.message || '') + ')'; }
+            try {
+                const ctx = (typeof SillyTavern !== 'undefined' && SillyTavern.getContext) ? SillyTavern.getContext() : null;
+                if (ctx) {
+                    metaBlock = JSON.stringify({
+                        chatId: ctx.chatId ? String(ctx.chatId).slice(-12) : null,
+                        mesIdx: Array.isArray(ctx.chat) ? ctx.chat.length - 1 : null,
+                        character: ctx.name2 || null,
+                        groupId: ctx.groupId || null,
+                        mainApi: ctx.mainApi || null,
+                        viewport: typeof window !== 'undefined' ? `${window.innerWidth}x${window.innerHeight}` : null,
+                    }, null, 2);
+                } else {
+                    metaBlock = '(SillyTavern context unavailable)';
+                }
+            } catch (e) { metaBlock = '(error: ' + (e?.message || '') + ')'; }
+            try {
+                const data = showAll ? s : _nonDefaultSettings(s, DEFAULT_SETTINGS);
+                settingsBlock = _redact(JSON.stringify(data, null, 2));
+            } catch (e) { settingsBlock = '(error: ' + (e?.message || '') + ')'; }
+        }
+        body.innerHTML = `
+            <div class="sp-cl-stack-label">${t('Active profile')}</div>
+            <pre class="sp-cl-context">${esc(profileBlock)}</pre>
+            <div class="sp-cl-stack-label">${t('Chat metadata')}</div>
+            <pre class="sp-cl-context">${esc(metaBlock)}</pre>
+            <div class="sp-cl-stack-label">${showAll ? t('All settings') : t('Non-default settings')}</div>
+            <pre class="sp-cl-context">${esc(settingsBlock)}</pre>
+            <div class="sp-cl-meta"><span>${t('API keys, paths, and emails are auto-redacted in this view.')}</span></div>
+        `;
+    }
+
+    function _toText() {
+        const lines = [];
+        const s = (() => { try { return getSettings(); } catch { return null; } })();
+        if (!s) return '(settings unavailable)';
+        try {
+            const prof = getActiveProfile(s);
+            lines.push('Active profile:', JSON.stringify(prof ? { id: prof.id, name: prof.name } : null, null, 2));
+        } catch {}
+        try {
+            const ctx = (typeof SillyTavern !== 'undefined' && SillyTavern.getContext) ? SillyTavern.getContext() : null;
+            lines.push('', 'Chat metadata:', JSON.stringify({
+                chatId: ctx?.chatId ? String(ctx.chatId).slice(-12) : null,
+                mesIdx: Array.isArray(ctx?.chat) ? ctx.chat.length - 1 : null,
+                character: ctx?.name2 || null,
+            }, null, 2));
+        } catch {}
+        const data = showAll ? s : _nonDefaultSettings(s, DEFAULT_SETTINGS);
+        lines.push('', showAll ? 'All settings:' : 'Non-default settings:', _redact(JSON.stringify(data, null, 2)));
+        return lines.join('\n');
+    }
+
+    panel.querySelector('.sp-di-show-all').addEventListener('change', e => {
+        showAll = !!e.target.checked;
+        _build();
+    });
+    panel.querySelector('.sp-di-copy').addEventListener('click', () => {
+        _copy(_toText(), t('Config copied'));
+    });
+    panel.querySelector('.sp-di-export').addEventListener('click', () => {
+        const ts = new Date().toISOString().replace(/[:.]/g, '-');
+        _exportFile(_toText(), `scenepulse-config-${ts}.txt`);
+    });
+
+    _build();
+    return () => {};
+}
+
 // ── Overlay ────────────────────────────────────────────────────────────
 
 // v6.15.4: "Crashes" renamed to "Issues" — the contents include warnings + info,
 // not just crashes. Tab id stays 'crashes' for back-compat with openDebugInspector
 // callers that pass the initial tab name.
+// v6.15.5: Config tab added (Panel C: "Config" not "Settings dump").
 const TABS = [
     { id: 'crashes', label: 'Issues', render: _issuesTab, badge: () => crashEntryCount() },
     { id: 'activity', label: 'Activity', render: _activityTab },
     { id: 'response', label: 'Last Response', render: _lastResponseTab },
+    { id: 'config', label: 'Config', render: _configTab },
 ];
 
 export function openDebugInspector(initialTab = 'crashes') {
@@ -599,6 +865,7 @@ export function openDebugInspector(initialTab = 'crashes') {
         <div class="sp-cl-container sp-di-container">
             <div class="sp-cl-header">
                 <div class="sp-cl-title">${t('Debug Inspector')}</div>
+                <button class="sp-cl-export-btn sp-di-diagnostics" title="${t('Copy a paste-ready report: recent activity, last response, errors, settings, versions')}">${t('Diagnostics')}</button>
                 <button class="sp-cl-close">✕</button>
             </div>
             <div class="sp-di-tabs"></div>
@@ -621,7 +888,11 @@ export function openDebugInspector(initialTab = 'crashes') {
         tabsBar.appendChild(btn);
     }
 
-    function _switchTo(id) {
+    // v6.15.5: tab.render now receives a 2nd arg `{ switchTo, payload }`.
+    // switchTo lets a tab open another tab with optional context (the
+    // "Show in Last Response" button on a parse-error entry uses this).
+    // payload is whatever the previous switchTo call passed.
+    function _switchTo(id, payload) {
         const tab = TABS.find(x => x.id === id);
         if (!tab) return;
         activeTab = id;
@@ -630,7 +901,7 @@ export function openDebugInspector(initialTab = 'crashes') {
         });
         try { _disposeTab(); } catch {}
         tabPanel.innerHTML = '';
-        try { _disposeTab = tab.render(tabPanel) || (() => {}); }
+        try { _disposeTab = tab.render(tabPanel, { switchTo: _switchTo, payload }) || (() => {}); }
         catch (e) {
             tabPanel.innerHTML = `<div class="sp-cl-empty">${t('Tab failed to render')}: ${esc(e?.message || String(e))}</div>`;
             _disposeTab = () => {};
@@ -645,6 +916,20 @@ export function openDebugInspector(initialTab = 'crashes') {
         document.removeEventListener('keydown', _esc, true);
     }
     overlay.querySelector('.sp-cl-close').addEventListener('click', _close);
+    // v6.15.5: Diagnostics button — bundles activity + response + issues +
+    // non-default settings + active profile + versions into a paste-ready
+    // markdown block, copies to clipboard, optionally saves as a .md file.
+    overlay.querySelector('.sp-di-diagnostics').addEventListener('click', () => {
+        let spVersion = '', stVersion = '';
+        try {
+            // Pull versions from the same source as the issues entries — the most
+            // recent captured entry has them.
+            const recent = crashGetEntries().slice(-1)[0];
+            if (recent) { spVersion = recent.spVersion || ''; stVersion = recent.stVersion || ''; }
+        } catch {}
+        const md = _buildDiagnostics({ spVersion, stVersion });
+        _copy(md, t('Diagnostics copied'));
+    });
     overlay.addEventListener('click', e => { if (e.target === overlay) _close(); });
 
     // Stop pointer events from bubbling to ST's outside-click handler.
