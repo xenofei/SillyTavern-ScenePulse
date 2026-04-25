@@ -79,8 +79,10 @@ export function openPromptEditor() {
             <div class="sp-cl-header">
                 <div class="sp-cl-title">${t('Configure Prompts')} <span class="sp-pe-profile-tag">${esc(profile.name || 'Untitled')}</span></div>
                 <button class="sp-cl-export-btn sp-pe-revert-all" title="${t('Revert every slot to its default text. Does not affect the role selector.')}">${t('Revert all')}</button>
-                <button class="sp-cl-export-btn sp-pe-cancel">${t('Cancel')}</button>
                 <button class="sp-cl-export-btn sp-pe-save sp-pe-save-disabled" disabled>${t('Save')}</button>
+                <!-- v6.23.2: removed Cancel button — redundant with the X close
+                     button. The X close still triggers the dirty-edit confirm
+                     guard, so users can't lose unsaved edits accidentally. -->
                 <button class="sp-cl-close sp-pe-close" type="button" aria-label="${t('Close editor')}">✕</button>
             </div>
             <div class="sp-cp-tabstrip">
@@ -172,8 +174,7 @@ export function openPromptEditor() {
         _close({ skipDirtyCheck: true });
     }
 
-    // Wire toolbar
-    overlay.querySelector('.sp-pe-cancel').addEventListener('click', () => _close());
+    // Wire toolbar — v6.23.2 dropped sp-pe-cancel (redundant with sp-pe-close).
     overlay.querySelector('.sp-pe-close').addEventListener('click', () => _close());
     overlay.querySelector('.sp-pe-save').addEventListener('click', _save);
     // v6.23.0: tab strip wiring — clicking Templates closes this modal and

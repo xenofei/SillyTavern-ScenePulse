@@ -2,6 +2,31 @@
 
 All notable changes to ScenePulse are documented in this file.
 
+### [6.23.2] — 2026-04-25
+
+#### Fixed — Feedback round 6 (Doctor cascade bug, popover overflow, rogue hover, capture persistence)
+
+Five items.
+
+**#1 Doctor button color cascade bug**: the v6.21+ `.sp-di-doctor` selector was being SILENTLY OVERRIDDEN by `.sp-cl-export-btn` because both were single-class specificity (0,1,0) and `.sp-cl-export-btn` is defined later in the same file (line 985 vs line 25). CSS source order: later wins, so my blue color was being lost on every paint. Fix: bumped specificity to `.sp-di-doctor-wrap .sp-di-doctor` matching the exact pattern Diagnostics has used since v6.16. Doctor now actually renders blue, with brighter text (`#93c5fd`) and a stronger fill (`rgba(96,165,250,0.12)` background, `rgba(96,165,250,0.5)` border) so the visual weight matches Diagnostics.
+
+**#2 Doctor info popover overflow**: the popover was anchored `right: 0` (right edge of popover aligned with right edge of the i icon's info-area). Diagnostics is on the right side of the header, so this works fine — popover opens leftward and stays inside. Doctor is on the LEFT side, so the same `right: 0` anchor caused the popover to open leftward and overflow the inspector container's left edge. Added scoped override `.sp-di-doctor-wrap .sp-di-info-popover { right: auto; left: 0 }` so Doctor's popover opens rightward, staying inside the container.
+
+**#2.5 Responsive audit**: existing `@media (max-width: 560px)` already overrides both popovers to `left: 0` with smaller width — works at all narrow widths. Diagnostics at >= 560 keeps `right: 0`; Doctor at >= 560 now uses the new `left: 0` override; both anchor `left: 0` at < 560. No additional breakpoints needed.
+
+**#3 Cancel button removed** from Configure Prompts header. Was redundant with the X close button (both triggered the same `_close` flow with the same dirty-edit guard). Header now reads: title + profile pill + Revert all + Save + X. Cleaner.
+
+**#4 Rogue blue hover effect**: traced to the `.sp-cl-overlay` `backdrop-filter: blur(14px) saturate(120%)`. The `saturate(120%)` was amplifying every subtle hover/focus tint coming from the chat behind the modal — when the user moused INTO the page, ST's hover states (link colors, message highlights, focus rings) showed through the blurred backdrop as a shifting blue/amber tint. Plain `blur(14px)` is stable regardless of mouse position. Backdrop alpha bumped from 0.82 → 0.86 to compensate for the lost saturation darkening.
+
+**#5 Capture results persist across inspector close/reopen**: previously, if the user closed the Debug Inspector while a capture was running, the result was GC'd along with the closure when the capture eventually completed. New `_lastCaptureResult` module-level holder in `perf-monitor.js` (cleared only when a new capture starts). Exported via `getLastCaptureResult()`. The Perf tab on open handles three scenarios:
+- **A** No capture ever ran → empty results area (current behavior).
+- **B** Capture finished while inspector was closed → render the persisted result with banner: *"Showing the most recent capture (from a prior inspector session). Click Start capture to run a new one."*
+- **C** Capture STILL running → reattach live UI: button switches to **"Stop capture (m:ss)"**, tick timer resumes (computes elapsed from `getCapturePartial()` snapshot), partial results render every 1s. Banner: *"Capture in progress (continued from a prior inspector session). Click Stop when done."*
+
+The Perf tab dispose function no longer stops the capture on close — the floating overlay owns its own lifecycle and the perf-monitor stashes the final result via `_lastCaptureResult` regardless of who's watching.
+
+**Tests**: 1,338 still pass.
+
 ### [6.23.1] — 2026-04-25
 
 #### Fixed + Polished — Feedback round 5 (Configure Prompts polish, capture model overhaul)

@@ -30,6 +30,7 @@ import {
     getAnimationCount, getScenePulseLayerCount,
     startCapture, stopCapture, isCapturing,
     getFpsHistory, INSTRUMENTED_MARKS, getCapturePartial,
+    getLastCaptureResult,
 } from '../perf-monitor.js';
 import { getEntries as crashGetEntries, clearAll as crashClearAll, flushNow as crashFlushNow, entryCount as crashEntryCount, markSeen as crashMarkSeen } from '../crash-log.js';
 import { getSettings, getTrackerData } from '../settings.js';
@@ -1502,7 +1503,22 @@ function _perfTab(panel) {
     // wanders off, we won't observe forever — but they have plenty of time
     // to reproduce most slowdowns at their own pace.
     const _CAPTURE_MAX_MS = 600000;
-    let _lastResult = null;
+
+    // v6.23.2: persistent capture result across inspector close/reopen.
+    // - If a capture is currently running (started while inspector was open
+    //   the first time, or via overlay), reattach the live UI so the user
+    //   sees the count-up timer + partial results without losing state.
+    // - Otherwise, if a previous capture's result is stashed in
+    //   getLastCaptureResult(), render it so users who closed mid-capture
+    //   see the final results when they re-open the inspector.
+    let _lastResult = (() => { try { return getLastCaptureResult(); } catch { return null; } })();
+    // v6.23.2: hoisted forward — these are also referenced by the reattach
+    // branch inside the FPS-sampler/return block below (which runs BEFORE
+    // the captureBtn click handler executes). Keeping them as `let`-with-
+    // earlier-declaration so the temporal dead zone doesn't trip when the
+    // user reopens the inspector mid-capture.
+    let _captureTickTimer = null;
+    let _captureUserStopped = false;
 
     const sparkEl = panel.querySelector('.sp-di-perf-fps-spark');
     function _drawFpsSparkline() {
@@ -1714,8 +1730,8 @@ function _perfTab(panel) {
     //  - Cleanup is bulletproof — _resetCaptureButton runs in finally,
     //    AND we listen for the capture-ended state via getCaptureMeta() in
     //    the tick so the inspector also responds to overlay-side stops.
-    let _captureTickTimer = null;
-    let _captureUserStopped = false;
+    // (v6.23.2: _captureTickTimer + _captureUserStopped declared earlier so
+    // the reattach branch inside FPS-sampler block can reference them.)
     function _stopCaptureTicks() {
         if (_captureTickTimer) { clearInterval(_captureTickTimer); _captureTickTimer = null; }
     }
@@ -1802,10 +1818,56 @@ function _perfTab(panel) {
     // Refresh headline once a second even if FPS hasn't notified yet
     _refreshTimer = setInterval(_refreshHeadline, 1000);
 
+    // v6.23.2: re-attach to running capture or render persisted result on
+    // tab open. Three reopen scenarios:
+    //   A. No capture ever ran     → results area is empty (current behavior)
+    //   B. Capture finished while  → render the persisted _lastResult so the
+    //      inspector was closed     user sees the final report
+    //   C. Capture STILL running    → reattach the live UI: button switches
+    //      (started before close)    to "Stop capture (m:ss)", tick timer
+    //                                resumes, partial results render
+    if (isCapturing()) {
+        // Scenario C: re-attach to live capture. The capture's own promise
+        // is owned by whoever started it (the previous inspector instance,
+        // now GC'd, or the floating overlay). We can't await it here without
+        // racing — but we can resume the live UI and clean up when the next
+        // tick sees isCapturing()=false.
+        const meta = (() => { try { return getCapturePartial(); } catch { return null; } })();
+        const startedAt = meta ? Date.now() - meta.durationMs : Date.now();
+        captureBtn.classList.add('sp-di-perf-capture-running');
+        captureBtn.textContent = `${t('Stop capture')} (${_fmtElapsed(meta ? meta.durationMs : 0)})`;
+        statusEl.innerHTML = `<div class="sp-di-perf-capturing">${t('Capture in progress (continued from a prior inspector session). Click Stop when done.')}</div>`;
+        if (meta) _renderResults(meta);
+        _captureTickTimer = setInterval(() => {
+            if (!isCapturing()) {
+                _stopCaptureTicks();
+                // Capture ended via the original owner — pick up the final result.
+                const final = (() => { try { return getLastCaptureResult(); } catch { return null; } })();
+                if (final) { _lastResult = final; _renderResults(final); }
+                statusEl.innerHTML = '';
+                _resetCaptureButton();
+                return;
+            }
+            const elapsedMs = Date.now() - startedAt;
+            captureBtn.textContent = `${t('Stop capture')} (${_fmtElapsed(elapsedMs)})`;
+            const partial = getCapturePartial();
+            if (partial) _renderResults(partial);
+        }, 1000);
+    } else if (_lastResult) {
+        // Scenario B: render the persisted final result.
+        _renderResults(_lastResult);
+        statusEl.innerHTML = `<div class="sp-di-perf-capturing">${t('Showing the most recent capture (from a prior inspector session). Click Start capture to run a new one.')}</div>`;
+    }
+
     return () => {
         if (_fpsUnsub) try { _fpsUnsub(); } catch {}
         stopFpsSampling();
         if (_refreshTimer) clearInterval(_refreshTimer);
+        // v6.23.2: do NOT stop the capture on tab close. The floating overlay
+        // owns its own lifecycle and the perf-monitor will resolve through
+        // _captureResolver / persist into _lastCaptureResult on completion.
+        // We just stop OUR tick timer so we don't leak it.
+        if (_captureTickTimer) { clearInterval(_captureTickTimer); _captureTickTimer = null; }
     };
 }
 

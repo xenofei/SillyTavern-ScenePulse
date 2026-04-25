@@ -206,6 +206,15 @@ let _captureLongTasks = 0;
 // stopped capture model where duration can be 10 minutes.
 let _captureResolver = null;
 let _captureAutoStopTimer = null;
+// v6.23.2: persist the most recent capture result at module level so when
+// the user closes the Debug Inspector mid-capture (the floating overlay
+// keeps the capture going), the result survives the closure being GC'd.
+// On next inspector open, the Perf tab reads this and renders. Cleared
+// only when a new capture starts (so old result doesn't leak into a
+// freshly-started one).
+let _lastCaptureResult = null;
+/** v6.23.2: read the most-recent capture result (or null if none yet). */
+export function getLastCaptureResult() { return _lastCaptureResult; }
 
 /**
  * Start capture. observer attaches; marks emitted during capture get
@@ -218,12 +227,18 @@ export function startCapture(durationMs = 30000) {
     if (_captureActive) {
         return Promise.reject(new Error('Capture already in progress'));
     }
-    const dur = Math.max(1000, Math.min(120000, Number(durationMs) || 30000));
+    // v6.23.1+v6.23.2: max bumped to 600s (10 min) to support the
+    // user-stopped capture model. Was 120s under the preset-duration model.
+    const dur = Math.max(1000, Math.min(600000, Number(durationMs) || 30000));
     _captureActive = true;
     _captureStartTs = performance.now();
     _captureDurationMs = dur;
     _captureBuckets = new Map();
     _captureLongTasks = 0;
+    // v6.23.2: clear the persisted last result when a new capture starts so
+    // the Perf tab doesn't briefly flash the prior capture's results during
+    // the empty initial state of a new capture.
+    _lastCaptureResult = null;
 
     // Observe sp:* measures + longtasks (where supported) during the window.
     try {
@@ -324,6 +339,10 @@ export function stopCapture() {
     const result = { durationMs: Math.round(durationMs), components, longTasks: _captureLongTasks };
     log('PerfMonitor capture: completed,', components.length, 'components,',
         Math.round(durationMs), 'ms,', _captureLongTasks, 'long tasks');
+    // v6.23.2: stash the result at module level so an inspector that was
+    // closed mid-capture can recover it on next open. Lives until the next
+    // startCapture() call clears it.
+    _lastCaptureResult = result;
     // v6.23.1: resolve the startCapture() promise here so any external stop
     // (manual or timer) propagates the result back to the original caller
     // without waiting for the auto-stop setTimeout that was just cleared.

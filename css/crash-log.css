@@ -3,7 +3,16 @@
 
 .sp-cl-overlay {
     position: fixed; inset: 0; z-index: 100001;
-    background: rgba(0,0,0,0.55); backdrop-filter: blur(4px);
+    /* v6.23.2: opaque backdrop without saturation. Earlier `saturate(120%)`
+       experiments amplified subtle hover/focus tints from the chat behind
+       the modal — when the user moused INTO the page, ST's chat hover
+       states (link colors, message highlights) read through the blurred
+       backdrop as a blue/amber tint that "appeared and disappeared" with
+       mouse position. Plain blur is stable regardless of mouse position;
+       0.86 alpha keeps the chat suppressed without competing for focus. */
+    background: rgba(8,10,16,0.86);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
     display: flex; align-items: stretch; justify-content: center;
     animation: sp-glass-in 0.18s ease-out;
 }
@@ -17,22 +26,23 @@
     align-items: center;
     gap: 4px;
 }
-/* v6.21.0 → v6.22.0 → v6.23.1: Doctor button now mirrors the Diagnostics
-   button's exact alpha values (border 0.4, bg 0.08) but in blue instead
-   of teal. Both buttons get identical visual weight; only the color
-   differs. Was overshooting saturation in v6.22.0 which made Doctor read
-   as "primary" relative to Diagnostics; now they're peers. */
-.sp-di-doctor {
+/* v6.21.0 → v6.23.2: Doctor button now uses the SAME selector specificity
+   pattern as Diagnostics (.sp-di-doctor-wrap .sp-di-doctor), which beats
+   the .sp-cl-export-btn baseline that v6.21–v6.23.1 was being overridden
+   by. Source order: .sp-di-doctor at line 25, .sp-cl-export-btn at line
+   985 — same single-class specificity → later wins, so Doctor's blue
+   color was silently lost. Compound selector now wins outright. */
+.sp-di-doctor-wrap .sp-di-doctor {
     font-weight: 600;
-    color: #60a5fa;
-    border-color: rgba(96,165,250,0.4);
-    background: rgba(96,165,250,0.08);
+    color: #93c5fd;
+    border-color: rgba(96,165,250,0.5);
+    background: rgba(96,165,250,0.12);
     border-radius: 4px;
 }
-.sp-di-doctor:hover {
-    background: rgba(96,165,250,0.16);
+.sp-di-doctor-wrap .sp-di-doctor:hover {
+    background: rgba(96,165,250,0.22);
     color: #fff;
-    border-color: #60a5fa;
+    border-color: #93c5fd;
 }
 /* Header hierarchy (Panel B audit): action group (Doctor + Diagnostics+i)
    tightly grouped, terminal action (Close) pushed apart by a wider gap so
@@ -694,6 +704,15 @@
 }
 .sp-di-doctor-wrap .sp-di-info-title {
     color: #93c5fd;
+}
+/* v6.23.2: Doctor's info icon sits on the LEFT side of the inspector
+   header, so the popover anchored right:0 opens LEFTWARD and overflows
+   the container's left edge. Re-anchor to left:0 so it opens RIGHTWARD,
+   staying inside the inspector. Diagnostics on the right keeps right:0
+   (opens leftward, stays inside). */
+.sp-di-doctor-wrap .sp-di-info-popover {
+    right: auto;
+    left: 0;
 }
 .sp-di-info svg { display: block; }
 /* Popover — only triggered by hovering the info-area or focusing the icon.
