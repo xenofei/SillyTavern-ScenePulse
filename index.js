@@ -91,6 +91,15 @@ eventSource.on(event_types.APP_READY, async () => { try {
         setTimeout(() => showSetupGuide(), 2000);
     }
     log('v' + VERSION + ' ready');
+    // v6.20.0: lazy-import the preset suggestion module + check the active
+    // model. Defers ~3s after APP_READY so it doesn't compete with the
+    // setup guide or initial render. The toast itself is already gated by
+    // session + permanent-dismissal storage so it's quiet when unwanted.
+    setTimeout(() => {
+        import('./src/ui/preset-suggestion.js')
+            .then(m => m.maybeSuggestPreset?.())
+            .catch(e => warn('preset-suggestion:', e?.message || e));
+    }, 3000);
     // Apply saved theme
     try {
         const _ts = getSettings();

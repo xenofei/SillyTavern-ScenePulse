@@ -21,7 +21,9 @@ import { log, warn } from './logger.js';
 // v6.18.0: promptOverrides (per-slot overrides) added.
 // v6.19.0: systemPromptRole (issue #16 — choose system/user/assistant for the
 // outgoing system-prompt message) added.
-const PROFILE_FIELDS = ['schema', 'systemPrompt', 'promptOverrides', 'systemPromptRole', 'panels', 'fieldToggles', 'dashCards', 'customPanels'];
+// v6.20.0: appliedPresetId tracks which bundled preset (src/presets/built-in.js)
+// the user accepted, so we don't re-prompt for the same model + preset pair.
+const PROFILE_FIELDS = ['schema', 'systemPrompt', 'promptOverrides', 'systemPromptRole', 'appliedPresetId', 'panels', 'fieldToggles', 'dashCards', 'customPanels'];
 const SCHEMA_VERSION = 1;
 
 function _uuid() {
@@ -72,6 +74,12 @@ export function makeProfile(partial = {}) {
         systemPromptRole: ['system', 'user', 'assistant'].includes(partial.systemPromptRole)
             ? partial.systemPromptRole
             : 'system',
+        // v6.20.0: id of the most-recently-applied bundled preset (or null).
+        // Suppresses re-prompting once the user has accepted a preset for
+        // their active model.
+        appliedPresetId: typeof partial.appliedPresetId === 'string' && partial.appliedPresetId.trim()
+            ? partial.appliedPresetId
+            : null,
         panels: partial.panels && typeof partial.panels === 'object' ? { ...partial.panels } : {},
         fieldToggles: partial.fieldToggles && typeof partial.fieldToggles === 'object' ? { ...partial.fieldToggles } : {},
         dashCards: partial.dashCards && typeof partial.dashCards === 'object' ? { ...partial.dashCards } : {},

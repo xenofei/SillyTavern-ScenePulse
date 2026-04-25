@@ -2,6 +2,67 @@
 
 All notable changes to ScenePulse are documented in this file.
 
+### [6.20.0] — 2026-04-25
+
+#### Added — 30 bundled model presets + community contribution folder
+
+Third and final release in the prompt-architecture series (v6.18.0 architecture → v6.19.0 editor → v6.20.0 presets). Ships pre-tuned prompt configurations for the 30 most-used models on r/SillyTavern as of April 2026, plus a `presets/` folder for community-contributed extras.
+
+**Research input**: a multi-source survey of r/SillyTavern, r/LocalLLaMA, OpenRouter rankings, HuggingFace trending, and roleplay-targeted hosts (Featherless, Together, Infermatic). Sources cited inline in the preset notes; the swyxio sillytavernAI gist + OpenRouter Roleplay collection were the primary aggregates.
+
+**`src/presets/built-in.js`** — 30 model-specific presets:
+
+Tier 1 (proprietary + open-weight giants):
+- `deepseek-v3-2`, `deepseek-v4-pro` (with no-thinking-tags rule), `deepseek-v4-flash`
+- `claude-sonnet-4-6`, `claude-opus-4-6` — both default to `systemPromptRole: 'user'` (the issue #16 motivator) and wrap the role slot in `<task>` tags
+- `gemini-2-5-pro`, `gemini-2-5-flash`, `gemini-2-5-flash-lite`
+- `gpt-5-4`, `kimi-k2-6`, `glm-4-6`, `qwen-3-5-235b`
+
+Tier 2 (roleplay-tuned local + finetune favorites):
+- `cydonia-24b-v2` (Mistral [INST] template wrap), `cydonia-magnum-v4-22b` (ChatML jailbreak)
+- `magnum-v4-72b` (ChatML jailbreak), `behemoth-123b-v1`, `monstral-123b` (Mistral [INST] template)
+- `midnight-miqu-70b-v1-5` (begin-with-{ rule), `midnight-rose-70b` (Alpaca template)
+- `dans-personality-v1-3` (ChatML), `qwen-3-5-35b-claude-distill`
+- `huihui-gemma-4-31b`, `gemma-3-27b-abliterated`, `gemma-2-ataraxy-9b` (all Gemma chat-template wraps)
+- `mythomax-l2-13b` (legacy — Alpaca + aggressively shortened critical rules for the 4K context)
+- `gemmasutra-mini-2b` (phone/CPU model — minimal rules)
+- `glm-4-6v-flash-abliterated`, `llama-3-3-70b-rp` (Steel/Sao10K family)
+- `command-a-2025`, `grok-4`
+
+Each preset writes into `profile.promptOverrides` + `profile.systemPromptRole` only. Panels, schema, custom panels, and other settings are explicitly left alone — applying a preset is a non-destructive, fully-reversible operation.
+
+**`src/presets/registry.js`** — matcher + applier:
+- `getActiveModelId()` — pulls the model id from SillyTavern's connection (tries `chatCompletionSettings.openai_model`, `textGenerationSettings.model`, `onlineStatus`, `model`, falling through gracefully).
+- `findMatchingPreset(modelId)` — case-insensitive substring match against each preset's `matchPatterns`; longest match wins on tie. Cydonia × Magnum correctly beats plain Cydonia.
+- `buildPresetPatch(preset, currentProfile)` — merges preset overrides INTO the existing profile's overrides instead of replacing, so users who already customized other slots don't lose those edits.
+
+**`src/ui/preset-suggestion.js`** — one-time toast on model match:
+- Triggers ~3 seconds after `APP_READY` (lazy-imported so it doesn't bloat the startup hot path).
+- Gated by three checks: (1) `profile.appliedPresetId === preset.id` → silent; (2) shown this session (`sessionStorage`) → silent; (3) permanently dismissed (`localStorage`) → silent. The toast is cooperative — never fires twice for the same decision.
+- Uses `spConfirm()` (not `toastr`) so the buttons render properly and survive ST's toast pruner.
+- The dialog explains exactly what changes (prompt overrides + role) and what doesn't (panels, schema, customizations).
+
+**`src/profiles.js`**:
+- `PROFILE_FIELDS` extended with `appliedPresetId` so it persists.
+- `makeProfile()` defaults `appliedPresetId` to `null`; non-string values normalize to `null`.
+
+**`presets/` folder** (new, repo-root, GitHub-visible):
+- `presets/README.md` — full contribution guide: schema reference, required/recommended/optional fields, submission process, example.
+- `presets/_examples/anthracite-magnum-v5-72b.json` — full-shape example preset showing every documented field. Uses a hypothetical model name so it doesn't accidentally match a real one.
+- This folder is **NOT** auto-loaded by the extension in v6.20.0 — it's the staging area for community contributions. The PR workflow lets the maintainer review + fold accepted presets into the `built-in.js` bundle in a future release. A "Browse community presets" affordance with one-click apply is planned for v6.21+.
+
+**`tests/preset-registry.test.mjs`** — 562 new test cases:
+- Bundle shape validation: every preset has all required keys, valid family / role / slot ids, non-empty matchPatterns, sensible notes length.
+- id uniqueness across the bundle.
+- `findMatchingPreset` happy path + null/empty/unknown handling.
+- Longest-match-wins on collision.
+- `buildPresetPatch` merge semantics — preset overrides land, user's other customizations preserved.
+- `getPresetFamilies()` returns sorted unique family list.
+
+**Total test count: 1,309** (747 prior + 562 new).
+
+**End of the prompt-architecture series.** Three releases, each net-additive, each shipped with no behavior change for users who don't opt in. Backward compatibility maintained at every layer: legacy `profile.systemPrompt` still wins; v6.18.0 slot defaults match the pre-refactor monolith byte-for-byte; v6.19.0 editor is opt-in via "Edit Slots…"; v6.20.0 toast is cooperative + dismissible.
+
 ### [6.19.0] — 2026-04-25
 
 #### Added — Per-slot prompt editor + system-prompt role selector (folds in issue #16)
