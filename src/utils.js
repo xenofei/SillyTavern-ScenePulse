@@ -7,14 +7,36 @@ export function esc(s){if(s==null)return'';if(typeof s==='object')return esc(str
 export function str(v){if(v==null)return'';if(typeof v==='string')return v;if(typeof v==='number'||typeof v==='boolean')return String(v);if(Array.isArray(v))return v.map(str).filter(Boolean).join(', ');if(typeof v==='object'){for(const val of Object.values(v)){if(typeof val==='string')return val}return''}return String(v)}
 export function clamp(v,lo,hi){return Math.max(lo,Math.min(hi,Number(v)||0))}
 
+// v6.13.3: single-dialog enforcement. Rapid double-clicks on Delete (or
+// any other action that opens a confirm/prompt) used to stack multiple
+// overlays. Now any active dialog is dismissed (with cancel-equivalent
+// result) before a new one opens, so only one is ever visible.
+let _activeDialogClose=null;
+function _dismissActiveDialog(){
+    if(typeof _activeDialogClose==='function'){
+        try{_activeDialogClose()}catch{}
+        _activeDialogClose=null;
+    }
+}
+
 export function spConfirm(title,message,opts){
     const okLabel=opts?.okLabel||'Confirm';
     const cancelLabel=opts?.cancelLabel||'Cancel';
     const okClass=opts?.danger===false?'sp-confirm-ok-safe':'sp-confirm-ok';
+    _dismissActiveDialog();
     return new Promise(resolve=>{
         const overlay=document.createElement('div');overlay.className='sp-confirm-overlay';
         overlay.innerHTML=`<div class="sp-confirm-dialog"><div class="sp-confirm-title">${esc(title)}</div><div class="sp-confirm-msg">${esc(message)}</div><div class="sp-confirm-actions"><button class="sp-confirm-btn sp-confirm-cancel">${esc(cancelLabel)}</button><button class="sp-confirm-btn ${okClass}">${esc(okLabel)}</button></div></div>`;
-        const close=(result)=>{overlay.classList.add('sp-confirm-closing');setTimeout(()=>overlay.remove(),200);document.removeEventListener('keydown',onKey,true);resolve(result)};
+        let _settled=false;
+        const close=(result)=>{
+            if(_settled)return;_settled=true;
+            if(_activeDialogClose===_cancel)_activeDialogClose=null;
+            overlay.classList.add('sp-confirm-closing');setTimeout(()=>overlay.remove(),200);
+            document.removeEventListener('keydown',onKey,true);
+            resolve(result);
+        };
+        const _cancel=()=>close(false);
+        _activeDialogClose=_cancel;
         const onKey=(e)=>{if(e.key==='Escape'){close(false);e.stopPropagation()}else if(e.key==='Enter'){close(true);e.stopPropagation()}};
         overlay.querySelector('.sp-confirm-cancel').addEventListener('click',()=>close(false));
         overlay.querySelector('.'+okClass).addEventListener('click',()=>close(true));
@@ -47,12 +69,22 @@ export function spConfirm(title,message,opts){
 export function spPrompt(title,message,opts={}){
     const okLabel=opts.okLabel||'OK';
     const cancelLabel=opts.cancelLabel||'Cancel';
+    _dismissActiveDialog();
     return new Promise(resolve=>{
         const overlay=document.createElement('div');overlay.className='sp-confirm-overlay sp-prompt-overlay';
         overlay.innerHTML=`<div class="sp-confirm-dialog sp-prompt-dialog"><div class="sp-confirm-title">${esc(title)}</div>${message?`<div class="sp-confirm-msg">${esc(message)}</div>`:''}<input type="text" class="sp-prompt-input" placeholder="${esc(opts.placeholder||'')}" value="${esc(opts.value||'')}"><div class="sp-prompt-error" style="display:none"></div><div class="sp-confirm-actions"><button class="sp-confirm-btn sp-confirm-cancel">${esc(cancelLabel)}</button><button class="sp-confirm-btn sp-confirm-ok-safe">${esc(okLabel)}</button></div></div>`;
         const input=overlay.querySelector('.sp-prompt-input');
         const errEl=overlay.querySelector('.sp-prompt-error');
-        const close=(result)=>{overlay.classList.add('sp-confirm-closing');setTimeout(()=>overlay.remove(),200);document.removeEventListener('keydown',onKey,true);resolve(result)};
+        let _settled=false;
+        const close=(result)=>{
+            if(_settled)return;_settled=true;
+            if(_activeDialogClose===_cancel)_activeDialogClose=null;
+            overlay.classList.add('sp-confirm-closing');setTimeout(()=>overlay.remove(),200);
+            document.removeEventListener('keydown',onKey,true);
+            resolve(result);
+        };
+        const _cancel=()=>close(null);
+        _activeDialogClose=_cancel;
         const submit=()=>{
             const v=input.value.trim();
             if(typeof opts.validate==='function'){
