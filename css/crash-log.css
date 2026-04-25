@@ -17,21 +17,22 @@
     align-items: center;
     gap: 4px;
 }
-/* v6.21.0 → v6.22.0: Doctor button uses a bolder cool-blue fill so it
-   reads as visually distinct from Diagnostics (teal) at a glance, not
-   just on close inspection. Both buttons now have the same level of
-   color saturation — neither feels "secondary" relative to the other. */
+/* v6.21.0 → v6.22.0 → v6.23.1: Doctor button now mirrors the Diagnostics
+   button's exact alpha values (border 0.4, bg 0.08) but in blue instead
+   of teal. Both buttons get identical visual weight; only the color
+   differs. Was overshooting saturation in v6.22.0 which made Doctor read
+   as "primary" relative to Diagnostics; now they're peers. */
 .sp-di-doctor {
     font-weight: 600;
-    color: #bfdbfe;
-    border-color: #60a5fa;
-    background: rgba(96,165,250,0.18);
+    color: #60a5fa;
+    border-color: rgba(96,165,250,0.4);
+    background: rgba(96,165,250,0.08);
     border-radius: 4px;
 }
 .sp-di-doctor:hover {
-    background: rgba(96,165,250,0.28);
+    background: rgba(96,165,250,0.16);
     color: #fff;
-    border-color: #93c5fd;
+    border-color: #60a5fa;
 }
 /* Header hierarchy (Panel B audit): action group (Doctor + Diagnostics+i)
    tightly grouped, terminal action (Close) pushed apart by a wider gap so
@@ -493,18 +494,7 @@
     color: #fff;
     border-color: #fca5a5;
 }
-.sp-perf-overlay-progress {
-    height: 4px;
-    background: rgba(255,255,255,0.06);
-    border-radius: 2px;
-    overflow: hidden;
-}
-.sp-perf-overlay-bar {
-    height: 100%;
-    width: 0;
-    background: linear-gradient(90deg, #fca5a5, #ef4444);
-    transition: width 0.4s linear;
-}
+/* v6.23.1: progress bar removed (capture has no fixed duration). */
 .sp-perf-overlay-meta {
     display: flex; flex-direction: column; gap: 4px;
 }
@@ -966,7 +956,12 @@ body.sp-reduce-effects #sp-btn-debug-inspector.sp-di-flash { animation: none; }
 
 .sp-cl-container {
     margin: auto; width: min(900px, calc(100vw - 32px)); max-height: calc(100vh - 32px);
-    background: var(--sp-surface);
+    /* v6.23.1: fully opaque container background so the chat behind the
+       modal doesn't bleed through. Was using --sp-surface which is
+       rgba(28,32,42,0.9) — the 10% transparency stacked with the backdrop
+       blur made the Configure Prompts modal feel ghosty. Solid #12141a
+       (the --sp-bg-solid) reads as a real surface. */
+    background: var(--sp-bg-solid, #12141a);
     border: 1px solid var(--sp-border-strong);
     border-radius: var(--sp-radius);
     display: flex; flex-direction: column; overflow: hidden;

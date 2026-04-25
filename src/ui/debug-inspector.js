@@ -1447,12 +1447,11 @@ function _perfTab(panel) {
 
     panel.innerHTML = `
         <div class="sp-cl-toolbar">
-            <select class="sp-di-perf-duration sp-cl-export-btn">
-                <option value="10000">${t('Capture 10s')}</option>
-                <option value="30000" selected>${t('Capture 30s')}</option>
-                <option value="60000">${t('Capture 60s')}</option>
-                <option value="120000">${t('Capture 120s')}</option>
-            </select>
+            <!-- v6.23.1: removed the duration preset select. Capture now runs
+                 indefinitely (with a 10-min safety ceiling) until the user
+                 clicks Stop. The button label switches to "Stop capture
+                 (1:23)" with a counting-UP timer so users have full control
+                 over when to end the window. -->
             <button class="sp-cl-export-btn sp-di-perf-capture">${t('Start capture')}</button>
             <span style="flex:1"></span>
             <button class="sp-cl-export-btn sp-di-perf-copy">${t('Copy results')}</button>
@@ -1498,8 +1497,11 @@ function _perfTab(panel) {
     const statusEl = panel.querySelector('.sp-di-perf-status');
     const resultsEl = panel.querySelector('.sp-di-perf-results');
     const captureBtn = panel.querySelector('.sp-di-perf-capture');
-    const durSel = panel.querySelector('.sp-di-perf-duration');
     const copyBtn = panel.querySelector('.sp-di-perf-copy');
+    // v6.23.1: 10-minute hard ceiling on user-stopped capture. If the user
+    // wanders off, we won't observe forever — but they have plenty of time
+    // to reproduce most slowdowns at their own pace.
+    const _CAPTURE_MAX_MS = 600000;
     let _lastResult = null;
 
     const sparkEl = panel.querySelector('.sp-di-perf-fps-spark');
@@ -1700,15 +1702,20 @@ function _perfTab(panel) {
         `;
     }
 
-    // v6.21.0: live capture progress.
-    //  - Countdown in the button label + status banner
-    //  - Re-renders partial results every ~1s so the user sees activity
-    //    accumulating instead of a frozen "capturing…" message
-    //  - Button toggles to "Cancel capture" while running so users can
-    //    bail early without waiting out the timer
-    //  - On finish/cancel, full results render with a verdict line
+    // v6.21.0 → v6.23.1: user-stopped capture with count-UP timer.
+    //  - No preset duration. Capture runs until user clicks Stop, with a
+    //    10-min hard ceiling for safety.
+    //  - Button: "Start capture" → "Stop capture (1:23)" (mm:ss elapsed,
+    //    counting up). Click Stop to end immediately.
+    //  - Re-renders partial results every ~1s (live LIVE badge in table).
+    //  - Floating overlay survives inspector close; its Stop button also
+    //    ends the capture and the inspector cleans up via the same path
+    //    when the await resolves.
+    //  - Cleanup is bulletproof — _resetCaptureButton runs in finally,
+    //    AND we listen for the capture-ended state via getCaptureMeta() in
+    //    the tick so the inspector also responds to overlay-side stops.
     let _captureTickTimer = null;
-    let _captureCancelled = false;
+    let _captureUserStopped = false;
     function _stopCaptureTicks() {
         if (_captureTickTimer) { clearInterval(_captureTickTimer); _captureTickTimer = null; }
     }
@@ -1716,51 +1723,51 @@ function _perfTab(panel) {
         captureBtn.disabled = false;
         captureBtn.classList.remove('sp-di-perf-capture-running');
         captureBtn.textContent = t('Start capture');
-        durSel.disabled = false;
+    }
+    function _fmtElapsed(ms) {
+        const totalS = Math.floor(ms / 1000);
+        const m = Math.floor(totalS / 60);
+        const s = totalS % 60;
+        return `${m}:${String(s).padStart(2, '0')}`;
     }
     captureBtn.addEventListener('click', async () => {
-        // Mid-capture click → cancel (rather than ignore as v6.20.0 did).
+        // Mid-capture click → user stop. The await on capturePromise will
+        // resolve, finally{} runs _resetCaptureButton.
         if (isCapturing()) {
-            _captureCancelled = true;
+            _captureUserStopped = true;
             try { stopCapture(); } catch {}
             return;
         }
-        const durMs = parseInt(durSel.value, 10) || 30000;
         const startedAt = Date.now();
-        _captureCancelled = false;
+        _captureUserStopped = false;
         captureBtn.classList.add('sp-di-perf-capture-running');
-        captureBtn.textContent = `${t('Cancel capture')} (${Math.round(durMs / 1000)}s)`;
-        durSel.disabled = true;
-        statusEl.innerHTML = `<div class="sp-di-perf-capturing">${t('Reproduce the issue now. Capture window is open — interact with the chat / panel / weather to attribute the work.')}</div>`;
-        // v6.22.1: kick off startCapture FIRST so _captureActive flips true
-        // synchronously. Previously the overlay mounted before startCapture
-        // ran, so its `if (!isCapturing()) return` guard short-circuited and
-        // the overlay never rendered. Capturing the promise here lets us
-        // mount the overlay + start the tick timer, then await the result.
-        const capturePromise = startCapture(durMs);
-        // v6.22.0/.1: mount the floating overlay so the capture survives if
-        // the user closes the inspector mid-window. The overlay self-manages
-        // its countdown and unmounts when the capture ends.
+        captureBtn.textContent = `${t('Stop capture')} (0:00)`;
+        statusEl.innerHTML = `<div class="sp-di-perf-capturing">${t('Reproduce the issue now. Capture is open — interact with the chat / panel / weather to attribute the work. Click Stop when done.')}</div>`;
+        // Kick off startCapture FIRST so _captureActive flips synchronously
+        // before the overlay mount reads getCaptureMeta().
+        const capturePromise = startCapture(_CAPTURE_MAX_MS);
         try {
             const ov = await import('./perf-capture-overlay.js');
             ov.mountCaptureOverlay();
         } catch {}
-        // Tick: update countdown + render partial results once a second
+        // Tick: update count-up timer + partial results every 1s. Also
+        // detects external stop (overlay Cancel, max-duration timeout) and
+        // exits cleanly so the button doesn't keep "Stop capture" forever.
         _captureTickTimer = setInterval(() => {
             if (!isCapturing()) { _stopCaptureTicks(); return; }
             const elapsedMs = Date.now() - startedAt;
-            const remainingMs = Math.max(0, durMs - elapsedMs);
-            captureBtn.textContent = `${t('Cancel capture')} (${Math.ceil(remainingMs / 1000)}s)`;
+            captureBtn.textContent = `${t('Stop capture')} (${_fmtElapsed(elapsedMs)})`;
             const partial = getCapturePartial();
             if (partial) _renderResults(partial);
         }, 1000);
         try {
             _lastResult = await capturePromise;
             _stopCaptureTicks();
-            if (_captureCancelled) {
-                statusEl.innerHTML = `<div class="sp-di-perf-capturing">${t('Capture cancelled.')} ${t('Showing partial results below.')}</div>`;
-            } else {
+            if (_captureUserStopped) {
                 statusEl.innerHTML = '';
+            } else {
+                // Hit the 10-min ceiling
+                statusEl.innerHTML = `<div class="sp-di-perf-capturing">${t('Capture reached the 10-minute safety limit and was stopped automatically.')}</div>`;
             }
             _renderResults(_lastResult);
         } catch (e) {

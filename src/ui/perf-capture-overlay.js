@@ -28,25 +28,31 @@ export function mountCaptureOverlay() {
     const el = document.createElement('div');
     el.id = _OVERLAY_ID;
     el.className = 'sp-perf-overlay';
+    // v6.23.1: count-up timer (mm:ss elapsed) + Stop button. Removed the
+    // progress bar (the capture has no fixed duration, so progress is
+    // meaningless). The pulse + bright accent still signal "active state."
     el.innerHTML = `
         <div class="sp-perf-overlay-row">
             <span class="sp-perf-overlay-pulse" aria-hidden="true"></span>
             <span class="sp-perf-overlay-title">${t('Performance capture in progress')}</span>
-            <button class="sp-perf-overlay-cancel" type="button">${t('Cancel')}</button>
-        </div>
-        <div class="sp-perf-overlay-progress">
-            <div class="sp-perf-overlay-bar"></div>
+            <button class="sp-perf-overlay-cancel" type="button">${t('Stop')}</button>
         </div>
         <div class="sp-perf-overlay-meta">
-            <span class="sp-perf-overlay-countdown">—</span>
-            <span class="sp-perf-overlay-hint">${t('Reproduce the slowdown now — interact with the chat / panel / weather.')}</span>
+            <span class="sp-perf-overlay-countdown">0:00</span>
+            <span class="sp-perf-overlay-hint">${t('Reproduce the slowdown now — interact with the chat / panel / weather. Click Stop when done.')}</span>
         </div>
     `;
     document.body.appendChild(el);
 
-    const bar = el.querySelector('.sp-perf-overlay-bar');
     const countdown = el.querySelector('.sp-perf-overlay-countdown');
     let _tickTimer = null;
+
+    function _fmtElapsed(ms) {
+        const totalS = Math.floor(ms / 1000);
+        const m = Math.floor(totalS / 60);
+        const s = totalS % 60;
+        return `${m}:${String(s).padStart(2, '0')}`;
+    }
 
     function _tick() {
         const meta = getCaptureMeta();
@@ -54,19 +60,18 @@ export function mountCaptureOverlay() {
             unmountCaptureOverlay();
             return;
         }
-        const remainingS = Math.ceil(meta.remainingMs / 1000);
-        const totalS = Math.round(meta.durationMs / 1000);
-        countdown.textContent = `${remainingS}s ${t('remaining')} / ${totalS}s ${t('total')}`;
-        if (bar) {
-            const pct = Math.min(100, (meta.elapsedMs / meta.durationMs) * 100);
-            bar.style.width = pct + '%';
-        }
+        countdown.textContent = `${_fmtElapsed(meta.elapsedMs)} ${t('elapsed')}`;
     }
     _tick();
     _tickTimer = setInterval(_tick, 500);
     el._tickTimer = _tickTimer;
 
     el.querySelector('.sp-perf-overlay-cancel').addEventListener('click', () => {
+        // v6.23.1: stopCapture flips _captureActive=false synchronously;
+        // the inspector's tick will see that on its next 1s cycle and
+        // _stopCaptureTicks itself, the await resolves, and finally{}
+        // resets the inspector button. Unmount immediately for instant
+        // visual feedback rather than waiting for the next _tick.
         try { stopCapture(); } catch {}
         unmountCaptureOverlay();
     });

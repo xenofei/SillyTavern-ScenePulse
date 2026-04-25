@@ -174,6 +174,35 @@
     border-color: rgba(252,165,165,0.5);
     background: rgba(212,80,80,0.08);
 }
+/* v6.23.1: shortcut button on the "none" Active Preset row — primary blue
+   styling matching the Templates tab + Browse Model Presets visual
+   language. Pulls the user toward the templates feature when their
+   profile is on defaults. */
+.sp-pe-preset-browse {
+    flex-shrink: 0;
+    background: rgba(96,165,250,0.12);
+    color: #93c5fd;
+    border: 1px solid rgba(96,165,250,0.45);
+    border-radius: 4px;
+    padding: 4px 12px;
+    font-size: 11px;
+    font-family: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    /* gentle pulse so the affordance reads as actionable, not decorative */
+    animation: sp-pe-preset-browse-pulse 2.4s ease-in-out infinite;
+}
+.sp-pe-preset-browse:hover {
+    background: rgba(96,165,250,0.22);
+    color: #fff;
+    border-color: #93c5fd;
+    animation: none;
+}
+@keyframes sp-pe-preset-browse-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(96,165,250,0.0); }
+    50%      { box-shadow: 0 0 0 3px rgba(96,165,250,0.16); }
+}
 
 /* ── Role selector row ─────────────────────────────────────────────── */
 .sp-pe-role-row {
@@ -424,7 +453,14 @@
     flex: 1; min-height: 0;
     overflow-y: auto;
     padding: 14px 18px 24px;
-    display: flex; flex-direction: column; gap: 12px;
+    /* v6.23.1: match .sp-pe-body gap exactly so Slots and Templates feel
+       identical when swapping tabs (was 12px vs 14px → subtle vertical
+       drift between tabs). */
+    display: flex; flex-direction: column; gap: 14px;
+    background: transparent;
+}
+.sp-pe-body {
+    background: transparent;
 }
 .sp-pb-detection {
     padding: 10px 14px;

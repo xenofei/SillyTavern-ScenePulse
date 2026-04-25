@@ -198,6 +198,14 @@ let _captureStartTs = 0;
 let _captureEndTs = 0;
 let _captureBuckets = new Map(); // name -> { name, totalMs, count, maxMs }
 let _captureLongTasks = 0;
+// v6.23.1: hold the in-flight capture's resolver so external `stopCapture()`
+// calls (overlay Stop, inspector Stop, max-duration timer) all resolve the
+// SAME promise immediately. Previously the promise only resolved when the
+// internal setTimeout fired, so a manual stop forced the caller to wait
+// the full duration before seeing results — broken with the v6.23.1 user-
+// stopped capture model where duration can be 10 minutes.
+let _captureResolver = null;
+let _captureAutoStopTimer = null;
 
 /**
  * Start capture. observer attaches; marks emitted during capture get
@@ -240,10 +248,15 @@ export function startCapture(durationMs = 30000) {
         warn('PerformanceObserver unavailable:', e?.message || e);
     }
 
+    // v6.23.1: stash the resolver so manual stopCapture() can resolve the
+    // promise immediately. Auto-stop timer is also tracked so we can clear
+    // it on manual stop (otherwise it'd fire later and try to re-resolve).
     return new Promise(resolve => {
-        setTimeout(() => {
-            const result = stopCapture();
-            resolve(result);
+        _captureResolver = resolve;
+        _captureAutoStopTimer = setTimeout(() => {
+            _captureAutoStopTimer = null;
+            // Will resolve via the resolver path inside stopCapture
+            stopCapture();
         }, dur);
     });
 }
@@ -276,7 +289,12 @@ export function getCapturePartial() {
     };
 }
 
-/** Stop capture immediately. Returns the result. */
+/**
+ * Stop capture immediately. Returns the result. v6.23.1: also resolves
+ * the in-flight startCapture() promise with the same result so manual
+ * stops (overlay Stop, inspector Stop) don't wait out the original
+ * 10-min ceiling for the await to complete.
+ */
 export function stopCapture() {
     if (!_captureActive) return { durationMs: 0, components: [], longTasks: 0 };
     _captureActive = false;
@@ -285,8 +303,14 @@ export function stopCapture() {
         try { _captureObserver.disconnect(); } catch {}
         _captureObserver = null;
     }
+    // v6.23.1: clear the auto-stop timer so it doesn't fire later and
+    // recursively call stopCapture (would no-op since _captureActive is
+    // already false, but better to be tidy).
+    if (_captureAutoStopTimer != null) {
+        try { clearTimeout(_captureAutoStopTimer); } catch {}
+        _captureAutoStopTimer = null;
+    }
     const durationMs = _captureEndTs - _captureStartTs;
-    // Sort components by total time descending — biggest offenders first.
     const components = Array.from(_captureBuckets.values())
         .map(b => ({
             name: b.name,
@@ -294,12 +318,21 @@ export function stopCapture() {
             count: b.count,
             avgMs: Math.round((b.totalMs / b.count) * 100) / 100,
             maxMs: Math.round(b.maxMs * 10) / 10,
-            pctOfCapture: Math.round((b.totalMs / durationMs) * 1000) / 10,
+            pctOfCapture: durationMs > 0 ? Math.round((b.totalMs / durationMs) * 1000) / 10 : 0,
         }))
         .sort((a, b) => b.totalMs - a.totalMs);
+    const result = { durationMs: Math.round(durationMs), components, longTasks: _captureLongTasks };
     log('PerfMonitor capture: completed,', components.length, 'components,',
         Math.round(durationMs), 'ms,', _captureLongTasks, 'long tasks');
-    return { durationMs: Math.round(durationMs), components, longTasks: _captureLongTasks };
+    // v6.23.1: resolve the startCapture() promise here so any external stop
+    // (manual or timer) propagates the result back to the original caller
+    // without waiting for the auto-stop setTimeout that was just cleared.
+    if (_captureResolver) {
+        const r = _captureResolver;
+        _captureResolver = null;
+        try { r(result); } catch {}
+    }
+    return result;
 }
 
 /** Currently capturing? */

@@ -2,6 +2,33 @@
 
 All notable changes to ScenePulse are documented in this file.
 
+### [6.23.1] — 2026-04-25
+
+#### Fixed + Polished — Feedback round 5 (Configure Prompts polish, capture model overhaul)
+
+Six items from the user.
+
+**#6 Doctor button color** mirrors Diagnostics' visual weight in blue: same alpha values (`border 0.4`, `bg 0.08`) just with the cool-blue palette. Both buttons now read as peers; v6.22.0 had over-saturated Doctor, making it feel "primary" relative to Diagnostics.
+
+**#1 + #2 Configure Prompts modal**:
+- Container background bumped from `--sp-surface` (rgba 0.9) to `--sp-bg-solid` (#12141a) — fully opaque so the chat behind the modal doesn't bleed through.
+- `.sp-pe-body` and `.sp-pb-body` gap unified at 14px; both explicitly `background: transparent` so the container's solid bg shows through identically across Slots and Templates tabs.
+
+**#3 + #3.1 Active Preset "none" row** now has a primary-styled **"Browse templates →"** button on the right when no preset is applied. Same handler as the Templates tab strip click (with the dirty-edit guard). Subtle pulse animation pulls discovery toward the templates feature without being noisy.
+
+**#4 Cancel capture not fully resetting** — diagnosed and fixed via the v6.23.1 capture model overhaul (#5). Root cause: `startCapture()` returned a promise that resolved only when the internal `setTimeout` fired. External `stopCapture()` calls (overlay Stop, inspector Stop) flipped `_captureActive=false` but the original promise sat unresolved until the timer fired with the FULL duration. v6.23.1's resolver pattern fixes this — `stopCapture()` now immediately resolves the in-flight promise with the actual results, so the inspector's `await` returns instantly and `_resetCaptureButton()` runs.
+
+**#5 User-stopped capture model** (the headline change):
+- Removed the duration `<select>` (10s / 30s / 60s / 120s presets).
+- Capture now runs **until the user clicks Stop**, with a 10-min hard ceiling for safety.
+- Inspector button labels change from `Start capture` → `Stop capture (1:23)` with **count-UP** mm:ss elapsed.
+- Floating overlay matches: pulse + "elapsed" timer + Stop button. Removed the progress bar (no fixed duration to progress against).
+- `perf-monitor.js`: introduced `_captureResolver` and `_captureAutoStopTimer` so external stops resolve the promise immediately. The auto-stop timer is now CLEARED on manual stop instead of firing later as a no-op.
+- Status copy updated: "Reproduce the issue now. Capture is open — interact with the chat / panel / weather. Click Stop when done."
+- 10-min ceiling stop produces a friendly note: "Capture reached the 10-minute safety limit and was stopped automatically."
+
+**Tests**: 1,338 still pass.
+
 ### [6.23.0] — 2026-04-25
 
 #### Added — Configure Prompts IA refactor (panel-recommended consolidation)

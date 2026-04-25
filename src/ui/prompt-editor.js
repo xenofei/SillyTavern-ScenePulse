@@ -178,13 +178,14 @@ export function openPromptEditor() {
     overlay.querySelector('.sp-pe-save').addEventListener('click', _save);
     // v6.23.0: tab strip wiring — clicking Templates closes this modal and
     // opens the preset browser with the same chrome. Dirty-edit guard fires
-    // before the swap.
-    overlay.querySelector('.sp-cp-tab[data-cp-tab="templates"]')?.addEventListener('click', async () => {
-        const _swap = async () => {
-            const ov = await import('./preset-browser.js');
-            _close({ skipDirtyCheck: true });
-            ov.openPresetBrowser();
-        };
+    // before the swap. v6.23.1: also wire the "Browse templates →" shortcut
+    // on the empty-preset row to the same swap action.
+    const _swapToTemplates = async () => {
+        const ov = await import('./preset-browser.js');
+        _close({ skipDirtyCheck: true });
+        ov.openPresetBrowser();
+    };
+    const _maybeSwap = async () => {
         if (_dirty) {
             const ok = await spConfirm(
                 t('Switch to Templates tab?'),
@@ -193,8 +194,10 @@ export function openPromptEditor() {
             );
             if (!ok) return;
         }
-        _swap();
-    });
+        _swapToTemplates();
+    };
+    overlay.querySelector('.sp-cp-tab[data-cp-tab="templates"]')?.addEventListener('click', _maybeSwap);
+    overlay.querySelector('.sp-pe-preset-browse')?.addEventListener('click', _maybeSwap);
     overlay.querySelector('.sp-pe-revert-all').addEventListener('click', async () => {
         const customCount = Object.values(_draft.overrides).filter(v => typeof v === 'string' && v.trim()).length;
         if (customCount === 0) { try { toastr.info(t('Nothing to revert — every slot is already on its default.')); } catch {} return; }
@@ -304,10 +307,16 @@ export function closePromptEditor() {
 
 function _renderPresetRow(preset) {
     if (!preset) {
+        // v6.23.1: when no preset is applied, give the user a one-click
+        // path to the Templates tab. Without this affordance the "none"
+        // state read as informational-only and a user who didn't notice
+        // the tab strip never discovered the templates feature.
         return `
             <div class="sp-pe-preset-row sp-pe-preset-row-none">
                 <span class="sp-pe-preset-label">${t('Active preset:')}</span>
                 <span class="sp-pe-preset-none">${t('none — slots use defaults / your edits only')}</span>
+                <button class="sp-pe-preset-browse" type="button"
+                    title="${t('Switch to the Templates tab to apply a model-tuned preset (Claude, GPT, DeepSeek, Cydonia, etc.) — or create a new profile from one.')}">${t('Browse templates →')}</button>
             </div>`;
     }
     return `
