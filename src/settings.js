@@ -47,6 +47,33 @@ if(ls.chatPreset!==undefined)s.chatPreset=ls.chatPreset;
 if(ls.fallbackProfile!==undefined)s.fallbackProfile=ls.fallbackProfile;
 if(ls.fallbackPreset!==undefined)s.fallbackPreset=ls.fallbackPreset;
 }catch(e){}
+// v6.23.8: one-shot migration to clear stale "0" preset values. These were
+// an artifact of pre-v6.23.7 versions where the dropdown's empty-option
+// sentinel was sometimes initialized as the literal string "0". On modern
+// ST setups "0" silently matches the first preset (typically "Default" —
+// 4k context, different model), so SP's fallback path was visibly switching
+// the user's preset and triggering "Mandatory prompt exceeds context size"
+// toasts. v6.23.7 renamed the dropdown label to "(Same as current)" but
+// users still had to manually re-pick to clear the stale stored value.
+// Auto-migrate by clearing "0" everywhere it might be persisted.
+if(!s._fallbackPresetMigrationDone){
+    let migrated=false;
+    if(s.fallbackPreset==='0'){s.fallbackPreset='';migrated=true;log('Migrated legacy fallbackPreset="0" → "" (Same as current)')}
+    if(s.chatPreset==='0'){s.chatPreset='';migrated=true;log('Migrated legacy chatPreset="0" → "" (Same as current)')}
+    if(migrated){
+        for(const lsKey of ['sp_profiles','scenepulse_config']){
+            try{
+                const lsObj=JSON.parse(localStorage.getItem(lsKey)||'{}');
+                let dirty=false;
+                if(lsObj.fallbackPreset==='0'){lsObj.fallbackPreset='';dirty=true}
+                if(lsObj.chatPreset==='0'){lsObj.chatPreset='';dirty=true}
+                if(dirty)localStorage.setItem(lsKey,JSON.stringify(lsObj));
+            }catch{}
+        }
+    }
+    s._fallbackPresetMigrationDone=true;
+    try{SillyTavern.getContext().saveSettingsDebounced()}catch{}
+}
 _settingsCache = s;
 return s}
 
