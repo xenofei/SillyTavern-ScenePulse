@@ -10,9 +10,15 @@
        backdrop as a blue/amber tint that "appeared and disappeared" with
        mouse position. Plain blur is stable regardless of mouse position;
        0.86 alpha keeps the chat suppressed without competing for focus. */
-    background: rgba(8,10,16,0.86);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
+    /* v6.23.3: bumped 0.86 → 0.96 to eliminate the remaining blue tint
+       that showed when the user moused into the page. At 0.86 the 14%
+       transparency was still enough for ST's chat hover states (link
+       colors, message highlights) to bleed through the blurred backdrop
+       as a subtle blue shift. 0.96 makes the bleed imperceptible while
+       preserving a slight glassy feel from the blur. */
+    background: rgba(8,10,16,0.96);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     display: flex; align-items: stretch; justify-content: center;
     animation: sp-glass-in 0.18s ease-out;
 }
@@ -705,14 +711,19 @@
 .sp-di-doctor-wrap .sp-di-info-title {
     color: #93c5fd;
 }
-/* v6.23.2: Doctor's info icon sits on the LEFT side of the inspector
-   header, so the popover anchored right:0 opens LEFTWARD and overflows
-   the container's left edge. Re-anchor to left:0 so it opens RIGHTWARD,
-   staying inside the inspector. Diagnostics on the right keeps right:0
-   (opens leftward, stays inside). */
+/* v6.23.2 → v6.23.3: Doctor's popover positioning. v6.23.2 anchored
+   left:0 to fix overflow on the LEFT edge, but that just moved the
+   overflow to the RIGHT edge (popover extended past the inspector's
+   right side into the chat area). v6.23.3 centers the popover under
+   the i icon via translateX(-50%) — width spans equally on both
+   sides of the icon, so it stays inside the container regardless of
+   where in the header the icon sits. Width also dropped to 380px
+   for better fit on mid-width inspectors. */
 .sp-di-doctor-wrap .sp-di-info-popover {
     right: auto;
-    left: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(380px, calc(100vw - 32px));
 }
 .sp-di-info svg { display: block; }
 /* Popover — only triggered by hovering the info-area or focusing the icon.

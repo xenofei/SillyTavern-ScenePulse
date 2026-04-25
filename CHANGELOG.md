@@ -2,6 +2,18 @@
 
 All notable changes to ScenePulse are documented in this file.
 
+### [6.23.3] — 2026-04-25
+
+#### Fixed — Doctor popover centered + backdrop fully opaque
+
+**#1 Doctor popover overflow round 3**: v6.23.2 anchored the popover `left: 0` to fix the LEFT-edge overflow, but that just moved the overflow to the RIGHT edge — the popover extended past the inspector's right side into the chat area. v6.23.3 centers the popover under the i icon via `left: 50%; transform: translateX(-50%)`. The popover now spans equally on both sides of the icon, so it stays inside the container regardless of where in the header the icon sits. Width also dropped to 380px (from 420px) for better fit on mid-width inspectors.
+
+**#2 Blue tint on Configure Prompts (round 2)**: v6.23.2 dropped `saturate(120%)` from the backdrop-filter, but the user still saw a blue shift when mousing into the page. Root cause: backdrop alpha was only 0.86, leaving 14% transparency through which ST's chat hover states (link colors, message highlights) bled via the blurred backdrop. v6.23.3 bumps alpha to 0.96 — visually opaque while preserving a slight glassy feel from the (reduced) blur(8px). The bleed should now be imperceptible.
+
+**#3 Generation regression** — needs more diagnostics from the user. Recent generation-pipeline changes are limited to the `streaming.js` _updateCap reorder (v6.22.1) and `relationship-graph.js` routing through `applyPromptRole` (v6.22.0); neither would block the panel from updating. Awaiting Diagnostics dump to investigate.
+
+**Tests**: 1,338 still pass.
+
 ### [6.23.2] — 2026-04-25
 
 #### Fixed — Feedback round 6 (Doctor cascade bug, popover overflow, rogue hover, capture persistence)
