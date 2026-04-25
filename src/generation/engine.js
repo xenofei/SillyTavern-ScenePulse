@@ -26,6 +26,7 @@ import {
     getConnectionProfiles, getChatPresets, shouldUseDelta
 } from '../settings.js';
 import { normalizeTracker } from '../normalize.js';
+import { applyPromptRole } from '../prompts/role.js';
 import { cleanJson } from './extraction.js';
 import { mergeDelta } from './delta-merge.js';
 import { spSetGenerating, spPostGenShow } from '../ui/mobile.js';
@@ -307,7 +308,10 @@ export async function generateTracker(mesIdx,partKey,opts){
                         await new Promise(r=>setTimeout(r,2000));
                     }
                     log('Trying generateRaw fallback...');
-                    try{raw=await generateRaw({systemPrompt:sysPr,prompt:`RECENT:\n${ctxText}${snapCtx}\n\nOutput ONLY valid JSON.`})}
+                    // v6.19.0 (issue #16): route through applyPromptRole so the
+                    // active profile's systemPromptRole (system/user/assistant)
+                    // takes effect before the call. Default 'system' is a no-op.
+                    try{raw=await generateRaw(applyPromptRole({systemPrompt:sysPr,prompt:`RECENT:\n${ctxText}${snapCtx}\n\nOutput ONLY valid JSON.`}))}
                     catch(e2){
                         const msg2=e2?.message||String(e2);
                         err('Fallback also failed:',msg2);
@@ -586,7 +590,8 @@ Output the JSON object now:`;
                 if(myNonce!==genNonce){log('CONTINUATION: stale after API error');return null}
                 warn('Continuation generateQuietPrompt error:',e?.message||String(e));
                 // Try generateRaw as a single fallback (no retry loop — keep this path cheap)
-                try{raw=await generateRaw({systemPrompt:sysPr,prompt:`Narrative:\n${narrativeText}${prevState}\n\nOutput ONLY the tracker JSON object.`})}
+                // v6.19.0 (issue #16): route through applyPromptRole.
+                try{raw=await generateRaw(applyPromptRole({systemPrompt:sysPr,prompt:`Narrative:\n${narrativeText}${prevState}\n\nOutput ONLY the tracker JSON object.`}))}
                 catch(e2){err('Continuation generateRaw also failed:',e2?.message||String(e2));return null}
             }
             if(myNonce!==genNonce){log('CONTINUATION: stale after API return — discarding');return null}

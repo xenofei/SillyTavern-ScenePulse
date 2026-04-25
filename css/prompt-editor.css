@@ -1,0 +1,242 @@
+/* css/prompt-editor.css — v6.19.0 prompt slot editor overlay
+ *
+ * Reuses the .sp-cl-overlay shell from crash-log.css (same backdrop +
+ * container pattern as the Debug Inspector / Wiki / Snapshot Browser).
+ * Adds .sp-pe-* classes for the per-slot editor list and the role row.
+ */
+
+.sp-pe-overlay { /* inherits from .sp-cl-overlay */ }
+.sp-pe-container {
+    width: min(1080px, calc(100vw - 32px));
+    max-height: calc(100vh - 32px);
+}
+.sp-pe-profile-tag {
+    display: inline-block; margin-left: 8px;
+    padding: 2px 8px; border-radius: 3px;
+    background: rgba(77,184,164,0.12); color: var(--sp-accent);
+    font-size: 10px; font-weight: 700;
+    text-transform: none; letter-spacing: 0;
+    vertical-align: middle;
+}
+/* Save button gets the accent treatment so it's the obvious primary action,
+   while it's enabled. Disabled state strips the accent so users see "no
+   pending changes". */
+.sp-pe-save:not(:disabled) {
+    color: var(--sp-accent);
+    border-color: rgba(77,184,164,0.4);
+    background: rgba(77,184,164,0.08);
+    font-weight: 600;
+}
+.sp-pe-save:not(:disabled):hover {
+    background: rgba(77,184,164,0.18);
+    color: #fff;
+    border-color: var(--sp-accent);
+}
+.sp-pe-save-disabled, .sp-pe-save:disabled {
+    opacity: 0.5; cursor: not-allowed;
+}
+
+.sp-pe-body {
+    flex: 1; min-height: 0;
+    overflow-y: auto;
+    padding: 14px 18px 24px;
+    display: flex; flex-direction: column; gap: 14px;
+}
+
+/* ── Role selector row ─────────────────────────────────────────────── */
+.sp-pe-role-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 14px;
+    background: rgba(77,184,164,0.04);
+    border: 1px solid rgba(77,184,164,0.18);
+    border-radius: 6px;
+}
+.sp-pe-role-label {
+    font-weight: 600; color: var(--sp-text);
+    font-size: var(--sp-fs-sm);
+    flex-shrink: 0;
+}
+.sp-pe-role-select {
+    background: var(--sp-surface); color: var(--sp-text);
+    border: 1px solid var(--sp-border-strong); border-radius: 4px;
+    padding: 4px 8px; font-size: var(--sp-fs-xs);
+    font-family: inherit; cursor: pointer;
+    min-width: 180px;
+}
+.sp-pe-role-select:focus { outline: none; border-color: var(--sp-accent); }
+.sp-pe-role-hint {
+    flex: 1; min-width: 0;
+    color: var(--sp-text-dim);
+    font-size: 11px; line-height: 1.4;
+    font-style: italic;
+}
+
+/* ── Legacy banner (only shown when profile.systemPrompt is set) ───── */
+.sp-pe-legacy-banner {
+    padding: 10px 14px;
+    background: rgba(245,158,11,0.08);
+    border-left: 3px solid #fcd34d;
+    border-radius: 3px;
+    color: var(--sp-text);
+    font-size: var(--sp-fs-xs); line-height: 1.5;
+}
+.sp-pe-legacy-banner strong { color: #fcd34d; margin-right: 4px; }
+
+/* ── Slot list ─────────────────────────────────────────────────────── */
+.sp-pe-slot-list {
+    list-style: none; padding: 0; margin: 0;
+    display: flex; flex-direction: column; gap: 14px;
+}
+.sp-pe-slot {
+    border: 1px solid var(--sp-border);
+    border-left-width: 3px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.015);
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+.sp-pe-slot.sp-pe-slot-modified {
+    border-left-color: var(--sp-accent);
+    background: rgba(77,184,164,0.04);
+}
+.sp-pe-slot.sp-pe-slot-readonly {
+    opacity: 0.85;
+    border-left-color: rgba(255,255,255,0.12);
+}
+.sp-pe-slot-head {
+    display: grid;
+    grid-template-columns: 28px 1fr auto auto;
+    align-items: center; gap: 12px;
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.sp-pe-slot-order {
+    width: 24px; height: 24px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 50%; background: rgba(255,255,255,0.05);
+    color: var(--sp-text-dim);
+    font-size: 11px; font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+.sp-pe-slot-modified .sp-pe-slot-order {
+    background: rgba(77,184,164,0.18); color: var(--sp-accent);
+}
+.sp-pe-slot-titles { min-width: 0; }
+.sp-pe-slot-name {
+    font-weight: 600; color: var(--sp-text);
+    font-size: var(--sp-fs-sm);
+}
+.sp-pe-slot-desc {
+    color: var(--sp-text-dim);
+    font-size: 11px; line-height: 1.4;
+    margin-top: 2px;
+}
+.sp-pe-slot-status {
+    font-size: 9px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    padding: 2px 8px; border-radius: 3px;
+    background: rgba(255,255,255,0.05);
+    color: var(--sp-text-dim);
+}
+.sp-pe-slot-modified .sp-pe-slot-status {
+    background: rgba(77,184,164,0.18); color: var(--sp-accent);
+}
+.sp-pe-slot-revert {
+    background: transparent; color: var(--sp-text-dim);
+    border: 1px solid var(--sp-border); border-radius: 4px;
+    padding: 3px 10px; font-size: 11px; font-family: inherit;
+    cursor: pointer; transition: all 0.15s ease;
+}
+.sp-pe-slot-revert:hover:not(:disabled) {
+    color: var(--sp-text); border-color: var(--sp-accent);
+    background: rgba(255,255,255,0.04);
+}
+.sp-pe-slot-revert:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.sp-pe-tplvars {
+    padding: 6px 14px;
+    background: rgba(0,0,0,0.18);
+    color: var(--sp-text-dim); font-size: 11px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.sp-pe-tplvars code {
+    background: rgba(0,0,0,0.4); color: var(--sp-accent);
+    padding: 1px 6px; border-radius: 3px;
+    font-family: var(--sp-font-mono); font-size: 10px;
+    margin-left: 4px;
+}
+
+.sp-pe-slot-editor { padding: 10px 14px; }
+.sp-pe-ta {
+    width: 100%; box-sizing: border-box;
+    background: rgba(0,0,0,0.28);
+    color: var(--sp-text);
+    border: 1px solid var(--sp-border);
+    border-radius: 4px;
+    padding: 10px 12px;
+    font-family: var(--sp-font-mono); font-size: 11px;
+    line-height: 1.55;
+    min-height: 120px;
+    resize: vertical;
+}
+.sp-pe-ta:focus { outline: none; border-color: var(--sp-accent); background: rgba(0,0,0,0.36); }
+.sp-pe-readonly {
+    padding: 10px 12px;
+    background: rgba(0,0,0,0.18);
+    color: var(--sp-text-dim);
+    font-style: italic;
+    font-size: var(--sp-fs-xs);
+    border-radius: 4px;
+}
+
+/* ── Preview pane (collapsible) ────────────────────────────────────── */
+.sp-pe-preview {
+    border: 1px solid var(--sp-border);
+    border-radius: 6px;
+    background: rgba(0,0,0,0.18);
+}
+.sp-pe-preview summary {
+    cursor: pointer;
+    padding: 10px 14px;
+    color: var(--sp-text-dim);
+    font-weight: 600; font-size: var(--sp-fs-xs);
+    text-transform: uppercase; letter-spacing: 0.06em;
+}
+.sp-pe-preview summary:hover { color: var(--sp-text); }
+.sp-pe-preview[open] summary {
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    color: var(--sp-text);
+}
+.sp-pe-preview-body {
+    margin: 0;
+    padding: 14px 16px;
+    background: rgba(0,0,0,0.28);
+    color: var(--sp-text);
+    font-family: var(--sp-font-mono); font-size: 10px;
+    line-height: 1.55;
+    white-space: pre-wrap; word-break: break-word;
+    max-height: 360px; overflow-y: auto;
+    border-radius: 0 0 6px 6px;
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────── */
+@media (max-width: 720px) {
+    .sp-pe-role-row { flex-wrap: wrap; gap: 8px; }
+    .sp-pe-role-hint { flex-basis: 100%; }
+    .sp-pe-slot-head {
+        grid-template-columns: 28px 1fr auto;
+        grid-template-areas:
+            'order titles status'
+            '.     titles revert';
+    }
+    .sp-pe-slot-order { grid-area: order; }
+    .sp-pe-slot-titles { grid-area: titles; }
+    .sp-pe-slot-status { grid-area: status; }
+    .sp-pe-slot-revert { grid-area: revert; justify-self: end; }
+}
+@media (max-width: 420px) {
+    .sp-pe-container { width: calc(100vw - 8px); max-height: calc(100vh - 8px); }
+    .sp-pe-body { padding: 10px 12px 20px; }
+    .sp-pe-slot-head { padding: 8px 10px; }
+    .sp-pe-slot-editor { padding: 8px 10px; }
+    .sp-pe-ta { font-size: 10.5px; min-height: 100px; }
+}

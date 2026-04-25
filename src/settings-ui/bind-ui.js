@@ -291,6 +291,16 @@ export function bindUI(){const s=getSettings();
     // Default and Copy buttons
     $('#sp-sysprompt-default').on('click',()=>{updateActiveProfile(s,{systemPrompt:null});saveSettings();$('#sp-sysprompt').val(buildDynamicPrompt(s));toastr.info(t('System prompt reset to default'))});
     $('#sp-sysprompt-copy').on('click',()=>{navigator.clipboard.writeText($('#sp-sysprompt').val());toastr.success(t('Prompt copied'))});
+    // v6.19.0: Edit Slots button — lazy-imports the prompt editor module
+    // (saves the bundle weight on every settings load).
+    $('#sp-sysprompt-edit-slots').on('click', async () => {
+        try {
+            const mod = await import('../ui/prompt-editor.js');
+            mod.openPromptEditor();
+        } catch (e) {
+            try { toastr.error(t('Failed to open prompt editor: ') + (e?.message || String(e))); } catch {}
+        }
+    });
     $('#sp-schema-default').on('click',()=>{updateActiveProfile(s,{schema:null});saveSettings();$('#sp-schema').val(JSON.stringify(buildDynamicSchema(s),null,2));toastr.info(t('Schema reset to default'))});
     $('#sp-schema-copy').on('click',()=>{navigator.clipboard.writeText($('#sp-schema').val());toastr.success(t('Schema copied'))});
     $('#sp-btn-refresh').on('click',()=>{

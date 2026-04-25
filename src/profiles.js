@@ -18,7 +18,10 @@
 
 import { log, warn } from './logger.js';
 
-const PROFILE_FIELDS = ['schema', 'systemPrompt', 'panels', 'fieldToggles', 'dashCards', 'customPanels'];
+// v6.18.0: promptOverrides (per-slot overrides) added.
+// v6.19.0: systemPromptRole (issue #16 — choose system/user/assistant for the
+// outgoing system-prompt message) added.
+const PROFILE_FIELDS = ['schema', 'systemPrompt', 'promptOverrides', 'systemPromptRole', 'panels', 'fieldToggles', 'dashCards', 'customPanels'];
 const SCHEMA_VERSION = 1;
 
 function _uuid() {
@@ -61,6 +64,14 @@ export function makeProfile(partial = {}) {
         promptOverrides: partial.promptOverrides && typeof partial.promptOverrides === 'object'
             ? { ...partial.promptOverrides }
             : {},
+        // v6.19.0 (issue #16): role to send the assembled system prompt as.
+        // 'system' (default) is what every existing profile gets. 'user' and
+        // 'assistant' merge the system prompt into the user-message slot
+        // before generateRaw, since the SillyTavern generateRaw signature
+        // only exposes one explicit systemPrompt field.
+        systemPromptRole: ['system', 'user', 'assistant'].includes(partial.systemPromptRole)
+            ? partial.systemPromptRole
+            : 'system',
         panels: partial.panels && typeof partial.panels === 'object' ? { ...partial.panels } : {},
         fieldToggles: partial.fieldToggles && typeof partial.fieldToggles === 'object' ? { ...partial.fieldToggles } : {},
         dashCards: partial.dashCards && typeof partial.dashCards === 'object' ? { ...partial.dashCards } : {},
@@ -398,6 +409,8 @@ export function validateImportedProfile(raw) {
         // can share customized prompts via the existing profile JSON file.
         promptOverrides: raw.promptOverrides && typeof raw.promptOverrides === 'object'
             ? raw.promptOverrides : {},
+        // v6.19.0: role selector also survives export/import.
+        systemPromptRole: raw.systemPromptRole,
         panels: raw.panels || {},
         fieldToggles: raw.fieldToggles || {},
         dashCards: raw.dashCards || {},

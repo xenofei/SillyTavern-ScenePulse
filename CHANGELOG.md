@@ -2,6 +2,44 @@
 
 All notable changes to ScenePulse are documented in this file.
 
+### [6.19.0] — 2026-04-25
+
+#### Added — Per-slot prompt editor + system-prompt role selector (folds in issue #16)
+
+Second of three layered releases (v6.18.0 → v6.19.0 → v6.20.0). v6.19.0 adds the editor UI on top of the v6.18.0 slot architecture and lands the long-requested role selector for issue #16.
+
+**New `src/ui/prompt-editor.js`** — full-screen editor modal:
+- One panel per slot: name + description + status pill (default | modified) + per-slot Revert button + textarea
+- Slots ordered by `SLOT_META.order` (role → criticalRules → language → fields → nameAwareness → questValidation → deltaMode)
+- The dynamic `fields` slot renders a read-only explanation: "auto-generated from your enabled Panels and Field Toggles. Change those settings to customize what fields the AI is asked to produce." Users can't edit it as text because its content is settings-derived; the explanation tells them where to look.
+- Working-copy state — edits live in `_draft` until **Save** atomically commits to `profile.promptOverrides` via `updateActiveProfile`. **Cancel** discards. Closing with unsaved changes triggers an `spConfirm()` "Discard?" dialog.
+- Per-slot **Revert** removes that slot's override from the working copy. Disabled when the slot is on its default.
+- **Revert all** clears every override in one shot (with `spConfirm` showing the count being reverted).
+- Live **Preview** pane (collapsible `<details>`) showing the assembled prompt as it would land if you saved right now. Updates on every edit.
+- Legacy banner: profiles with a non-empty `systemPrompt` (full-text override) get a warning banner saying "your edits below will save but won't take effect until you Reset to Default in System Prompt." Honest about the legacy override winning.
+- Lazy-imported on Edit Slots button click — same pattern as the Debug Inspector / Wiki / Analytics modules so the settings panel stays cheap to load.
+
+**Issue #16 — System-prompt role selector** (folded in here per the user's "fold it in" decision):
+- New top-of-editor row: dropdown to send the assembled system prompt as `system` (default) / `user` / `assistant`.
+- Each option gets an inline hint explaining its tradeoff. Most useful: **User** — Claude family models in particular follow user-role JSON instructions more reliably than system-role ones (this is the issue submitter's exact ask).
+- Stored as `profile.systemPromptRole` (new field on the profile shape).
+- New `src/prompts/role.js` exports `getActivePromptRole()` + `applyPromptRole({systemPrompt, prompt})`. The latter rewrites the pair when role !== 'system': for `user` it prepends the system text to the user prompt with a `---` separator; for `assistant` it wraps as a faux assistant precedent (rarely useful — documented as experimental).
+- Wired into `src/generation/engine.js` at both `generateRaw` fallback call sites (lines 310 + 589). Default behavior is unchanged for everyone — the per-profile role only diverges when the user picks a non-system value.
+- `interceptor.js` (Together-mode inline injection) is intentionally NOT routed through the role helper because that path already injects as a chat message, not a system message.
+
+**`src/profiles.js`**:
+- `PROFILE_FIELDS` extended with `promptOverrides` and `systemPromptRole` so `updateActiveProfile()` can persist them.
+- `makeProfile()` defaults `systemPromptRole` to `'system'`; rejects unrecognized values (only the three valid options pass through).
+- `parseProfile()` carries the new fields through profile import/export.
+
+**Settings UI**:
+- New "Edit Slots…" button next to the existing "Reset to Default" / "Copy" buttons in the System Prompt section. Primary-styled (accent border) so it reads as the recommended path.
+- Added a hint line under the legacy textarea: "prefer the per-slot editor above. The textarea below is the legacy 'full prompt override' — anything you type here replaces the entire slot system. Clear it (Reset to Default) to use slots."
+
+**`css/prompt-editor.css`** (new, ~190 lines): modal shell reuses `.sp-cl-overlay` from `crash-log.css`. Per-slot panels styled as cards with accent left border when modified. Role row + legacy banner have distinct visual treatments. Responsive at 720px (role row wraps, slot head re-grids) and 420px (full-viewport, monospace shrinks).
+
+**Test count unchanged at 747** — the editor module and role helper are UI/runtime code that needs DOM + SillyTavern context to test meaningfully. Profile-shape changes (new fields) verified by re-running the existing 66 profile-orphan-migration tests + 52 issue-15-profiles tests, all still passing.
+
 ### [6.18.0] — 2026-04-25
 
 #### Architecture — Prompt slot system (v6.18.0–v6.20.0 series, part 1 of 3)
