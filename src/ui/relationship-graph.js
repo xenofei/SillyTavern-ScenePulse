@@ -701,10 +701,16 @@ export async function generateGraph() {
         if (typeof generateQuietPrompt === 'function') {
             raw = await generateQuietPrompt({ quietPrompt: prompt });
         } else if (typeof generateRaw === 'function') {
-            raw = await generateRaw({
+            // v6.22.0: route through applyPromptRole so the user's
+            // profile.systemPromptRole choice propagates to this helper
+            // call too. The systemPrompt text itself stays hardcoded —
+            // this is a single-purpose JSON generator, not a tunable
+            // tracker-generation surface, so it doesn't get its own slot.
+            const { applyPromptRole } = await import('../prompts/role.js');
+            raw = await generateRaw(applyPromptRole({
                 systemPrompt: 'You are a structured JSON generator. Output only valid JSON.',
                 prompt,
-            });
+            }));
         } else {
             throw new Error('No LLM call function available on SillyTavern context');
         }

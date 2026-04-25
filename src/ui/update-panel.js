@@ -10,6 +10,7 @@ import { t } from '../i18n.js';
 import { DEFAULTS } from '../constants.js';
 import { getSettings, saveSettings } from '../settings.js';
 import { getLatestSnapshot, getPrevSnapshot, getTrackerData, getActivePanels } from '../settings.js';
+import { getActiveProfile } from '../profiles.js';
 import { normalizeTracker, filterForView } from '../normalize.js';
 import { charColor } from '../color.js';
 import {
@@ -1402,6 +1403,19 @@ if(rel.relType)hh+=`<span class="sp-rel-type-badge" data-ft="rel_type" title="${
     if(_mTokens>0||_mElapsed>0||_mSource){
         const footer=document.createElement('div');footer.className='sp-gen-footer';
         let fhtml='';
+        // v6.22.0: active profile name in the stats footer so users always see
+        // which prompt+schema bundle is driving generations. Click opens the
+        // Profile manager (handler wired below). Truncated at 16 chars to
+        // keep the footer compact.
+        try {
+            const _activeProfile = getActiveProfile(s);
+            if (_activeProfile?.name) {
+                const _pname = _activeProfile.name.length > 16
+                    ? _activeProfile.name.slice(0, 14) + '…'
+                    : _activeProfile.name;
+                fhtml += `<span class="sp-gen-badge-profile" title="${t('Active profile')}: ${esc(_activeProfile.name)} — ${t('click to manage profiles')}"><svg viewBox="0 0 14 14" width="11" height="11" fill="none"><path d="M1.5 3.5a1 1 0 0 1 1-1h3l1 1h5a1 1 0 0 1 1 1V11a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/></svg> ${esc(_pname)}</span>`;
+            }
+        } catch {}
         if(currentSnapshotMesIdx>=0)fhtml+=`<span title="${t('Message index')}"><svg viewBox="0 0 14 14" width="11" height="11" fill="none"><path d="M2 11V3a1 1 0 0 1 1-1h5l4 4v5a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z" stroke="currentColor" stroke-width="1.1"/><path d="M7 2v4h4" stroke="currentColor" stroke-width="0.9" opacity="0.5"/></svg> #${currentSnapshotMesIdx}</span>`;
         if(_mTokens>0)fhtml+=`<span title="${t('Estimated tokens')}"><svg viewBox="0 0 14 14" width="11" height="11" fill="none"><rect x="1" y="3" width="12" height="8" rx="1" stroke="currentColor" stroke-width="1.1"/><line x1="4" y1="6" x2="4" y2="9" stroke="currentColor" stroke-width="1.2" opacity="0.6"/><line x1="7" y1="5" x2="7" y2="9" stroke="currentColor" stroke-width="1.2" opacity="0.5"/><line x1="10" y1="7" x2="10" y2="9" stroke="currentColor" stroke-width="1.2" opacity="0.4"/></svg> ~${_mTokens.toLocaleString()}</span>`;
         if(_mElapsed>0)fhtml+=`<span title="${t('Generation time')}"><svg viewBox="0 0 14 14" width="11" height="11" fill="none"><circle cx="7" cy="7" r="5.5" stroke="currentColor" stroke-width="1.1"/><path d="M7 4v3.5l2.5 1.5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg> ${_mElapsed.toFixed(1)}s</span>`;
@@ -1447,6 +1461,17 @@ if(rel.relType)hh+=`<span class="sp-rel-type-badge" data-ft="rel_type" title="${
             fhtml+=`<span class="${_fnCls}" title="${_fnTip}">${_fnIcon} ${_fnLabel}</span>`;
         }}
         footer.innerHTML=fhtml;
+        // v6.22.0: profile badge → opens the Profile manager (settings panel
+        // already has the manager mounted; we trigger its button via DOM so
+        // we don't have to import profiles-manager directly from here).
+        const profBadge = footer.querySelector('.sp-gen-badge-profile');
+        if (profBadge) profBadge.addEventListener('click', () => {
+            try {
+                const mgrBtn = document.querySelector('#sp-profile-manage');
+                if (mgrBtn) mgrBtn.click();
+                else toastr?.info(t('Open Settings → ScenePulse → Prompts tab to manage profiles.'));
+            } catch {}
+        });
         // Bind inspect button
         const inspectBtn=footer.querySelector('.sp-gen-inspect');
         if(inspectBtn)inspectBtn.addEventListener('click',()=>openDiffViewer(currentSnapshotMesIdx));

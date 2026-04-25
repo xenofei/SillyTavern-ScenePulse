@@ -1672,6 +1672,13 @@ function _perfTab(panel) {
         captureBtn.textContent = `${t('Cancel capture')} (${Math.round(durMs / 1000)}s)`;
         durSel.disabled = true;
         statusEl.innerHTML = `<div class="sp-di-perf-capturing">${t('Reproduce the issue now. Capture window is open — interact with the chat / panel / weather to attribute the work.')}</div>`;
+        // v6.22.0: mount the floating overlay so the capture survives if the
+        // user closes the inspector mid-window. The overlay self-manages its
+        // countdown and unmounts when the capture ends.
+        try {
+            const ov = await import('./perf-capture-overlay.js');
+            ov.mountCaptureOverlay();
+        } catch {}
         // Tick: update countdown + render partial results once a second
         _captureTickTimer = setInterval(() => {
             if (!isCapturing()) { _stopCaptureTicks(); return; }

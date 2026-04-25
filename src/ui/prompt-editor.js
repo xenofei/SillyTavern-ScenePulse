@@ -25,6 +25,7 @@ import { esc, spConfirm } from '../utils.js';
 import { getSettings, saveSettings } from '../settings.js';
 import { getActiveProfile, updateActiveProfile } from '../profiles.js';
 import { SLOT_IDS, SLOT_META, DEFAULT_SLOT_TEXT, isSlotOverridden } from '../prompts/slots.js';
+import { findPresetById } from '../presets/built-in.js';
 
 const ROLE_OPTIONS = [
     { value: 'system',    label: 'System (default)',
@@ -61,6 +62,13 @@ export function openPromptEditor() {
     const overlay = document.createElement('div');
     overlay.className = 'sp-cl-overlay sp-pe-overlay';
 
+    // v6.22.0: applied-preset badge in the header so the user can see at a
+    // glance which bundled preset (if any) is currently active. The Clear
+    // button only clears the preset attribution — it does NOT auto-revert
+    // the slot overrides the preset added (use Revert all / per-slot Revert
+    // for that, since users may have made their own edits on top).
+    const _appliedPreset = profile.appliedPresetId ? findPresetById(profile.appliedPresetId) : null;
+    const _presetRow = _renderPresetRow(_appliedPreset);
     overlay.innerHTML = `
         <div class="sp-cl-container sp-pe-container">
             <div class="sp-cl-header">
@@ -71,6 +79,7 @@ export function openPromptEditor() {
                 <button class="sp-cl-close sp-pe-close" type="button" aria-label="${t('Close editor')}">✕</button>
             </div>
             <div class="sp-pe-body">
+                ${_presetRow}
                 ${_renderRoleRow(_draft.role)}
                 ${_draft.legacyFullPrompt ? _renderLegacyBanner() : ''}
                 <ol class="sp-pe-slot-list"></ol>
@@ -185,6 +194,41 @@ export function openPromptEditor() {
         _updateRoleHint(overlay, this.value);
         _markDirty();
     });
+    // v6.22.0: Clear preset button — clears appliedPresetId so the suggestion
+    // toast can re-fire and the editor stops showing the "Active preset" badge.
+    // Slot overrides the preset added are NOT auto-reverted; user uses
+    // Revert all / per-slot Revert for that, since they may have edited
+    // some slots manually on top of the preset.
+    // v6.22.0: Clear legacy prompt button (only present when banner is shown).
+    // The legacy textarea was removed from Settings, so this is now the only
+    // user-facing path to clear profile.systemPrompt.
+    overlay.querySelector('.sp-pe-legacy-clear')?.addEventListener('click', async () => {
+        const ok = await spConfirm(
+            t('Clear the legacy full prompt?'),
+            t('This removes the hand-authored full prompt from this profile. The slot system (with any overrides + applied preset) will take effect immediately. Your slot edits in this draft are unaffected.'),
+            { okLabel: t('Clear legacy prompt'), cancelLabel: t('Keep'), danger: true }
+        );
+        if (!ok) return;
+        const sNow = getSettings();
+        updateActiveProfile(sNow, { systemPrompt: null });
+        saveSettings();
+        try { toastr.success(t('Legacy prompt cleared. Slots are now active.')); } catch {}
+        // Remove the banner from this draft so the user sees the change without re-opening.
+        _draft.legacyFullPrompt = '';
+        const banner = overlay.querySelector('.sp-pe-legacy-banner');
+        if (banner) banner.remove();
+        _refreshPreview();
+    });
+    overlay.querySelector('.sp-pe-preset-clear')?.addEventListener('click', () => {
+        const sNow = getSettings();
+        updateActiveProfile(sNow, { appliedPresetId: null });
+        saveSettings();
+        try { toastr.info(t('Preset attribution cleared. Slot overrides remain — use Revert to undo any of them.')); } catch {}
+        // Update local view
+        profile.appliedPresetId = null;
+        const row = overlay.querySelector('.sp-pe-preset-row');
+        if (row) row.outerHTML = _renderPresetRow(null);
+    });
 
     // Wire per-slot panels
     overlay.querySelectorAll('.sp-pe-slot').forEach(panel => {
@@ -230,6 +274,25 @@ export function closePromptEditor() {
 
 // ── Renderers ──────────────────────────────────────────────────────────
 
+function _renderPresetRow(preset) {
+    if (!preset) {
+        return `
+            <div class="sp-pe-preset-row sp-pe-preset-row-none">
+                <span class="sp-pe-preset-label">${t('Active preset:')}</span>
+                <span class="sp-pe-preset-none">${t('none — slots use defaults / your edits only')}</span>
+            </div>`;
+    }
+    return `
+        <div class="sp-pe-preset-row">
+            <span class="sp-pe-preset-label">${t('Active preset:')}</span>
+            <span class="sp-pe-preset-name">${esc(preset.displayName)}</span>
+            <span class="sp-pe-preset-family">${esc(preset.family)}</span>
+            <span class="sp-pe-preset-notes">${esc(preset.notes)}</span>
+            <button class="sp-pe-preset-clear" type="button"
+                title="${t('Clear preset attribution. Slot overrides the preset added are kept — use Revert all to undo those too.')}">${t('Clear preset')}</button>
+        </div>`;
+}
+
 function _renderRoleRow(currentRole) {
     const opts = ROLE_OPTIONS.map(o =>
         `<option value="${o.value}" ${o.value === currentRole ? 'selected' : ''}>${esc(t(o.label))}</option>`).join('');
@@ -253,7 +316,8 @@ function _renderLegacyBanner() {
     return `
         <div class="sp-pe-legacy-banner">
             <strong>${t('Heads up:')}</strong>
-            ${t('this profile has a legacy "full system prompt" set, which currently overrides the slot system entirely. Edits below will be saved but won\'t take effect until you clear the legacy prompt (System Prompt section in Settings → Reset to Default).')}
+            ${t('this profile has a legacy "full system prompt" set, which currently overrides the slot system entirely. Your slot edits below will be saved but won\'t take effect until the legacy prompt is cleared.')}
+            <button class="sp-pe-legacy-clear" type="button">${t('Clear legacy prompt')}</button>
         </div>
     `;
 }

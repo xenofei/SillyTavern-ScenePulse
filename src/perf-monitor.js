@@ -213,6 +213,7 @@ export function startCapture(durationMs = 30000) {
     const dur = Math.max(1000, Math.min(120000, Number(durationMs) || 30000));
     _captureActive = true;
     _captureStartTs = performance.now();
+    _captureDurationMs = dur;
     _captureBuckets = new Map();
     _captureLongTasks = 0;
 
@@ -303,6 +304,26 @@ export function stopCapture() {
 
 /** Currently capturing? */
 export function isCapturing() { return _captureActive; }
+
+/**
+ * Capture metadata for the currently-active capture, or null if no
+ * capture is in progress. v6.22.0: powers the floating capture overlay
+ * (src/ui/perf-capture-overlay.js) so it can show countdown + cancel
+ * independently of the Debug Inspector lifecycle.
+ *
+ * @returns {{startedAt: number, durationMs: number, elapsedMs: number, remainingMs: number} | null}
+ */
+let _captureDurationMs = 0;
+export function getCaptureMeta() {
+    if (!_captureActive) return null;
+    const elapsedMs = performance.now() - _captureStartTs;
+    return {
+        startedAt: _captureStartTs,
+        durationMs: _captureDurationMs,
+        elapsedMs,
+        remainingMs: Math.max(0, _captureDurationMs - elapsedMs),
+    };
+}
 
 /** Test reset hook. */
 export function _resetForTests() {

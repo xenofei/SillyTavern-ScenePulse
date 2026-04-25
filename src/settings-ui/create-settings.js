@@ -36,25 +36,24 @@ export function createSettings(){
 <div class="sp-sh">${t('Profile')}</div><div class="sp-hint">${t('A profile is a self-contained prompt + schema bundle. Switch profiles to swap setups (e.g. Medieval Fantasy vs Pokemon) without manually editing prompts and schemas.')}</div><div class="sp-fi" style="gap:4px;align-items:center"><label style="flex-shrink:0">${t('Active')}</label><select id="sp-profile-active" style="flex:1"></select><button class="sp-btn sp-btn-sm" id="sp-profile-manage" title="${t('Manage Profiles')}">⚙ ${t('Manage')}</button></div><div class="sp-fi" style="gap:4px;margin-top:4px"><button class="sp-btn sp-btn-sm" id="sp-profile-new" style="flex:1">＋ ${t('New')}</button><button class="sp-btn sp-btn-sm" id="sp-profile-duplicate" style="flex:1">⎘ ${t('Duplicate')}</button><button class="sp-btn sp-btn-sm" id="sp-profile-rename" style="flex:1">✎ ${t('Rename')}</button></div><div class="sp-fi" style="gap:4px;margin-top:4px"><button class="sp-btn sp-btn-sm" id="sp-profile-export" style="flex:1">⬇ ${t('Export')}</button><button class="sp-btn sp-btn-sm" id="sp-profile-import" style="flex:1">⬆ ${t('Import')}</button><input type="file" id="sp-profile-import-file" accept=".json" style="display:none"><button class="sp-btn sp-btn-sm sp-btn-danger" id="sp-profile-delete" style="flex:1">🗑 ${t('Delete')}</button></div><div class="sp-hint" id="sp-profile-meta" style="margin-top:4px;opacity:0.7"></div>
 <div class="sp-sh">${t('System Prompt')}</div>
 <div class="sp-hint">${t('The instruction sent to the model. Defines how the tracker generates data.')}</div>
-<!-- v6.21.0: prominence pass — primary actions (Edit Slots, Browse Presets) get a visually distinct row above the legacy override block, with explainer hints under each. The legacy textarea moves below with a clearer "advanced / legacy" framing. -->
+<!-- v6.22.0: legacy "full prompt override" textarea fully removed. The slot
+     editor + preset browser cover every editable surface. Profiles still in
+     the wild that were created with a legacy systemPrompt set continue to
+     work because the assembler short-circuits to that field when present;
+     the prompt editor surfaces a banner pointing at the migration. -->
 <div class="sp-prompt-primary">
     <button class="sp-btn sp-btn-primary sp-prompt-edit-slots" id="sp-sysprompt-edit-slots" title="${t('Open the per-slot prompt editor. Edit individual sections (role, critical rules, language, name-awareness, quest-validation, delta-mode) with revert-per-section.')}">✎ ${t('Edit Prompt Slots')}</button>
     <button class="sp-btn sp-prompt-browse-presets" id="sp-sysprompt-browse-presets" title="${t('Browse 30 bundled model-specific presets (Claude, GPT, Gemini, DeepSeek, Cydonia, Magnum, etc.). Apply any preset to your active profile.')}">⊞ ${t('Browse Model Presets')}</button>
 </div>
 <div class="sp-hint sp-prompt-primary-hint">${t('Recommended: use the per-slot editor to tweak specific sections, or apply a model-specific preset for your connection.')}</div>
-
+<!-- v6.22.0: JSON Schema editor collapsed into <details>. Auto-built from
+     panel settings; manual edit rarely needed and easy to break. -->
 <details class="sp-prompt-legacy">
-    <summary>${t('Legacy: full prompt override (advanced)')}</summary>
-    <div class="sp-hint">${t('Anything you type here REPLACES the entire slot system — including any preset you applied. Use only if you want hand-authored control of every byte. Clear it (Reset to Default) to use slots.')}</div>
-    <div class="sp-prompt-actions">
-        <button class="sp-btn sp-btn-sm" id="sp-sysprompt-default">↺ ${t('Reset to Default')}</button>
-        <button class="sp-btn sp-btn-sm" id="sp-sysprompt-copy">📋 ${t('Copy')}</button>
-    </div>
-    <textarea id="sp-sysprompt" rows="10" placeholder="(built-in)"></textarea>
-</details>
-<div class="sp-sh">${t('JSON Schema')}</div><div class="sp-hint">${t('The JSON schema defining the output structure. Must be valid JSON.')}</div>
+<summary>${t('JSON Schema (advanced — auto-built from your panel settings)')}</summary>
+<div class="sp-hint">${t('The schema defines the output structure the AI must produce. ScenePulse builds it automatically from your enabled Panels, Field Toggles, and Custom Panels. Manual editing is only useful for debugging or experimental tracking.')}</div>
 <div id="sp-schema-locked"><div class="sp-schema-caution">${t('Schema editing is locked to prevent accidental changes.')}</div><button class="sp-btn" id="sp-schema-unlock">\uD83D\uDD13 ${t('Enable Schema Editing')}</button></div>
 <div id="sp-schema-unlocked" style="display:none"><div class="sp-schema-warning">⚠ ${t('Editing the JSON schema can break tracker generation if the schema becomes invalid. Only modify if you know what you\'re doing.')}</div><div class="sp-prompt-actions"><button class="sp-btn sp-btn-sm" id="sp-schema-default">↺ ${t('Reset to Default')}</button><button class="sp-btn sp-btn-sm" id="sp-schema-copy">📋 ${t('Copy')}</button><button class="sp-btn sp-btn-sm" id="sp-schema-lock">🔒 ${t('Lock Schema')}</button></div><textarea id="sp-schema" rows="10" placeholder="(built-in)"></textarea></div>
+</details>
 </div><!-- /prompts tab -->
 <div class="sp-tab-panel" data-tab="advanced">
 <div class="sp-sh">${t('Storage')}</div><div class="sp-fi"><label>${t('Max snapshots')}</label><input type="number" id="sp-max-snapshots" min="0" max="9999" style="width:70px"><span style="font-size:10px;color:var(--sp-text-dim);margin-left:4px">${t('0 = unlimited')}</span></div><div class="sp-hint">${t('Maximum number of scene snapshots stored per chat. Set to 0 for unlimited storage. Higher values use more chat metadata space.')}</div>

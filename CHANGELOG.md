@@ -2,6 +2,43 @@
 
 All notable changes to ScenePulse are documented in this file.
 
+### [6.22.0] — 2026-04-25
+
+#### Fixed + Polished — Feedback round 2 (capture overlay, hardcoded prompt audit, profile badge, legacy removal)
+
+11 items the user surfaced after testing v6.21.0.
+
+**#1 Doctor 502/timeout messages**: Doctor failure summaries now classify the error and append a one-line transient-vs-real hint: "Provider gateway error — usually transient. Re-run Doctor in a moment." for 502/503/504, "Rate-limited — wait a few seconds" for 429, "Network timeout" for ECONNRESET/aborted, "Authentication failure" for 401/403, and "Provider 500 — server-side bug" for raw 500s. Helps users distinguish provider flakes (retry) from real misconfiguration (fix).
+
+**#2 Doctor button** got a bolder fill (`#bfdbfe` text on `rgba(96,165,250,0.18)` background with a `#60a5fa` border — was a thin outline that read as secondary). Now visually weighty enough to match Diagnostics' teal at a glance.
+
+**#2.1 Doctor info popover overflow**: was extending past the inspector container's bottom edge on long content. Added `max-height: min(60vh, 420px)` + `overflow-y: auto` so it always fits and scrolls when needed.
+
+**#3 Hardcoded prompt audit**: scanned every `systemPrompt:` literal in the codebase. Findings:
+- `src/generation/engine.js` and `src/generation/interceptor.js` — already route through `getActivePrompt()` (slot-aware) ✓
+- `src/doctor.js` — uses `getActivePrompt()` for the schema round-trip; the model echo's "reply with ok" prompt stays hardcoded (it's a connectivity test, not generation)
+- `src/ui/relationship-graph.js` — was using a hardcoded "You are a structured JSON generator" prompt for the helper LLM call. **Fixed**: now routed through `applyPromptRole()` so the user's `profile.systemPromptRole` propagates to this surface too. Text stays hardcoded because the call is single-purpose, not a tunable tracker-generation surface.
+
+**#4 Applied preset display in editor**: new "Active preset" row at the top of the prompt editor naming the bundled preset (if any) currently applied to the profile, with family pill + truncated notes + **Clear preset** button. Clearing only removes the `appliedPresetId` attribution; the slot overrides the preset added stay (use Revert all / per-slot Revert to undo those, since users may have edited some slots manually on top).
+
+**#5 Role dropdown hover**: `.sp-pe-role-select` had no hover state — looked dead until focused. Added border/background hover transition + focus-visible outline ring matching every other select in the editor.
+
+**#6 JSON Schema editor collapsed**: was always-visible at the top of the prompts tab even though manual editing is rarely needed (it's auto-built from your panel + field-toggle settings). Now collapsed into a `<details>` block labeled "JSON Schema (advanced — auto-built from your panel settings)" matching the same treatment v6.21 gave the legacy prompt.
+
+**#7 Legacy "full prompt override" UI fully removed** from the prompts tab. The textarea + Reset/Copy buttons + change handlers are deleted. The `profile.systemPrompt` data field is preserved so existing profiles keep working — the assembler still short-circuits to it when present, and the prompt editor surfaces a banner with a new **Clear legacy prompt** button when one is detected. Net result: a clean prompts tab with two prominent buttons (Edit Prompt Slots, Browse Model Presets) and one optional advanced details (Schema). No hand-authored full-prompt path is exposed to new users.
+
+**#8 Profile name in stats line**: new clickable "📁 [Profile name]" badge at the start of the panel's generation stats footer. Truncates names over 16 chars. Click opens the Profile manager. Solves "I can never tell which profile I'm on without going to settings".
+
+**#9 Profile system audit**: confirmed v6.18+ fields (`promptOverrides`, `systemPromptRole`, `appliedPresetId`) follow the default-on-missing pattern — old profiles loading into new code see safe defaults from the slot helpers / role resolver / preset finder without needing schema migration. `migrateOrphanRootData` only touches the four legacy overlay fields (panels, fieldToggles, dashCards, customPanels), correctly leaving the new fields alone. No version bump needed.
+
+**#10 Capture toolbar alignment**: the duration `<select>` used `padding: 3px 6px` while the Start capture button used `padding: 4px 10px`, causing visible vertical misalignment. Unified both to the same metrics + `border-radius`.
+
+**#11 Floating capture overlay**: new top-right floating banner mounted to `<body>` (not the inspector container) when a Performance capture starts, so the capture survives if the user closes the inspector mid-window. Banner shows pulsing red dot + "Performance capture in progress" + countdown ("24s remaining / 30s total") + progress bar + interaction hint + Cancel button. Polls `getCaptureMeta()` every 500ms; auto-unmounts when the capture ends. Independent of the Inspector tab's local UI — both can render simultaneously, and either can cancel. Mobile (<560px) variant pins to the bottom of the viewport instead of top-right.
+
+Backed by new `getCaptureMeta()` in `perf-monitor.js` which exposes `{startedAt, durationMs, elapsedMs, remainingMs}` for the live capture (or null if none).
+
+**Tests**: 1,317 still pass (no new tests — UI/visual-only changes; profile audit confirmed existing 66 orphan + 52 issue-15 tests cover the new fields).
+
 ### [6.21.0] — 2026-04-25
 
 #### Fixed + Polished — User feedback round 1 (Performance UX, model detection, preset discoverability)

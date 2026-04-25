@@ -145,6 +145,17 @@ body:has(#sp-panel.sp-mode-mobile) .sp-loading-glass-fixed {
 .sp-gen-badge-delta { padding: 1px 5px; border-radius: 4px; background: rgba(91,196,122,0.1); color: var(--sp-green, #5bc47a); font-weight: 600; }
 .sp-gen-badge-session { padding: 1px 5px; border-radius: 4px; background: rgba(155,122,196,0.08); color: var(--sp-purple, #9b7ac4); font-weight: 500; }
 .sp-gen-badge-tracker { padding: 1px 5px; border-radius: 4px; background: rgba(91,140,196,0.08); color: var(--sp-blue, #5b8cc4); font-weight: 500; }
+/* v6.22.0: profile badge in the stats footer — clickable, opens Profile manager */
+.sp-gen-badge-profile {
+    padding: 1px 6px; border-radius: 4px;
+    background: rgba(77,184,164,0.12);
+    color: var(--sp-accent, #4db8a4);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.12s ease;
+    display: inline-flex; align-items: center; gap: 3px;
+}
+.sp-gen-badge-profile:hover { background: rgba(77,184,164,0.22); color: #fff; }
 .sp-gen-inspect, .sp-gen-analytics, .sp-gen-debug { padding: 1px 5px; border-radius: 4px; cursor: pointer; background: rgba(100,160,220,0.08); color: #64a0dc; transition: all 0.15s; }
 .sp-gen-inspect:hover, .sp-gen-analytics:hover, .sp-gen-debug:hover { background: rgba(100,160,220,0.18); color: #8cc0f0; }
 /* Tool calling status */

@@ -132,8 +132,10 @@ export function loadUI(){const s=getSettings();$('#sp-enabled').prop('checked',s
     updateLorebookRec();
     // v6.13.0 (issue #15): editor reads/writes go through the active
     // profile, not s.schema / s.systemPrompt directly.
+    // v6.22.0: legacy #sp-sysprompt textarea was removed from the UI.
+    // The prompt editor + preset browser are now the only paths. The
+    // jQuery selector below is a safe no-op if the element is gone.
     const _activeProfile=getActiveProfile(s);
-    $('#sp-sysprompt').val(_activeProfile.systemPrompt||buildDynamicPrompt(s));
     const schemaStr=_activeProfile.schema||JSON.stringify(buildDynamicSchema(s),null,2);
     $('#sp-schema').val(schemaStr);
     updateBadge();$('#sp-lore-section').toggle(s.lorebookMode==='allowlist');$('#scenepulse-settings .inline-drawer-content').toggleClass('sp-disabled',!s.enabled);
@@ -258,12 +260,12 @@ export function bindUI(){const s=getSettings();
     $('#sp-embed-n').on('change',function(){s.embedSnapshots=clamp(+this.value,0,5);saveSettings();_spSaveLS()});
     $('#sp-embed-role').on('change',function(){s.embedRole=this.value;saveSettings();_spSaveLS()});
     $('#sp-lore-mode').on('change',function(){s.lorebookMode=this.value;saveSettings();_spSaveLS();$('#sp-lore-section').toggle(this.value==='allowlist');refreshLorebookDisplay();updateLorebookRec()});
-    // v6.13.0 (issue #15): writes land on the active profile.
-    $('#sp-sysprompt').on('change',function(){
-        const v=this.value.trim();const dynamicPrompt=buildDynamicPrompt(s).trim();
-        const next=(v===dynamicPrompt)?null:v||null;
-        updateActiveProfile(s,{systemPrompt:next});saveSettings();
-    });
+    // v6.22.0: #sp-sysprompt textarea + Reset/Copy handlers removed
+    // (the legacy "full prompt override" UI was deleted from the prompts
+    // tab). The prompt editor and preset browser cover every editable
+    // surface now. Existing profile.systemPrompt values continue to work
+    // — the assembler short-circuits to them and the prompt editor shows
+    // a banner when one is set.
     $('#sp-schema').on('change',function(){
         const v=this.value.trim();const dynamicStr=JSON.stringify(buildDynamicSchema(s),null,2);
         if(v===dynamicStr){updateActiveProfile(s,{schema:null});saveSettings();return}
@@ -288,9 +290,7 @@ export function bindUI(){const s=getSettings();
         $('#sp-schema-unlocked').hide();$('#sp-schema-locked').show();
         toastr.info(t('Schema locked and reset to default'));
     });
-    // Default and Copy buttons
-    $('#sp-sysprompt-default').on('click',()=>{updateActiveProfile(s,{systemPrompt:null});saveSettings();$('#sp-sysprompt').val(buildDynamicPrompt(s));toastr.info(t('System prompt reset to default'))});
-    $('#sp-sysprompt-copy').on('click',()=>{navigator.clipboard.writeText($('#sp-sysprompt').val());toastr.success(t('Prompt copied'))});
+    // v6.22.0: legacy sysprompt Default/Copy handlers removed (textarea gone).
     // v6.19.0: Edit Slots button — lazy-imports the prompt editor module
     // (saves the bundle weight on every settings load).
     $('#sp-sysprompt-edit-slots').on('click', async () => {

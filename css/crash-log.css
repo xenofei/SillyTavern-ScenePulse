@@ -17,20 +17,19 @@
     align-items: center;
     gap: 4px;
 }
-/* v6.21.0: Doctor button now uses a cool-blue accent (distinct from
-   Diagnostics' teal accent) so the two header tools read as different
-   actions at a glance instead of looking like the same control twice.
-   Blue = "diagnostic / informational" matches the brew/flutter doctor
-   metaphor; teal stays "ScenePulse-branded primary" for Diagnostics. */
+/* v6.21.0 → v6.22.0: Doctor button uses a bolder cool-blue fill so it
+   reads as visually distinct from Diagnostics (teal) at a glance, not
+   just on close inspection. Both buttons now have the same level of
+   color saturation — neither feels "secondary" relative to the other. */
 .sp-di-doctor {
     font-weight: 600;
-    color: #93c5fd;
-    border-color: rgba(96,165,250,0.4);
-    background: rgba(96,165,250,0.08);
+    color: #bfdbfe;
+    border-color: #60a5fa;
+    background: rgba(96,165,250,0.18);
     border-radius: 4px;
 }
 .sp-di-doctor:hover {
-    background: rgba(96,165,250,0.18);
+    background: rgba(96,165,250,0.28);
     color: #fff;
     border-color: #93c5fd;
 }
@@ -327,11 +326,16 @@
     background: var(--sp-surface);
     color: var(--sp-text);
     border: 1px solid var(--sp-border);
-    border-radius: 3px;
-    padding: 3px 6px;
+    /* v6.22.0: padding + radius now match .sp-cl-export-btn so the
+       duration select and the Start capture button have identical
+       vertical metrics in the toolbar. Was 3px 6px / 3px radius and
+       sat shorter than the button next to it. */
+    border-radius: 4px;
+    padding: 4px 10px;
     font-size: var(--sp-fs-xs);
     font-family: inherit;
     cursor: pointer;
+    line-height: 1.2;
 }
 .sp-di-perf-duration:disabled { opacity: 0.5; cursor: not-allowed; }
 /* v6.21.0: Start capture button — primary accent treatment when idle so it
@@ -404,6 +408,103 @@
     margin-top: 2px;
 }
 .sp-di-perf-verdict-warn-extra { color: #fcd34d; }
+
+/* v6.22.0: floating capture overlay — mounted to body so it survives if
+   the user closes the Debug Inspector mid-window. Top-right corner with
+   pulsing red accent so it reads as "active capture in progress, do not
+   close the tab". Cancel button stops the capture immediately. Polls
+   getCaptureMeta() every 500ms; auto-unmounts when capture ends. */
+.sp-perf-overlay {
+    position: fixed;
+    top: 16px; right: 16px;
+    z-index: 100150;
+    width: min(360px, calc(100vw - 32px));
+    background: rgba(8,10,16,0.96);
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(252,165,165,0.45);
+    border-left-width: 3px;
+    border-radius: 6px;
+    padding: 10px 14px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+    color: var(--sp-text);
+    font-family: var(--sp-font);
+    font-size: var(--sp-fs-xs);
+    display: flex; flex-direction: column; gap: 8px;
+    animation: sp-glass-in 0.18s ease-out;
+}
+.sp-perf-overlay-row {
+    display: flex; align-items: center; gap: 10px;
+}
+.sp-perf-overlay-pulse {
+    flex-shrink: 0;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: #fca5a5;
+    box-shadow: 0 0 6px rgba(252,165,165,0.6);
+    animation: sp-perf-overlay-blink 1.2s ease-in-out infinite;
+}
+@keyframes sp-perf-overlay-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+}
+.sp-perf-overlay-title {
+    flex: 1;
+    font-weight: 700;
+    color: #fca5a5;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 11px;
+}
+.sp-perf-overlay-cancel {
+    flex-shrink: 0;
+    background: transparent;
+    color: #fca5a5;
+    border: 1px solid rgba(252,165,165,0.5);
+    border-radius: 4px;
+    padding: 3px 12px;
+    font-size: 11px;
+    font-family: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.sp-perf-overlay-cancel:hover {
+    background: rgba(212,80,80,0.18);
+    color: #fff;
+    border-color: #fca5a5;
+}
+.sp-perf-overlay-progress {
+    height: 4px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 2px;
+    overflow: hidden;
+}
+.sp-perf-overlay-bar {
+    height: 100%;
+    width: 0;
+    background: linear-gradient(90deg, #fca5a5, #ef4444);
+    transition: width 0.4s linear;
+}
+.sp-perf-overlay-meta {
+    display: flex; flex-direction: column; gap: 4px;
+}
+.sp-perf-overlay-countdown {
+    color: var(--sp-text);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+.sp-perf-overlay-hint {
+    color: var(--sp-text-dim);
+    font-size: 10px;
+    line-height: 1.4;
+    font-style: italic;
+}
+@media (max-width: 560px) {
+    .sp-perf-overlay {
+        top: auto; bottom: 16px; right: 8px; left: 8px;
+        width: auto;
+    }
+}
 
 /* v6.21.0: LIVE badge on the meta line during a capture-in-progress so the
    user sees that what they're looking at is a partial, not a final, result. */
@@ -587,12 +688,17 @@
 .sp-di-info svg { display: block; }
 /* Popover — only triggered by hovering the info-area or focusing the icon.
    Positioned relative to the info-area so it appears under the icon, not
-   under the Diagnostics button. */
+   under the Diagnostics button.
+   v6.22.0: max-height + scroll so the popover never extends past the
+   inspector container at the bottom (was overflowing into the chat below
+   on long popover content like the Doctor explainer). */
 .sp-di-info-popover {
     position: absolute;
     top: calc(100% + 8px);
     right: 0;
     width: min(420px, calc(100vw - 32px));
+    max-height: min(60vh, 420px);
+    overflow-y: auto;
     background: var(--sp-surface);
     border: 1px solid var(--sp-accent);
     border-radius: 6px;

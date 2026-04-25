@@ -52,6 +52,31 @@ function _b64encode(str) {
     return str;
 }
 
+// v6.22.0: classify failure messages so the doctor can append a one-line
+// "this is probably transient — try again" hint to the summary instead of
+// just dumping the raw 502/timeout text. Helps users distinguish provider
+// flakes (retry) from real bugs in their setup (fix the config).
+function _transientHintFor(msg) {
+    if (typeof msg !== 'string') return null;
+    const m = msg.toLowerCase();
+    if (m.includes('502') || m.includes('503') || m.includes('504') || m.includes('bad gateway')) {
+        return 'Provider gateway error — usually transient. Re-run Doctor in a moment.';
+    }
+    if (m.includes('429') || m.includes('rate limit') || m.includes('too many requests')) {
+        return 'Rate-limited by the API. Wait a few seconds and try again.';
+    }
+    if (m.includes('timeout') || m.includes('timed out') || m.includes('econnreset') || m.includes('aborted')) {
+        return 'Network timeout — usually transient. Re-run Doctor or shorten your context.';
+    }
+    if (m.includes('401') || m.includes('403') || m.includes('unauthorized') || m.includes('invalid api key')) {
+        return 'Authentication failure. Check your API key in the Connection Profile.';
+    }
+    if (m.includes('500') || m.includes('internal server error')) {
+        return 'Provider 500 — server-side bug. Re-run; if persistent, switch model or provider.';
+    }
+    return null;
+}
+
 async function _wrap(id, name, limitation, fn) {
     const started = Date.now();
     try {
@@ -67,14 +92,18 @@ async function _wrap(id, name, limitation, fn) {
     } catch (e) {
         // v6.17.1: errors thrown with `e._skip = true` propagate as 'skipped'
         // instead of 'fail' — replaces the previous string-match on stack text.
+        const rawMsg = e?.message || String(e);
+        const hint = _transientHintFor(rawMsg);
+        const summary = hint ? `${rawMsg} — ${hint}` : rawMsg;
         return {
             id, name,
             status: e?._skip ? 'skipped' : 'fail',
-            summary: e?.message || String(e),
+            summary,
             limitation,
             detail: e?.stack ? String(e.stack).slice(0, 500) : null,
             elapsedMs: Date.now() - started,
             ts: new Date().toISOString(),
+            transient: !!hint,
         };
     }
 }
