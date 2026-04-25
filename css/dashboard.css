@@ -1,7 +1,11 @@
 /* ═══ ENVIRONMENT DASHBOARD ═══ */
 .sp-dashboard { display: flex; flex-wrap: wrap; gap: 4px; padding: 2px; position: relative; border-radius: var(--sp-radius-lg); overflow: hidden; }
 .sp-dashboard .sp-dash-card { flex: 1 1 calc(50% - 4px); min-width: 80px; }
-.sp-dash-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 1; mix-blend-mode: soft-light; border-radius: inherit; }
+/* v6.12.9 (issue #14): mix-blend-mode forces a full layer recomposite every
+   frame anything below it animates. Removed in favor of a plain low-opacity
+   layer — visual difference is minor, GPU savings on dashboards with the
+   WDM canvas + animated particles below are substantial. */
+.sp-dash-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 1; opacity: 0.6; border-radius: inherit; }
 .sp-dash-card {
     flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
     padding: 8px 4px; border-radius: 10px; min-height: 70px; text-align: center;
@@ -205,7 +209,15 @@
     top: 42%; left: 50%; transform: translate(-50%, -50%);
     width: 300%; aspect-ratio: 1;
     pointer-events: none; z-index: 0;
-    opacity: 0.35; mix-blend-mode: screen;
+    /* v6.12.9 (issue #14): dropped mix-blend-mode: screen — was forcing
+       per-frame compositor work even when the underlying canvas wasn't
+       changing much. Slight bump in opacity compensates for the lost blend. */
+    opacity: 0.4;
+}
+/* v6.12.9: static replacement for the WDM canvas when reduceVisualEffects
+   or prefers-reduced-motion is on. Same visual footprint, zero GPU cost. */
+.sp-clock-backing-static {
+    background: radial-gradient(ellipse at 50% 42%, rgba(40,80,120,0.35) 0%, rgba(20,40,80,0.18) 50%, rgba(6,9,18,0.65) 100%);
 }
 @keyframes sp-clock-shimmer {
     0%, 100% { opacity: 0; }
@@ -265,3 +277,26 @@
 .sp-dash-loc-icon:hover { opacity: 1; transform: scale(1.1); filter: drop-shadow(0 0 6px rgba(77,184,164,0.4)); }
 .sp-dash-loc-icon svg { width: 28px; height: 28px; }
 .sp-dash-loc-text { font-size: var(--sp-fs-base); color: var(--sp-text-bright); line-height: 1.35; font-weight: 600; }
+
+/* ── v6.12.9 (issue #14): reduce-effects + prefers-reduced-motion gates ── */
+/* Pause every always-on dashboard animation when the user opts out of
+   visual effects (settings toggle adds .sp-reduce-effects to <body>) or
+   has OS-level reduced-motion preference set. The decorative particles
+   and shimmers add minor visual polish but aren't worth GPU layers on
+   weaker hardware (issue #14: integrated GPU pegged at 80% on idle). */
+body.sp-reduce-effects .sp-cal-shimmer-overlay,
+body.sp-reduce-effects .sp-cal-particle,
+body.sp-reduce-effects .sp-clock-shimmer,
+body.sp-reduce-effects .sp-clock-particle {
+    animation: none !important;
+    opacity: 0 !important;
+}
+@media (prefers-reduced-motion: reduce) {
+    .sp-cal-shimmer-overlay,
+    .sp-cal-particle,
+    .sp-clock-shimmer,
+    .sp-clock-particle {
+        animation: none !important;
+        opacity: 0 !important;
+    }
+}

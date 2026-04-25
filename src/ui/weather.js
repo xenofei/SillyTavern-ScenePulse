@@ -6,7 +6,12 @@ import { spDetectMode } from './mobile.js';
 
 export function updateWeatherOverlay(weatherStr){
     const s=getSettings();
-    if(s.weatherOverlay===false)return;
+    // v6.12.9 (issue #14): when the user disables weather (or turns on
+    // reduceVisualEffects), tear down any existing overlay instead of
+    // just early-returning. The old early-return left a stale full-screen
+    // overlay with backdrop-filter blur + animated particles attached
+    // to the DOM, eating GPU even though the user thought it was off.
+    if(s.weatherOverlay===false||s.reduceVisualEffects===true){clearWeatherOverlay();return}
     const mode=spDetectMode();if(mode==='mobile'||mode==='tablet'){clearWeatherOverlay();return}
     const wxLow=(weatherStr||'').toLowerCase();
     // Determine weather types -- multiple can be active simultaneously

@@ -407,9 +407,27 @@ export function updatePanel(d,_force=false){
     const mRad=mAngle*Math.PI/180;
     const clockSvg=`<svg viewBox="0 0 40 40" width="60" height="60" xmlns="http://www.w3.org/2000/svg"><defs><radialGradient id="spClkBg" cx="50%" cy="40%"><stop offset="0%" stop-color="rgba(77,184,164,0.08)"/><stop offset="100%" stop-color="rgba(0,0,0,0)"/></radialGradient></defs><circle cx="20" cy="20" r="18" fill="rgba(6,9,18,0.85)"/><circle cx="20" cy="20" r="17" fill="url(#spClkBg)" stroke="var(--sp-text-dim)" stroke-width="0.5" opacity="0.4"/><circle cx="20" cy="20" r="17" fill="none" stroke="var(--sp-accent)" stroke-width="0.6" opacity="0.3"/>${[0,1,2,3,4,5,6,7,8,9,10,11].map(i=>{const a=(i*30-90)*Math.PI/180;const major=i%3===0;const r1=major?13:14.5;const r2=16;const x1=20+Math.cos(a)*r1,y1=20+Math.sin(a)*r1;const x2=20+Math.cos(a)*r2,y2=20+Math.sin(a)*r2;return`<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="var(--sp-text-dim)" stroke-width="${major?'1.8':'0.7'}" stroke-linecap="round" opacity="${major?'0.8':'0.35'}"/>`}).join('')}<line x1="20" y1="20" x2="${20+Math.cos(hRad)*9}" y2="${20+Math.sin(hRad)*9}" stroke="var(--sp-text-bright)" stroke-width="2" stroke-linecap="round"/><line x1="20" y1="20" x2="${20+Math.cos(mRad)*13}" y2="${20+Math.sin(mRad)*13}" stroke="var(--sp-accent)" stroke-width="1.2" stroke-linecap="round"/><circle cx="20" cy="20" r="2" fill="var(--sp-accent)" opacity="0.6"/><circle cx="20" cy="20" r="1" fill="var(--sp-text-bright)"/></svg>`;
     const _wdmId='sp-wdm-'+Date.now();
-    dash.innerHTML+=`<div class="sp-dash-card sp-dash-card-time" data-card="time"><canvas id="${_wdmId}" class="sp-wdm-canvas"></canvas><div class="sp-clock-shimmer"></div><div class="sp-clock-particles"><div class="sp-clock-particle"></div><div class="sp-clock-particle"></div><div class="sp-clock-particle"></div><div class="sp-clock-particle"></div><div class="sp-clock-particle"></div></div><div class="sp-clock-backing"></div><div class="sp-dash-clock">${clockSvg}</div><div class="sp-dash-value sp-time-value">${esc(timeDisplay)}</div></div>`;
+    // v6.12.9 (issue #14): when reduceVisualEffects is on (or the user has
+    // OS-level prefers-reduced-motion), skip the canvas + decorative layers
+    // entirely. Renders a static gradient backing instead. The WDM canvas
+    // burned ~60% GPU at idle on the reporter's RTX3060 — see issue #14.
+    const _settings=getSettings();
+    const _prefersReducedMotion=(()=>{try{return window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches}catch{return false}})();
+    const _skipWdm=_settings.reduceVisualEffects===true||_prefersReducedMotion;
+    if(_skipWdm){
+        dash.innerHTML+=`<div class="sp-dash-card sp-dash-card-time" data-card="time"><div class="sp-clock-backing sp-clock-backing-static"></div><div class="sp-dash-clock">${clockSvg}</div><div class="sp-dash-value sp-time-value">${esc(timeDisplay)}</div></div>`;
+        // Cancel any prior WDM/observer that may still be running from a
+        // previous render with effects enabled.
+        if(_wdmFrameId){cancelAnimationFrame(_wdmFrameId);_wdmFrameId=null}
+        if(_wdmObserver){_wdmObserver.disconnect();_wdmObserver=null}
+    } else {
+        dash.innerHTML+=`<div class="sp-dash-card sp-dash-card-time" data-card="time"><canvas id="${_wdmId}" class="sp-wdm-canvas"></canvas><div class="sp-clock-shimmer"></div><div class="sp-clock-particles"><div class="sp-clock-particle"></div><div class="sp-clock-particle"></div><div class="sp-clock-particle"></div><div class="sp-clock-particle"></div><div class="sp-clock-particle"></div></div><div class="sp-clock-backing"></div><div class="sp-dash-clock">${clockSvg}</div><div class="sp-dash-value sp-time-value">${esc(timeDisplay)}</div></div>`;
 
-    // WDM canvas animation
+    // WDM canvas animation. Throttled to ~20fps with phase increment scaled
+    // 3x to keep visual speed identical to the prior 60fps version. Pauses
+    // via IntersectionObserver when the canvas isn't on screen — replaces
+    // the prior MutationObserver-on-document.body which fired on every
+    // chat mutation and never reliably stopped the loop.
     requestAnimationFrame(()=>{
         // Cancel previous animation/observer to prevent accumulating leaks
         if(_wdmFrameId){cancelAnimationFrame(_wdmFrameId);_wdmFrameId=null}
@@ -437,19 +455,46 @@ export function updatePanel(d,_force=false){
             }
         }
         let _ph=0;
+        let _onScreen=true;
+        let _wdmTimer=null;
         function _wdmDraw(){
-            _ph+=0.008;_ctx.clearRect(0,0,_W,_H);
+            // Phase increment 0.024 = 3x prior 0.008 to compensate for the
+            // 3x lower frame rate (was 60fps, now ~20fps). Visual speed
+            // unchanged; GPU work cut to ~33%.
+            _ph+=0.024;_ctx.clearRect(0,0,_W,_H);
             for(let b=0;b<12;b++){const a=b*Math.PI/6+_ph*0.05;_drawWave(a,0.4,18,20,280,_ph+b*2)}
             _ctx.globalAlpha=0.15;
             const g=_ctx.createRadialGradient(_cxW,_cyW,0,_cxW,_cyW,60);
             g.addColorStop(0,'rgba(120,200,180,0.3)');g.addColorStop(1,'rgba(0,0,0,0)');
             _ctx.fillStyle=g;_ctx.fillRect(0,0,_W,_H);_ctx.globalAlpha=1;
-            _wdmFrameId=requestAnimationFrame(_wdmDraw);
+        }
+        function _schedule(){
+            if(!_onScreen||!document.body.contains(_cv)){_wdmTimer=null;return}
+            _wdmTimer=setTimeout(()=>{
+                _wdmFrameId=requestAnimationFrame(()=>{_wdmDraw();_schedule()});
+            },50); // ~20fps
         }
         _wdmDraw();
-        _wdmObserver=new MutationObserver(()=>{const p=document.getElementById('sp-panel');if(!p||!p.classList.contains('sp-visible')){if(_wdmFrameId){cancelAnimationFrame(_wdmFrameId);_wdmFrameId=null}if(_wdmObserver){_wdmObserver.disconnect();_wdmObserver=null}}});
-        _wdmObserver.observe(document.body,{childList:true,subtree:true});
+        _schedule();
+        // IntersectionObserver replaces the document.body MutationObserver
+        // (which fired on every chat mutation). Pauses the loop when the
+        // canvas leaves the viewport (panel collapsed, scrolled away,
+        // dashboard hidden). Unobserves + disposes when the canvas is
+        // removed from the DOM by a panel re-render.
+        try {
+            _wdmObserver=new IntersectionObserver((entries)=>{
+                const e=entries[0];if(!e)return;
+                _onScreen=e.isIntersecting;
+                if(_onScreen&&!_wdmTimer)_schedule();
+                else if(!_onScreen&&_wdmTimer){clearTimeout(_wdmTimer);_wdmTimer=null;if(_wdmFrameId){cancelAnimationFrame(_wdmFrameId);_wdmFrameId=null}}
+            },{threshold:0});
+            _wdmObserver.observe(_cv);
+        } catch {
+            // IntersectionObserver missing — extremely old browser; loop
+            // will run unobserved (still throttled to 20fps so impact bounded).
+        }
     });
+    }
 
     // Dashboard overlay
     const ov=document.createElement('div');ov.className='sp-dash-overlay';
