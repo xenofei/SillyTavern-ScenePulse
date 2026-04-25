@@ -290,7 +290,7 @@ You are a precise scene analysis engine. Read the story context and output a sin
         if(ft.rel_desire!==false)meters.push('desire');
         if(ft.rel_stress!==false)meters.push('stress');
         if(ft.rel_compatibility!==false)meters.push('compatibility');
-        if(meters.length)relFields.push('- Meters (0-100): '+meters.join(', ')+' \u2014 each with a descriptive label');
+        if(meters.length)relFields.push('- Meters (0-100): '+meters.join(', ')+'. Each meter takes a {meter}Label string. MAX 3 words per label. No commas, no em-dashes, no chained clauses. Title Case. RIGHT: "Warm" / "Building trust" / "Quiet devotion" / "Oil and water". WRONG: "deeply moved, finds him utterly compelling and trustworthy" / "growing sense of shared perspective" / "openly inviting, her hand on his chest, leading him forward".');
         if(ft.rel_desire!==false)relFields.push('- desire: 0 for anyone without established sexual interest (family, strangers, minors)');
         prompt+='\n### Relationships (how characters perceive {{user}})\n'+relFields.join('\n')+'\n';
     }

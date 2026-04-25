@@ -2,6 +2,19 @@
 
 All notable changes to ScenePulse are documented in this file.
 
+### [6.15.2] — 2026-04-25
+
+#### Changed — Meter status labels capped at MAX 3 words (LLM-side, not client-truncated)
+The meter status labels (e.g. "Warm", "Building trust") were previously capped to 1-4 words by the prompt and *also* truncated to 4 words client-side via `truncateWords()`. The dual-cap approach hid the LLM's failures: when the model emitted "deeply moved, finds him utterly compelling and trustworthy," it silently became "deeply moved, finds him..." in the UI, leaving the user no way to see that the prompt had failed.
+
+Tightened both ends:
+- `src/schema.js`: meter label rule rewritten — MAX 3 words, no commas/em-dashes/and/but/qualifiers, Title Case, with 4 RIGHT and 3 WRONG examples (the WRONGs lifted from observed long outputs).
+- `src/constants.js`: BUILTIN_PROMPT line for "Labels" rewritten to match — MAX 3 words, "answers what kind of [meter] in one phrase, not a sentence."
+- `src/ui/update-panel.js` + `src/ui/character-wiki.js`: removed all 4 `truncateWords()` callsites on meter labels. The full label now renders directly. CSS `.sp-meter-tag` already has `overflow: hidden; text-overflow: ellipsis;` and `title="${label}"` is already set, so over-cap labels show with an ellipsis safety net AND the user can read the full text on hover/long-press. If the LLM emits >3 words, it's now visible — a prompt failure to fix at the source, not silently chop.
+- Cleaned up unused `truncateWords` imports.
+
+`truncateWords()` itself stays in `src/utils.js` — it's still a useful helper for other potential cap sites and removing it would be a needless API break.
+
 ### [6.15.1] — 2026-04-25
 
 #### Changed — Relationship `milestone` capped at MAX 10 words (LLM-side)

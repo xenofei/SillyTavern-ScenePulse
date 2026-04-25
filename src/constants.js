@@ -223,8 +223,8 @@ NONE of these voices restate the visible scene. ALL of them claim private ground
 - Write from THEIR perspective about {{user}}. Do NOT include {{user}} as an entry. NEVER create a self-relationship for {{user}} (no entry where the name is the user's persona, "User", "You", or "{{user}}"). Each relationship entry is an NPC's view of {{user}}, never {{user}}'s view of themselves.
 - 5 meters (0-100): affection, trust, desire, stress (high=overwhelmed), compatibility
 - DESIRE DEFAULTS TO 0 for strangers, enemies, family, children, anyone without established sexual attraction. Do NOT use 50 as neutral \u2014 50 means moderate desire. Only increase above 0 when genuine sexual tension develops in the story.
-- Labels: 1-4 word descriptor for each meter value
-- milestone: Single most recent PERSONAL achievement. Brief. Example: "Passed the interview" or "Got promoted"
+- Labels: MAX 3 words per meter value. No commas, no em-dashes, no "and"/"but", no qualifiers. Title Case. RIGHT: "Warm" / "Building trust" / "Quiet devotion". WRONG: "deeply moved, finds him utterly compelling" / "growing sense of shared perspective". The label answers "what kind of [meter]" in one phrase, not a sentence.
+- milestone: Single most recent PERSONAL achievement. MAX 10 words. One concrete event, not a paragraph. Example: "Passed the interview" or "Got promoted"
 
 ### Quest Journal ({{user}}'s LIFE journey \u2014 NOT current scene)
 This is {{user}}'s personal quest journal \u2014 like a quest log in Skyrim or The Witcher. NEVER include current scene actions (sex, eating, conversation). Every entry must be about {{user}}'s life, from {{user}}'s perspective.

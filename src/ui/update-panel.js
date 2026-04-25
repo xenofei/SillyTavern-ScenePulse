@@ -1,6 +1,6 @@
 // src/ui/update-panel.js — The massive updatePanel function (~960 lines)
 import { log } from '../logger.js';
-import { esc, clamp, str, spConfirm, truncateWords } from '../utils.js';
+import { esc, clamp, str, spConfirm } from '../utils.js';
 import { relPhaseFamily } from '../rel-phase.js';
 import { t } from '../i18n.js';
 import { DEFAULTS } from '../constants.js';
@@ -812,14 +812,19 @@ if(rel.relType)hh+=`<span class="sp-rel-type-badge" data-ft="rel_type" title="${
             stress:_H+'<path d="M3 7c0-2 1.5-4 4-5 2.5 1 4 3 4 5s-1.5 3.5-4 4.5C4.5 10.5 3 9 3 7z" fill="#4ade80" opacity=".9"/><path d="M5.5 7.5Q7 5.5 8.5 7.5" stroke="#0c0e14" stroke-width=".8" fill="none" stroke-linecap="round"/></svg>',
             compatibility:_H+'<circle cx="4.5" cy="7" r="3" stroke="#f87171" stroke-width="1.3" fill="none"/><circle cx="9.5" cy="7" r="3" stroke="#f87171" stroke-width="1.3" fill="none"/></svg>',
         };
-        for(const m of[{k:'affection',l:t('Affection'),ft:'rel_affection'},{k:'desire',l:t('Desire'),ft:'rel_desire'},{k:'trust',l:t('Trust'),ft:'rel_trust'},{k:'stress',l:t('Stress'),ft:'rel_stress'},{k:'compatibility',l:t('Compat'),ft:'rel_compatibility'}]){const v=rel[m.k];const label=rel[m.k+'Label']||'';const meterWrap=document.createElement('div');meterWrap.dataset.ft=m.ft;const row=document.createElement('div');row.className=`sp-meter-row sp-meter-${m.k}`;const labelLow=label.toLowerCase();const _prevRel=_prevRelMap[(rel.name||'').toLowerCase()];const _prevVal=_prevRel?.[m.k];const _delta=(typeof v==='number'&&typeof _prevVal==='number'&&v!==_prevVal)?v-_prevVal:null;const _stressCls=m.k==='stress';const _deltaHtml=_delta?`<span class="sp-meter-delta ${_stressCls?(_delta>0?'sp-meter-delta-stress-up':'sp-meter-delta-stress-down'):(_delta>0?'sp-meter-delta-up':'sp-meter-delta-down')}">${_delta>0?'+':''}${_delta}</span>`:'';const _isUnknown=labelLow.includes('unknown')||labelLow.includes('unclear')||labelLow.includes('???');const _hasTag=label&&label!=='N/A'&&!_isUnknown;const _tagHtml=_hasTag?`<div class="sp-meter-tag" data-ft="rel_labels" title="${esc(t(label))}">${esc(truncateWords(t(label),4))}</div>`:'';if(_hasTag||(_isUnknown&&label))row.classList.add('sp-meter-has-tag');
+        for(const m of[{k:'affection',l:t('Affection'),ft:'rel_affection'},{k:'desire',l:t('Desire'),ft:'rel_desire'},{k:'trust',l:t('Trust'),ft:'rel_trust'},{k:'stress',l:t('Stress'),ft:'rel_stress'},{k:'compatibility',l:t('Compat'),ft:'rel_compatibility'}]){const v=rel[m.k];const label=rel[m.k+'Label']||'';const meterWrap=document.createElement('div');meterWrap.dataset.ft=m.ft;const row=document.createElement('div');row.className=`sp-meter-row sp-meter-${m.k}`;const labelLow=label.toLowerCase();const _prevRel=_prevRelMap[(rel.name||'').toLowerCase()];const _prevVal=_prevRel?.[m.k];const _delta=(typeof v==='number'&&typeof _prevVal==='number'&&v!==_prevVal)?v-_prevVal:null;const _stressCls=m.k==='stress';const _deltaHtml=_delta?`<span class="sp-meter-delta ${_stressCls?(_delta>0?'sp-meter-delta-stress-up':'sp-meter-delta-stress-down'):(_delta>0?'sp-meter-delta-up':'sp-meter-delta-down')}">${_delta>0?'+':''}${_delta}</span>`:'';const _isUnknown=labelLow.includes('unknown')||labelLow.includes('unclear')||labelLow.includes('???');const _hasTag=label&&label!=='N/A'&&!_isUnknown;
+        // v6.15.2: meter labels now capped at the LLM source (MAX 3 words). Render
+        // the full label and let CSS ellipsis + title handle the safety case.
+        // Removed client-side truncateWords() — chopping after the fact hid prompt
+        // failures from the user's logs.
+        const _tagHtml=_hasTag?`<div class="sp-meter-tag" data-ft="rel_labels" title="${esc(t(label))}">${esc(t(label))}</div>`:'';if(_hasTag||(_isUnknown&&label))row.classList.add('sp-meter-has-tag');
         // Build bar — icon goes inline inside value cell after delta text
         const _faceInline=_delta?`<span class="sp-meter-face">${_delta>0?(_faceUp[m.k]||''):(_faceDown[m.k]||'')}</span>`:'';
         const _bar=(curW)=>{
             const prevMarker=(typeof _prevVal==='number'&&_prevVal>=0&&_prevVal<=100&&_delta)?`<div class="sp-meter-bar-prev" style="left:${clamp(_prevVal,0,100)}%"></div>`:'';
             return `<div class="sp-meter-bar-wrap"><div class="sp-meter-bar-track"><div class="sp-meter-bar-fill" style="width:${curW}%"></div></div>${prevMarker}</div>`;
         };
-        if(labelLow.includes('unknown')||labelLow.includes('unclear')||labelLow.includes('unreadable')||labelLow.includes('???')||labelLow.includes('not yet')){const _uTag=label?`<div class="sp-meter-tag" data-ft="rel_labels" title="${esc(t(label))}">${esc(truncateWords(t(label),4))}</div>`:'';row.innerHTML=_uTag+`<div class="sp-meter-label">${esc(m.l)}</div>${_bar(0)}<div class="sp-meter-value-na">?</div>`;meterWrap.appendChild(row)}
+        if(labelLow.includes('unknown')||labelLow.includes('unclear')||labelLow.includes('unreadable')||labelLow.includes('???')||labelLow.includes('not yet')){const _uTag=label?`<div class="sp-meter-tag" data-ft="rel_labels" title="${esc(t(label))}">${esc(t(label))}</div>`:'';row.innerHTML=_uTag+`<div class="sp-meter-label">${esc(m.l)}</div>${_bar(0)}<div class="sp-meter-value-na">?</div>`;meterWrap.appendChild(row)}
         else if(m.k==='desire'&&(v===-1||v===0||label==='N/A'||labelLow.includes('n/a'))){row.innerHTML=_tagHtml+`<div class="sp-meter-label">${esc(m.l)}</div>${_bar(0)}<div class="sp-meter-value">0${_deltaHtml}${_faceInline}</div>`;meterWrap.appendChild(row)}
         else if(v===-1||label==='N/A'){row.innerHTML=`<div class="sp-meter-label">${esc(m.l)}</div><div class="sp-meter-bar-na"></div><div class="sp-meter-value-na">N/A</div>`;meterWrap.appendChild(row)}
         else{const cv=clamp(v,0,100);row.innerHTML=_tagHtml+`<div class="sp-meter-label">${esc(m.l)}</div>${_bar(cv)}<div class="sp-meter-value">${cv}${_deltaHtml}${_faceInline}</div>`;meterWrap.appendChild(row)}
