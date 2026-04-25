@@ -280,8 +280,8 @@ You are a precise scene analysis engine. Read the story context and output a sin
     if(panels.relationships){
         const ft=s.fieldToggles||{};
         let relFields=['- name: Character name'];
-        if(ft.rel_type!==false)relFields.push('- relType: Their social role/dynamic with {{user}}');
-        if(ft.rel_phase!==false)relFields.push('- relPhase: Current stage of their relationship');
+        if(ft.rel_type!==false)relFields.push('- relType: Their social role/dynamic with {{user}}. MAX 2 words. Examples: "Co-worker", "Customer", "Bartender", "Childhood friend". No commas, no slashes, no parentheses.');
+        if(ft.rel_phase!==false)relFields.push('- relPhase: ONE word from this exact list — Strangers, Wary, Cordial, Friendly, Close, Trusted, Bonded, Flirting, Smitten, Intimate, Devoted, Distant, Strained, Estranged, Hostile, Volatile, Unknown. No other words. No punctuation. No qualifiers. Pick the closest if uncertain. Use Strangers for never-met; Unknown only if genuinely unclear from context. RIGHT: "Trusted"  RIGHT: "Flirting"  RIGHT: "Strangers"  WRONG: "Trusted partnership"  WRONG: "Growing closer, testing boundaries"');
         if(ft.rel_timeknown!==false)relFields.push('- timeTogether: How long they\'ve known each other');
         if(ft.rel_milestone!==false)relFields.push('- milestone: Most recent significant moment');
         const meters=[];

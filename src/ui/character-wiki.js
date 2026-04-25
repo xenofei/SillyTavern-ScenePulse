@@ -2,6 +2,7 @@
 import { log } from '../logger.js';
 import { t } from '../i18n.js';
 import { esc, clamp, truncateWords } from '../utils.js';
+import { relPhaseFamily } from '../rel-phase.js';
 import { getTrackerData, getLatestSnapshot, getPrevSnapshot, getSettings, saveSettings } from '../settings.js';
 import { normalizeTracker } from '../normalize.js';
 import { charColor } from '../color.js';
@@ -493,8 +494,9 @@ function _renderEntry(e, viewMode) {
         bodyHtml += _secHdr(_ICO_HEART, t('Relationship'));
         if (rel.relType || rel.relPhase) {
             bodyHtml += '<div style="margin-bottom:4px">';
-            if (rel.relType) bodyHtml += `<span class="sp-wiki-role" style="margin-right:4px">${esc(rel.relType)}</span>`;
-            if (rel.relPhase) bodyHtml += `<span class="sp-wiki-role" style="background:rgba(100,160,255,0.12)">${esc(rel.relPhase)}</span>`;
+            if (rel.relType) bodyHtml += `<span class="sp-wiki-role" style="margin-right:4px" title="${esc(rel.relType)}">${esc(rel.relType)}</span>`;
+            // v6.15.0: relPhase is a closed-enum stage (REL_PHASE_ENUM); color via data-family
+            if (rel.relPhase) bodyHtml += `<span class="sp-wiki-role sp-rel-phase-badge" data-family="${esc(relPhaseFamily(rel.relPhase))}" title="${esc(rel.relPhase)}">${esc(rel.relPhase)}</span>`;
             bodyHtml += '</div>';
         }
         const pRel = e.prevRelationship;

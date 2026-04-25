@@ -6,6 +6,7 @@ import { auditFields } from './utils.js';
 import { _isTimelineScrub } from './state.js';
 import { getLatestSnapshot } from './settings.js';
 import { charColor } from './color.js';
+import { coerceRelPhase } from './rel-phase.js';
 
 // ── Normalization cache (WeakMap — auto-clears when snapshot objects are GC'd) ──
 const _normCache = new WeakMap();
@@ -800,6 +801,18 @@ export function normalizeTracker(d){
             if(o[_pk]===''&&_prev[_pk]!==''){o[_pk]=_prev[_pk];if(_verbose)log('Custom carry-forward:',_pk)}
         }
     }}catch(e){/* carry-forward is best-effort */}
+    // v6.15.0: coerce every relPhase to the closed enum (REL_PHASE_ENUM in
+    // src/rel-phase.js). Runs AFTER all carry-forward and merge logic so we
+    // coerce the final value, not an intermediate one. Empty/missing phase
+    // becomes 'Unknown' so the header pill always renders — stable layout
+    // beats "sometimes a pill, sometimes a gap" across cards.
+    if (Array.isArray(o.relationships)) {
+        for (const rel of o.relationships) {
+            if (rel && typeof rel === 'object') {
+                rel.relPhase = coerceRelPhase(rel.relPhase);
+            }
+        }
+    }
     if(_verbose)auditFields('normalizeTracker',o,['time','date','elapsed','location','weather','temperature','soundEnvironment','sceneTopic','sceneMood','sceneInteraction','sceneTension','sceneSummary','witnesses','charactersPresent','mainQuests','sideQuests','plotBranches','northStar','relationships','characters']);
     if(d._spMeta)o._spMeta=d._spMeta;
     _normCache.set(d, o);

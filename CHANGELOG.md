@@ -2,6 +2,64 @@
 
 All notable changes to ScenePulse are documented in this file.
 
+### [6.15.0] — 2026-04-25
+
+#### Changed — Relationship pill: closed enum, 7-family palette, fits every resolution
+The `relPhase` pill on relationship cards used to render free-form LLM prose ("INTIMATE, TEASING CONNECTION", "Growing closer, testing boundaries") that broke layout on small screens and resisted at-a-glance reading. Synthesis from a 50-panel review (10 panels each across information design, mobile-responsive UI, microcopy/taxonomy, prompt engineering, and game UI) converged on a closed enum.
+
+**New module `src/rel-phase.js`:**
+- `REL_PHASE_ENUM` — 17 single-word stages: `Strangers, Wary, Cordial, Friendly, Close, Trusted, Bonded, Flirting, Smitten, Intimate, Devoted, Distant, Strained, Estranged, Hostile, Volatile, Unknown`. Within Miller's 7±2 per family; covers strangers/professional/platonic/romantic/damaged/hostile/edge-case states.
+- `REL_PHASE_FAMILY` — maps every term to one of 7 color families (neutral / civil / warm / romance / damaged / hostile / complex).
+- `coerceRelPhase()` — 5-step deterministic salvage: trim+strip → exact case-insensitive → substring scan with word-boundary guard → first-word title-case retry → `Unknown` fallback. Catches Claude/GPT synonym drift ("Warm" → "Cordial"), Llama 8B compound qualifiers ("Trusted partnership" → "Trusted"), and prose leakage ("Intimate, teasing connection" → "Intimate"). Word-boundary guard prevents false positives ("Closely" ≠ "Close", "Hostility" ≠ "Hostile", "Untrustworthy" ≠ "Trusted"). 61-case test suite in `tests/relphase-coerce.test.mjs`.
+
+**Schema instruction (`src/schema.js`):**
+- `relPhase` bullet rewritten as a closed-enum instruction with 3 RIGHT and 2 WRONG examples — the prompt-engineering panel's empirically validated sweet spot for instruction following without example echo.
+- `relType` bullet capped at MAX 2 words with examples ("Co-worker", "Customer", "Bartender", "Childhood friend") and a forbiddance on commas/slashes/parentheses.
+
+**Pipeline (`src/normalize.js`):**
+- `coerceRelPhase()` runs after all carry-forward and merge logic, just before normalization returns. Empty/missing phases coerce to `Unknown` so the header pill always renders — stable layout beats "sometimes a pill, sometimes a gap" across cards.
+
+**Rendering (`src/ui/update-panel.js`, `src/ui/character-wiki.js`):**
+- Phase badge gets `data-family="<family>"` attribute and a `title` for accessibility/desktop hover.
+- Type badge gets a `title` for full-text disclosure on truncation.
+
+**CSS (`css/relationships.css`, `css/responsive.css`):**
+- `.sp-rel-block` now declares `container-type: inline-size; container-name: rel-card` — pill responds to CARD width, not viewport, so the same card renders correctly in main panel (~380px), wiki (~600px), thoughts (~280px), and mobile fullscreen.
+- `.sp-rel-header` switched from flex-wrap to CSS Grid with `auto auto minmax(0, 1fr) auto auto` columns. The `minmax(0, 1fr)` on the name column prevents unbroken-name overflow (same fix as the meter rows in v6.13.7).
+- Both pills capped at `max-inline-size: min(11ch, 35cqi)` with ellipsis as a safety net (LLM cap is the real defense).
+- Title Case stays on phase pill — typography research at small sizes (Spiekermann, Klinkenborg) shows ~13% legibility win over ALL CAPS via preserved bouma.
+- 7-family palette via `.sp-rel-phase-badge[data-family="<name>"]` selectors.
+- `@container rel-card (max-width: 260px)` degrades the phase pill to a 10×10 colored dot — preserves the archetypal-glance signal even when text is gone (Frost / Wroblewski mobile-first principle: never DELETE the signal, degrade it). The previous `display: none` rule at 380px is removed in favor of this dot fallback.
+
+Implementation crosses multiple model classes (Claude/GPT ~98% enum compliance, Llama 8B ~92% with coercer salvage). Existing chats with persisted long phases will coerce on next render — no migration needed.
+
+### [6.14.1] — 2026-04-25
+
+#### Changed — Inner Voice: NPCs are protagonists of their own lives, not satellites of {{user}}
+v6.14.0 successfully steered NPC thoughts away from play-by-play, but a quieter failure mode remained: because the surrounding schema (archetype, role, relationships, immediateNeed, goals) is all defined RELATIVE to {{user}}, the model defaulted to NPC thoughts that orbit the protagonist ("she has no idea what's coming", "I'd die for her"). Every NPC became a satellite.
+
+Added an explicit clause to the `innerThought` bullet: **"THE NPC IS THE PROTAGONIST OF THEIR OWN LIFE — not a satellite of {{user}}."** Their thought should usually be about THEIR job, body, history, kid, debts, lust, regrets, what they had for lunch — not about {{user}}'s plot. {{user}}-orbit thoughts are allowed occasionally but must NOT be the default. Aim for AT LEAST HALF of NPC thoughts in any turn to be tangential to {{user}}. Added "{{user}}-orbit failure mode" to the FORBIDDEN list.
+
+Also clarified the Mantel touchstone in the VOICE GUIDE: Cromwell's chess-move interiority works because he IS the protagonist of *Wolf Hall*. For NPCs in someone else's story, don't make every thought a chess move about {{user}} — they're plotting their own lives, where {{user}} is one piece among many (sometimes not even on the board).
+
+### [6.14.0] — 2026-04-25
+
+#### Changed — Inner Voice overhaul (BUILTIN_PROMPT)
+Diagnosis: existing `innerThought` outputs were correctly first-person but read as neutral play-by-play of the visible scene. Every NPC sounded like the same omniscient narrator with a different name tag. Rewrite informed by a 5-panel synthesis spanning fiction craft, screenwriting/acting, cognitive psychology of inner speech, sociolinguistics/idiolect, and prompt engineering for character voice (~150 expert perspectives total).
+
+**Schema bullet (`innerThought` in `src/constants.js`)** — replaced with a tighter, opinionated instruction that:
+- Mandates SWERVE: the thought must add something the prose did NOT show (memory, want, fear, judgment, sensation, grievance, plan, aside) — never restate visible action.
+- Requires per-character silent commit to 4 voice axes BEFORE writing (syntax shape, lexicon domain, two owned discourse markers, attentional stance).
+- Forces cognitive-mode rotation across the characters array — no two NPCs in one turn share a mode from {sensory-snag, want, fear, judgment, memory-flash, plan, deflection}.
+- Scales fragmentation to `sceneTension` (calm = full sentences; high/critical = fragments and motor commands).
+- Bans specific narrator-tells: "I think / I guess / kind of / sort of / totally / gonna / a whole thing / that's a new one / oh this is great / honestly", gerund openings, generic deictics ("the big guy", "that cat") in place of relationship labels, shared em-dash style across characters.
+- Includes 3 RIGHT/WRONG pairs spanning calm/low/critical tension, three archetypes (widow / defense attorney / combat medic), three syntax shapes (winding-subordinate / short-declarative / fragments), and three failure modes (play-by-play / audience-explanation / label-list).
+- Closes with the SWAP TEST: if any two characters' thoughts in this turn could be swapped without changing meaning, both are wrong — rewrite.
+
+**New `## VOICE GUIDE` block** — inserted after `## CRITICAL RULES`, anchored to seven canonical interiority touchstones (Hemingway, Woolf, McCarthy, Joyce, Morrison, Mantel, Beckett). Establishes craft calibre without bloating the schema.
+
+This is a prompt-only change. No schema fields added, no new toggles, no breaking changes. Custom-prompt users unaffected unless they reset to BUILTIN_PROMPT.
+
 ### [6.13.10] — 2026-04-25
 
 #### Fixed — Three remaining `sp-logo-glow` consumers gated under Reduce Visual Effects (issue #14)

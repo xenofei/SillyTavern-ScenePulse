@@ -12,9 +12,27 @@
     background-repeat: repeat;
     border-left: 3px solid var(--char-border, var(--sp-border));
     contain: layout style;
+    /* v6.15.0: container query scope for the card header so the pill can
+       degrade to a dot when the CARD itself is narrow, regardless of viewport.
+       Same card renders in main panel (~380px), wiki overlay (~600px),
+       thoughts panel (~280px), and mobile fullscreen (calc(100vw - 16px)). */
+    container-type: inline-size;
+    container-name: rel-card;
 }
 .sp-rel-block:last-child { margin-bottom: 0; }
-.sp-rel-header { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 6px 6px; cursor: pointer; user-select: none; }
+/* v6.15.0: Grid header beats flex here. minmax(0, 1fr) on the name column is
+   load-bearing — without the 0 minimum, an unbroken 25-char name forces overflow
+   regardless of text-overflow:ellipsis. Pills stay auto-sized but capped from
+   inside via max-inline-size. Same lesson as the meter row fix in v6.13.7. */
+.sp-rel-header {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr) auto auto;
+    align-items: center;
+    column-gap: 6px;
+    padding: 6px 6px;
+    cursor: pointer;
+    user-select: none;
+}
 .sp-rel-header:hover { background: rgba(255,255,255,0.02); }
 /* v6.8.38: portrait thumbnail in relationship header. Smaller than the
    main character card's 26px — compact rel blocks use 22px. Reuses
@@ -24,9 +42,72 @@
 .sp-rel-header .sp-char-portrait-monogram { font-size: var(--sp-fs-xs); }
 .sp-rel-chevron { font-size: var(--sp-fs-xs); color: var(--sp-text-dim); transition: transform 0.2s ease; flex-shrink: 0; }
 .sp-rel-block.sp-card-open .sp-rel-chevron { transform: rotate(90deg); }
-.sp-rel-name { font-size: var(--sp-fs-base); font-weight: 700; color: var(--char-accent, var(--sp-text-bright)); }
-.sp-rel-type-badge { font-size: var(--sp-fs-xs); font-weight: 600; text-transform: uppercase; padding: 1px 5px; border-radius: var(--sp-radius); background: rgba(155,122,196,0.15); color: var(--sp-purple); }
-.sp-rel-phase-badge { font-size: var(--sp-fs-xs); font-weight: 600; padding: 1px 5px; border-radius: var(--sp-radius); background: rgba(91,140,196,0.12); color: var(--sp-blue); }
+.sp-rel-name {
+    font-size: var(--sp-fs-base);
+    font-weight: 700;
+    color: var(--char-accent, var(--sp-text-bright));
+    /* belt-and-braces with grid minmax — Adrian Roselli's recurring warning */
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+/* v6.15.0: Both pills are now content-capped and ellipsize as a SAFETY net.
+   The real defense is the LLM-side cap (relType <=2 words, relPhase = 1
+   enum word). Width budget: ~11ch covers "Estranged"/"Customer" comfortably,
+   ~35cqi prevents either pill from eating more than a third of the card. */
+.sp-rel-type-badge,
+.sp-rel-phase-badge {
+    font-size: var(--sp-fs-xs);
+    font-weight: 600;
+    padding: 1px 5px;
+    border-radius: var(--sp-radius);
+    max-inline-size: min(11ch, 35cqi);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.3;
+}
+.sp-rel-type-badge {
+    text-transform: uppercase;
+    background: rgba(155,122,196,0.15);
+    color: var(--sp-purple);
+    letter-spacing: 0.02em;
+}
+/* v6.15.0: relPhase is a closed enum (REL_PHASE_ENUM in src/rel-phase.js)
+   coerced in normalize.js. data-family attribute drives color from the
+   7-family palette below. Title Case stays (no text-transform) — typography
+   research at small sizes (Spiekermann) shows Title Case preserves bouma
+   and reads ~13% faster than ALL CAPS at pill sizes. */
+.sp-rel-phase-badge {
+    background: rgba(140,148,164,0.12);
+    color: var(--sp-text-dim);
+}
+.sp-rel-phase-badge[data-family="neutral"] { background: rgba(140,148,164,0.14); color: #aab2c0; }
+.sp-rel-phase-badge[data-family="civil"]   { background: rgba(91,140,196,0.14);  color: #7fb0e6; }
+.sp-rel-phase-badge[data-family="warm"]    { background: rgba(74,184,109,0.14);  color: #6fcf8a; }
+.sp-rel-phase-badge[data-family="romance"] { background: rgba(232,121,165,0.14); color: #f49bc1; }
+.sp-rel-phase-badge[data-family="damaged"] { background: rgba(214,158,86,0.14);  color: #e6b87a; }
+.sp-rel-phase-badge[data-family="hostile"] { background: rgba(225,90,90,0.14);   color: #f08080; }
+.sp-rel-phase-badge[data-family="complex"] { background: rgba(168,128,212,0.14); color: #c8a8e0; }
+
+/* v6.15.0: Dot fallback at very narrow card widths. Never DELETE the signal
+   — color preserves the archetypal-glance even when text disappears (Frost +
+   Wroblewski mobile-first principle). Title attribute keeps the full word
+   accessible to screen readers and on hover. */
+@container rel-card (max-width: 260px) {
+    .sp-rel-phase-badge {
+        inline-size: 10px;
+        block-size: 10px;
+        max-inline-size: 10px;
+        padding: 0;
+        text-indent: -9999px;
+        border-radius: 50%;
+    }
+    .sp-rel-type-badge {
+        max-inline-size: 8ch;
+    }
+}
 .sp-rel-body { display: none; padding: 0 6px 6px 6px; }
 .sp-rel-block.sp-card-open .sp-rel-body { display: block; }
 .sp-rel-meta { display: flex; flex-direction: column; gap: 3px; margin-bottom: 10px; padding-left: 2px; }

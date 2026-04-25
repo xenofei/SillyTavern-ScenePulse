@@ -61,7 +61,8 @@
     .sp-meter-row { grid-template-columns: auto 1fr minmax(0, 50px) 30px; gap: 4px; }
     .sp-sparkline { width: 28px !important; height: 12px !important; }
     .sp-brand-title-wrap { display: none; }
-    .sp-rel-phase-badge { display: none; }
+    /* v6.15.0: phase pill no longer hidden — degrades to colored dot via the
+       container query in relationships.css instead. Color preserves the signal. */
     .sp-char-role-badge { max-width: 100px; }
 }
 
