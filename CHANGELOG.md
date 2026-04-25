@@ -2,6 +2,21 @@
 
 All notable changes to ScenePulse are documented in this file.
 
+### [6.15.1] — 2026-04-25
+
+#### Changed — Relationship `milestone` capped at MAX 10 words (LLM-side)
+The `milestone` field on relationship cards previously had no length cap, producing lengthy paragraphs ("She told him coffee was never the point, she was testing his honesty, and now asks if he can keep his hands to himself for the three-block walk—a first for her on this street") that visually drowned the rest of the card body.
+
+Tightened the schema bullet in `src/schema.js`:
+- Added MAX 10 words constraint
+- Added "one concrete event, not a paragraph" guidance
+- Forbade comma-chained clauses, em-dash continuations, and parenthetical asides
+- Added 2 RIGHT and 2 WRONG examples (the WRONGs lifted directly from observed outputs so the model can pattern-match the prohibition)
+
+Updated SAMPLE_TRACKER milestones in `src/constants.js` to fit under the cap so the example data the LLM sees in `relPhase` examples is consistent with the new rule.
+
+No render code or CSS changes — milestone is plain text. The cap is enforced at the source where it costs nothing to fix at write time. Existing chats with persisted long milestones will continue to render the long version until next regen overwrites the field.
+
 ### [6.15.0] — 2026-04-25
 
 #### Changed — Relationship pill: closed enum, 7-family palette, fits every resolution
