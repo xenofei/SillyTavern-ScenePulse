@@ -9,14 +9,15 @@
 }
 
 /* v6.15.5: Diagnostics button in the inspector header — distinct accent
-   color so it reads as a "primary action you can take from any tab", not
-   another tab. v6.15.7 adds a sibling info button + popover so the
-   distinction from per-tab Copy/Export is discoverable. */
+   color so it reads as a "primary action you can take from any tab".
+   v6.15.7 → v6.15.8: info trigger is now a separate, subtle circular icon
+   detached with a small gap from Diagnostics. Popover hover scope is
+   strictly the info-area span (NOT the whole wrap) so hovering the
+   Diagnostics button no longer triggers the explanation. */
 .sp-di-diag-wrap {
-    position: relative;
     display: inline-flex;
     align-items: center;
-    gap: 0;
+    gap: 4px;
     margin-right: 6px;
 }
 .sp-di-diag-wrap .sp-di-diagnostics {
@@ -24,45 +25,45 @@
     border-color: rgba(77,184,164,0.4);
     background: rgba(77,184,164,0.08);
     font-weight: 600;
-    border-top-right-radius: 0;
-    border-bottom-right-radius: 0;
+    /* Restore normal rounded corners — no longer joined to the info icon. */
+    border-radius: 4px;
 }
 .sp-di-diag-wrap .sp-di-diagnostics:hover {
     background: rgba(77,184,164,0.16);
     border-color: var(--sp-accent);
     color: #fff;
 }
-/* Info button — joined to the right of Diagnostics like a segmented control,
-   styled as a quiet secondary so it reads as "explain this" not "another
-   primary action". */
+/* Info-area span scopes the hover trigger to JUST the icon + popover.
+   position:relative so the popover positions against this, not the wrap. */
+.sp-di-info-area {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+/* Subtle circular info button — "quiet helper", not "another button".
+   Smaller (20px), neutral border, accent only on hover/focus. SVG icon
+   replaces the typed italic 'i' for a cleaner glyph. */
 .sp-di-info {
-    width: 22px; height: 22px;
-    margin-left: -1px;
-    background: rgba(77,184,164,0.08);
-    border: 1px solid rgba(77,184,164,0.4);
-    border-left: 1px solid rgba(77,184,164,0.25);
-    border-top-left-radius: 0;
-    border-bottom-left-radius: 0;
-    border-top-right-radius: 4px;
-    border-bottom-right-radius: 4px;
-    color: var(--sp-accent);
-    font-family: var(--sp-font-mono);
-    font-size: 11px;
-    font-weight: 700;
-    font-style: italic;
+    width: 20px; height: 20px;
+    background: transparent;
+    border: 1px solid var(--sp-border);
+    border-radius: 50%;
+    color: var(--sp-text-dim);
     cursor: help;
     padding: 0;
-    line-height: 1;
+    display: inline-flex; align-items: center; justify-content: center;
     transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 .sp-di-info:hover, .sp-di-info:focus-visible {
-    background: rgba(77,184,164,0.2);
-    color: #fff;
+    background: rgba(77,184,164,0.14);
+    color: var(--sp-accent);
     border-color: var(--sp-accent);
     outline: none;
 }
-/* Popover — shown on hover OR when the info button has focus (keyboard
-   accessibility). Positioned below the button. Auto-hides on mouseout. */
+.sp-di-info svg { display: block; }
+/* Popover — only triggered by hovering the info-area or focusing the icon.
+   Positioned relative to the info-area so it appears under the icon, not
+   under the Diagnostics button. */
 .sp-di-info-popover {
     position: absolute;
     top: calc(100% + 8px);
@@ -84,9 +85,19 @@
     text-transform: none;
     letter-spacing: normal;
 }
-.sp-di-diag-wrap:hover .sp-di-info-popover,
-.sp-di-info:focus-visible ~ .sp-di-info-popover,
-.sp-di-info:hover + .sp-di-info-popover {
+/* Bridge the 8px visual gap between the icon and the popover so moving the
+   mouse from icon → popover doesn't lose hover. The ::before is invisible
+   but extends the popover's hover region upward to touch the icon. */
+.sp-di-info-popover::before {
+    content: '';
+    position: absolute;
+    top: -8px; left: 0; right: 0; height: 8px;
+}
+/* Hover scope is now strictly the info-area span (which contains ONLY the
+   icon and the popover — NOT the Diagnostics button). Hovering the
+   Diagnostics button itself never opens the popover. */
+.sp-di-info-area:hover .sp-di-info-popover,
+.sp-di-info:focus-visible ~ .sp-di-info-popover {
     opacity: 1;
     pointer-events: auto;
     transform: translateY(0);

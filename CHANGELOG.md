@@ -2,6 +2,21 @@
 
 All notable changes to ScenePulse are documented in this file.
 
+### [6.15.8] — 2026-04-25
+
+#### Fixed — Diagnostics info popover scope + cleaner visual treatment
+v6.15.7 introduced an info button next to Diagnostics, but the popover triggered when hovering ANYWHERE on the wrapper — including the Diagnostics button itself, which made the explanation feel intrusive. Also the joined-segmented styling made the icon look like a second button rather than a quiet helper.
+
+- **Hover scope restricted to the info icon only**: Wrapped the info button + popover in a separate `.sp-di-info-area` span; hover trigger is now `.sp-di-info-area:hover` and `.sp-di-info:focus-visible` only. Hovering the Diagnostics button no longer opens the popover.
+- **Cleaner visual style**:
+  - `i` button is now a small (20px) circular icon, detached from Diagnostics with a 4px gap
+  - Replaced the typed italic 'i' character with a proper SVG info glyph (circle + dot + line)
+  - Neutral border + dim color in resting state; accent color + tinted background only on hover/focus — reads as "quiet helper", not "another action"
+  - Diagnostics button restored to normal rounded corners (no longer joined to the icon)
+- **Hover bridge preserved**: The popover's `::before` invisibly extends its hover region upward to touch the icon, so moving the mouse from icon → popover doesn't lose hover.
+
+All 620/620 tests still pass.
+
 ### [6.15.7] — 2026-04-25
 
 #### Changed — Diagnostics info popover + scope-clarified per-tab buttons
