@@ -9,16 +9,23 @@
 // reusing .sp-cl-overlay, lazy-imported on button click.
 
 import { t } from '../i18n.js';
-import { esc, spConfirm } from '../utils.js';
+import { esc, spConfirm, spPrompt } from '../utils.js';
 import { getSettings, saveSettings } from '../settings.js';
-import { getActiveProfile, updateActiveProfile } from '../profiles.js';
+import { getActiveProfile, updateActiveProfile, makeProfile } from '../profiles.js';
 import { BUILT_IN_PRESETS, buildPresetPatch, getActiveModelId, findMatchingPreset } from '../presets/registry.js';
 import { getPresetFamilies } from '../presets/built-in.js';
 
 let _activeBrowser = null;
 
-export function openPresetBrowser() {
+/**
+ * @param {object} [opts]
+ * @param {boolean} [opts.createNewMode]  When true, the default Apply behavior
+ *   creates a new profile from the template instead of overlaying onto the
+ *   active one. Used by the Profile Manager's "+ New from template" button.
+ */
+export function openPresetBrowser(opts = {}) {
     closePresetBrowser();
+    const _createNewMode = !!opts.createNewMode;
     const s = getSettings();
     const profile = getActiveProfile(s);
     if (!profile) {
@@ -32,11 +39,17 @@ export function openPresetBrowser() {
     const detectedModel = getActiveModelId();
     const detectedPreset = detectedModel ? findMatchingPreset(detectedModel) : null;
 
+    // v6.23.0: shared "Configure Prompts" header with tab strip — Templates
+    // tab is the active one. Slots tab swaps to the prompt editor modal.
     overlay.innerHTML = `
         <div class="sp-cl-container sp-pb-container">
             <div class="sp-cl-header">
-                <div class="sp-cl-title">${t('Model Presets')} <span class="sp-pb-count">${BUILT_IN_PRESETS.length}</span></div>
+                <div class="sp-cl-title">${t('Configure Prompts')} <span class="sp-pe-profile-tag">${esc(profile.name || 'Untitled')}</span></div>
                 <button class="sp-cl-close sp-pb-close" type="button" aria-label="${t('Close')}">✕</button>
+            </div>
+            <div class="sp-cp-tabstrip">
+                <button class="sp-cp-tab" data-cp-tab="slots">${t('Slots')}</button>
+                <button class="sp-cp-tab sp-cp-tab-active" data-cp-tab="templates">${t('Templates')} <span class="sp-pb-count">${BUILT_IN_PRESETS.length}</span></button>
             </div>
             <div class="sp-pb-body">
                 <div class="sp-pb-detection">
@@ -46,6 +59,7 @@ export function openPresetBrowser() {
                             : t(`Active model: <code>${esc(detectedModel)}</code> — no bundled preset matched. Browse below or contribute one.`))
                         : t('No active model detected. Connect to an API to see preset suggestions.')}
                 </div>
+                ${_createNewMode ? `<div class="sp-pb-mode-banner">${t('Pick a template to create a NEW profile from. The template seeds the profile with model-tuned prompt slots; your existing profiles are not touched.')}</div>` : ''}
                 <div class="sp-pb-toolbar">
                     <input type="search" class="sp-pb-search" placeholder="${t('Search by name, model id, or family…')}">
                     <div class="sp-pb-family-pills">
@@ -80,6 +94,11 @@ export function openPresetBrowser() {
             const overridesSummary = slotCount === 0
                 ? t('No slot overrides — preset only sets the role.')
                 : t(`Overrides ${slotCount} slot${slotCount === 1 ? '' : 's'}: ${Object.keys(p.promptOverrides).join(', ')}`);
+            // v6.23.0: primary action defaults to "Create new profile" (the
+            // panel's recommendation — invert the v6.20 default of overwriting
+            // the active profile). "Apply to current" remains as a smaller
+            // secondary button next to it for users who deliberately want to
+            // overlay onto their active profile.
             return `
                 <li class="sp-pb-row ${isApplied ? 'sp-pb-row-applied' : ''} ${isMatched ? 'sp-pb-row-matched' : ''}" data-preset-id="${esc(p.id)}">
                     <div class="sp-pb-row-head">
@@ -90,7 +109,12 @@ export function openPresetBrowser() {
                             ${isMatched ? `<span class="sp-pb-row-tag sp-pb-row-tag-matched">${t('matches your model')}</span>` : ''}
                             ${isApplied ? `<span class="sp-pb-row-tag sp-pb-row-tag-applied">${t('applied')}</span>` : ''}
                         </div>
-                        <button class="sp-cl-export-btn sp-pb-apply" data-preset-id="${esc(p.id)}" ${isApplied ? 'disabled' : ''}>${isApplied ? t('Applied') : t('Apply')}</button>
+                        <div class="sp-pb-row-actions">
+                            <button class="sp-cl-export-btn sp-pb-create" data-preset-id="${esc(p.id)}"
+                                title="${t('Create a NEW profile seeded from this template. Your existing profiles are untouched.')}">${t('+ New profile')}</button>
+                            <button class="sp-cl-export-btn sp-pb-overlay" data-preset-id="${esc(p.id)}" ${isApplied ? 'disabled' : ''}
+                                title="${t('Apply this template ON TOP of your currently-active profile. Replaces matching prompt slots; preserves your other settings. Reversible.')}">${isApplied ? t('Applied') : t('Apply to current')}</button>
+                        </div>
                     </div>
                     <div class="sp-pb-row-notes">${esc(p.notes)}</div>
                     <div class="sp-pb-row-meta">
@@ -100,12 +124,62 @@ export function openPresetBrowser() {
                     </div>
                 </li>`;
         }).join('');
-        // Wire Apply buttons
-        listEl.querySelectorAll('.sp-pb-apply').forEach(btn => {
+        // Wire action buttons
+        listEl.querySelectorAll('.sp-pb-create').forEach(btn => {
+            btn.addEventListener('click', () => _createFromTemplate(btn.dataset.presetId));
+        });
+        listEl.querySelectorAll('.sp-pb-overlay').forEach(btn => {
             btn.addEventListener('click', () => _apply(btn.dataset.presetId));
         });
     }
 
+    // v6.23.0: create a new profile seeded from a template. Default name is
+    // the preset's displayName with a numeric suffix if needed; user can
+    // edit the name in the prompt that fires before the create.
+    async function _createFromTemplate(presetId) {
+        const preset = BUILT_IN_PRESETS.find(p => p.id === presetId);
+        if (!preset) return;
+        const sNow = getSettings();
+        const existingNames = new Set((sNow.profiles || []).map(p => p.name));
+        let baseName = preset.displayName;
+        let suggestedName = baseName;
+        let n = 2;
+        while (existingNames.has(suggestedName)) {
+            suggestedName = `${baseName} (${n++})`;
+        }
+        const chosenName = await spPrompt(
+            t('Create new profile from template'),
+            t(`Pick a name for the new profile. The "${preset.displayName}" template will seed its prompt slots and system-prompt role; panels, schema, and other settings start empty (you can copy from another profile via Duplicate later).`),
+            { value: suggestedName, placeholder: suggestedName, okLabel: t('Create profile') }
+        );
+        if (!chosenName || !chosenName.trim()) return;
+        const finalName = chosenName.trim();
+        // Build profile via makeProfile so all defaults (incl. promptOverrides /
+        // systemPromptRole / appliedPresetId) flow through one path.
+        const newProfile = makeProfile({
+            name: finalName,
+            description: t(`Seeded from template: ${preset.displayName}`),
+            promptOverrides: { ...(preset.promptOverrides || {}) },
+            systemPromptRole: preset.systemPromptRole || 'system',
+            appliedPresetId: preset.id,
+        });
+        if (!Array.isArray(sNow.profiles)) sNow.profiles = [];
+        sNow.profiles.push(newProfile);
+        sNow.activeProfileId = newProfile.id;
+        saveSettings();
+        try { toastr.success(t(`Created "${finalName}" from ${preset.displayName} template — switched to it.`)); } catch {}
+        // Local view update so the row reflects the new applied state.
+        profile.appliedPresetId = newProfile.appliedPresetId;
+        profile.promptOverrides = newProfile.promptOverrides;
+        profile.systemPromptRole = newProfile.systemPromptRole;
+        _renderList();
+    }
+
+    // v6.23.0: "Apply to current" — secondary path. Renamed from _apply for
+    // clarity. The primary path is now _createFromTemplate which spins up a
+    // new profile (non-destructive). This overlay path is what the user
+    // explicitly chose when they clicked "Apply to current" — confirmation
+    // microcopy spells out that it MERGES into the active profile.
     async function _apply(presetId) {
         const preset = BUILT_IN_PRESETS.find(p => p.id === presetId);
         if (!preset) return;
@@ -114,11 +188,11 @@ export function openPresetBrowser() {
         if (!profileNow) { try { toastr.error(t('No active profile')); } catch {} return; }
         const slotCount = Object.keys(preset.promptOverrides || {}).length;
         const ok = await spConfirm(
-            t(`Apply ${preset.displayName} preset?`),
+            t(`Apply ${preset.displayName} on top of "${profileNow.name}"?`),
             `${preset.notes}\n\n${slotCount === 0
                 ? t('This preset only sets the system-prompt role; no prompt slots will be modified.')
-                : t(`This preset overrides ${slotCount} slot${slotCount === 1 ? '' : 's'}. Your existing customizations in OTHER slots are preserved.`)}\n\n${t('Your panels, schema, and other settings are not touched. Reversible from the prompt editor.')}`,
-            { okLabel: t('Apply'), cancelLabel: t('Cancel'), danger: false }
+                : t(`This template will OVERWRITE ${slotCount} slot${slotCount === 1 ? '' : 's'} in your current profile (${Object.keys(preset.promptOverrides).join(', ')}). Your edits in OTHER slots are preserved.`)}\n\n${t('Your panels, schema, and other settings are not touched. Reversible from the prompt editor (Clear preset).')}\n\n${t('Tip: prefer "+ New profile" if you want to keep your current setup unchanged.')}`,
+            { okLabel: t('Apply to current'), cancelLabel: t('Cancel'), danger: true }
         );
         if (!ok) return;
         const patch = buildPresetPatch(preset, profileNow);
@@ -147,6 +221,12 @@ export function openPresetBrowser() {
                 p.classList.toggle('sp-pb-family-active', p === pill));
             _renderList();
         });
+    });
+    // v6.23.0: Slots tab switches to the prompt editor modal.
+    overlay.querySelector('.sp-cp-tab[data-cp-tab="slots"]')?.addEventListener('click', async () => {
+        const ed = await import('./prompt-editor.js');
+        _close();
+        ed.openPromptEditor();
     });
 
     function _close() {

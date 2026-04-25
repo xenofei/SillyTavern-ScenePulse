@@ -41,11 +41,15 @@ export function createSettings(){
      the wild that were created with a legacy systemPrompt set continue to
      work because the assembler short-circuits to that field when present;
      the prompt editor surfaces a banner pointing at the migration. -->
+<!-- v6.23.0: ONE primary button for the whole prompt configuration surface.
+     Opens a modal with two tabs: Slots (per-slot editor) and Templates
+     (30 bundled model presets). Replaces v6.21's pair of side-by-side
+     buttons that were "two big buttons doing related things" per user
+     feedback. -->
 <div class="sp-prompt-primary">
-    <button class="sp-btn sp-btn-primary sp-prompt-edit-slots" id="sp-sysprompt-edit-slots" title="${t('Open the per-slot prompt editor. Edit individual sections (role, critical rules, language, name-awareness, quest-validation, delta-mode) with revert-per-section.')}">✎ ${t('Edit Prompt Slots')}</button>
-    <button class="sp-btn sp-prompt-browse-presets" id="sp-sysprompt-browse-presets" title="${t('Browse 30 bundled model-specific presets (Claude, GPT, Gemini, DeepSeek, Cydonia, Magnum, etc.). Apply any preset to your active profile.')}">⊞ ${t('Browse Model Presets')}</button>
+    <button class="sp-btn sp-btn-primary sp-prompt-configure" id="sp-sysprompt-configure" title="${t('Open the unified prompt configuration modal. Edit individual prompt slots (role, critical rules, language, etc.) or apply a bundled model template.')}">⚙ ${t('Configure Prompts')}</button>
 </div>
-<div class="sp-hint sp-prompt-primary-hint">${t('Recommended: use the per-slot editor to tweak specific sections, or apply a model-specific preset for your connection.')}</div>
+<div class="sp-hint sp-prompt-primary-hint">${t('Edit individual prompt sections, or apply one of 30 bundled model templates (Claude, GPT, Gemini, DeepSeek, Cydonia, Magnum, etc.) tuned to your model.')}</div>
 <!-- v6.22.0: JSON Schema editor collapsed into <details>. Auto-built from
      panel settings; manual edit rarely needed and easy to break. -->
 <details class="sp-prompt-legacy">

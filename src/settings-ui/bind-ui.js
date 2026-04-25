@@ -290,26 +290,35 @@ export function bindUI(){const s=getSettings();
         $('#sp-schema-unlocked').hide();$('#sp-schema-locked').show();
         toastr.info(t('Schema locked and reset to default'));
     });
-    // v6.22.0: legacy sysprompt Default/Copy handlers removed (textarea gone).
-    // v6.19.0: Edit Slots button — lazy-imports the prompt editor module
-    // (saves the bundle weight on every settings load).
-    $('#sp-sysprompt-edit-slots').on('click', async () => {
+    // v6.23.0: ONE entry point — Configure Prompts. Opens the prompt editor
+    // (Slots tab default); the editor's tab strip handles switching to the
+    // Templates view. The two v6.21 buttons (sp-sysprompt-edit-slots,
+    // sp-sysprompt-browse-presets) are gone from the HTML; their handlers
+    // would silently no-op via empty jQuery selectors.
+    $('#sp-sysprompt-configure').on('click', async () => {
         try {
             const mod = await import('../ui/prompt-editor.js');
             mod.openPromptEditor();
+            // Show one-time migration toast on first click post-upgrade.
+            _showMigrationToastIfNeeded();
         } catch (e) {
-            try { toastr.error(t('Failed to open prompt editor: ') + (e?.message || String(e))); } catch {}
+            try { toastr.error(t('Failed to open Configure Prompts: ') + (e?.message || String(e))); } catch {}
         }
     });
-    // v6.21.0: Browse Presets button — lazy-imports the preset browser.
-    $('#sp-sysprompt-browse-presets').on('click', async () => {
+
+    // v6.23.0: one-time migration toast explaining the consolidated UI.
+    function _showMigrationToastIfNeeded() {
         try {
-            const mod = await import('../ui/preset-browser.js');
-            mod.openPresetBrowser();
-        } catch (e) {
-            try { toastr.error(t('Failed to open preset browser: ') + (e?.message || String(e))); } catch {}
-        }
-    });
+            const KEY = 'sp:v6.23-config-prompts-migration-shown';
+            if (localStorage.getItem(KEY)) return;
+            localStorage.setItem(KEY, '1');
+            toastr.info(
+                t('"Edit Prompt Slots" and "Browse Model Presets" are now combined as tabs inside one modal — switch via the Slots / Templates tab strip at the top.'),
+                t('Prompts UI updated'),
+                { timeOut: 9000 }
+            );
+        } catch {}
+    }
     $('#sp-schema-default').on('click',()=>{updateActiveProfile(s,{schema:null});saveSettings();$('#sp-schema').val(JSON.stringify(buildDynamicSchema(s),null,2));toastr.info(t('Schema reset to default'))});
     $('#sp-schema-copy').on('click',()=>{navigator.clipboard.writeText($('#sp-schema').val());toastr.success(t('Schema copied'))});
     $('#sp-btn-refresh').on('click',()=>{

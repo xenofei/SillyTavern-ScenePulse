@@ -43,6 +43,70 @@
     display: flex; flex-direction: column; gap: 14px;
 }
 
+/* ── v6.23.0: shared tab strip across editor + browser ───────────────── */
+.sp-cp-tabstrip {
+    display: flex; gap: 2px;
+    padding: 6px 14px 0;
+    border-bottom: 1px solid var(--sp-border);
+    background: linear-gradient(180deg, rgba(255,255,255,0.015), transparent);
+    flex-shrink: 0;
+}
+.sp-cp-tab {
+    background: none; border: 1px solid var(--sp-border); border-bottom: none;
+    color: var(--sp-text-dim); cursor: pointer;
+    padding: 6px 18px; font-size: var(--sp-fs-xs); font-weight: 600;
+    border-radius: 4px 4px 0 0;
+    transition: all 0.15s ease;
+    margin-bottom: -1px;
+    font-family: var(--sp-font);
+}
+.sp-cp-tab:hover { color: var(--sp-text); background: rgba(255,255,255,0.025); }
+.sp-cp-tab-active {
+    color: var(--sp-accent); border-color: var(--sp-border-strong);
+    background: var(--sp-surface); border-bottom: 1px solid var(--sp-surface);
+}
+
+/* ── v6.23.0: preset row actions (New profile + Apply to current) ─────── */
+.sp-pb-row-actions {
+    display: flex; gap: 6px; flex-shrink: 0;
+}
+.sp-pb-create {
+    color: var(--sp-accent) !important;
+    border-color: rgba(77,184,164,0.5) !important;
+    background: rgba(77,184,164,0.12) !important;
+    font-weight: 600;
+}
+.sp-pb-create:hover {
+    background: rgba(77,184,164,0.22) !important;
+    color: #fff !important;
+    border-color: var(--sp-accent) !important;
+}
+.sp-pb-overlay {
+    color: var(--sp-text-dim) !important;
+    border-color: var(--sp-border) !important;
+    background: transparent !important;
+    font-weight: 500;
+    font-size: 10px !important;
+}
+.sp-pb-overlay:hover:not(:disabled) {
+    color: #93c5fd !important;
+    border-color: rgba(96,165,250,0.5) !important;
+    background: rgba(96,165,250,0.08) !important;
+}
+.sp-pb-overlay:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* "Pick a template to create a NEW profile from..." banner shown when
+   the browser opens via Profile Manager's + New from template button */
+.sp-pb-mode-banner {
+    padding: 8px 12px;
+    background: rgba(77,184,164,0.06);
+    border-left: 3px solid var(--sp-accent);
+    border-radius: 3px;
+    color: var(--sp-text);
+    font-size: 11px;
+    line-height: 1.45;
+}
+
 /* ── v6.22.0: Active-preset row ────────────────────────────────────────
  * Shown above the role row. Names which bundled preset (if any) is
  * currently applied to this profile, with a Clear button.

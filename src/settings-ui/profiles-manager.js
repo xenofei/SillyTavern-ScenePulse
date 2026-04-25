@@ -31,6 +31,7 @@ export function openProfilesManager(onChange) {
             <div class="sp-cl-header">
                 <div class="sp-cl-title">${t('Profile Manager')}</div>
                 <button class="sp-cl-export-btn" id="sp-pm-new">＋ ${t('New')}</button>
+                <button class="sp-cl-export-btn" id="sp-pm-new-from-template" title="${t('Create a new profile seeded from one of 30 bundled model templates (Claude, GPT, Gemini, DeepSeek, Cydonia, etc.)')}">⊞ ${t('+ New from template…')}</button>
                 <button class="sp-cl-export-btn" id="sp-pm-import">⬆ ${t('Import')}</button>
                 <input type="file" id="sp-pm-import-file" accept=".json" style="display:none">
                 <button class="sp-cl-close">✕</button>
@@ -207,6 +208,21 @@ export function openProfilesManager(onChange) {
         setActiveProfile(s, p.id); saveSettings();
         try { toastr.success(t('Profile created') + ': ' + p.name); } catch {}
         _notify(); render();
+    });
+
+    // v6.23.0: + New from template — opens the preset browser (Templates
+    // tab) in createNewMode so the primary "+ New profile" action on each
+    // row spins up a profile seeded from the chosen template.
+    overlay.querySelector('#sp-pm-new-from-template').addEventListener('click', async () => {
+        try {
+            const ov = await import('../ui/preset-browser.js');
+            // Close the profile manager first; user comes back here after
+            // creating their profile via the preset browser flow.
+            overlay.remove();
+            ov.openPresetBrowser({ createNewMode: true });
+        } catch (e) {
+            try { toastr.error(t('Failed to open template browser: ') + (e?.message || String(e))); } catch {}
+        }
     });
 
     overlay.querySelector('#sp-pm-import').addEventListener('click', () => document.getElementById('sp-pm-import-file')?.click());

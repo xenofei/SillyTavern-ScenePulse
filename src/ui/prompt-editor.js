@@ -69,14 +69,23 @@ export function openPromptEditor() {
     // for that, since users may have made their own edits on top).
     const _appliedPreset = profile.appliedPresetId ? findPresetById(profile.appliedPresetId) : null;
     const _presetRow = _renderPresetRow(_appliedPreset);
+    // v6.23.0: shared "Configure Prompts" header with tab strip. The slot
+    // editor and the preset browser are now sibling tabs of one modal —
+    // clicking "Templates" closes this modal and opens the preset browser
+    // with the same shared chrome. Discoverability + IA per the v6.23.0
+    // panel: one entry point, two views of one concept.
     overlay.innerHTML = `
         <div class="sp-cl-container sp-pe-container">
             <div class="sp-cl-header">
-                <div class="sp-cl-title">${t('Prompt Editor')} <span class="sp-pe-profile-tag">${esc(profile.name || 'Untitled')}</span></div>
+                <div class="sp-cl-title">${t('Configure Prompts')} <span class="sp-pe-profile-tag">${esc(profile.name || 'Untitled')}</span></div>
                 <button class="sp-cl-export-btn sp-pe-revert-all" title="${t('Revert every slot to its default text. Does not affect the role selector.')}">${t('Revert all')}</button>
                 <button class="sp-cl-export-btn sp-pe-cancel">${t('Cancel')}</button>
                 <button class="sp-cl-export-btn sp-pe-save sp-pe-save-disabled" disabled>${t('Save')}</button>
                 <button class="sp-cl-close sp-pe-close" type="button" aria-label="${t('Close editor')}">✕</button>
+            </div>
+            <div class="sp-cp-tabstrip">
+                <button class="sp-cp-tab sp-cp-tab-active" data-cp-tab="slots">${t('Slots')}</button>
+                <button class="sp-cp-tab" data-cp-tab="templates">${t('Templates')}</button>
             </div>
             <div class="sp-pe-body">
                 ${_presetRow}
@@ -167,6 +176,25 @@ export function openPromptEditor() {
     overlay.querySelector('.sp-pe-cancel').addEventListener('click', () => _close());
     overlay.querySelector('.sp-pe-close').addEventListener('click', () => _close());
     overlay.querySelector('.sp-pe-save').addEventListener('click', _save);
+    // v6.23.0: tab strip wiring — clicking Templates closes this modal and
+    // opens the preset browser with the same chrome. Dirty-edit guard fires
+    // before the swap.
+    overlay.querySelector('.sp-cp-tab[data-cp-tab="templates"]')?.addEventListener('click', async () => {
+        const _swap = async () => {
+            const ov = await import('./preset-browser.js');
+            _close({ skipDirtyCheck: true });
+            ov.openPresetBrowser();
+        };
+        if (_dirty) {
+            const ok = await spConfirm(
+                t('Switch to Templates tab?'),
+                t('You have unsaved slot edits. Switching tabs will discard them.'),
+                { okLabel: t('Discard and switch'), cancelLabel: t('Keep editing'), danger: true }
+            );
+            if (!ok) return;
+        }
+        _swap();
+    });
     overlay.querySelector('.sp-pe-revert-all').addEventListener('click', async () => {
         const customCount = Object.values(_draft.overrides).filter(v => typeof v === 'string' && v.trim()).length;
         if (customCount === 0) { try { toastr.info(t('Nothing to revert — every slot is already on its default.')); } catch {} return; }

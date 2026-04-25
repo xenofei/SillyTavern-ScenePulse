@@ -2,6 +2,37 @@
 
 All notable changes to ScenePulse are documented in this file.
 
+### [6.23.0] — 2026-04-25
+
+#### Added — Configure Prompts IA refactor (panel-recommended consolidation)
+
+The user's "two big buttons doing related things" feedback prompted a 4-person UX/IA panel synthesis. The panel was unanimous: collapse the three surfaces (slot editor, preset browser, profile manager) into a coherent hierarchy where **profile owns slot overrides, which were seeded from a template**. v6.23.0 ships that consolidation.
+
+**One entry point**: the prompts tab now has ONE primary button — **⚙ Configure Prompts** — replacing the v6.21 pair (`✎ Edit Prompt Slots` + `⊞ Browse Model Presets`). Hint underneath: "Edit individual prompt sections, or apply one of 30 bundled model templates tuned to your model."
+
+**Two tabs in the modal**: clicking Configure Prompts opens the prompt editor with a tab strip at the top. **Slots** (default) shows the per-slot editor; **Templates** swaps to the preset browser. Both modals share the same chrome — title "Configure Prompts" + active profile name pill — so the swap reads as switching tabs of one tool, not opening a second tool. Dirty-edit guard fires before any tab switch in Slots.
+
+**Apply-preset default inverted** (the panel's biggest UX recommendation): each preset row now has TWO action buttons:
+- **+ New profile** (primary, accent-colored) — creates a NEW profile seeded from the template, prompts for the name (defaults to the template's display name with a numeric suffix if needed), sets it active. Your existing profiles are untouched. **This is the new safe default** — clicking the obvious primary action no longer destroys your tweaks.
+- **Apply to current** (secondary, smaller text) — the v6.21 behavior (overlay onto active profile). Now requires explicit confirmation that names what gets overwritten in your current profile and recommends "+ New profile" instead.
+
+The startup suggestion toast (v6.20.0) still fires for matching models — but its dialog now offers both paths too. Net effect: applying a preset can no longer silently merge into your customized profile by accident.
+
+**Profile Manager → + New from template…** new button in the manager's header alongside `+ New` and `↑ Import`. Opens the preset browser in **createNewMode** which surfaces an explanatory banner and treats every template's primary action as "create new profile from this template." Closes the manager when the user picks a template (the new profile becomes active and they're done).
+
+**One-time migration toast**: first time the user clicks the new Configure Prompts button post-upgrade, a toastr.info appears: "'Edit Prompt Slots' and 'Browse Model Presets' are now combined as tabs inside one modal — switch via the Slots / Templates tab strip at the top." Stored in `localStorage` (`sp:v6.23-config-prompts-migration-shown`); never re-fires.
+
+**Architecture**:
+- New shared CSS class set `.sp-cp-tabstrip` + `.sp-cp-tab` lives in `css/prompt-editor.css`. Both prompt-editor.js and preset-browser.js render the same markup so the tabs look identical across both modal sources.
+- `openPresetBrowser({ createNewMode: true })` is the new entry signature for the Profile Manager use case. Default call (no opts) keeps v6.20+ behavior for the suggestion toast and the standalone deep-link case.
+- New `_createFromTemplate(presetId)` in preset-browser.js builds a profile via `makeProfile()` (single source of truth for defaults), pushes to `s.profiles`, sets `activeProfileId`. Uses `spPrompt()` for the name dialog so the user can edit before committing.
+- `+ New profile` and `Apply to current` are wired via separate event handlers (no shared `_apply` confusion).
+- The two old settings buttons + their handlers are removed from `bind-ui.js`. The two old element ids (`sp-sysprompt-edit-slots`, `sp-sysprompt-browse-presets`) are gone — selectors silently no-op if any third-party code references them.
+
+**Backward compat**: `openPromptEditor()` and `openPresetBrowser()` remain working as standalone deep links. Slash commands or other entry points calling them directly continue to function. Profiles created before v6.23.0 keep working — `appliedPresetId` is optional, all the v6.18+ defaults-on-missing pattern is preserved.
+
+**Tests**: 1,338 still pass. No new tests for the IA refactor itself (UI-only); the underlying preset-registry + prompt-assembler test suites cover the data shapes the new flow uses.
+
 ### [6.22.1] — 2026-04-25
 
 #### Fixed — Critical bugs from feedback round 3 + GitHub issue #15 comment
