@@ -40,8 +40,12 @@
    within the column, keeping all bars left-aligned. Each responsive
    breakpoint overrides this width to match its font-size. */
 /* Label column uses auto to fit content at any font size.
-   This prevents label/bar overlap when --sp-fs-xs scales up. */
-.sp-meter-row { display: grid; grid-template-columns: auto 1fr auto 44px; align-items: center; gap: 4px; padding: 2px 0; }
+   This prevents label/bar overlap when --sp-fs-xs scales up.
+   v6.13.6: third column (value + delta + face emoji) was `auto` so
+   the bar shrank whenever a delta appeared. Fixed 60px keeps the
+   bar's right edge stable so bars stay the same length whether or
+   not a value changed this turn. Fits "100+99❤" worst case. */
+.sp-meter-row { display: grid; grid-template-columns: auto 1fr 60px 44px; align-items: center; gap: 4px; padding: 2px 0; }
 .sp-meter-row.sp-meter-has-tag { grid-template-rows: auto auto; }
 .sp-meter-row.sp-meter-has-tag > .sp-meter-label { grid-row: 2; }
 .sp-meter-row.sp-meter-has-tag > .sp-meter-bar-wrap { grid-row: 2; }

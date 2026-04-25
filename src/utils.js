@@ -7,6 +7,24 @@ export function esc(s){if(s==null)return'';if(typeof s==='object')return esc(str
 export function str(v){if(v==null)return'';if(typeof v==='string')return v;if(typeof v==='number'||typeof v==='boolean')return String(v);if(Array.isArray(v))return v.map(str).filter(Boolean).join(', ');if(typeof v==='object'){for(const val of Object.values(v)){if(typeof val==='string')return val}return''}return String(v)}
 export function clamp(v,lo,hi){return Math.max(lo,Math.min(hi,Number(v)||0))}
 
+/**
+ * Truncate a label to a maximum word count, appending an ellipsis when
+ * truncation occurs. Used for meter status labels ("growing sense of
+ * shared perspective" → "growing sense of shared…") so long LLM-emitted
+ * labels don't push past the row's whitespace budget.
+ *
+ * Whitespace-collapsed before counting; punctuation attached to a word
+ * counts as part of that word ("none—purely observational" = 3 words).
+ */
+export function truncateWords(text, maxWords = 4) {
+    if (!text) return '';
+    const trimmed = String(text).trim();
+    if (!trimmed) return '';
+    const words = trimmed.split(/\s+/);
+    if (words.length <= maxWords) return trimmed;
+    return words.slice(0, maxWords).join(' ') + '…';
+}
+
 // v6.13.3: single-dialog enforcement. Rapid double-clicks on Delete (or
 // any other action that opens a confirm/prompt) used to stack multiple
 // overlays. Now any active dialog is dismissed (with cancel-equivalent

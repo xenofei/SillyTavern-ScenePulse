@@ -1,7 +1,7 @@
 // src/ui/character-wiki.js — Character Wiki: historical character browser overlay
 import { log } from '../logger.js';
 import { t } from '../i18n.js';
-import { esc, clamp } from '../utils.js';
+import { esc, clamp, truncateWords } from '../utils.js';
 import { getTrackerData, getLatestSnapshot, getPrevSnapshot, getSettings, saveSettings } from '../settings.js';
 import { normalizeTracker } from '../normalize.js';
 import { charColor } from '../color.js';
@@ -274,7 +274,7 @@ function _meterHtml(key, label, value, meterLabel, prevValue) {
     const isUnknown = labelLow.includes('unknown') || labelLow.includes('unclear') || labelLow.includes('???');
     const hasTag = meterLabel && !isNA && !isUnknown;
     const tagCls = hasTag ? ' sp-wiki-meter-has-tag' : '';
-    const tagHtml = hasTag ? `<div class="sp-wiki-meter-tag">${esc(meterLabel)}</div>` : '';
+    const tagHtml = hasTag ? `<div class="sp-wiki-meter-tag" title="${esc(meterLabel)}">${esc(truncateWords(meterLabel,4))}</div>` : '';
     const delta = (typeof value === 'number' && typeof prevValue === 'number' && value !== prevValue) ? value - prevValue : null;
     const isStress = key === 'stress';
     const deltaHtml = delta ? `<span class="sp-wiki-meter-delta ${isStress ? (delta > 0 ? 'sp-wiki-delta-stress-up' : 'sp-wiki-delta-stress-down') : (delta > 0 ? 'sp-wiki-delta-up' : 'sp-wiki-delta-down')}">${delta > 0 ? '+' : ''}${delta}</span>` : '';
@@ -282,7 +282,7 @@ function _meterHtml(key, label, value, meterLabel, prevValue) {
         return `<div class="sp-wiki-meter-row"><div class="sp-wiki-meter-label">${esc(label)}</div><div class="sp-wiki-meter-bar"><div class="sp-wiki-meter-fill" data-meter="${key}" style="width:0%"></div></div><div class="sp-wiki-meter-val sp-wiki-meter-na">N/A</div></div>`;
     }
     if (isUnknown) {
-        const uTag = meterLabel ? `<div class="sp-wiki-meter-tag">${esc(meterLabel)}</div>` : '';
+        const uTag = meterLabel ? `<div class="sp-wiki-meter-tag" title="${esc(meterLabel)}">${esc(truncateWords(meterLabel,4))}</div>` : '';
         return `<div class="sp-wiki-meter-row${meterLabel ? ' sp-wiki-meter-has-tag' : ''}">${uTag}<div class="sp-wiki-meter-label">${esc(label)}</div><div class="sp-wiki-meter-bar"><div class="sp-wiki-meter-fill" data-meter="${key}" style="width:0%"></div></div><div class="sp-wiki-meter-val sp-wiki-meter-na">?</div></div>`;
     }
     const v = clamp(typeof value === 'number' ? value : 0, 0, 100);
