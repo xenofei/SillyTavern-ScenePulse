@@ -54,6 +54,26 @@ export async function processExtraction(mesIdx, extracted, source, opts = {}) {
     } else {
         setLastDeltaPayload(null);
         setLastDeltaSavings(0);
+        // Full-state mode (no prev OR periodic-refresh / deltaMode=off):
+        // preserve off-scene characters/relationships from the previous snapshot.
+        // The LLM only returns characters in the current scene; without this
+        // block, every periodic full-state refresh (default every 15 turns)
+        // permanently drops the off-scene roster from the saved snapshot.
+        // Mirrors engine.js:367-380. (Issue #11)
+        if (prevSnap) {
+            for (const k of ['characters', 'relationships']) {
+                if (Array.isArray(extracted[k]) && Array.isArray(prevSnap[k])) {
+                    const newNames = new Set(extracted[k].map(e => (e.name || '').toLowerCase().trim()));
+                    for (const prev of prevSnap[k]) {
+                        const pn = (prev.name || '').toLowerCase().trim();
+                        if (pn && !newNames.has(pn)) {
+                            extracted[k].push(JSON.parse(JSON.stringify(prev)));
+                            log('Pipeline full-state: preserved off-scene entity:', prev.name, 'in', k);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     // Validate against schema (warnings only, never rejects)

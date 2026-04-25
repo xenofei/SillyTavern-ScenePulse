@@ -302,34 +302,40 @@ export async function renderExisting(){
             latest=normalizeTracker(latestRaw);
         }catch(e){warn('normalize snapshot',latestKey,':',e)}
     }
-    // RECOVERY: If no snapshots found, check if any AI messages contain unextracted inline tracker data
+    // RECOVERY: If no snapshots found, walk every AI message that contains
+    // an inline tracker block, extract each, and replay them through delta-
+    // merge so the wiki / character-history have a complete record. Without
+    // this, starting ScenePulse on an existing N-message chat would only
+    // recover ONE snapshot (the last) — every character introduced in
+    // earlier messages would be missing from history. (Issue #11)
     if(!latest&&getSettings().injectionMethod==='inline'){
         try{
             const{chat}=SillyTavern.getContext();
-            for(let i=chat.length-1;i>=0;i--){
+            const{mergeDelta:_md}=await import('../generation/delta-merge.js');
+            let recovered=0;
+            let mergedSoFar=null;
+            for(let i=0;i<chat.length;i++){
                 if(chat[i]?.is_user)continue;
                 const raw=chat[i]?.mes||'';
-                if(raw.includes(SP_MARKER_START)||raw.match(/```json\s*\n?[\s\S]{500,}```\s*$/)){
-                    log('renderExisting: found unextracted inline tracker in message',i);
-                    const extracted=extractInlineTracker(i);
-                    if(extracted){
-                        // Normalize and merge with previous snapshot (if any)
-                        // to preserve accumulated character data
-                        const prevSnap=getLatestSnapshot();
-                        let merged=extracted;
-                        if(prevSnap){
-                            const{mergeDelta:_md}=await import('../generation/delta-merge.js');
-                            merged=_md(prevSnap,extracted);
-                        }
-                        const norm=normalizeTracker(merged);
-                        setCurrentSnapshotMesIdx(i);
-                        saveSnapshot(i,norm);
-                        await ensureChatSaved();
-                        log('renderExisting: saved recovered+merged snapshot for message',i);
-                        latest=norm;
-                        break;
-                    }
-                }
+                if(!(raw.includes(SP_MARKER_START)||raw.match(/```json\s*\n?[\s\S]{500,}```\s*$/)))continue;
+                const extracted=extractInlineTracker(i);
+                if(!extracted)continue;
+                // Replay each extracted block through delta-merge against
+                // the running merged state so off-scene characters persist
+                // across the recovered timeline. Idempotent: identical
+                // raw payloads always produce identical merged output.
+                const merged=mergedSoFar?_md(mergedSoFar,extracted):extracted;
+                const norm=normalizeTracker(merged);
+                setCurrentSnapshotMesIdx(i);
+                saveSnapshot(i,norm);
+                mergedSoFar=norm;
+                latest=norm;
+                latestKey=i;
+                recovered++;
+            }
+            if(recovered>0){
+                await ensureChatSaved();
+                log('renderExisting: backfilled',recovered,'snapshots from chat history');
             }
         }catch(e){warn('renderExisting inline recovery:',e)}
     }
