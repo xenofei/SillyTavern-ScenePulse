@@ -138,6 +138,44 @@
     color: var(--sp-text); white-space: pre-wrap; word-break: break-all;
     max-height: 240px; overflow: auto;
 }
+/* v6.15.3: Full-message panel — same styling as stack/context but allows
+   wrapping of long prose lines (cleanJson errors carry the response excerpt). */
+.sp-cl-fullmsg {
+    background: rgba(0,0,0,0.3); border: 1px solid var(--sp-border);
+    border-radius: 3px; padding: 6px 8px; margin: 0;
+    font-family: var(--sp-font-mono); font-size: 11px;
+    color: var(--sp-text); white-space: pre-wrap; word-break: break-word;
+    max-height: 200px; overflow: auto;
+    line-height: 1.45;
+}
+/* v6.15.3: Diagnosis hint — visually distinct from raw data, reads as a
+   sentence not a code block. Yellow-ish to suggest "interpretation, not fact". */
+.sp-cl-diagnosis {
+    background: rgba(214,158,86,0.08);
+    border-left: 3px solid var(--sp-amber, #d69e56);
+    border-radius: 3px;
+    padding: 6px 10px;
+    margin: 0;
+    color: var(--sp-text);
+    font-size: 11px;
+    line-height: 1.45;
+}
+/* v6.15.3: When/where metadata strip — replaces the previous bare meta line
+   with labeled fields so users can quickly scan WHEN, WHAT SOURCE, and how
+   often the same error repeated. */
+.sp-cl-whenwhere {
+    display: flex; flex-wrap: wrap; gap: 12px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 3px;
+    padding: 6px 8px;
+    color: var(--sp-text-dim);
+    font-size: 10px;
+}
+.sp-cl-whenwhere strong {
+    color: var(--sp-text);
+    font-weight: 600;
+    margin-right: 3px;
+}
 .sp-cl-meta {
     display: flex; gap: 10px; margin-top: 6px;
     color: var(--sp-text-dim); font-size: 9px;

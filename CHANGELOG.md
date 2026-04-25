@@ -2,6 +2,27 @@
 
 All notable changes to ScenePulse are documented in this file.
 
+### [6.15.3] — 2026-04-25
+
+#### Changed — Crash log entries now show useful detail when expanded
+Expanding a crash log entry previously showed near-empty body content for the most common case (string-only `err()` calls captured no stack and the global error handlers passed no SillyTavern context). The expanded view was just "SP 6.12.3 / Copy / Report on GitHub" — the user couldn't tell what scene, message, or model the error happened on.
+
+Two-layer fix:
+
+**Capture side (`src/crash-log.js`):**
+- New `_autoContext()` helper captures chat ID (last 12 chars), message index, character name, model name (with three fallbacks: openai_model / textgen preset / mainApi), group-chat flag, viewport size — each lookup independently try/catched so one missing global doesn't suppress the rest.
+- Logger bridge now synthesizes a stack via `new Error().stack` when no Error object was in the err() args, then strips the bridge + listener + crash-log frames so what remains points to the actual err() callsite.
+- `_onWindowError` and `_onUnhandledRejection` merge their existing context (filename/line/col, kind=unhandledrejection) with auto-context.
+
+**Display side (`src/ui/debug-inspector.js`, `css/crash-log.css`):**
+- Row body always renders a structured set of sections — Full Message (since the header is CSS-truncated), Likely Cause (when matched), When/Source/Severity/Occurrences strip, Stack (if present), Context (if present), Versions row, Actions.
+- New `_diagnose(message)` pattern matcher gives one-line cause hints for: `cleanJson` / `Parse fail` / 502/503/504 / NetworkError / aborted-cancellation / `streamingProcessor is null` / rate-limit / context-length / 401-unauthorized. Returns empty string when no pattern matches — section only renders when there's a real hint.
+- New CSS classes `.sp-cl-fullmsg` (mono, wraps long prose), `.sp-cl-diagnosis` (amber-tinted left border, reads as interpretation not raw data), `.sp-cl-whenwhere` (labeled metadata strip).
+
+Existing entries captured under v6.15.2 or earlier render with the new layout immediately — auto-context only attaches to entries captured under v6.15.3+, but everything else (full message, diagnosis, when/where, versions, actions) works on historical entries too.
+
+All 620/620 tests still pass.
+
 ### [6.15.2] — 2026-04-25
 
 #### Changed — Meter status labels capped at MAX 3 words (LLM-side, not client-truncated)

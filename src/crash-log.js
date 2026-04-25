@@ -69,6 +69,36 @@ function _stVersionFromContext() {
     } catch { return ''; }
 }
 
+// v6.15.3: Auto-capture context that's almost always available — chat ID,
+// message index, character name, model name. Each lookup is independently
+// try/catched so a single missing global doesn't suppress the rest. Caller
+// can override or extend by passing their own context to captureError().
+function _autoContext() {
+    const out = {};
+    try {
+        const ctx = (typeof SillyTavern !== 'undefined' && SillyTavern.getContext)
+            ? SillyTavern.getContext() : null;
+        if (ctx) {
+            try { if (ctx.chatId) out.chatId = String(ctx.chatId).slice(-12); } catch {}
+            try { if (Array.isArray(ctx.chat)) out.mesIdx = ctx.chat.length - 1; } catch {}
+            try { if (ctx.name2) out.character = String(ctx.name2).slice(0, 60); } catch {}
+            try {
+                const model = ctx.chatCompletionSettings?.openai_model
+                    || ctx.textGenerationSettings?.preset
+                    || ctx.mainApi || '';
+                if (model) out.model = String(model).slice(0, 80);
+            } catch {}
+            try { if (ctx.groupId) out.groupChat = true; } catch {}
+        }
+    } catch {}
+    try {
+        if (typeof window !== 'undefined') {
+            out.viewport = `${window.innerWidth}x${window.innerHeight}`;
+        }
+    } catch {}
+    return out;
+}
+
 // ─── Public API ────────────────────────────────────────────────────────
 
 /**
@@ -194,10 +224,30 @@ export async function installCrashLog(opts = {}) {
     //    circular imports / namespace-mutation issues.
     if (typeof opts.setErrorListener === 'function') {
         opts.setErrorListener((args) => {
+            // v6.15.3: synthesize a stack when the err() call had no Error
+            // object in args. Strips the bridge + listener frames so what
+            // remains points to the actual err() callsite. Also auto-captures
+            // SillyTavern context (chatId, mesIdx, character, model, viewport)
+            // so users opening the entry see WHERE in their session the
+            // failure happened, not just the message string.
+            let stack = Array.isArray(args) ? _stackFromArgs(args) : '';
+            if (!stack) {
+                try {
+                    const synth = new Error('synthetic-stack-marker').stack || '';
+                    stack = synth
+                        .split('\n')
+                        .filter(l => !l.includes('synthetic-stack-marker')
+                            && !l.includes('crash-log.js')
+                            && !l.includes('logger.js'))
+                        .slice(0, 12)
+                        .join('\n');
+                } catch {}
+            }
             captureError({
                 source: 'scenepulse', severity: 'error',
                 message: Array.isArray(args) ? args.map(_argToString).join(' ') : _argToString(args),
-                stack: Array.isArray(args) ? _stackFromArgs(args) : '',
+                stack,
+                context: _autoContext(),
             });
         });
     }
@@ -224,10 +274,13 @@ function _onWindowError(ev) {
     try {
         const msg = ev?.message || (ev?.error?.message) || 'Unknown error';
         const stack = ev?.error?.stack || '';
+        // v6.15.3: merge filename/line/col with auto-captured ST context so the
+        // user sees WHERE in their session the error occurred, not just where
+        // in the JS source.
         captureError({
             source: _classifySource(stack), severity: 'error',
             message: msg, stack,
-            context: { filename: ev?.filename, line: ev?.lineno, col: ev?.colno },
+            context: { filename: ev?.filename, line: ev?.lineno, col: ev?.colno, ..._autoContext() },
         });
     } catch {}
 }
@@ -240,7 +293,7 @@ function _onUnhandledRejection(ev) {
         captureError({
             source: _classifySource(stack), severity: 'error',
             message: msg, stack,
-            context: { kind: 'unhandledrejection' },
+            context: { kind: 'unhandledrejection', ..._autoContext() },
         });
     } catch {}
 }

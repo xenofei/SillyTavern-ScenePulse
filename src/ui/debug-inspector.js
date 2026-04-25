@@ -70,11 +70,49 @@ function _crashEntryToText(e) {
     const lines = [];
     lines.push(`[${_fmtTs(e.ts)}] ${e.severity?.toUpperCase()} (${e.source})${e.repeat > 1 ? ` ×${e.repeat}` : ''}`);
     lines.push(`Message: ${e.message || '(empty)'}`);
+    const dx = _diagnose(e.message || '');
+    if (dx) lines.push(`Likely cause: ${dx}`);
     if (e.stack) lines.push('Stack:\n' + e.stack);
     if (e.context) lines.push('Context: ' + JSON.stringify(e.context));
     if (e.spVersion) lines.push('ScenePulse: ' + e.spVersion);
     if (e.stVersion) lines.push('SillyTavern: ' + e.stVersion);
     return lines.join('\n');
+}
+
+// v6.15.3: pattern-match common error messages to a one-line cause hint.
+// Returns '' when no pattern matches — callers should not render the section.
+// Keep these short; the goal is to orient the user, not write documentation.
+function _diagnose(message) {
+    if (!message) return '';
+    const m = message.toLowerCase();
+    if (m.includes('no json object found') || m.includes('cleanjson')) {
+        return 'The model emitted prose instead of JSON — likely broke out of structured-output mode mid-generation. Common in long, charged, or NSFW scenes. The first 200 chars of the response are shown above; check the Last Response tab for more.';
+    }
+    if (m.includes('parse fail')) {
+        return 'A parse retry attempt failed. ScenePulse retries up to 3 times before giving up. See the cleanJson entry just before this one for the actual response.';
+    }
+    if (m.includes('502') || m.includes('503') || m.includes('504') || m.includes('bad gateway')) {
+        return 'Backend HTTP error (transient). ScenePulse skips tracking for this turn. If it recurs, check your API endpoint or proxy.';
+    }
+    if (m.includes('networkerror') || m.includes('failed to fetch') || m.includes('network request failed')) {
+        return 'Network failure (transient). Could be a dropped connection, DNS hiccup, or CORS issue. ScenePulse will retry on the next turn.';
+    }
+    if (m.includes('aborted') || m.includes('cancelled by stop') || m.includes('cancelled by user')) {
+        return 'Generation cancelled — usually because you clicked Stop, or another generation was already in flight. Not actually an error.';
+    }
+    if (m.includes('streamingprocessor is null')) {
+        return 'SillyTavern internal race when stop is clicked during streaming. Harmless — ST is cleaning up. Not caused by ScenePulse.';
+    }
+    if (m.includes('quota') || m.includes('rate limit') || m.includes('429')) {
+        return 'Rate-limited by the API provider. Wait a few seconds and try again. Lower temperature or shorter context can also help.';
+    }
+    if (m.includes('context length') || m.includes('maximum context') || m.includes('token limit')) {
+        return 'Prompt exceeded the model\'s context window. Trim chat history, lower max snapshots, or switch to a longer-context model.';
+    }
+    if (m.includes('401') || m.includes('unauthorized') || m.includes('invalid api key')) {
+        return 'API authentication failed. Check your API key in SillyTavern\'s connection settings.';
+    }
+    return '';
 }
 function _crashAllToText(entries) {
     const header = `ScenePulse Crash Log — exported ${new Date().toISOString()}\nEntries: ${entries.length}\n${'─'.repeat(60)}\n\n`;
@@ -297,6 +335,46 @@ function _crashTab(panel) {
         const row = document.createElement('div');
         row.className = 'sp-cl-row sp-cl-sev-' + (e.severity || 'error');
         const repeat = e.repeat > 1 ? `<span class="sp-cl-repeat">×${e.repeat}</span>` : '';
+        // v6.15.3: expanded body always shows useful sections — full message
+        // (header is truncated by overflow), diagnosis hint for known patterns,
+        // when/where metadata, stack (if present), context (if present), versions,
+        // actions. Previously the body could be near-empty when a string-only
+        // err() captured no stack and no context.
+        const dx = _diagnose(e.message || '');
+        const ctxKeys = e.context ? Object.keys(e.context) : [];
+        const hasCtx = ctxKeys.length > 0;
+        const _section = (label, html) => `<div class="sp-cl-stack-label">${esc(t(label))}</div>${html}`;
+        const bodyParts = [];
+        // Full message (always — header is truncated by CSS)
+        bodyParts.push(_section('Full message',
+            `<pre class="sp-cl-fullmsg">${esc(e.message || '(empty)')}</pre>`));
+        // Diagnosis (only when matched)
+        if (dx) {
+            bodyParts.push(`<div class="sp-cl-stack-label">${esc(t('Likely cause'))}</div>` +
+                `<div class="sp-cl-diagnosis">${esc(dx)}</div>`);
+        }
+        // When / Where (always)
+        const whenWhere = [
+            `<span><strong>${esc(t('Time'))}:</strong> ${esc(_fmtTs(e.ts))}</span>`,
+            `<span><strong>${esc(t('Source'))}:</strong> ${esc(e.source || 'unknown')}</span>`,
+            `<span><strong>${esc(t('Severity'))}:</strong> ${esc(e.severity || 'error')}</span>`,
+            e.repeat > 1 ? `<span><strong>${esc(t('Occurrences'))}:</strong> ${e.repeat}</span>` : '',
+        ].filter(Boolean).join('');
+        bodyParts.push(_section('When', `<div class="sp-cl-whenwhere">${whenWhere}</div>`));
+        // Stack
+        if (e.stack) {
+            bodyParts.push(_section('Stack', `<pre class="sp-cl-stack">${esc(e.stack)}</pre>`));
+        }
+        // Context (auto + manual merged at capture time)
+        if (hasCtx) {
+            bodyParts.push(_section('Context', `<pre class="sp-cl-context">${esc(JSON.stringify(e.context, null, 2))}</pre>`));
+        }
+        // Versions row
+        const ver = [
+            e.spVersion ? `<span>SP ${esc(e.spVersion)}</span>` : '',
+            e.stVersion ? `<span>ST ${esc(e.stVersion)}</span>` : '',
+        ].filter(Boolean).join('');
+        if (ver) bodyParts.push(`<div class="sp-cl-meta">${ver}</div>`);
         row.innerHTML = `
             <div class="sp-cl-row-header">
                 <span class="sp-cl-chevron">▶</span>
@@ -307,12 +385,7 @@ function _crashTab(panel) {
                 <span class="sp-cl-ts">${esc(_fmtTs(e.ts))}</span>
             </div>
             <div class="sp-cl-row-body">
-                ${e.stack ? `<div class="sp-cl-stack-label">${esc(t('Stack'))}</div><pre class="sp-cl-stack">${esc(e.stack)}</pre>` : ''}
-                ${e.context ? `<div class="sp-cl-stack-label">${esc(t('Context'))}</div><pre class="sp-cl-context">${esc(JSON.stringify(e.context, null, 2))}</pre>` : ''}
-                <div class="sp-cl-meta">
-                    ${e.spVersion ? `<span>SP ${esc(e.spVersion)}</span>` : ''}
-                    ${e.stVersion ? `<span>ST ${esc(e.stVersion)}</span>` : ''}
-                </div>
+                ${bodyParts.join('')}
                 <div class="sp-cl-row-actions">
                     <button class="sp-btn sp-cl-copy-one">${t('Copy')}</button>
                     <button class="sp-btn sp-cl-report-one">${t('Report on GitHub')}</button>
