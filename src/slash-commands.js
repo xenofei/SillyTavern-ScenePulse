@@ -5,7 +5,7 @@ import { log, warn } from './logger.js';
 import { t } from './i18n.js';
 import { spConfirm } from './utils.js';
 import { getSettings, saveSettings, getLatestSnapshot, getTrackerData, anyPanelsActive, forceFullStateRefresh, clearForceFullState } from './settings.js';
-import { getActiveProfile } from './profiles.js';
+import { getActiveProfile, setActiveProfile } from './profiles.js';
 import { normalizeTracker, clearNormCache } from './normalize.js';
 import { generating } from './state.js';
 import { BUILTIN_PANELS, VERSION } from './constants.js';
@@ -109,7 +109,18 @@ export function registerSlashCommands() {
         returns: 'string',
     }));
 
-    log('Slash commands registered: /sp, /sp-regen, /sp-status, /sp-clear, /sp-toggle, /sp-export, /sp-debug, /sp-help, /sp-refresh');
+    // ── /sp-profile — List or switch profiles (v6.13.4 / issue #7) ──
+    SCP.addCommandObject(SC.fromProps({
+        name: 'sp-profile',
+        callback: (args, value) => _spProfile(args, value),
+        helpString: 'List ScenePulse profiles, or switch to one by name. Usage: /sp-profile (list) | /sp-profile <name>',
+        returns: 'string',
+        unnamedArgumentList: [
+            new SA('Profile name to switch to (omit to list)', [AT.STRING], false),
+        ],
+    }));
+
+    log('Slash commands registered: /sp, /sp-regen, /sp-status, /sp-clear, /sp-toggle, /sp-export, /sp-debug, /sp-help, /sp-refresh, /sp-profile');
 }
 
 // ── Main dispatcher for /sp <subcommand> ──
@@ -127,11 +138,13 @@ async function _spMain(args, value) {
         case 'toggle': return _spToggle(args, rest);
         case 'export': return _spExport();
         case 'debug': return _spDebug();
+        case 'profile':
+        case 'profiles': return _spProfile(args, rest);
         case '':
         case 'help':
             return _spHelp();
         default:
-            return `Unknown subcommand: ${sub}. Use: status, regen, refresh, clear, toggle, export, debug`;
+            return `Unknown subcommand: ${sub}. Use: status, regen, refresh, clear, toggle, export, debug, profile, help`;
     }
 }
 
@@ -143,9 +156,14 @@ function _spHelp() {
         '  /sp regen [section] — Regenerate tracker (optional: dashboard, scene, quests, relationships, characters, branches)',
         '  /sp refresh — Force full-state regeneration (bypass delta mode, reset drift counter)',
         '  /sp clear — Clear all tracker data for this chat',
-        '  /sp toggle <panel> — Toggle panel on/off',
-        '  /sp export — Export tracker history as JSON',
+        '  /sp toggle <panel> — Toggle panel on/off (built-in or custom panel name; omit to list)',
+        '  /sp profile [name] — List profiles, or switch to one by name',
+        '  /sp export — Export tracker history + profiles as JSON',
         '  /sp debug — Show diagnostics',
+        '  /sp help — Show this message',
+        '',
+        'Standalone shortcuts: /sp-status, /sp-regen, /sp-refresh, /sp-clear, /sp-toggle, /sp-profile, /sp-export, /sp-debug, /sp-help',
+        'Aliases: /scenepulse <subcommand>',
     ].join('\n');
 }
 
@@ -158,10 +176,12 @@ function _spStatus() {
     const enabledPanels = Object.entries(s.panels || {}).filter(([, v]) => v !== false).map(([k]) => k);
 
     if (!snap) {
+        const apEmpty = getActiveProfile(s);
         return [
             `ScenePulse v${VERSION}`,
             `Enabled: ${s.enabled ? 'Yes' : 'No'}`,
             `Mode: ${s.injectionMethod || 'inline'}${s.deltaMode ? ' (delta)' : ''}`,
+            `Profile: ${apEmpty?.name || '(none)'}`,
             `Panels: ${enabledPanels.join(', ') || 'none'}`,
             `Snapshots: ${snapCount}`,
             'No tracker data yet — send a message to generate.',
@@ -175,9 +195,11 @@ function _spStatus() {
     const sideQ = norm.sideQuests?.filter(q => q.urgency !== 'resolved').length || 0;
     const meta = snap._spMeta || {};
 
+    const ap = getActiveProfile(s);
     return [
         `ScenePulse v${VERSION} — Status`,
         `Mode: ${s.injectionMethod || 'inline'}${s.deltaMode ? ' (delta)' : ''} | Language: ${s.language || 'English'}`,
+        `Profile: ${ap?.name || '(none)'}${ap?.systemPrompt || ap?.schema ? ' (custom)' : ''}`,
         `Snapshots: ${snapCount} | Generating: ${generating ? 'Yes' : 'No'}`,
         '',
         `Time: ${norm.time || '?'} | Date: ${norm.date || '?'}`,
@@ -329,38 +351,76 @@ async function _spClear() {
 }
 
 // ── /sp toggle ──
+// v6.13.4 (issue #7): also handles custom panels (per-chat). Built-in
+// panels live on s.panels; custom panels live on chatMetadata.scenepulse
+// .chatPanels (each with its own enabled flag). The matcher checks both
+// lists case-insensitively before reporting Unknown.
 function _spToggle(args, value) {
     const rawPanel = (Array.isArray(value) ? value[0] : value || '').toString().trim();
     const panelLow = rawPanel.toLowerCase();
     const s = getSettings();
 
     if (!panelLow) {
-        const status = Object.entries(s.panels || {}).map(([k, v]) => `  ${k}: ${v !== false ? 'ON' : 'OFF'}`).join('\n');
-        return `ScenePulse panels:\n${status}\n\nUsage: /sp-toggle <panel>`;
+        const builtinStatus = Object.entries(s.panels || {})
+            .map(([k, v]) => `  ${k}: ${v !== false ? 'ON' : 'OFF'}`)
+            .join('\n');
+        let customStatus = '';
+        try {
+            const cp = SillyTavern.getContext().chatMetadata?.scenepulse?.chatPanels || [];
+            if (cp.length) {
+                customStatus = '\nCustom panels (this chat):\n' + cp
+                    .map(p => `  ${p.name}: ${p.enabled !== false ? 'ON' : 'OFF'}`)
+                    .join('\n');
+            }
+        } catch {}
+        return `ScenePulse panels:\n${builtinStatus}${customStatus}\n\nUsage: /sp-toggle <panel>`;
     }
 
-    // Case-insensitive match against BUILTIN_PANELS keys
+    // 1. Try built-in panels (case-insensitive)
     const validPanels = Object.keys(BUILTIN_PANELS);
     const panel = validPanels.find(k => k.toLowerCase() === panelLow);
-    if (!panel) {
-        return `Unknown panel: ${rawPanel}. Valid: ${validPanels.join(', ')}`;
+    if (panel) {
+        if (!s.panels) s.panels = {};
+        s.panels[panel] = s.panels[panel] === false ? true : false;
+        saveSettings();
+        try {
+            const snap = getLatestSnapshot();
+            if (snap) {
+                const norm = normalizeTracker(snap);
+                import('./ui/update-panel.js').then(m => m.updatePanel?.(norm, true)).catch(() => {});
+            }
+        } catch {}
+        log('Slash command: /sp toggle (builtin)', panel, '→', s.panels[panel] ? 'ON' : 'OFF');
+        return `${BUILTIN_PANELS[panel]?.name || panel}: ${s.panels[panel] ? 'ON' : 'OFF'}`;
     }
 
-    if (!s.panels) s.panels = {};
-    s.panels[panel] = s.panels[panel] === false ? true : false;
-    saveSettings();
-
-    // Refresh panel if we have data
+    // 2. Try custom panels in current chat (case-insensitive on name)
     try {
-        const snap = getLatestSnapshot();
-        if (snap) {
-            const norm = normalizeTracker(snap);
-            import('./ui/update-panel.js').then(m => m.updatePanel?.(norm, true)).catch(() => {});
+        const cm = SillyTavern.getContext().chatMetadata;
+        const cp = cm?.scenepulse?.chatPanels || [];
+        const target = cp.find(p => (p.name || '').toLowerCase() === panelLow);
+        if (target) {
+            target.enabled = target.enabled === false ? true : false;
+            try { SillyTavern.getContext().saveMetadata(); } catch {}
+            try {
+                const snap = getLatestSnapshot();
+                if (snap) {
+                    const norm = normalizeTracker(snap);
+                    import('./ui/update-panel.js').then(m => m.updatePanel?.(norm, true)).catch(() => {});
+                }
+            } catch {}
+            log('Slash command: /sp toggle (custom)', target.name, '→', target.enabled ? 'ON' : 'OFF');
+            return `${target.name} (custom): ${target.enabled ? 'ON' : 'OFF'}`;
         }
     } catch {}
 
-    log('Slash command: /sp toggle', panel, '→', s.panels[panel] ? 'ON' : 'OFF');
-    return `${BUILTIN_PANELS[panel]?.name || panel}: ${s.panels[panel] ? 'ON' : 'OFF'}`;
+    // 3. Not found
+    let suggestions = validPanels.join(', ');
+    try {
+        const cp = SillyTavern.getContext().chatMetadata?.scenepulse?.chatPanels || [];
+        if (cp.length) suggestions += `, ${cp.map(p => p.name).join(', ')}`;
+    } catch {}
+    return `Unknown panel: ${rawPanel}. Valid: ${suggestions}`;
 }
 
 // ── /sp export ──
@@ -371,6 +431,11 @@ function _spExport() {
     if (!count) return 'No tracker data to export.';
 
     const s = getSettings();
+    // v6.13.4 (issue #7): export now includes the active profile and the
+    // full profile array so a shared export carries the prompt+schema
+    // bundle that produced the snapshots. Per-chat panels also included
+    // for parity with the in-app Export Config button.
+    const ap = getActiveProfile(s);
     const exportData = {
         extension: 'ScenePulse',
         version: VERSION,
@@ -381,7 +446,14 @@ function _spExport() {
             language: s.language,
             panels: s.panels,
             customPanels: s.customPanels,
+            profiles: s.profiles,
+            activeProfileId: s.activeProfileId,
         },
+        activeProfileName: ap?.name || null,
+        chatPanels: (() => {
+            try { return SillyTavern.getContext().chatMetadata?.scenepulse?.chatPanels || []; }
+            catch { return []; }
+        })(),
         snapshotCount: count,
         snapshots,
     };
@@ -399,6 +471,46 @@ function _spExport() {
 
     log('Slash command: /sp export —', count, 'snapshots exported');
     return `Exported ${count} snapshots to file.`;
+}
+
+// ── /sp profile (v6.13.4 / issue #7) ──
+// No arg → list profiles, marking the active one
+// With arg → switch active profile by name (case-insensitive)
+function _spProfile(args, value) {
+    const s = getSettings();
+    const profiles = Array.isArray(s.profiles) ? s.profiles : [];
+    const ap = getActiveProfile(s);
+    const target = (Array.isArray(value) ? value[0] : value || '').toString().trim();
+
+    if (!target) {
+        if (!profiles.length) return 'No profiles defined.';
+        const lines = profiles.map(p => {
+            const tags = [];
+            if (p.systemPrompt) tags.push('custom prompt');
+            if (p.schema) tags.push('custom schema');
+            if (Array.isArray(p.customPanels) && p.customPanels.length) tags.push(`${p.customPanels.length} panels`);
+            const tagStr = tags.length ? ` (${tags.join(', ')})` : '';
+            const marker = ap && p.id === ap.id ? '* ' : '  ';
+            return `${marker}${p.name}${tagStr}`;
+        }).join('\n');
+        return `ScenePulse profiles:\n${lines}\n\nUsage: /sp-profile <name>  (case-insensitive)`;
+    }
+
+    const targetLow = target.toLowerCase();
+    const found = profiles.find(p => (p.name || '').toLowerCase() === targetLow);
+    if (!found) {
+        const available = profiles.map(p => p.name).join(', ');
+        return `Unknown profile: "${target}". Available: ${available || '(none)'}`;
+    }
+    if (ap && found.id === ap.id) return `Already on profile: ${found.name}`;
+
+    if (!setActiveProfile(s, found.id)) return `Failed to switch to ${found.name}.`;
+    saveSettings();
+    // Force-full regen on next turn — delta against a different schema
+    // would be nonsensical. Mirrors the dropdown switcher in bind-ui.js.
+    try { forceFullStateRefresh(); } catch {}
+    log('Slash command: /sp profile →', found.name);
+    return `Switched to profile: ${found.name}. Next generation will be a full refresh.`;
 }
 
 // ── /sp debug ──
@@ -421,7 +533,7 @@ function _spDebug() {
         `Chat preset: ${s.chatPreset || '(default)'}`,
         `Fallback: ${s.fallbackEnabled ? 'enabled' : 'disabled'} | Profile: ${s.fallbackProfile || '(none)'}`,
         '',
-        `Snapshots: ${snapCount} / 30 max`,
+        `Snapshots: ${snapCount} / ${s.maxSnapshots > 0 ? s.maxSnapshots : '∞'}`,
         `Active panels: ${Object.entries(s.panels || {}).filter(([, v]) => v !== false).map(([k]) => k).join(', ')}`,
         `Custom panels: ${(s.customPanels || []).length}`,
         `Field toggles: ${Object.entries(s.fieldToggles || {}).filter(([, v]) => v === false).length} disabled`,
