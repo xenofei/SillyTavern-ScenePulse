@@ -690,52 +690,106 @@
     outline: none;
 }
 
-/* ── v6.26.0: OpenRouter inline chips on the meta row ───────────────────
- * Rendered next to Provider / Context / Overrides chips when or-stats.json
- * has data for the preset. Five chip types, each visually distinct:
- *   - sp-pb-or-rp     teal pill, RP-collection badge (with rank "#3 RP")
- *   - sp-pb-or-vol    gray pill, weekly volume "1.1T/wk"
- *   - sp-pb-or-cost   gray pill, cost "$0.27/$1.10 per M"
- *   - sp-pb-or-free   green pill, "FREE"
- * Chips group together via .sp-pb-or-chips so they read as one cluster
- * separate from the existing meta items. */
-.sp-pb-or-chips {
-    display: inline-flex; flex-wrap: wrap; gap: 4px;
+/* ── v6.26.1: dedicated OpenRouter stats row ───────────────────────────
+ * Lives below the meta row (Provider / Context / Overrides) so the
+ * stat chips have a UNIVERSAL home — same place on every card with OR
+ * data, never jumbled in among the textual meta items. Color-coded by
+ * chip type for visual identity:
+ *   - sp-pb-or-rp     teal — RP-collection ("ScenePulse-blessed")
+ *   - sp-pb-or-vol    blue — popularity signal (distinct from RP teal)
+ *   - sp-pb-or-cost   amber — money / value
+ *   - sp-pb-or-free   green — positive (overrides cost when free tier)
+ * Cards without OR data simply don't render this row.
+ *
+ * v6.26.1 visual upgrade: bolder text (700), brighter foregrounds,
+ * larger padding for tap-friendliness, distinct semantic colors per
+ * chip type instead of the gray-on-gray treatment v6.26.0 shipped. */
+.sp-pb-row-or-stats {
+    display: flex; flex-wrap: wrap; gap: 6px;
     align-items: center;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px dashed rgba(255,255,255,0.06);
 }
-.sp-pb-or-chips > span {
-    display: inline-flex; align-items: baseline;
-    padding: 1px 7px;
-    border-radius: 10px;
-    font-size: 10px;
-    font-weight: 600;
+.sp-pb-row-or-stats > span {
+    display: inline-flex; align-items: center;
+    padding: 2px 9px;
+    border-radius: 11px;
+    font-size: 10.5px;
+    font-weight: 700;
     white-space: nowrap;
     line-height: 1.5;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
+}
+.sp-pb-row-or-stats > span:hover {
+    transform: translateY(-1px);
 }
 .sp-pb-or-rp {
-    background: rgba(77,184,164,0.16);
-    color: var(--sp-accent);
-    border: 1px solid rgba(77,184,164,0.35);
+    background: rgba(77,184,164,0.22);
+    color: #8edcc7;
+    border: 1px solid rgba(77,184,164,0.55);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
+.sp-pb-or-rp:hover { background: rgba(77,184,164,0.32); }
 .sp-pb-or-vol {
-    background: rgba(255,255,255,0.05);
-    color: var(--sp-text);
-    border: 1px solid var(--sp-border);
+    background: rgba(91,140,196,0.18);
+    color: #8eb4dc;
+    border: 1px solid rgba(91,140,196,0.45);
     font-family: var(--sp-font-mono, ui-monospace, monospace);
 }
+.sp-pb-or-vol:hover { background: rgba(91,140,196,0.28); }
 .sp-pb-or-cost {
-    background: rgba(255,255,255,0.05);
-    color: var(--sp-text);
-    border: 1px solid var(--sp-border);
+    background: rgba(232,179,65,0.16);
+    color: #e8b341;
+    border: 1px solid rgba(232,179,65,0.42);
     font-family: var(--sp-font-mono, ui-monospace, monospace);
 }
+.sp-pb-or-cost:hover { background: rgba(232,179,65,0.26); }
 .sp-pb-or-free {
-    background: rgba(91,196,122,0.18);
-    color: #5bc47a;
-    border: 1px solid rgba(91,196,122,0.45);
+    background: rgba(91,196,122,0.22);
+    color: #7fdda0;
+    border: 1px solid rgba(91,196,122,0.55);
     text-transform: uppercase;
     letter-spacing: 0.06em;
+}
+.sp-pb-or-free:hover { background: rgba(91,196,122,0.32); }
+
+/* v6.26.1: guidance-only sampler row — when a preset has prose API
+   guidance (Claude 4.7 family, GPT-5 reasoning, DeepSeek thinking) but
+   no numeric chips, render as a dedicated "API NOTE" callout instead
+   of an orphaned "SAMPLERS:" label with empty chip space. */
+.sp-pb-srow-guidance-only {
+    background: rgba(232,179,65,0.06);
+    border: 1px solid rgba(232,179,65,0.22);
+    border-radius: 5px;
+    padding: 8px 12px;
+    margin-top: 6px;
+    border-top: 1px solid rgba(232,179,65,0.22); /* override the dashed top from base rule */
+    display: flex; flex-wrap: wrap; align-items: baseline;
+    gap: 6px;
+}
+.sp-pb-srow-note-icon {
+    color: #e8b341;
     font-weight: 700;
+    font-size: 13px;
+    line-height: 1;
+    flex-shrink: 0;
+}
+.sp-pb-srow-note-label {
+    display: inline-flex; align-items: center; gap: 5px;
+    color: #e8b341;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 10px;
+    flex-shrink: 0;
+}
+.sp-pb-srow-guidance-only .sp-pb-srow-guidance {
+    flex: 1 1 auto; min-width: 0;
+    padding-top: 0;
+    color: var(--sp-text);
+    font-style: italic;
 }
 
 /* Modal footer: stats freshness indicator. Lives at the bottom of the
@@ -762,7 +816,8 @@
     .sp-pb-schip { padding: 1px 5px; font-size: 9.5px; }
     .sp-pb-srow-guidance { font-size: 10px; }
     /* OR chips at tablet width: tighten padding, slightly smaller font */
-    .sp-pb-or-chips > span { padding: 1px 6px; font-size: 9.5px; }
+    .sp-pb-row-or-stats { gap: 5px; }
+    .sp-pb-row-or-stats > span { padding: 2px 7px; font-size: 10px; }
     /* Toolbar: sort dropdown wraps to its own row when space tight */
     .sp-pb-toolbar-row { gap: 8px; }
 }
@@ -771,8 +826,11 @@
     .sp-pb-row-samplers { flex-direction: column; align-items: flex-start; gap: 4px; }
     .sp-pb-srow-chips { gap: 3px; }
     .sp-pb-srow-guidance { padding-top: 0; }
-    /* OR chips: smaller font + drop the cost/volume monospace hairline at narrow */
-    .sp-pb-or-chips > span { font-size: 9px; padding: 1px 5px; }
+    /* OR chips: smaller font, full chip wrap */
+    .sp-pb-row-or-stats { gap: 4px; }
+    .sp-pb-row-or-stats > span { font-size: 9.5px; padding: 1px 6px; }
+    /* Guidance-only callout stays full-width at narrow viewports */
+    .sp-pb-srow-guidance-only { padding: 6px 10px; }
     /* Sort dropdown drops the label text to save horizontal space */
     .sp-pb-sort-label { display: none; }
 }
@@ -782,7 +840,11 @@
     /* Phone: chips slightly smaller still; confidence dot drops shadow for perf */
     .sp-pb-schip { padding: 1px 4px; font-size: 9px; }
     .sp-pb-conf-high, .sp-pb-conf-medium, .sp-pb-conf-low { box-shadow: none; }
-    /* OR chips: tightest variant; cost chip drops the per-M suffix when tight
-       via the chip's `title` tooltip carrying the full value. */
-    .sp-pb-or-chips > span { padding: 1px 4px; }
+    /* OR chips: tightest variant; chip's title tooltip carries the full value
+       for content that gets clipped at this width. */
+    .sp-pb-row-or-stats > span { padding: 1px 5px; font-size: 9px; }
+    .sp-pb-row-or-stats > span:hover { transform: none; }
+    /* Guidance-only callout: tighter padding on phone */
+    .sp-pb-srow-guidance-only { padding: 6px 8px; gap: 4px; }
+    .sp-pb-srow-note-label { font-size: 9px; }
 }

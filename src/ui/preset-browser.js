@@ -21,18 +21,17 @@ let _activeBrowser = null;
 // Hints are DISPLAY-ONLY — never auto-applied (per v6.23.7). The user can
 // manually match these in their ST connection settings if they choose.
 //
-// Two display modes (mutually exclusive in practice but both supported):
-//   - Numeric chips: "temp 1.0 · top_p 0.95 · min_p 0.05"
-//   - Guidance text: italic prose for models that don't accept the standard
-//     samplers (Claude 4.7 family, GPT-5 reasoning, DeepSeek thinking)
-//
 // Confidence dot color-codes the source quality (high=green, medium=amber,
 // low=gray).
 //
-// v6.25.1: sources `?` icon moved out of this function. It now renders in a
-// fixed top-right position on every card via _renderSourcesIcon below — so
-// every preset has the icon in the same spot regardless of chip wrap or
-// guidance length, instead of ending up on its own line at narrow widths.
+// v6.25.1: sources `?` icon moved to top-right of every card; see
+// _renderSourcesIcon. v6.26.1: split into two distinct visual modes:
+//   - When numeric chips are present: standard "[●] SAMPLERS: chips"
+//     row, with optional guidance prose below the chips
+//   - When ONLY guidance is present (Claude 4.7 family, GPT-5 reasoning,
+//     DeepSeek thinking — these reject standard samplers entirely):
+//     render as a dedicated "API NOTE" callout box. The orphaned
+//     "SAMPLERS:" label was visually unfinished without chips.
 function _renderSamplerHints(hints) {
     if (!hints) return '';
     const NUMERIC_FIELDS = [
@@ -54,11 +53,24 @@ function _renderSamplerHints(hints) {
     const confDot = conf
         ? `<span class="sp-pb-conf sp-pb-conf-${esc(conf)}" title="${t('Confidence')}: ${esc(conf)}" aria-label="${t('Confidence')}: ${esc(conf)}"></span>`
         : '';
-    let inner = `<span class="sp-pb-srow-label">${confDot}${t('Samplers')}:</span>`;
-    if (chips.length) {
-        inner += `<span class="sp-pb-srow-chips">${chips.join('')}</span>`;
+    const hasNumeric = chips.length > 0;
+    const hasGuidance = !!hints.guidance;
+    if (!hasNumeric && !hasGuidance) return '';
+
+    // Guidance-only mode: dedicated callout for API-restriction notes.
+    // Reads as a structured "API NOTE" rather than an orphaned label.
+    if (!hasNumeric && hasGuidance) {
+        return `<div class="sp-pb-row-samplers sp-pb-srow-guidance-only">
+            <span class="sp-pb-srow-note-icon" aria-hidden="true">ℹ</span>
+            <span class="sp-pb-srow-note-label">${confDot}${t('API note')}</span>
+            <span class="sp-pb-srow-guidance">${esc(hints.guidance)}</span>
+        </div>`;
     }
-    if (hints.guidance) {
+
+    // Standard chips mode (with optional guidance below).
+    let inner = `<span class="sp-pb-srow-label">${confDot}${t('Samplers')}:</span>`;
+    inner += `<span class="sp-pb-srow-chips">${chips.join('')}</span>`;
+    if (hasGuidance) {
         inner += `<span class="sp-pb-srow-guidance">${esc(hints.guidance)}</span>`;
     }
     return `<div class="sp-pb-row-samplers">${inner}</div>`;
@@ -95,11 +107,17 @@ function _formatPrice(n) {
     return n.toFixed(2).replace(/\.?0+$/, '');
 }
 
-// v6.26.0: render the inline OpenRouter chips block for a preset's meta
-// row. Surfaces popularity rank, weekly volume, cost (or FREE flag),
-// context window, and the RP-collection badge. Returns empty when no
-// stats are available — the meta row degrades to the v6.25-era chips
-// (Provider, Context, Overrides) without complaint.
+// v6.26.0: render the OpenRouter stats chips for a preset card.
+// v6.26.1: chips moved to a dedicated row below the existing meta row
+// (universal spot — same place on every card with OR data). Color-coded
+// per chip type for visual identity:
+//   - RP-collection: teal (matches SP accent — "ScenePulse-blessed")
+//   - Volume:        blue (data / popularity signal, distinct from RP teal)
+//   - Cost:          amber (money / value)
+//   - FREE:          green (positive signal)
+//
+// Returns empty when no stats are available — the dedicated row simply
+// doesn't render. Cards without OR data look identical to v6.25.x cards.
 function _renderOrChips(orStats) {
     if (!orStats) return '';
     const chips = [];
@@ -127,7 +145,7 @@ function _renderOrChips(orStats) {
         chips.push(`<span class="sp-pb-or-free" title="${t('Free tier on OpenRouter')}">${t('FREE')}</span>`);
     }
     if (!chips.length) return '';
-    return `<span class="sp-pb-or-chips">${chips.join('')}</span>`;
+    return `<div class="sp-pb-row-or-stats" aria-label="${t('OpenRouter stats')}">${chips.join('')}</div>`;
 }
 
 // v6.26.0: sort presets according to the active sort mode. All sort modes
@@ -326,8 +344,8 @@ export function openPresetBrowser(opts = {}) {
                         <span class="sp-pb-row-meta-item">${t('Provider')}: ${esc(p.provider)}</span>
                         ${p.contextWindow ? `<span class="sp-pb-row-meta-item">${t('Context')}: ${(p.contextWindow / 1000).toFixed(0)}K</span>` : ''}
                         <span class="sp-pb-row-meta-item">${esc(overridesSummary)}</span>
-                        ${_renderOrChips(orStats)}
                     </div>
+                    ${_renderOrChips(orStats)}
                     ${_renderSamplerHints(p.samplerHints)}
                 </li>`;
         }).join('');
