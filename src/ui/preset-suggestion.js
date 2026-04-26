@@ -114,3 +114,30 @@ export function _resetSuggestionState() {
     try { sessionStorage.removeItem(_SHOWN_KEY); } catch {}
     try { localStorage.removeItem(_DISMISSED_KEY); } catch {}
 }
+
+/**
+ * v6.27.4: forced suggestion. Bypasses every gate (already-applied,
+ * session-shown, permanently-dismissed) and always shows the dialog if
+ * a matching preset exists for the active model. Used by the Advanced
+ * tab's Development trigger button so a maintainer can verify the
+ * dialog renders even after they've already applied the preset for
+ * their current model.
+ *
+ * Returns: 'applied' | 'declined' | 'no-model' | 'no-match' | 'no-profile'
+ */
+export async function forceShowPresetSuggestion() {
+    const modelId = getActiveModelId();
+    if (!modelId) return 'no-model';
+    const preset = findMatchingPreset(modelId);
+    if (!preset) return 'no-match';
+    const s = getSettings();
+    const profile = getActiveProfile(s);
+    if (!profile) return 'no-profile';
+    const choice = await showPresetSuggestionPrompt(preset, modelId, profile.name || '');
+    if (!choice) return 'declined';
+    const patch = buildPresetPatch(preset, profile);
+    updateActiveProfile(s, { ...patch, appliedPresetId: preset.id });
+    saveSettings();
+    try { toastr.success(t(`Applied ${preset.displayName} preset to "${profile.name}"`)); } catch {}
+    return 'applied';
+}

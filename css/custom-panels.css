@@ -658,12 +658,9 @@
 }
 .sp-psp-hero-icon svg {
     width: 38px; height: 38px;
-    /* The reticle rotates very slowly — alive-but-not-distracting. */
-    animation: sp-psp-spin 18s linear infinite;
-}
-@keyframes sp-psp-spin {
-    0%   { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    /* v6.27.4: matches the OR connector's gentle scale pulse — slow
+       breathing rather than constant rotation. */
+    animation: sp-orc-pulse 3.4s ease-in-out infinite;
 }
 .sp-psp-hero-eyebrow {
     flex: 1 1 auto;

@@ -461,15 +461,20 @@ export function bindUI(){const s=getSettings();
     $('#sp-dev-trigger-preset').on('click',async()=>{
         try {
             const m = await import('../ui/preset-suggestion.js');
+            // v6.27.4: clear sessionStorage flags too, then call the
+            // forced variant that bypasses already-applied / dismissed
+            // gates entirely.
             m._resetSuggestionState?.();
-            await m.maybeSuggestPreset();
-            // If no popup fires, the matcher found nothing — give the user a
-            // visible signal so they know the click was received.
-            const { findMatchingPreset, getActiveModelId } = await import('../presets/registry.js');
-            const modelId = getActiveModelId();
-            const preset = modelId ? findMatchingPreset(modelId) : null;
-            if (!modelId) try { toastr.info('No active model detected — connect to an API first.'); } catch {}
-            else if (!preset) try { toastr.info(`No bundled preset matches "${modelId}".`); } catch {}
+            const result = await m.forceShowPresetSuggestion();
+            // Surface a toast for non-popup outcomes so the user sees
+            // why nothing rendered.
+            if (result === 'no-model') try { toastr.info('No active model detected — connect to an API first.'); } catch {}
+            else if (result === 'no-match') {
+                const { findMatchingPreset, getActiveModelId } = await import('../presets/registry.js');
+                const modelId = getActiveModelId();
+                try { toastr.info(`No bundled preset matches "${modelId}".`); } catch {}
+            }
+            else if (result === 'no-profile') try { toastr.warning('No active profile — open the Profile manager first.'); } catch {}
         } catch (e) { warn('Dev: preset suggestion:', e?.message); try { toastr.error('Preset suggestion trigger failed: '+(e?.message||e)); } catch {} }
     });
     $('#sp-dev-trigger-update').on('click',async()=>{
