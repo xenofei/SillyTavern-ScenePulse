@@ -45,7 +45,7 @@ const BRANCH_TYPES=['dramatic','intense','comedic','twist','exploratory'];
 
 // Deep-clone a schema object and strip disabled sub-field properties
 function filterArraySchema(baseSchema,subFieldMap,ft){
-    const clone=JSON.parse(JSON.stringify(baseSchema));
+    const clone=structuredClone(baseSchema);
     const itemProps=clone.items?.properties;
     const itemReq=clone.items?.required;
     if(!itemProps)return clone;
@@ -89,7 +89,7 @@ export function buildDynamicSchema(s){
             } else if(f.type==='plotArray'){
                 // Filter enabled branch types
                 const enabledTypes=BRANCH_TYPES.filter(t=>ft['branch_'+t]!==false);
-                const clone=JSON.parse(JSON.stringify(BUILTIN_SCHEMA.value.properties.plotBranches));
+                const clone=structuredClone(BUILTIN_SCHEMA.value.properties.plotBranches);
                 if(enabledTypes.length<BRANCH_TYPES.length&&clone.items?.properties?.type){
                     clone.items.properties.type.enum=enabledTypes;
                     clone.description=`Exactly ${enabledTypes.length} story directions in this order: ${enabledTypes.map((t,i)=>`[${i}]=${t}`).join(', ')}. One per category, never duplicate.`;

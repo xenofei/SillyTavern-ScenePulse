@@ -729,7 +729,7 @@ export function createPanel(){
                 const item=document.createElement('div');item.className='sp-cp-tmpl-item';item.textContent=name;
                 item.addEventListener('click',()=>{
                     const _chatPanels=ensureChatPanels();
-                    _chatPanels.push({id:'cp_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),name,enabled:true,fields:JSON.parse(JSON.stringify(fields))});
+                    _chatPanels.push({id:'cp_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),name,enabled:true,fields:structuredClone(fields)});
                     saveChatPanels();renderCustomPanelsMgr(s,cpList,body);
                     menu.remove();toastr.success(name+' template added');
                 });

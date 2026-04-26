@@ -68,7 +68,7 @@ export async function processExtraction(mesIdx, extracted, source, opts = {}) {
                     for (const prev of prevSnap[k]) {
                         const pn = (prev.name || '').toLowerCase().trim();
                         if (pn && !newNames.has(pn)) {
-                            extracted[k].push(JSON.parse(JSON.stringify(prev)));
+                            extracted[k].push(structuredClone(prev));
                             log('Pipeline full-state: preserved off-scene entity:', prev.name, 'in', k);
                         }
                     }

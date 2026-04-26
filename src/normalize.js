@@ -490,7 +490,7 @@ export function normalizeTracker(d){
                         const prevCh=prev.characters.find(pc=>(pc.name||'').toLowerCase().trim()===memberLow);
                         if(prevCh){
                             // Deep-clone the prev entry so carry-forward doesn't mutate history
-                            o.characters.push(JSON.parse(JSON.stringify(prevCh)));
+                            o.characters.push(structuredClone(prevCh));
                             currNames.add(memberLow);
                             if(_verbose)log('Group carry-forward: restored missing group member',memberName);
                         }

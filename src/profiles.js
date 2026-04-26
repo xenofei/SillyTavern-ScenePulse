@@ -83,7 +83,7 @@ export function makeProfile(partial = {}) {
         panels: partial.panels && typeof partial.panels === 'object' ? { ...partial.panels } : {},
         fieldToggles: partial.fieldToggles && typeof partial.fieldToggles === 'object' ? { ...partial.fieldToggles } : {},
         dashCards: partial.dashCards && typeof partial.dashCards === 'object' ? { ...partial.dashCards } : {},
-        customPanels: Array.isArray(partial.customPanels) ? JSON.parse(JSON.stringify(partial.customPanels)) : [],
+        customPanels: Array.isArray(partial.customPanels) ? structuredClone(partial.customPanels) : [],
     };
 }
 
@@ -295,7 +295,7 @@ export function duplicateProfile(s, profileId) {
     const baseName = src.name + ' (copy)';
     const name = _uniqueName(s.profiles, baseName);
     const copy = makeProfile({
-        ...JSON.parse(JSON.stringify(src)),
+        ...structuredClone(src),
         id: _uuid(),
         name,
         createdAt: _nowIso(),

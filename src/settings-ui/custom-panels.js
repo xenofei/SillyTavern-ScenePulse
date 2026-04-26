@@ -129,7 +129,7 @@ export function renderCustomPanelsMgr(s,container,panelBody){
         const dupBtn=document.createElement('button');dupBtn.className='sp-btn sp-btn-sm sp-cp-dup';dupBtn.textContent='\u2398';dupBtn.title=t('Duplicate panel');
         dupBtn.addEventListener('click',(e)=>{
             e.stopPropagation();
-            const clone=JSON.parse(JSON.stringify(cp));
+            const clone=structuredClone(cp);
             clone.name=(cp.name||'Untitled')+' (copy)';
             panels.splice(cpIdx+1,0,clone);
             saveChatPanels();renderCustomPanelsMgr(s,container,panelBody);liveRefresh();

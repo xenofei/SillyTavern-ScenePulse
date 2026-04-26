@@ -400,7 +400,7 @@ export async function generateTracker(mesIdx,partKey,opts){
                             for(const prev of lastSnap[k]){
                                 const pn=(prev.name||'').toLowerCase().trim();
                                 if(pn&&!newNames.has(pn)){
-                                    parsed[k].push(JSON.parse(JSON.stringify(prev)));
+                                    parsed[k].push(structuredClone(prev));
                                     log('Full-state: preserved off-scene entity:',prev.name,'in',k);
                                 }
                             }

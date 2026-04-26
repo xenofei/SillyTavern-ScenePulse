@@ -141,7 +141,7 @@ export function ensureChatPanels() {
         if (!ctx || !ctx.chatMetadata) return seed;
         if (!ctx.chatMetadata.scenepulse) ctx.chatMetadata.scenepulse = { snapshots: {} };
         if (!Array.isArray(ctx.chatMetadata.scenepulse.chatPanels)) {
-            ctx.chatMetadata.scenepulse.chatPanels = JSON.parse(JSON.stringify(seed));
+            ctx.chatMetadata.scenepulse.chatPanels = structuredClone(seed);
             try { ctx.saveMetadata(); } catch {}
         }
         return ctx.chatMetadata.scenepulse.chatPanels;
