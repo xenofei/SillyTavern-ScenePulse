@@ -180,10 +180,17 @@ export const scenePulseInterceptor=async function(chat,cs,abort,type){
     const s=getSettings();
     if(!s.enabled||type==='quiet')return;
     if(generating){
-        // Safety: if generating has been stuck for >60s, it's stale — reset it
-        if(inlineGenStartMs>0&&(Date.now()-inlineGenStartMs)>60000){
-            log('Interceptor: generating flag stuck >60s — force resetting');
-            setGenerating(false);setInlineExtractionDone(false);setPendingInlineIdx(-1);
+        // v6.27.13: widen stuck-detection. Previously only (startMs > 0
+        // AND > 60s old) reset. But `generating === true` with
+        // `inlineGenStartMs === 0` (extraction zeroed start time but
+        // generating hung — partial-extraction failure / abort without
+        // GENERATION_STOPPED) silently dropped every subsequent turn.
+        // Now: any `generating` state without a fresh in-flight start
+        // time is treated as stale.
+        const _stuck = inlineGenStartMs<=0 || (Date.now()-inlineGenStartMs)>60000;
+        if(_stuck){
+            log('Interceptor: generating flag stuck (startMs='+inlineGenStartMs+') — force resetting');
+            setGenerating(false);setInlineExtractionDone(false);setPendingInlineIdx(-1);setInlineGenStartMs(0);
         } else {
             log('Interceptor: skipped \u2014 manual/partial generation in progress');return;
         }

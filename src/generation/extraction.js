@@ -206,15 +206,20 @@ export function extractInlineTracker(mesIdx){
             if(mesEl){
                 // Clear streaming hider safety flag
                 delete mesEl.dataset.spHasTracker;
-                // Use ST's messageFormatting if available, otherwise set innerHTML
+                // Use ST's messageFormatting if available; otherwise fall back
+                // to textContent. v6.27.13: previously fell back to innerHTML
+                // which would render LLM-emitted HTML directly. Defense-in-
+                // depth (per security review): unsanitized cleanedMsg may
+                // carry attacker-controlled `<img onerror>` from prompt-
+                // injected character cards. textContent neutralizes that.
                 try{
                     const{messageFormatting}=SillyTavern.getContext();
                     if(typeof messageFormatting==='function'){
                         mesEl.innerHTML=messageFormatting(cleanedMsg,msg.name,msg.is_system,msg.is_user,mesIdx);
                     }else{
-                        mesEl.innerHTML=cleanedMsg;
+                        mesEl.textContent=cleanedMsg;
                     }
-                }catch{mesEl.innerHTML=cleanedMsg}
+                }catch{mesEl.textContent=cleanedMsg}
             }
             log('extractInlineTracker: stripped tracker block from message ('+raw.length+'\u2192'+cleanedMsg.length+' chars)');
             // Save cleaned message to disk
@@ -230,7 +235,7 @@ export function extractInlineTracker(mesIdx){
                         log('extractInlineTracker: safety re-strip for message',_stripIdx);
                         const{messageFormatting}=SillyTavern.getContext();
                         if(typeof messageFormatting==='function')el.innerHTML=messageFormatting(_cleanTxt,'',false,false,_stripIdx);
-                        else el.innerHTML=_cleanTxt;
+                        else el.textContent=_cleanTxt;  // v6.27.13: defense-in-depth — see comment in primary write site above
                     }
                     // Also hide any visible think blocks that contain tracker remnants
                     el.querySelectorAll('details.thinking_block, .mes_reasoning').forEach(tb=>{

@@ -842,7 +842,19 @@ export function getActiveSchema(){
     const sView = buildProfileView(s, profile);
     if (profile.schema) {
         try { return { name: profile.name || 'Custom', description: profile.description || '', strict: false, value: JSON.parse(profile.schema) }; }
-        catch { /* fall through to dynamic build */ }
+        catch (e) {
+            // v6.27.13: a corrupt profile.schema used to fall through silently
+            // to the dynamic build, which produced a tracker-mostly-empty
+            // experience the user couldn't diagnose. Surface the failure once
+            // per profile load so the user can fix or re-import their schema.
+            warn('Profile schema parse failed — falling back to dynamic build:', e?.message || e);
+            try {
+                if (!profile._schemaWarnShown) {
+                    profile._schemaWarnShown = true;
+                    toastr.warning('Custom schema in profile "' + (profile.name || 'Untitled') + '" is invalid JSON — falling back to the dynamic schema. Open the prompt editor and re-paste/fix to restore your custom schema.', 'ScenePulse', { timeOut: 12000 });
+                }
+            } catch {}
+        }
     }
     return { name: 'ScenePulse', description: 'Scene tracker.', strict: false, value: buildDynamicSchema(sView) };
 }
