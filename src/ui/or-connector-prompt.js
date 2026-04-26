@@ -11,6 +11,7 @@
 
 import { esc } from '../utils.js';
 import { t } from '../i18n.js';
+import { mountOverlay } from './dialog-base.js';
 
 let _activeOverlay = null;
 
@@ -65,28 +66,21 @@ export function showOrConnectorPrompt() {
                 </div>
             </div>`;
 
-        let _settled = false;
-        const close = (result) => {
-            if (_settled) return;
-            _settled = true;
-            overlay.classList.add('sp-confirm-closing');
-            setTimeout(() => { try { overlay.remove(); } catch {} _activeOverlay = null; }, 200);
-            document.removeEventListener('keydown', onKey, true);
-            resolve(result);
-        };
-        const onKey = (e) => {
-            if (e.key === 'Escape') { close(false); e.stopPropagation(); }
-            else if (e.key === 'Enter') { close(true); e.stopPropagation(); }
-        };
-        overlay.querySelector('.sp-orc-btn-cancel').addEventListener('click', () => close(false));
-        overlay.querySelector('.sp-orc-btn-ok').addEventListener('click', () => close(true));
-        overlay.addEventListener('click', e => { if (e.target === overlay) close(false); });
-        const stop = (e) => e.stopPropagation();
-        overlay.addEventListener('mousedown', stop);
-        overlay.addEventListener('pointerdown', stop);
-        document.addEventListener('keydown', onKey, true);
-
-        document.body.appendChild(overlay);
+        // v6.27.12: lifecycle (ESC/backdrop/Enter, click-bubbling isolation,
+        // CSS exit-class) delegated to mountOverlay. Resolution semantics
+        // preserved: cancel/esc/backdrop → false; ok/enter → true. The OK
+        // path resolves(true) before close so the explicit user-click
+        // value wins over the default false in onClose.
+        const handle = mountOverlay({
+            root: overlay,
+            closeOnEnter: true,
+            onClose: (reason) => {
+                _activeOverlay = null;
+                resolve(reason === 'enter');
+            },
+        });
+        overlay.querySelector('.sp-orc-btn-cancel').addEventListener('click', () => handle.close('manual'));
+        overlay.querySelector('.sp-orc-btn-ok').addEventListener('click', () => { resolve(true); handle.close('manual'); });
         _activeOverlay = overlay;
         requestAnimationFrame(() => overlay.classList.add('sp-confirm-visible'));
         overlay.querySelector('.sp-orc-btn-ok').focus();
