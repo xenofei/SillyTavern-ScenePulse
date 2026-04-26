@@ -4,6 +4,7 @@ import { esc } from '../utils.js';
 import { getSettings, saveSettings } from '../settings.js';
 import { generating, setLastGenSource } from '../state.js';
 import { generateTracker } from '../generation/engine.js';
+import { guardRegenIfBusy } from '../generation/regen-guard.js';
 import { showLoadingOverlay, clearLoadingOverlay, showStopButton, hideStopButton } from './loading.js';
 
 
@@ -35,7 +36,8 @@ export function mkSection(key,title,badge,fn,s){
     // Refresh button regenerates just this section
     h.querySelector('.sp-section-refresh').addEventListener('click',async(e)=>{
         e.stopPropagation();
-        if(generating){toastr.warning('Generation already in progress');return}
+        // v6.27.17: was a hard block + toast. Now offers cancel-and-restart.
+        if (!(await guardRegenIfBusy())) return;
         const{chat}=SillyTavern.getContext();if(!chat.length)return;
         const btn=e.target.closest('.sp-section-refresh');btn.classList.add('sp-spinning');
         // Show loading overlay on section content -- existing content visible behind

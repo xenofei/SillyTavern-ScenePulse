@@ -222,7 +222,7 @@ async function _spRegen(args, value) {
     const section = (Array.isArray(value) ? value[0] : value || '').toString().trim().toLowerCase();
 
     if (!getSettings().enabled) return 'ScenePulse is disabled.';
-    if (generating) return 'Generation already in progress.';
+    if (generating) return 'Generation already in progress (likely an auto-fallback after the model omitted the tracker — these can take 30-120s). Click the ⟳ button in the panel to cancel and restart.';
     if (!anyPanelsActive()) return 'No panels are active.';
 
     // Lazy import to avoid circular dependency
@@ -271,7 +271,7 @@ async function _spRegen(args, value) {
 // ── /sp refresh — v6.8.50: force a full-state regeneration ──
 async function _spRefresh() {
     if (!getSettings().enabled) return 'ScenePulse is disabled.';
-    if (generating) return 'Generation already in progress.';
+    if (generating) return 'Generation already in progress (likely an auto-fallback). Click the ⟳ button in the panel to cancel and restart.';
     if (!anyPanelsActive()) return 'No panels are active.';
 
     const s = getSettings();

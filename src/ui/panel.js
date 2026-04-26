@@ -16,6 +16,7 @@ import {
     _cachedNormData
 } from '../state.js';
 import { generateTracker } from '../generation/engine.js';
+import { guardRegenIfBusy } from '../generation/regen-guard.js';
 import { spApplyMode, spDetectMode, spMinimizePanel, spRestorePanel, spUpdateFab, spInjectTopBar } from './mobile.js';
 import { updateWeatherOverlay, clearWeatherOverlay } from './weather.js';
 import { updateTimeTint, clearTimeTint } from './time-tint.js';
@@ -196,7 +197,9 @@ export function createPanel(){
         if(eggClicks>=5){eggClicks=0;icon.classList.add('sp-egg-rainbow');setTimeout(()=>icon.classList.remove('sp-egg-rainbow'),3000)}
     });
     document.getElementById('sp-tb-regen').addEventListener('click',async()=>{
-        if(generating){toastr.warning('Generation already in progress');return}
+        // v6.27.17: was a hard block + toast. Now offers cancel-and-restart
+        // when busy — fixes the "stuck" feeling during long auto-fallbacks.
+        if (!(await guardRegenIfBusy())) return;
         const{chat}=SillyTavern.getContext();if(!chat.length)return;
         const body=document.getElementById('sp-panel-body');
         showLoadingOverlay(body,t('Generating Scene'),t('Analyzing context'));

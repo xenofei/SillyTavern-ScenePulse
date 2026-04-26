@@ -7,6 +7,7 @@ import { charColor } from '../color.js';
 import { generating, genNonce, lastGenSource, setLastGenSource } from '../state.js';
 import { showThoughtLoading, showStopButton, hideStopButton, clearThoughtLoading } from './loading.js';
 import { generateTracker } from '../generation/engine.js';
+import { guardRegenIfBusy } from '../generation/regen-guard.js';
 import { normalizeTracker, filterForView } from '../normalize.js';
 import { updateFeatBadge } from './panel.js';
 import { updatePanel } from './update-panel.js';
@@ -84,7 +85,8 @@ export function createThoughtPanel(){
     // Regen button
     tp.querySelector('.sp-tp-regen').addEventListener('click',async(e)=>{
         e.stopPropagation();
-        if(generating){toastr.warning(t('Generation already in progress'));return}
+        // v6.27.17: was a hard block + toast. Now offers cancel-and-restart.
+        if (!(await guardRegenIfBusy())) return;
         const s=getSettings();if(!s.enabled){toastr.warning(t('ScenePulse is disabled'));return}
         const btn=e.currentTarget;
         if(btn.classList.contains('sp-spinning'))return;
