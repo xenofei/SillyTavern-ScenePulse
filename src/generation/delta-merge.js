@@ -33,6 +33,16 @@ const ALIAS_ARRAYS = new Set(['characters']);
 // Array fields always replaced entirely from delta (not merged)
 const REPLACE_ARRAYS = ['plotBranches', 'charactersPresent', 'witnesses'];
 
+// v6.24.0: SP-internal metadata keys that must NEVER be carried forward into
+// the merged tracker. Each key is post-extraction state that belongs to a
+// SPECIFIC snapshot and would corrupt downstream consumers if it leaked from
+// prev → next. Single source of truth for this strip-list — every iteration
+// site below uses the Set so adding a new internal field doesn't require
+// finding every `if (k === '_spMeta') continue` site (the v6.22.1 →
+// v6.23.4 `anyPanelsActive` regression chain was caused by exactly this kind
+// of distributed-string coupling).
+const INTERNAL_META_KEYS = new Set(['_spMeta', '_validationWarnings', '_temporal']);
+
 // ── Fuzzy quest name matching ─────────────────────────────────────────────
 // Normalize a quest name to a stable token set for comparison:
 //   1. lowercase, strip punctuation (keep alphanumerics and spaces)
@@ -152,7 +162,7 @@ export function mergeDelta(prev, delta) {
 
     // 1. Start with all previous fields
     for (const [k, v] of Object.entries(prev)) {
-        if (k === '_spMeta') continue;
+        if (INTERNAL_META_KEYS.has(k)) continue;
         merged[k] = Array.isArray(v) ? v.map(item =>
             (item && typeof item === 'object') ? { ...item } : item
         ) : (v && typeof v === 'object' && !Array.isArray(v)) ? { ...v } : v;
@@ -170,7 +180,7 @@ export function mergeDelta(prev, delta) {
     // 2. Apply delta overrides
     const deltaKeys = [];
     for (const [k, v] of Object.entries(delta)) {
-        if (k === '_spMeta') continue;
+        if (INTERNAL_META_KEYS.has(k)) continue;
         // Silently drop legacy activeTasks field from delta output. The tier was
         // removed in v6.8.9; models may still emit it if an old snapshot bled
         // into their context. Ignoring it here keeps merged state clean.

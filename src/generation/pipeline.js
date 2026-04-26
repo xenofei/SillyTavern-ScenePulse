@@ -1,7 +1,7 @@
 // src/generation/pipeline.js — Shared extraction→normalize→save→updatePanel pipeline
 // Eliminates duplication between index.js GENERATION_ENDED, message.js onCharMsg, and engine.js
 
-import { log } from '../logger.js';
+import { log, warn } from '../logger.js';
 import {
     genMeta, lastGenSource,
     setCurrentSnapshotMesIdx, setLastGenSource, setLastRawResponse, setLastDeltaPayload,
@@ -15,6 +15,7 @@ import { spPostGenShow, spSetGenerating } from '../ui/mobile.js';
 import { addMesButton } from '../ui/message.js';
 import { stopStreamingHider } from './streaming.js';
 import { validateExtraction } from './validation.js';
+import { classifyTimeChange } from '../temporal-check.js';
 
 /**
  * Process extracted tracker data through the full pipeline:
@@ -85,6 +86,27 @@ export async function processExtraction(mesIdx, extracted, source, opts = {}) {
 
     // Attach validation warnings for Inspector
     if (_warnings.length) norm._validationWarnings = _warnings;
+
+    // v6.24.0: Temporal validation. Detects LLM-emitted time regressions and
+    // implausible jumps; rewrites in-place when the model contradicts its own
+    // `elapsed` field or goes backward without a flashback signal. User edits
+    // (`_spMeta.userEdited`), group chats, cold start, and previously-rewritten
+    // anchors all skip cleanly. Pure call — see src/temporal-check.js.
+    let _isGroupChat = false;
+    try { _isGroupChat = !!SillyTavern.getContext().groupId; } catch {}
+    const _tc = classifyTimeChange({ prev: prevSnap, next: norm, isGroupChat: _isGroupChat });
+    if (_tc.action === 'rewrite') {
+        const _from = _tc.signals.nextTime;
+        warn('TemporalCheck: rewriting time', _from, '→', _tc.newTime, '(' + _tc.reason + ')');
+        norm.time = _tc.newTime;
+        norm._temporal = {
+            action: 'rewrite',
+            rewrittenFrom: _from,
+            rewrittenTo: _tc.newTime,
+            reason: _tc.reason,
+            _v: 1,
+        };
+    }
 
     // Log summary
     _logSummary(norm, source);

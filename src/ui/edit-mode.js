@@ -24,7 +24,16 @@ export function mkEditable(el,getValue,setValue){
         if(newVal!==getValue()){
             setValue(newVal);
             const snap=getLatestSnapshot();
-            if(snap){SillyTavern.getContext().saveMetadata();log('Field edited:',newVal.substring(0,40))}
+            if(snap){
+                // v6.24.0: stamp the snapshot as user-edited so the temporal
+                // validator skips it on the next turn's comparison. Without
+                // this, a user editing the time field via the panel would
+                // get auto-corrected on the very next AI message.
+                if(!snap._spMeta)snap._spMeta={};
+                snap._spMeta.userEdited=true;
+                SillyTavern.getContext().saveMetadata();
+                log('Field edited:',newVal.substring(0,40))
+            }
         }
     }
     el.addEventListener('blur',save);
