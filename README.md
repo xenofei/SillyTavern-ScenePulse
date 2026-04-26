@@ -211,6 +211,14 @@ Template variables for use in character cards, system prompts, Quick Replies. Re
 - Delta savings displayed in stats footer with hover tooltip
 - Experimental — may not work with all models
 
+### Temporal Validator *(v6.24.0)*
+- **Auto-corrects** LLM time regressions and implausible jumps before they reach the timeline (no more #60 16:15 → #62 14:52 → #64 15:00 surprises)
+- **Three block rules** — backward without flashback signal, forward exceeding 2× the model's `elapsed`, forward >1h with no `elapsed` claim
+- **Respects intent** — the model can declare a flashback or time-skip via the optional `temporalIntent` schema field (`continue` / `flashback` / `timeSkip` / `parallel`), or annotate the `elapsed` field with `(flashback)` / `(time skip)` / `(meanwhile)`. Cross-date jumps are always trusted.
+- **Respects you** — manual time edits via the panel are stamped `userEdited` and never auto-overridden
+- **Anti-cascade guard** — refuses to anchor on a previously-rewritten snapshot, so one bad turn can't poison every subsequent classification
+- Skips group chats cleanly (per-character clocks deferred to a future release)
+
 ### Function Tool Calling *(Experimental, Separate Mode Only)*
 - Register `update_scene_tracker` as an LLM function tool via SillyTavern's ToolManager
 - When supported (OpenAI, Claude, Gemini), the tracker API call uses structured tool calling instead of text prompt
@@ -389,9 +397,9 @@ tests/
   vendor/                   ← Manual dev scripts for the vendored library
     jsonrepair.test.mjs     ← 106-case smoke suite
     compare.test.mjs        ← Old regex repair vs jsonrepair head-to-head
-  *.test.mjs                ← 559-case regression suite (delta, profiles, slash,
+  *.test.mjs                ← 1,411-case regression suite (delta, profiles, slash,
                               macros, normalize, group chat, character aliases,
-                              wiki persistence, crash log, etc.)
+                              wiki persistence, crash log, temporal validation, etc.)
 ```
 
 No bundler required — SillyTavern loads extensions as `<script type="module">`, so native ES imports work out of the box.
@@ -473,7 +481,7 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
-**Latest: v6.13.8** — Prompt + schema profiles, combined crash log + Debug Inspector, GPU load fix, slash command + macro audits with 100 new regression tests, character wiki + relationship persistence overhaul.
+**Latest: v6.24.0** — Temporal validator (auto-corrects backward / implausible-forward time jumps from the LLM while respecting intentional plot-driven flashbacks via a new optional `temporalIntent` schema field). Eight prior v6.23.x fixes covered: streaming-hider element binding, blue-bleed class-name collision, fallback preset/sampler stop-swapping, stale "0" auto-migration, model-name reporting accuracy, and a Together-mode regression urgent fix. 1,411 tests passing.
 
 ## Contributing
 

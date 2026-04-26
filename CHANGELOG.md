@@ -2,6 +2,140 @@
 
 All notable changes to ScenePulse are documented in this file.
 
+### [6.24.0] — 2026-04-26
+
+#### Added — Temporal validator: rewrite LLM time regressions, respect user intent
+
+**The bug**: timelines like #60 16:15 → #62 14:52 → #64 15:00. Backward times caused by the LLM losing track between turns, with no mechanism to either prevent or correct them — and no way to distinguish honest model errors from intentional plot-driven flashbacks/time-skips.
+
+**The fix**: a new pure module [`src/temporal-check.js`](src/temporal-check.js) classifies every save's time delta into one of three actions (`accept` / `rewrite` / `skip`) and the pipeline applies the action before the snapshot reaches the timeline. Designed against an 8-panel review (red-team, NSFW user advocate, performance, simplicity, contracts, test-coverage, second-architecture, spec-flow) — the rules below reflect the merged consensus.
+
+**Three block rules (LLM output only):**
+1. Backward time, no flashback signal, no date change → rewrite to (prev time + parsed `elapsed`) or (prev + 1m)
+2. Forward time exceeding 2× the model's claimed `elapsed` → rewrite to (prev time + claimed elapsed)
+3. Forward time with no `elapsed` and >1h jump → rewrite to (prev time + 1m)
+
+**Flashback signals bypass rule #1:**
+- new optional `temporalIntent` schema field set to `flashback`
+- `elapsed` contains "flashback" / "earlier" / "going back"
+- date field changed (cross-date jump trusted)
+
+**Skip conditions (no rewrite, no warning):**
+- prev is null (cold start — no anchor to compare against)
+- `next._spMeta.userEdited` (manual panel edit — never override; the user's authority always wins)
+- `prev._temporal.action === 'rewrite'` (anti-cascade — refuse to anchor on a previously-corrected snapshot, otherwise one bad turn poisons every subsequent classification)
+- group chat (per-character clocks deferred to phase 2)
+- unparseable times ("morning" / malformed → no false regression claim)
+
+**Schema addition**: optional `temporalIntent` enum field in BUILTIN_SCHEMA (`continue` | `flashback` | `timeSkip` | `parallel`). The model can declare its intent in JSON; older models that ignore the field cost nothing because the absence is well-handled.
+
+**Architectural side effect**: `src/generation/delta-merge.js` now uses a centralized `INTERNAL_META_KEYS` Set for the strip-list (`_spMeta`, `_validationWarnings`, `_temporal`). Replaces two hardcoded `if (k === '_spMeta')` checks. Single source of truth prevents the next contributor from forgetting one strip site — addresses the architectural seam that produced the v6.22.1→v6.23.4 regression chain.
+
+**Edit-mode integration**: `src/ui/edit-mode.js` now stamps `_spMeta.userEdited = true` when the user manually edits a panel field. The classifier respects this flag on the next AI turn — manual time corrections survive instead of getting auto-overridden.
+
+**No prompt edit**. Panel review consensus: schema field is more reliable than prompt text the model ignores under load. No new "monotonic time" sentence in BUILTIN_PROMPT.
+
+**No settings toggle**. Single behavior, no `temporalStrictness: off | warn | strict` knob. Auto-correction is the only behavior, always on. If users complain it's too aggressive, a toggle is one release away — but starting with one mode prevents death-by-toggle.
+
+**Tests**: 1,338 → 1,411 passing. New `tests/temporal-check.test.mjs` (73 tests) covers all three block rules, all skip conditions, parser edges (AM/PM, missing seconds, qualitative time, midnight rollover), purity invariants, and the user's literal 16:15→14:52→15:00 fixture as a regression guard.
+
+**Files**: new `src/temporal-check.js` (~190 lines pure module). 30 lines of integration in `src/generation/pipeline.js`. 1 new schema field in `src/constants.js`. 5 lines centralizing the strip-list in `src/generation/delta-merge.js`. 11 lines in `src/ui/edit-mode.js`. ~250 lines of tests. Total ~370 lines added.
+
+### [6.23.10] — 2026-04-26
+
+#### Fixed — Crash log model name reporting (was stuck on stale openai_model)
+
+User report: "Some issues with DeepSeekv4. Is it falsely reporting claudesonnet?" — diagnostic dump on a DeepSeek session showed every error context labeled with `model: claude-sonnet-4-6-thinking` from a prior session.
+
+**Root cause**: `src/crash-log.js` `_autoContext()` hardcoded `chatCompletionSettings.openai_model` as the model-name lookup. That field is the OpenAI-source-specific value — for Claude it's `claude_model`, for DeepSeek it's `deepseek_model`, etc. Once a user is on a non-OpenAI source the `openai_model` field stays at whatever the last OpenAI session left in it, so all subsequent crash entries get tagged with the stale value.
+
+Notably, `src/presets/registry.js` `getActiveModelId()` already does proper source-aware detection (scans `chat_completion_source`-specific `*_model` key, then any `*_model` key, then textgen settings, then the visible DOM dropdown). `crash-log.js` just wasn't using it.
+
+**Fix**: inlined a minimal source-aware `_readActiveModel()` in `crash-log.js` that mirrors `registry.js`'s logic. Inlined rather than imported to keep `crash-log.js` dependency-light during error paths (it already runs from `unhandledrejection` handlers and shouldn't pull in the preset registry just to read a model name).
+
+User can now see in the crash log what model was actually active when each error fired — essential context for diagnosing the "model emits prose instead of JSON" pattern they're hitting.
+
+**Tests**: 1,338 still pass.
+
+### [6.23.9] — 2026-04-26
+
+#### URGENT — Fix v6.23.8 regression: SP fallback never fires after migration
+
+User report: "After text generation, SP doesn't activate" — meaning the ST chat completes but no SP tracker generation runs at all.
+
+**Root cause**: v6.23.8's migration cleared stale `fallbackPreset = "0"` to `""` to fix the visible preset switch. But `src/ui/message.js`'s `onCharMsg` recovery path had an early-return:
+
+```js
+if(!fbProfile && !fbPreset){
+    // No fallback profile configured -- show recovery card in panel
+    _showRecoveryCard(idx);
+} else {
+    // Tier 1 + Tier 2 fallback fires here
+}
+```
+
+Pre-v6.23.8 the user's `fallbackPreset = "0"` was truthy, so this branch never fired and Tier 1/2 ran. Post-migration both values are empty strings, so the branch fired and SP just showed a recovery card without attempting auto-recovery. Net result: SP became silently inert after generation finished.
+
+The check was a pre-v6.23.7 artifact — back then empty meant "user hasn't configured anything." After v6.23.7's "(Same as current)" semantics, empty is a valid configuration meaning "use current preset, no switch." `withProfileAndPreset('', '', fn)` is now a clean no-op pass-through, so auto-fallback should always fire when `fallbackEnabled` is true.
+
+**Fix**: removed the early-return entirely. Tier 1 + Tier 2 always run when `fallbackEnabled` is set. Recovery card still appears via the existing Tier 2 failure branch when the fallback API call itself fails.
+
+**Tests**: 1,338 still pass.
+
+### [6.23.8] — 2026-04-26
+
+#### Fixed — Auto-migrate stale fallbackPreset="0" so v6.23.7 actually works
+
+User report: v6.23.7 didn't fix the visible preset switch — diagnostic dump showed `fallbackPreset = "0"` was still saved. The label rename to "(Same as current)" had no effect on users who never reopened the SP settings panel to manually re-pick the empty option.
+
+**Root cause**: pre-v6.23.7 versions sometimes initialized the dropdown's empty-option sentinel as the literal string `"0"`. On modern ST setups `"0"` silently matches the first preset in `#settings_preset_openai` (typically "Default" — 4k context, often a different model from the user's current preset). `withProfileAndPreset()` saw `"0"` as a real preset value, swapped to it, and the user saw both the visible dropdown change AND a "Mandatory prompt exceeds context size" toast when the 5800-token tracker prompt overflowed Default's smaller context window.
+
+**Fix**: one-shot migration in `src/settings.js` `getSettings()` that clears stale `"0"` values from `chatPreset` and `fallbackPreset` on next load. Migration also clears the value from both localStorage shadows (`sp_profiles`, `scenepulse_config`) so it can't be re-introduced by the next overlay pass. Gated by `s._fallbackPresetMigrationDone` so it runs exactly once per chat per upgrade — same pattern as v6.22.1's `_spOrphanMigrationDone`.
+
+Migration is conservative: only the literal string `"0"` is cleared. Real preset IDs (UUIDs, names like "Default", "Roleplay") are untouched. A user who legitimately wants ST's first preset (`value="0"`) for fallback can re-select it from the dropdown after upgrade.
+
+**Tests**: 1,338 still pass.
+
+### [6.23.7] — 2026-04-26
+
+#### Fixed — Stop SP from swapping the user's preset/samplers during fallback
+
+User report: "as soon as it swaps over to SP's turn it drops the current preset I'm in" plus a "Mandatory prompt exceeds context size" toast.
+
+**Root cause — three coupled issues:**
+
+1. **Asymmetric dropdown semantics.** The Fallback Profile dropdown's empty option was labeled "(Same as current)" with true no-op semantics. The Fallback Preset dropdown's empty option was labeled "(Built-in: ScenePulse GLM-5)" — and the empty branch in `withProfileAndPreset()` implicitly called `applyBuiltinPreset()` to swap sampler sliders to GLM-5 values (temp 0.6, top_p 0.95, etc.). Users reasonably expected the same dropdown convention as Fallback Profile.
+
+2. **Stale fallbackPreset values.** User had `fallbackPreset = "0"`, which matched ST's "Default" preset (smaller-context model). When Tier 2 fallback fired, `withProfileAndPreset` switched to that preset, the ~5800-token tracker prompt overflowed its context window, and ST surfaced "Mandatory prompt exceeds context size."
+
+3. **Cancel didn't stop Tier 2 escalation.** `message.js`'s `onCharMsg` recovery chain (Tier 1 continuation reprompt → Tier 2 full separate generation) wasn't checking `cancelRequested` between tiers. Cancelling continuation immediately kicked off a fresh full-context call AND did the visible preset swap — which read as "I cancelled but it kept going."
+
+**Fixes:**
+
+- `engine.js` `withProfileAndPreset()`: empty preset is now truly no-op. The `applyBuiltinPreset()` / `restorePresetValues()` helpers stay exported (no longer called from this path). Users who want sampler tunings can save them as a custom preset and select it explicitly.
+- 4 sites in `bind-ui.js` + 2 sites in `create-settings.js` + 1 site in `setup-guide.js`: rename "(Built-in: ScenePulse GLM-5)" → "(Same as current)" on every preset dropdown. The English-key change picks up the existing "(Same as current)" translation from all 32 locale files automatically.
+- `create-settings.js`: rewrite the `sp-preset-info` hint to describe the new no-op semantics (was advertising the GLM-5 sampler bundle).
+- `setup-guide.js`: rewrite the wizard's tracker-preset hint to recommend "(Same as current)" by default and warn users that picking a different preset will visibly switch ST's preset dropdown during fallback.
+- `message.js`: import `cancelRequested` and short-circuit Tier 2 if the user cancelled during Tier 1. Cancellation now stops the whole recovery chain, not just the in-flight call.
+
+**Tests**: 1,338 passing.
+
+### [6.23.6] — 2026-04-25
+
+#### Fixed — Round 8: popover portal, blue-bleed root cause, streamhider element binding
+
+Three fixes — all from the v6.23.5 diagnostic round.
+
+**#1 Doctor info popover: portal-style positioning.** Three CSS-only attempts (v6.23.2 left:0, v6.23.3 translateX center, v6.23.5 share Diagnostics default) each clipped at some viewport. New `_wireInfoPopovers()` in `src/ui/debug-inspector.js` uses `getBoundingClientRect()` of the icon + `position: fixed` clamped to viewport so it works at every resolution (320px → 4K). CSS hover state still drives the fade; JS only overrides position at show time. ~60 lines.
+
+**#2 Configure Prompts blue hover bleed: ROOT CAUSE = class-name collision.** The preset-browser modal carried `sp-pb-overlay` as an identifier ([`preset-browser.js:37`](src/ui/preset-browser.js#L37)), AND `.sp-pb-overlay` was the button class for "Apply to current" with `background: transparent !important` and a `:hover { rgba(96,165,250) }` blue tint ([`prompt-editor.css:84-96`](css/prompt-editor.css#L84-L96)). Both rules cascaded onto the modal element, making the backdrop transparent (revealing ST chat) AND turning blue whenever the cursor was anywhere in the viewport. v6.23.2/3/5 attempted to fix this by tweaking the `.sp-cl-overlay` backdrop — but that rule was being overridden by the `!important` from the button class. Renamed button class to `.sp-pb-apply-overlay`; modal keeps its identifier with no matching rules.
+
+**#3 Streaming JSON visibility (issue #3): the v6.23.5 diagnostic dump showed `StreamHider: started` with no `LOCKED` line for an entire 2-minute generation.** Two bugs found:
+- (a) `_setupObserver` locked onto the LAST existing `.mes_text` on the first 20ms tick — which is the user's prior message, not the new assistant bubble (which doesn't exist yet at hook time). Now snapshots the initial count and waits for growth before locking; falls back to last-existing after 3s for Continue/regen flows.
+- (b) `_hasJson` only checked `textContent`, but markdown renderers preserve `<!--SP_TRACKER_START-->` as Comment DOM nodes whose text is NOT in `textContent`. Added a TreeWalker pass over comment nodes so the sentinel detector fires the moment the marker appears.
+
+**Tests**: 1,338 passing.
+
 ### [6.23.5] — 2026-04-25
 
 #### Fixed — Doctor popover (round 4), backdrop bleed (round 3), stale VERSION constant
