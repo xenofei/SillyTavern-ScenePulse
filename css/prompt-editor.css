@@ -493,6 +493,31 @@
 .sp-pb-toolbar {
     display: flex; flex-direction: column; gap: 8px;
 }
+/* v6.26.0: search input on its own row; family pills + sort dropdown share
+   a row below it. At narrow widths the sort drops below the pills naturally. */
+.sp-pb-toolbar-row {
+    display: flex; align-items: center; gap: 12px;
+    flex-wrap: wrap;
+}
+.sp-pb-toolbar-row .sp-pb-family-pills { flex: 1 1 auto; min-width: 0; }
+.sp-pb-sort-wrap {
+    display: inline-flex; align-items: center; gap: 6px;
+    flex-shrink: 0;
+    color: var(--sp-text-dim);
+    font-size: var(--sp-fs-xs);
+}
+.sp-pb-sort-label {
+    text-transform: uppercase; letter-spacing: 0.06em;
+    font-weight: 600;
+}
+.sp-pb-sort {
+    background: var(--sp-surface); color: var(--sp-text);
+    border: 1px solid var(--sp-border); border-radius: 4px;
+    padding: 4px 8px; font-size: var(--sp-fs-xs);
+    font-family: inherit; cursor: pointer;
+    transition: border-color 0.15s ease;
+}
+.sp-pb-sort:hover, .sp-pb-sort:focus { outline: none; border-color: var(--sp-accent); }
 .sp-pb-search {
     width: 100%; box-sizing: border-box;
     background: var(--sp-surface); color: var(--sp-text);
@@ -665,6 +690,69 @@
     outline: none;
 }
 
+/* ── v6.26.0: OpenRouter inline chips on the meta row ───────────────────
+ * Rendered next to Provider / Context / Overrides chips when or-stats.json
+ * has data for the preset. Five chip types, each visually distinct:
+ *   - sp-pb-or-rp     teal pill, RP-collection badge (with rank "#3 RP")
+ *   - sp-pb-or-vol    gray pill, weekly volume "1.1T/wk"
+ *   - sp-pb-or-cost   gray pill, cost "$0.27/$1.10 per M"
+ *   - sp-pb-or-free   green pill, "FREE"
+ * Chips group together via .sp-pb-or-chips so they read as one cluster
+ * separate from the existing meta items. */
+.sp-pb-or-chips {
+    display: inline-flex; flex-wrap: wrap; gap: 4px;
+    align-items: center;
+}
+.sp-pb-or-chips > span {
+    display: inline-flex; align-items: baseline;
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+    line-height: 1.5;
+}
+.sp-pb-or-rp {
+    background: rgba(77,184,164,0.16);
+    color: var(--sp-accent);
+    border: 1px solid rgba(77,184,164,0.35);
+}
+.sp-pb-or-vol {
+    background: rgba(255,255,255,0.05);
+    color: var(--sp-text);
+    border: 1px solid var(--sp-border);
+    font-family: var(--sp-font-mono, ui-monospace, monospace);
+}
+.sp-pb-or-cost {
+    background: rgba(255,255,255,0.05);
+    color: var(--sp-text);
+    border: 1px solid var(--sp-border);
+    font-family: var(--sp-font-mono, ui-monospace, monospace);
+}
+.sp-pb-or-free {
+    background: rgba(91,196,122,0.18);
+    color: #5bc47a;
+    border: 1px solid rgba(91,196,122,0.45);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+}
+
+/* Modal footer: stats freshness indicator. Lives at the bottom of the
+   preset browser body, below the list. Quiet — small dim text, no
+   background, clearly attribution-style. Empty when or-stats.json isn't
+   available (the entire footer renders nothing — no awkward empty bar). */
+.sp-pb-stats-footer {
+    flex-shrink: 0;
+    padding: 8px 0 2px;
+    text-align: center;
+    color: var(--sp-text-dim);
+    font-size: 10px;
+    font-style: italic;
+    opacity: 0.7;
+}
+.sp-pb-stats-footer:empty { display: none; }
+
 @media (max-width: 720px) {
     .sp-pb-row-head { flex-wrap: wrap; }
     .sp-pb-apply { margin-left: auto; }
@@ -673,12 +761,20 @@
     .sp-pb-row-samplers { gap: 4px 8px; font-size: 9.5px; }
     .sp-pb-schip { padding: 1px 5px; font-size: 9.5px; }
     .sp-pb-srow-guidance { font-size: 10px; }
+    /* OR chips at tablet width: tighten padding, slightly smaller font */
+    .sp-pb-or-chips > span { padding: 1px 6px; font-size: 9.5px; }
+    /* Toolbar: sort dropdown wraps to its own row when space tight */
+    .sp-pb-toolbar-row { gap: 8px; }
 }
 @media (max-width: 560px) {
     /* Sampler row at narrow width: label on its own line so chips have full width */
     .sp-pb-row-samplers { flex-direction: column; align-items: flex-start; gap: 4px; }
     .sp-pb-srow-chips { gap: 3px; }
     .sp-pb-srow-guidance { padding-top: 0; }
+    /* OR chips: smaller font + drop the cost/volume monospace hairline at narrow */
+    .sp-pb-or-chips > span { font-size: 9px; padding: 1px 5px; }
+    /* Sort dropdown drops the label text to save horizontal space */
+    .sp-pb-sort-label { display: none; }
 }
 @media (max-width: 420px) {
     .sp-pb-container { width: calc(100vw - 8px); max-height: calc(100vh - 8px); }
@@ -686,4 +782,7 @@
     /* Phone: chips slightly smaller still; confidence dot drops shadow for perf */
     .sp-pb-schip { padding: 1px 4px; font-size: 9px; }
     .sp-pb-conf-high, .sp-pb-conf-medium, .sp-pb-conf-low { box-shadow: none; }
+    /* OR chips: tightest variant; cost chip drops the per-M suffix when tight
+       via the chip's `title` tooltip carrying the full value. */
+    .sp-pb-or-chips > span { padding: 1px 4px; }
 }

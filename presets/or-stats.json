@@ -1,0 +1,518 @@
+{
+  "_generatedBy": "tools/refresh-or-stats.mjs",
+  "_comment": "Regenerate via `node tools/refresh-or-stats.mjs` from the project root. Do not edit by hand — modify tools/or-rankings.json (popularity) and re-run.",
+  "fetchedAt": "2026-04-26T16:43:27.657Z",
+  "rankingsLastUpdated": "2026-04-26",
+  "modelCountFromOR": 355,
+  "rankedEntries": 44,
+  "matched": 22,
+  "unmatched": 22,
+  "stats": {
+    "deepseek-v3.2": {
+      "weeklyTokens": 1100000000000,
+      "rank": 1,
+      "collections": [
+        "roleplay"
+      ],
+      "contextLength": 163840,
+      "pricing": {
+        "input": 0.4,
+        "output": 1.2
+      },
+      "orSlug": "deepseek/deepseek-v3.2-speciale-20251201"
+    },
+    "glm-4.5-air": {
+      "weeklyTokens": 150000000000,
+      "rank": 2,
+      "collections": [
+        "roleplay"
+      ],
+      "contextLength": 131072,
+      "pricing": {
+        "input": 0,
+        "output": 0
+      },
+      "orSlug": "z-ai/glm-4.5-air"
+    },
+    "grok-4-fast": {
+      "weeklyTokens": 120000000000,
+      "rank": 3,
+      "collections": [
+        "roleplay"
+      ],
+      "contextLength": 2000000,
+      "pricing": {
+        "input": 0.2,
+        "output": 0.5
+      },
+      "orSlug": "x-ai/grok-4-fast"
+    },
+    "gemini-2.5-flash-lite": {
+      "weeklyTokens": 100000000000,
+      "rank": 4,
+      "collections": [
+        "roleplay"
+      ],
+      "contextLength": 1048576,
+      "pricing": {
+        "input": 0.1,
+        "output": 0.4
+      },
+      "orSlug": "google/gemini-2.5-flash-lite-preview-09-2025"
+    },
+    "gemini-3-flash-preview": {
+      "weeklyTokens": 80000000000,
+      "rank": 5,
+      "collections": [
+        "roleplay"
+      ],
+      "contextLength": 1048576,
+      "pricing": {
+        "input": 0.5,
+        "output": 3
+      },
+      "orSlug": "google/gemini-3-flash-preview-20251217"
+    },
+    "deepseek-v4-flash": {
+      "weeklyTokens": 70000000000,
+      "rank": 6,
+      "collections": [
+        "roleplay"
+      ],
+      "contextLength": 1048576,
+      "pricing": {
+        "input": 0.14,
+        "output": 0.28
+      },
+      "orSlug": "deepseek/deepseek-v4-flash-20260423"
+    },
+    "gpt-oss-120b": {
+      "weeklyTokens": 50000000000,
+      "rank": 7,
+      "collections": [
+        "roleplay"
+      ],
+      "contextLength": 131072,
+      "pricing": {
+        "input": 0,
+        "output": 0
+      },
+      "orSlug": "openai/gpt-oss-120b"
+    },
+    "gemma-4-31b-it": {
+      "weeklyTokens": 40000000000,
+      "rank": 8,
+      "collections": [
+        "roleplay"
+      ],
+      "contextLength": 262144,
+      "pricing": {
+        "input": 0,
+        "output": 0
+      },
+      "orSlug": "google/gemma-4-31b-it-20260402"
+    },
+    "deepseek-chat-v3-0324": {
+      "weeklyTokens": 30000000000,
+      "rank": 9,
+      "collections": [
+        "roleplay"
+      ],
+      "contextLength": 163840,
+      "pricing": {
+        "input": 0.2,
+        "output": 0.77
+      },
+      "orSlug": "deepseek/deepseek-chat-v3-0324"
+    },
+    "claude-sonnet-4-7": {
+      "weeklyTokens": 22000000000,
+      "rank": 10,
+      "collections": [
+        "roleplay"
+      ],
+      "contextLength": null,
+      "pricing": null,
+      "orSlug": null
+    },
+    "claude-opus-4-7": {
+      "weeklyTokens": 18000000000,
+      "rank": 11,
+      "collections": [
+        "roleplay"
+      ],
+      "contextLength": null,
+      "pricing": null,
+      "orSlug": null
+    },
+    "gemini-2.5-flash": {
+      "weeklyTokens": 16000000000,
+      "rank": 12,
+      "collections": [
+        "roleplay"
+      ],
+      "contextLength": 1048576,
+      "pricing": {
+        "input": 0.1,
+        "output": 0.4
+      },
+      "orSlug": "google/gemini-2.5-flash-lite-preview-09-2025"
+    },
+    "gemini-2.5-pro": {
+      "weeklyTokens": 14000000000,
+      "rank": 13,
+      "collections": [
+        "roleplay"
+      ],
+      "contextLength": 1048576,
+      "pricing": {
+        "input": 1.25,
+        "output": 10
+      },
+      "orSlug": "google/gemini-2.5-pro-preview-06-05"
+    },
+    "claude-sonnet-4-6": {
+      "weeklyTokens": 12000000000,
+      "rank": 14,
+      "collections": [
+        "roleplay"
+      ],
+      "contextLength": null,
+      "pricing": null,
+      "orSlug": null
+    },
+    "claude-opus-4-6": {
+      "weeklyTokens": 11000000000,
+      "rank": 15,
+      "collections": [
+        "roleplay"
+      ],
+      "contextLength": null,
+      "pricing": null,
+      "orSlug": null
+    },
+    "gpt-5.4": {
+      "weeklyTokens": 10500000000,
+      "rank": 16,
+      "collections": [
+        "roleplay"
+      ],
+      "contextLength": 1050000,
+      "pricing": {
+        "input": 30,
+        "output": 180
+      },
+      "orSlug": "openai/gpt-5.4-pro-20260305"
+    },
+    "kimi-k2.6": {
+      "weeklyTokens": 9000000000,
+      "rank": 17,
+      "collections": [
+        "roleplay"
+      ],
+      "contextLength": 256000,
+      "pricing": {
+        "input": 0.7448,
+        "output": 4.655
+      },
+      "orSlug": "moonshotai/kimi-k2.6-20260420"
+    },
+    "glm-5.1": {
+      "weeklyTokens": 7500000000,
+      "rank": 18,
+      "collections": [
+        "roleplay"
+      ],
+      "contextLength": 202752,
+      "pricing": {
+        "input": 1.05,
+        "output": 3.5
+      },
+      "orSlug": "z-ai/glm-5.1-20260406"
+    },
+    "glm-5": {
+      "weeklyTokens": 7000000000,
+      "rank": 19,
+      "collections": [
+        "roleplay"
+      ],
+      "contextLength": 202752,
+      "pricing": {
+        "input": 1.2,
+        "output": 4
+      },
+      "orSlug": "z-ai/glm-5v-turbo-20260401"
+    },
+    "glm-4.6": {
+      "weeklyTokens": 6800000000,
+      "rank": 20,
+      "collections": [
+        "roleplay"
+      ],
+      "contextLength": 131072,
+      "pricing": {
+        "input": 0.3,
+        "output": 0.9
+      },
+      "orSlug": "z-ai/glm-4.6-20251208"
+    },
+    "qwen3.5-235b-a22b": {
+      "weeklyTokens": 5000000000,
+      "rank": 21,
+      "collections": [
+        "roleplay"
+      ],
+      "contextLength": null,
+      "pricing": null,
+      "orSlug": null
+    },
+    "grok-4": {
+      "weeklyTokens": 4500000000,
+      "rank": 22,
+      "collections": [
+        "roleplay"
+      ],
+      "contextLength": 2000000,
+      "pricing": {
+        "input": 2,
+        "output": 6
+      },
+      "orSlug": "x-ai/grok-4.20-multi-agent-20260309"
+    },
+    "cydonia-24b-v4": {
+      "weeklyTokens": 3500000000,
+      "rank": 23,
+      "collections": [
+        "roleplay"
+      ],
+      "contextLength": 131072,
+      "pricing": {
+        "input": 0.3,
+        "output": 0.5
+      },
+      "orSlug": "thedrummer/cydonia-24b-v4.1"
+    },
+    "magnum-v4-72b": {
+      "weeklyTokens": 3000000000,
+      "rank": 24,
+      "collections": [
+        "roleplay"
+      ],
+      "contextLength": 16384,
+      "pricing": {
+        "input": 3,
+        "output": 5
+      },
+      "orSlug": "anthracite-org/magnum-v4-72b"
+    },
+    "cydonia-24b-v2": {
+      "weeklyTokens": 2500000000,
+      "rank": 25,
+      "collections": [
+        "roleplay"
+      ],
+      "contextLength": null,
+      "pricing": null,
+      "orSlug": null
+    },
+    "magidonia-24b-v4.3": {
+      "weeklyTokens": 2000000000,
+      "rank": 26,
+      "collections": [
+        "roleplay"
+      ],
+      "contextLength": null,
+      "pricing": null,
+      "orSlug": null
+    },
+    "anubis-pro-70b": {
+      "weeklyTokens": 1800000000,
+      "rank": 27,
+      "collections": [
+        "roleplay"
+      ],
+      "contextLength": null,
+      "pricing": null,
+      "orSlug": null
+    },
+    "eva-llama-3.33-70b": {
+      "weeklyTokens": 1500000000,
+      "rank": 28,
+      "collections": [
+        "roleplay"
+      ],
+      "contextLength": null,
+      "pricing": null,
+      "orSlug": null
+    },
+    "behemoth-123b-v1": {
+      "weeklyTokens": 1200000000,
+      "rank": 29,
+      "collections": [
+        "roleplay"
+      ],
+      "contextLength": null,
+      "pricing": null,
+      "orSlug": null
+    },
+    "midnight-miqu-70b-v1.5": {
+      "weeklyTokens": 900000000,
+      "rank": 30,
+      "collections": [
+        "roleplay"
+      ],
+      "contextLength": null,
+      "pricing": null,
+      "orSlug": null
+    },
+    "cydonia-r1-24b-v4.1": {
+      "weeklyTokens": 850000000,
+      "rank": 31,
+      "collections": [
+        "roleplay"
+      ],
+      "contextLength": null,
+      "pricing": null,
+      "orSlug": null
+    },
+    "monstral-123b": {
+      "weeklyTokens": 700000000,
+      "rank": 32,
+      "collections": [
+        "roleplay"
+      ],
+      "contextLength": null,
+      "pricing": null,
+      "orSlug": null
+    },
+    "huihui-gemma-4-31b-abliterated": {
+      "weeklyTokens": 600000000,
+      "rank": 33,
+      "collections": [
+        "roleplay"
+      ],
+      "contextLength": null,
+      "pricing": null,
+      "orSlug": null
+    },
+    "gemma-3-27b-abliterated": {
+      "weeklyTokens": 550000000,
+      "rank": 34,
+      "collections": [
+        "roleplay"
+      ],
+      "contextLength": null,
+      "pricing": null,
+      "orSlug": null
+    },
+    "midnight-rose-70b-v2.0.3": {
+      "weeklyTokens": 450000000,
+      "rank": 35,
+      "collections": [
+        "roleplay"
+      ],
+      "contextLength": null,
+      "pricing": null,
+      "orSlug": null
+    },
+    "dans-personalityengine-v1.3.0-24b": {
+      "weeklyTokens": 350000000,
+      "rank": 36,
+      "collections": [
+        "roleplay"
+      ],
+      "contextLength": null,
+      "pricing": null,
+      "orSlug": null
+    },
+    "huihui-glm-4.6v-flash-abliterated": {
+      "weeklyTokens": 280000000,
+      "rank": 37,
+      "collections": [
+        "roleplay"
+      ],
+      "contextLength": null,
+      "pricing": null,
+      "orSlug": null
+    },
+    "cydonia-v1.2-magnum-v4-22b": {
+      "weeklyTokens": 220000000,
+      "rank": 38,
+      "collections": [
+        "roleplay"
+      ],
+      "contextLength": null,
+      "pricing": null,
+      "orSlug": null
+    },
+    "huihui-qwen3.5-35b-a3b-claude-4.6-opus-abliterated": {
+      "weeklyTokens": 180000000,
+      "rank": 39,
+      "collections": [
+        "roleplay"
+      ],
+      "contextLength": null,
+      "pricing": null,
+      "orSlug": null
+    },
+    "gemma-2-ataraxy-9b": {
+      "weeklyTokens": 95000000,
+      "rank": 40,
+      "collections": [
+        "roleplay"
+      ],
+      "contextLength": null,
+      "pricing": null,
+      "orSlug": null
+    },
+    "gemmasutra-mini-2b-v1": {
+      "weeklyTokens": 60000000,
+      "rank": 41,
+      "collections": [
+        "roleplay"
+      ],
+      "contextLength": null,
+      "pricing": null,
+      "orSlug": null
+    },
+    "mythomax-l2-13b": {
+      "weeklyTokens": 50000000,
+      "rank": 42,
+      "collections": [
+        "roleplay"
+      ],
+      "contextLength": 4096,
+      "pricing": {
+        "input": 0.06,
+        "output": 0.06
+      },
+      "orSlug": "gryphe/mythomax-l2-13b"
+    },
+    "llama-3.3-70b": {
+      "weeklyTokens": 45000000,
+      "rank": 43,
+      "collections": [
+        "roleplay"
+      ],
+      "contextLength": 65536,
+      "pricing": {
+        "input": 0,
+        "output": 0
+      },
+      "orSlug": "meta-llama/llama-3.3-70b-instruct"
+    },
+    "command-a-03-2025": {
+      "weeklyTokens": 35000000,
+      "rank": 44,
+      "collections": [
+        "roleplay"
+      ],
+      "contextLength": 256000,
+      "pricing": {
+        "input": 2.5,
+        "output": 10
+      },
+      "orSlug": "cohere/command-a-03-2025"
+    }
+  }
+}

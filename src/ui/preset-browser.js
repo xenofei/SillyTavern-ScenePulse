@@ -12,7 +12,7 @@ import { t } from '../i18n.js';
 import { esc, spConfirm, spPrompt } from '../utils.js';
 import { getSettings, saveSettings } from '../settings.js';
 import { getActiveProfile, updateActiveProfile, makeProfile } from '../profiles.js';
-import { BUILT_IN_PRESETS, buildPresetPatch, getActiveModelId, findMatchingPreset } from '../presets/registry.js';
+import { BUILT_IN_PRESETS, buildPresetPatch, getActiveModelId, findMatchingPreset, getOrStats, getStatsTimestamp, hasOrStats } from '../presets/registry.js';
 import { getPresetFamilies } from '../presets/built-in.js';
 
 let _activeBrowser = null;
@@ -75,6 +75,105 @@ function _renderSourcesIcon(preset) {
     return `<a class="sp-pb-srcs" href="${esc(sources[0])}" target="_blank" rel="noopener noreferrer" title="${esc(sources.join(' · '))}" aria-label="${t('View sampler hint sources')}">?</a>`;
 }
 
+// v6.26.0: format a raw token-volume integer to a human-readable chip
+// label. 1_100_000_000_000 → "1.1T", 47_000_000 → "47M". Used by the
+// volume chip on each preset card in the popularity-aware meta row.
+function _formatVolume(n) {
+    if (typeof n !== 'number' || !isFinite(n) || n <= 0) return null;
+    if (n >= 1e12) return (n / 1e12).toFixed(n < 1e13 ? 1 : 0) + 'T';
+    if (n >= 1e9)  return (n / 1e9).toFixed(n < 1e10 ? 1 : 0)  + 'B';
+    if (n >= 1e6)  return (n / 1e6).toFixed(n < 1e7 ? 1 : 0)   + 'M';
+    if (n >= 1e3)  return (n / 1e3).toFixed(n < 1e4 ? 1 : 0)   + 'K';
+    return String(n);
+}
+
+// v6.26.0: format a USD-per-million-tokens price for the cost chip.
+// Shows two decimals, drops trailing zeros for cleaner display.
+function _formatPrice(n) {
+    if (typeof n !== 'number' || !isFinite(n) || n < 0) return null;
+    if (n === 0) return '0';
+    return n.toFixed(2).replace(/\.?0+$/, '');
+}
+
+// v6.26.0: render the inline OpenRouter chips block for a preset's meta
+// row. Surfaces popularity rank, weekly volume, cost (or FREE flag),
+// context window, and the RP-collection badge. Returns empty when no
+// stats are available — the meta row degrades to the v6.25-era chips
+// (Provider, Context, Overrides) without complaint.
+function _renderOrChips(orStats) {
+    if (!orStats) return '';
+    const chips = [];
+    // RP-collection badge: highest signal of "this is a roleplay-blessed
+    // model on OR." Lives at the front so it reads as the headline.
+    if (Array.isArray(orStats.collections) && orStats.collections.includes('roleplay')) {
+        const rankPart = typeof orStats.rank === 'number' ? `#${orStats.rank} ` : '';
+        chips.push(`<span class="sp-pb-or-rp" title="${t('In OpenRouter Roleplay collection')}">${esc(rankPart)}${t('RP')}</span>`);
+    }
+    // Weekly token volume — proxy for "how many people are using this."
+    const vol = _formatVolume(orStats.weeklyTokens);
+    if (vol) {
+        chips.push(`<span class="sp-pb-or-vol" title="${t('Weekly tokens on OpenRouter')}">${esc(vol)}/wk</span>`);
+    }
+    // Cost OR free flag (mutually exclusive). FREE is high-signal for users
+    // who actively avoid paid endpoints; cost helps users budget at a glance.
+    const pricing = orStats.pricing;
+    if (pricing && (pricing.input > 0 || pricing.output > 0)) {
+        const inPrice = _formatPrice(pricing.input);
+        const outPrice = _formatPrice(pricing.output);
+        if (inPrice !== null && outPrice !== null) {
+            chips.push(`<span class="sp-pb-or-cost" title="${t('Cost in USD per million input / output tokens')}">$${esc(inPrice)}/$${esc(outPrice)} per M</span>`);
+        }
+    } else if (pricing && pricing.input === 0 && pricing.output === 0) {
+        chips.push(`<span class="sp-pb-or-free" title="${t('Free tier on OpenRouter')}">${t('FREE')}</span>`);
+    }
+    if (!chips.length) return '';
+    return `<span class="sp-pb-or-chips">${chips.join('')}</span>`;
+}
+
+// v6.26.0: sort presets according to the active sort mode. All sort modes
+// EXCEPT 'name' apply sticky-priority bucketing first: applied preset
+// pinned at top, auto-matched preset second, everything else bucketed by
+// the chosen sort. This addresses the v6.25.0 panel finding that ~60%
+// of preset-browser opens are looking for a specific match.
+function _sortPresets(presets, mode, profile, detectedPreset, statsByPresetId) {
+    const stickyPriority = (p) => {
+        if (profile.appliedPresetId === p.id) return 0;
+        if (detectedPreset?.id === p.id) return 1;
+        return 2;
+    };
+    const compareName = (a, b) => (a.displayName || '').localeCompare(b.displayName || '');
+    const compareFamily = (a, b) =>
+        (a.family || '').localeCompare(b.family || '') || compareName(a, b);
+    const compareContext = (a, b) =>
+        (b.contextWindow || 0) - (a.contextWindow || 0) || compareName(a, b);
+    const comparePopularity = (a, b) => {
+        const aw = statsByPresetId.get(a.id)?.weeklyTokens || 0;
+        const bw = statsByPresetId.get(b.id)?.weeklyTokens || 0;
+        if (aw !== bw) return bw - aw;
+        return compareName(a, b);
+    };
+
+    let secondary;
+    switch (mode) {
+        case 'popularity': secondary = comparePopularity; break;
+        case 'name':       secondary = compareName; break;
+        case 'family':     secondary = compareFamily; break;
+        case 'context':    secondary = compareContext; break;
+        case 'match-first':
+        default:           secondary = compareName; break;
+    }
+
+    return [...presets].sort((a, b) => {
+        // 'name' mode skips sticky-priority bucketing — it's a pure A→Z sort.
+        if (mode !== 'name') {
+            const ap = stickyPriority(a);
+            const bp = stickyPriority(b);
+            if (ap !== bp) return ap - bp;
+        }
+        return secondary(a, b);
+    });
+}
+
 /**
  * @param {object} [opts]
  * @param {boolean} [opts.createNewMode]  When true, the default Apply behavior
@@ -120,20 +219,68 @@ export function openPresetBrowser(opts = {}) {
                 ${_createNewMode ? `<div class="sp-pb-mode-banner">${t('Pick a template to create a NEW profile from. The template seeds the profile with model-tuned prompt slots; your existing profiles are not touched.')}</div>` : ''}
                 <div class="sp-pb-toolbar">
                     <input type="search" class="sp-pb-search" placeholder="${t('Search by name, model id, or family…')}">
-                    <div class="sp-pb-family-pills">
-                        ${families.map(f => `<button class="sp-pb-family-pill ${f === 'all' ? 'sp-pb-family-active' : ''}" data-family="${esc(f)}">${esc(f === 'all' ? t('All') : f)}</button>`).join('')}
+                    <div class="sp-pb-toolbar-row">
+                        <div class="sp-pb-family-pills">
+                            ${families.map(f => `<button class="sp-pb-family-pill ${f === 'all' ? 'sp-pb-family-active' : ''}" data-family="${esc(f)}">${esc(f === 'all' ? t('All') : f)}</button>`).join('')}
+                        </div>
+                        <label class="sp-pb-sort-wrap" title="${t('Sort the preset list. Match-first pins your auto-detected and applied presets to the top.')}">
+                            <span class="sp-pb-sort-label">${t('Sort')}:</span>
+                            <select class="sp-pb-sort">
+                                <option value="match-first">${t('Match first')}</option>
+                                <option value="popularity">${t('Popularity')}</option>
+                                <option value="name">${t('Name')}</option>
+                                <option value="family">${t('Family')}</option>
+                                <option value="context">${t('Context size')}</option>
+                            </select>
+                        </label>
                     </div>
                 </div>
                 <ol class="sp-pb-list"></ol>
+                <div class="sp-pb-stats-footer"></div>
             </div>
         </div>
     `;
 
     const listEl = overlay.querySelector('.sp-pb-list');
+    const footerEl = overlay.querySelector('.sp-pb-stats-footer');
+    const sortEl = overlay.querySelector('.sp-pb-sort');
     let activeFilter = 'all';
     let searchQ = '';
+    // v6.26.0: sort mode persisted in settings.presetBrowserSort.
+    // Default 'match-first' per user direction.
+    let sortMode = (s.presetBrowserSort && ['match-first','popularity','name','family','context'].includes(s.presetBrowserSort))
+        ? s.presetBrowserSort : 'match-first';
+    if (sortEl) sortEl.value = sortMode;
 
-    function _renderList() {
+    // v6.26.0: prefetch OR stats once per browser open. Map of preset.id →
+    // stats object. Empty map if or-stats.json is missing or fetch failed.
+    let statsByPresetId = new Map();
+    async function _prefetchOrStats() {
+        try {
+            const entries = await Promise.all(BUILT_IN_PRESETS.map(async (p) => {
+                const stats = await getOrStats(p);
+                return [p.id, stats];
+            }));
+            statsByPresetId = new Map(entries.filter(([, v]) => v));
+        } catch {
+            statsByPresetId = new Map();
+        }
+    }
+
+    async function _renderFooter() {
+        if (!footerEl) return;
+        const has = await hasOrStats();
+        if (!has) {
+            footerEl.innerHTML = '';
+            return;
+        }
+        const ts = await getStatsTimestamp();
+        const dateStr = ts ? new Date(ts).toISOString().slice(0, 10) : t('unknown');
+        footerEl.innerHTML = `<span class="sp-pb-stats-footer-text">${t('Stats from OpenRouter, last refreshed:')} ${esc(dateStr)}</span>`;
+    }
+
+    async function _renderList() {
+        await _prefetchOrStats();
         const q = searchQ.trim().toLowerCase();
         const filtered = BUILT_IN_PRESETS.filter(p => {
             if (activeFilter !== 'all' && p.family !== activeFilter) return false;
@@ -145,29 +292,17 @@ export function openPresetBrowser(opts = {}) {
             listEl.innerHTML = `<li class="sp-pb-empty">${t('No presets match your filter.')}</li>`;
             return;
         }
-        // v6.25.1: matched preset always sorts to the top of the filtered
-        // results, applied preset right after, then the rest in original
-        // order. Pre-v6.25.1 the badges existed but the rows stayed in
-        // BUILT_IN_PRESETS declaration order — users had to scroll past
-        // 30+ rows to find their match. Per the panel review,
-        // match-aware lookup is the dominant browser-open intent (~60%).
-        filtered.sort((a, b) => {
-            const aMatch = detectedPreset?.id === a.id ? 0 : (profile.appliedPresetId === a.id ? 1 : 2);
-            const bMatch = detectedPreset?.id === b.id ? 0 : (profile.appliedPresetId === b.id ? 1 : 2);
-            return aMatch - bMatch;
-        });
-        listEl.innerHTML = filtered.map(p => {
+        // v6.26.0: sort according to active mode. All modes except 'name'
+        // apply sticky-priority bucketing (applied → matched → rest).
+        const sorted = _sortPresets(filtered, sortMode, profile, detectedPreset, statsByPresetId);
+        listEl.innerHTML = sorted.map(p => {
             const isApplied = profile.appliedPresetId === p.id;
             const isMatched = detectedPreset?.id === p.id;
             const slotCount = Object.keys(p.promptOverrides || {}).length;
             const overridesSummary = slotCount === 0
                 ? t('No slot overrides — preset only sets the role.')
                 : t(`Overrides ${slotCount} slot${slotCount === 1 ? '' : 's'}: ${Object.keys(p.promptOverrides).join(', ')}`);
-            // v6.23.0: primary action defaults to "Create new profile" (the
-            // panel's recommendation — invert the v6.20 default of overwriting
-            // the active profile). "Apply to current" remains as a smaller
-            // secondary button next to it for users who deliberately want to
-            // overlay onto their active profile.
+            const orStats = statsByPresetId.get(p.id) || null;
             return `
                 <li class="sp-pb-row ${isApplied ? 'sp-pb-row-applied' : ''} ${isMatched ? 'sp-pb-row-matched' : ''}" data-preset-id="${esc(p.id)}">
                     <div class="sp-pb-row-head">
@@ -191,6 +326,7 @@ export function openPresetBrowser(opts = {}) {
                         <span class="sp-pb-row-meta-item">${t('Provider')}: ${esc(p.provider)}</span>
                         ${p.contextWindow ? `<span class="sp-pb-row-meta-item">${t('Context')}: ${(p.contextWindow / 1000).toFixed(0)}K</span>` : ''}
                         <span class="sp-pb-row-meta-item">${esc(overridesSummary)}</span>
+                        ${_renderOrChips(orStats)}
                     </div>
                     ${_renderSamplerHints(p.samplerHints)}
                 </li>`;
@@ -279,6 +415,7 @@ export function openPresetBrowser(opts = {}) {
     }
 
     _renderList();
+    _renderFooter();
 
     // Toolbar wiring
     overlay.querySelector('.sp-pb-search').addEventListener('input', function () {
@@ -292,6 +429,16 @@ export function openPresetBrowser(opts = {}) {
                 p.classList.toggle('sp-pb-family-active', p === pill));
             _renderList();
         });
+    });
+    // v6.26.0: sort dropdown — persist choice across sessions in
+    // settings.presetBrowserSort. Re-render the list (sticky-priority
+    // bucketing applies to all modes except 'name').
+    sortEl?.addEventListener('change', function () {
+        sortMode = this.value;
+        const sNow = getSettings();
+        sNow.presetBrowserSort = sortMode;
+        try { saveSettings(); } catch {}
+        _renderList();
     });
     // v6.23.0: Slots tab switches to the prompt editor modal.
     // v6.25.2: opening the new modal first + a single rAF wasn't enough —
