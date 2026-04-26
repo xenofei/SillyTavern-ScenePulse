@@ -22,7 +22,7 @@
 
 import { t } from '../i18n.js';
 import { esc, spConfirm } from '../utils.js';
-import { getSettings, saveSettings } from '../settings.js';
+import { getSettings, saveSettings, buildProfileView } from '../settings.js';
 import { getActiveProfile, updateActiveProfile } from '../profiles.js';
 import { SLOT_IDS, SLOT_META, DEFAULT_SLOT_TEXT, isSlotOverridden } from '../prompts/slots.js';
 import { findPresetById } from '../presets/built-in.js';
@@ -120,21 +120,29 @@ export function openPromptEditor() {
     function _refreshPreview() {
         const pre = overlay.querySelector('.sp-pe-preview-body');
         if (!pre) return;
-        // Build a synthetic profile that reflects the current draft so the
-        // preview shows what Save would actually produce. We pass the live
-        // settings (with the active profile applied via _buildProfileView)
-        // by reading getActivePrompt — but we want THIS draft, not the
-        // saved one. Easiest: import assemblePrompt and call directly.
+        // v6.25.1: build a profile-projected sView so panel-driven field
+        // specs render. Pre-v6.25.1 we passed raw root settings to
+        // assemblePrompt, but post-v6.22.1 root.panels is permanently empty —
+        // the preview rendered "## FIELD SPECIFICATIONS" with nothing under
+        // it. Now: spread the active profile's panels/fieldToggles/dashCards/
+        // customPanels into a draft profile that also carries the in-progress
+        // slot overrides; then pass the projected sView to the assembler.
         try {
             // Lazy import to avoid the circular settings.js → prompts/assembler.js cycle
             // at module-eval time of this UI module.
             import('../prompts/assembler.js').then(({ assemblePrompt }) => {
+                const sNow = getSettings();
+                const activeProfile = getActiveProfile(sNow) || {};
                 const draftProfile = {
+                    panels: activeProfile.panels,
+                    fieldToggles: activeProfile.fieldToggles,
+                    dashCards: activeProfile.dashCards,
+                    customPanels: activeProfile.customPanels,
                     promptOverrides: _draft.overrides,
                     systemPrompt: null, // preview ignores legacy override so users see the slot result
                 };
-                const sNow = getSettings();
-                const text = assemblePrompt(sNow, draftProfile, {});
+                const sView = buildProfileView(sNow, draftProfile);
+                const text = assemblePrompt(sView, draftProfile, {});
                 pre.textContent = text;
             }).catch(() => {});
         } catch {}
@@ -183,8 +191,13 @@ export function openPromptEditor() {
     // on the empty-preset row to the same swap action.
     const _swapToTemplates = async () => {
         const ov = await import('./preset-browser.js');
-        _close({ skipDirtyCheck: true });
+        // v6.25.1: open the NEW modal first, then close the old one in the
+        // next animation frame. Pre-v6.25.1 we closed the editor first which
+        // briefly tore down the only over-ST overlay, exposing the bare
+        // SillyTavern UI for a frame and producing a visible flash. Opening
+        // first keeps something layered above ST at every moment.
         ov.openPresetBrowser();
+        requestAnimationFrame(() => _close({ skipDirtyCheck: true }));
     };
     const _maybeSwap = async () => {
         if (_dirty) {

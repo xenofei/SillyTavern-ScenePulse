@@ -169,7 +169,7 @@ export function anyPanelsActive(){
     let p, panels;
     try {
         const profile = getActiveProfile(s);
-        const sView = _buildProfileView(s, profile);
+        const sView = buildProfileView(s, profile);
         p = sView.panels || DEFAULTS.panels;
         panels = getActivePanels(sView);
     } catch {
@@ -839,7 +839,7 @@ export function getActiveSchema(){
     const profile = getActiveProfile(s);
     // Build a "view" object that mirrors the legacy settings shape but
     // sources panels/fieldToggles/dashCards/customPanels from the profile.
-    const sView = _buildProfileView(s, profile);
+    const sView = buildProfileView(s, profile);
     if (profile.schema) {
         try { return { name: profile.name || 'Custom', description: profile.description || '', strict: false, value: JSON.parse(profile.schema) }; }
         catch { /* fall through to dynamic build */ }
@@ -857,7 +857,7 @@ export function getActivePrompt(opts){
     // (full-text override) still wins inside the assembler. Settings UI
     // preview and slash-command preview keep using buildDynamicPrompt(s)
     // (no profile) so they always render the slot defaults.
-    const sView = _buildProfileView(s, profile);
+    const sView = buildProfileView(s, profile);
     return assemblePrompt(sView, profile, opts);
 }
 
@@ -870,7 +870,15 @@ export function getActivePrompt(opts){
 // per-chat chatPanels override (chatMetadata.scenepulse.chatPanels)
 // still wins via getActivePanels(). That preserves the "this chat's
 // edits are local" semantics that have shipped since v6.9.14.
-function _buildProfileView(s, profile) {
+//
+// v6.25.1: exported (was `_buildProfileView`) so the prompt editor's
+// "Preview the assembled prompt" can construct a profile-projected view
+// for in-progress draft slot edits. Pre-v6.25.1 the preview called
+// assemblePrompt with raw root settings — post-v6.22.1 root.panels is
+// permanently empty, so all panel-driven field-spec sections were
+// silently dropped from the preview, leaving "## FIELD SPECIFICATIONS"
+// with nothing under it. Same v6.23.4-class read-from-wrong-source bug.
+export function buildProfileView(s, profile) {
     if (!profile) return s;
     return {
         ...s,

@@ -408,7 +408,11 @@
    above any inspector-style overlay we ship. */
 .sp-confirm-overlay {
     position: fixed; inset: 0; z-index: 100200;
-    background: rgba(0,0,0,0.7); backdrop-filter: blur(3px);
+    /* v6.25.1: bumped 0.7 → 0.92 + dropped backdrop-filter. The 30% alpha
+       was letting ST chat hover states bleed through (same v6.23.x family
+       of bug as the Configure Prompts blue-bleed). 0.92 is opaque enough
+       that no chat content is legible behind the dialog. */
+    background: rgba(0,0,0,0.92);
     display: flex; align-items: center; justify-content: center;
     opacity: 0; transition: opacity 0.15s ease;
 }
@@ -428,8 +432,14 @@
     margin-bottom: 6px; font-family: var(--sp-font);
 }
 .sp-confirm-msg {
-    font-size: var(--sp-fs-xs); color: var(--sp-text-dim, #bbb); line-height: 1.5;
+    font-size: var(--sp-fs-xs); color: var(--sp-text-dim, #bbb); line-height: 1.55;
     margin-bottom: 18px; font-family: var(--sp-font);
+    /* v6.25.1: preserve newlines in spConfirm messages. spConfirm callers
+       use \n\n to separate paragraphs (e.g. preset-suggestion's "We
+       detected ... [blank line] ... Applying will ..."). Without
+       pre-line, those collapse to spaces and the dialog reads as one
+       giant run-on paragraph. */
+    white-space: pre-line;
 }
 .sp-confirm-actions { display: flex; justify-content: flex-end; gap: 8px; }
 .sp-confirm-btn {

@@ -27,8 +27,12 @@ let _activeBrowser = null;
 //     samplers (Claude 4.7 family, GPT-5 reasoning, DeepSeek thinking)
 //
 // Confidence dot color-codes the source quality (high=green, medium=amber,
-// low=gray). Sources resolve to a clickable "?" icon linking to the first
-// citation; remaining citations show in the title tooltip.
+// low=gray).
+//
+// v6.25.1: sources `?` icon moved out of this function. It now renders in a
+// fixed top-right position on every card via _renderSourcesIcon below — so
+// every preset has the icon in the same spot regardless of chip wrap or
+// guidance length, instead of ending up on its own line at narrow widths.
 function _renderSamplerHints(hints) {
     if (!hints) return '';
     const NUMERIC_FIELDS = [
@@ -50,10 +54,6 @@ function _renderSamplerHints(hints) {
     const confDot = conf
         ? `<span class="sp-pb-conf sp-pb-conf-${esc(conf)}" title="${t('Confidence')}: ${esc(conf)}" aria-label="${t('Confidence')}: ${esc(conf)}"></span>`
         : '';
-    const sources = Array.isArray(hints.sources) ? hints.sources : [];
-    const sourcesIcon = sources.length
-        ? `<a class="sp-pb-srcs" href="${esc(sources[0])}" target="_blank" rel="noopener noreferrer" title="${esc(sources.join(' · '))}" aria-label="${t('View sampler hint sources')}">?</a>`
-        : '';
     let inner = `<span class="sp-pb-srow-label">${confDot}${t('Samplers')}:</span>`;
     if (chips.length) {
         inner += `<span class="sp-pb-srow-chips">${chips.join('')}</span>`;
@@ -61,8 +61,18 @@ function _renderSamplerHints(hints) {
     if (hints.guidance) {
         inner += `<span class="sp-pb-srow-guidance">${esc(hints.guidance)}</span>`;
     }
-    inner += sourcesIcon;
     return `<div class="sp-pb-row-samplers">${inner}</div>`;
+}
+
+// v6.25.1: renders the universal sources `?` icon for a preset card.
+// Always lives in the top-right header area next to the action buttons,
+// so every card has it in the exact same position. Returns '' when the
+// preset has no sources to cite (early presets without samplerHints, or
+// with samplerHints but no sources array).
+function _renderSourcesIcon(preset) {
+    const sources = Array.isArray(preset?.samplerHints?.sources) ? preset.samplerHints.sources : [];
+    if (!sources.length) return '';
+    return `<a class="sp-pb-srcs" href="${esc(sources[0])}" target="_blank" rel="noopener noreferrer" title="${esc(sources.join(' · '))}" aria-label="${t('View sampler hint sources')}">?</a>`;
 }
 
 /**
@@ -135,6 +145,17 @@ export function openPresetBrowser(opts = {}) {
             listEl.innerHTML = `<li class="sp-pb-empty">${t('No presets match your filter.')}</li>`;
             return;
         }
+        // v6.25.1: matched preset always sorts to the top of the filtered
+        // results, applied preset right after, then the rest in original
+        // order. Pre-v6.25.1 the badges existed but the rows stayed in
+        // BUILT_IN_PRESETS declaration order — users had to scroll past
+        // 30+ rows to find their match. Per the panel review,
+        // match-aware lookup is the dominant browser-open intent (~60%).
+        filtered.sort((a, b) => {
+            const aMatch = detectedPreset?.id === a.id ? 0 : (profile.appliedPresetId === a.id ? 1 : 2);
+            const bMatch = detectedPreset?.id === b.id ? 0 : (profile.appliedPresetId === b.id ? 1 : 2);
+            return aMatch - bMatch;
+        });
         listEl.innerHTML = filtered.map(p => {
             const isApplied = profile.appliedPresetId === p.id;
             const isMatched = detectedPreset?.id === p.id;
@@ -158,6 +179,7 @@ export function openPresetBrowser(opts = {}) {
                             ${isApplied ? `<span class="sp-pb-row-tag sp-pb-row-tag-applied">${t('applied')}</span>` : ''}
                         </div>
                         <div class="sp-pb-row-actions">
+                            ${_renderSourcesIcon(p)}
                             <button class="sp-cl-export-btn sp-pb-create" data-preset-id="${esc(p.id)}"
                                 title="${t('Create a NEW profile seeded from this template. Your existing profiles are untouched.')}">${t('+ New profile')}</button>
                             <button class="sp-cl-export-btn sp-pb-apply-overlay" data-preset-id="${esc(p.id)}" ${isApplied ? 'disabled' : ''}
@@ -272,10 +294,13 @@ export function openPresetBrowser(opts = {}) {
         });
     });
     // v6.23.0: Slots tab switches to the prompt editor modal.
+    // v6.25.1: open the NEW modal first, then close the old one in the
+    // next animation frame to prevent the visible flash where ST's UI
+    // briefly shows through with no overlay layered above it.
     overlay.querySelector('.sp-cp-tab[data-cp-tab="slots"]')?.addEventListener('click', async () => {
         const ed = await import('./prompt-editor.js');
-        _close();
         ed.openPromptEditor();
+        requestAnimationFrame(() => _close());
     });
 
     function _close() {
