@@ -417,6 +417,51 @@ export function bindUI(){const s=getSettings();
             m.openDebugInspector();
         } catch (e) { warn('Debug inspector:', e?.message); }
     });
+    // v6.27.2: Development section — manual triggers for one-time popups.
+    // These bypass session/dismissal flags so a maintainer can verify each
+    // dialog renders without clearing state by hand. Lazy-imports keep the
+    // hot path light when nobody touches them.
+    $('#sp-dev-trigger-setup').on('click',async()=>{
+        try { (await import('./setup-guide.js')).showSetupGuide(); }
+        catch (e) { warn('Dev: setup guide:', e?.message); try { toastr.error('Setup guide trigger failed: '+(e?.message||e)); } catch {} }
+    });
+    $('#sp-dev-trigger-or').on('click',async()=>{
+        try { await (await import('../ui/or-connector-prompt.js')).showOrConnectorPrompt(); }
+        catch (e) { warn('Dev: OR prompt:', e?.message); try { toastr.error('OR connector prompt trigger failed: '+(e?.message||e)); } catch {} }
+    });
+    $('#sp-dev-trigger-preset').on('click',async()=>{
+        try {
+            const m = await import('../ui/preset-suggestion.js');
+            m._resetSuggestionState?.();
+            await m.maybeSuggestPreset();
+            // If no popup fires, the matcher found nothing — give the user a
+            // visible signal so they know the click was received.
+            const { findMatchingPreset, getActiveModelId } = await import('../presets/registry.js');
+            const modelId = getActiveModelId();
+            const preset = modelId ? findMatchingPreset(modelId) : null;
+            if (!modelId) try { toastr.info('No active model detected — connect to an API first.'); } catch {}
+            else if (!preset) try { toastr.info(`No bundled preset matches "${modelId}".`); } catch {}
+        } catch (e) { warn('Dev: preset suggestion:', e?.message); try { toastr.error('Preset suggestion trigger failed: '+(e?.message||e)); } catch {} }
+    });
+    $('#sp-dev-trigger-update').on('click',async()=>{
+        try { (await import('../update-check.js')).showUpdateBanner(); }
+        catch (e) { warn('Dev: update banner:', e?.message); try { toastr.error('Update banner trigger failed: '+(e?.message||e)); } catch {} }
+    });
+    $('#sp-dev-reset-popups').on('click',async()=>{
+        const { spConfirm } = await import('../utils.js');
+        const ok = await spConfirm(
+            'Reset one-time popup state?',
+            'This clears every "already shown" flag so the Setup Guide, OpenRouter Connector prompt, and per-preset suggestion toasts behave as if you were a fresh install on next reload.\n\nYour settings, profiles, snapshots, and tracker data are NOT touched.',
+            { okLabel: 'Reset popups', cancelLabel: 'Cancel', danger: true }
+        );
+        if (!ok) return;
+        const sNow=getSettings();
+        sNow.setupDismissed=false;
+        sNow._spOrConnectorPromptShown=false;
+        try { (await import('../ui/preset-suggestion.js'))._resetSuggestionState?.(); } catch {}
+        try { saveSettings(); } catch {}
+        try { toastr.success('Popup state reset. Reload the page to see them re-fire.'); } catch {}
+    });
     // Initial crash count badge on the inspector button + v6.15.4 auto-open
     // signal: subscribe to crash-log changes so the badge updates live, AND
     // briefly flash the inspector button when a NEW error fires. v6.16.1
