@@ -605,6 +605,15 @@
 }
 .sp-pb-row-tag-matched { background: rgba(96,165,250,0.18); color: #93c5fd; }
 .sp-pb-row-tag-applied { background: rgba(77,184,164,0.18); color: var(--sp-accent); }
+/* v6.27.5: "stock prompts" badge — preset uses ScenePulse default
+   prompts unchanged. Distinct soft-green to read as "verified-default"
+   without competing with the teal "applied" accent. */
+.sp-pb-row-tag-stock {
+    background: rgba(120,200,140,0.14);
+    color: #8fdfa1;
+    border: 1px solid rgba(120,200,140,0.3);
+    cursor: help;
+}
 .sp-pb-apply {
     flex-shrink: 0;
 }

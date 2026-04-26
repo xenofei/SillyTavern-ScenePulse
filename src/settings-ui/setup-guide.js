@@ -99,11 +99,11 @@ export function showSetupGuide(){
             <div class="sp-setup-step" data-step="5">
                 <div class="sp-setup-step-num">5</div>
                 <div class="sp-setup-step-content">
-                    <div class="sp-setup-step-title">OpenRouter Stats Connector <span style="color:var(--sp-text-dim);font-size:11px;font-weight:normal">(optional)</span></div>
-                    <p>The preset browser shows OpenRouter pricing, context window, and roleplay popularity on each preset card. Pricing changes between releases — would you like ScenePulse to refresh the live pricing/context data from OpenRouter's public API when you open the preset browser?</p>
-                    <label class="sp-setup-radio"><input type="radio" name="sp-setup-or-enable" value="yes" ${s.orConnectorEnabled?'checked':''}> <strong>Yes</strong> — auto-refresh pricing/context once per session <span style="color:var(--sp-text-dim)">(~30 KB, cached 24h)</span></label>
-                    <label class="sp-setup-radio"><input type="radio" name="sp-setup-or-enable" value="no" ${!s.orConnectorEnabled?'checked':''}> <strong>No</strong> — use the static baseline only <span style="color:var(--sp-text-dim)">(default)</span></label>
-                    <div class="sp-setup-note" style="margin-top:6px;color:var(--sp-text-dim)">Public endpoint (<code>openrouter.ai/api/v1/models</code>). No auth, no telemetry. Popularity rankings stay static either way. You can change this later under Settings → Generation.</div>
+                    <div class="sp-setup-step-title">Model discovery overlay <span style="color:var(--sp-text-dim);font-size:11px;font-weight:normal">(optional)</span></div>
+                    <p>When you browse the preset templates, ScenePulse can surface live OpenRouter pricing, context windows, and roleplay popularity beside each model — so you spot alternatives at a glance. It's read-only: nothing about your prompts, samplers, or generation behavior changes.</p>
+                    <label class="sp-setup-radio"><input type="radio" name="sp-setup-or-enable" value="yes" ${s.orConnectorEnabled?'checked':''}> <strong>Yes</strong> — show live model data while I browse templates <span style="color:var(--sp-text-dim)">(~30 KB, cached 24 h)</span></label>
+                    <label class="sp-setup-radio"><input type="radio" name="sp-setup-or-enable" value="no" ${!s.orConnectorEnabled?'checked':''}> <strong>No</strong> — keep the static baseline only <span style="color:var(--sp-text-dim)">(default)</span></label>
+                    <div class="sp-setup-note" style="margin-top:6px;color:var(--sp-text-dim)">Public endpoint (<code>openrouter.ai/api/v1/models</code>). No auth, no telemetry. Bundled prompt presets work the same either way. Change this later under Settings → Generation.</div>
                     <div class="sp-setup-tips">
                         <div class="sp-setup-tips-title">Tips & Hidden Features</div>
                         <div class="sp-setup-tip">Type <strong>/sp help</strong> for all slash commands (/sp regen, /sp refresh, /sp export, /sp debug)</div>

@@ -93,7 +93,7 @@ export const BUILT_IN_PRESETS = [
         matchPatterns: ['deepseek-v3.2', 'deepseek/deepseek-v3.2', 'deepseek-chat-v3.2'],
         systemPromptRole: 'system',
         promptOverrides: {},
-        notes: 'Defaults work well — DeepSeek V3.2 follows the system role and the rule list cleanly. No overrides needed.',
+        notes: 'DeepSeek V3.2 follows the stock system role and rule list cleanly. Sampler hints below match DeepSeek\'s published config for structured output.',
         samplerHints: {
             temperature: 1.0,
             top_p: 0.95,
@@ -135,7 +135,7 @@ export const BUILT_IN_PRESETS = [
         matchPatterns: ['deepseek-v4-flash'],
         systemPromptRole: 'system',
         promptOverrides: {},
-        notes: 'Defaults work; nothing model-specific to add.',
+        notes: 'Sampler hints inherit DeepSeek API defaults — no tracker-specific tweaks required for V4 Flash.',
         samplerHints: {
             temperature: 1.0,
             top_p: 0.95,
@@ -199,7 +199,7 @@ export const BUILT_IN_PRESETS = [
         matchPatterns: ['gemini-2.5-pro', 'google/gemini-2.5-pro'],
         systemPromptRole: 'system',
         promptOverrides: {},
-        notes: 'Defaults are well-tuned for Gemini\'s markdown-friendly style. Cap thinking budget at 32k via your connection settings if generations time out.',
+        notes: 'Gemini 2.5 Pro pairs well with the stock prompts. Cap thinking budget at 32k via your connection settings if generations time out.',
         samplerHints: {
             temperature: 1.0,
             top_p: 0.95,
@@ -218,7 +218,7 @@ export const BUILT_IN_PRESETS = [
         matchPatterns: ['gemini-2.5-flash', 'google/gemini-2.5-flash'],
         systemPromptRole: 'system',
         promptOverrides: {},
-        notes: 'Defaults work; cap thinking budget at 16k for speed.',
+        notes: 'Cap thinking budget at 16k via your connection profile to keep tracker latency low. Sampler hints from Google\'s parameter docs.',
         samplerHints: {
             temperature: 1.0,
             top_p: 0.95,
@@ -256,7 +256,7 @@ export const BUILT_IN_PRESETS = [
         matchPatterns: ['gpt-5.4', 'gpt-5-4', 'openai/gpt-5.4'],
         systemPromptRole: 'system',
         promptOverrides: {},
-        notes: 'Defaults work — GPT family follows system-role instructions strictly.',
+        notes: 'GPT family follows system-role instructions strictly. See sampler hints for reasoning-mode handling — GPT-5 reasoning calls drop temperature in favor of `reasoning_effort`.',
         samplerHints: {
             guidance: 'GPT-5 reasoning models drop temperature; use `reasoning_effort: medium` for the tracker call. Non-reasoning calls: temp 0.7–1.0, top_p 0.95.',
             temperature: 0.85,
@@ -277,7 +277,7 @@ export const BUILT_IN_PRESETS = [
         matchPatterns: ['kimi-k2.6', 'moonshot/kimi-k2.6', 'kimi-k2-6'],
         systemPromptRole: 'system',
         promptOverrides: {},
-        notes: 'Defaults work; Kimi handles the rule list well at scale.',
+        notes: 'Kimi K2.6 handles the stock rule list well at 256K context. Sampler hints follow Moonshot\'s recommended config.',
         samplerHints: {
             temperature: 0.6,
             top_p: 0.95,
@@ -295,7 +295,7 @@ export const BUILT_IN_PRESETS = [
         matchPatterns: ['glm-4.6', 'zai-org/glm-4.6', 'glm-4-6'],
         systemPromptRole: 'system',
         promptOverrides: {},
-        notes: 'Defaults work. Bilingual EN/ZH friendly.',
+        notes: 'Bilingual EN/ZH friendly. Sampler hints follow Z.AI\'s tune-one-not-both guidance.',
         samplerHints: {
             temperature: 1.0,
             top_p: 0.95,
@@ -314,7 +314,7 @@ export const BUILT_IN_PRESETS = [
         matchPatterns: ['qwen3.5-235b-a22b', 'qwen/qwen3.5-235b-a22b-instruct', 'qwen-3.5-235b'],
         systemPromptRole: 'system',
         promptOverrides: {},
-        notes: 'Defaults work. Large MoE — fast on capable backends.',
+        notes: 'Large MoE — fast on capable backends. Sampler hints follow Qwen\'s published recommendations for structured output.',
         samplerHints: {
             temperature: 0.7,
             top_p: 0.8,
@@ -507,7 +507,7 @@ export const BUILT_IN_PRESETS = [
         matchPatterns: ['huihui-qwen3.5-35b-a3b-claude-4.6-opus-abliterated', 'qwen3.5-35b-claude'],
         systemPromptRole: 'system',
         promptOverrides: {},
-        notes: 'Abliterated — no jailbreak needed. Defaults work.',
+        notes: 'Abliterated — no jailbreak needed. Sampler hints favor the Claude-distilled output style.',
         samplerHints: {
             temperature: 0.7,
             top_p: 0.8,
@@ -628,7 +628,7 @@ export const BUILT_IN_PRESETS = [
         matchPatterns: ['huihui-glm-4.6v-flash-abliterated', 'glm-4.6v'],
         systemPromptRole: 'system',
         promptOverrides: {},
-        notes: 'Defaults work. Vision capability — supply character portraits in lorebook for richer descriptions.',
+        notes: 'Vision-capable — feed character portraits via lorebook for richer descriptions. Sampler hints from GLM-4 Flash docs.',
         samplerHints: {
             temperature: 0.6,
             top_p: 0.95,
@@ -670,7 +670,7 @@ export const BUILT_IN_PRESETS = [
         matchPatterns: ['command-a-03-2025', 'command-r-plus-08-2024', 'cohere/command-a'],
         systemPromptRole: 'system',
         promptOverrides: {},
-        notes: 'Defaults work; Cohere preamble support is via the connection profile, not the prompt.',
+        notes: 'Cohere preamble support lives in the connection profile, not the prompt. Lower-temperature sampler hints tune for tool-use accuracy.',
         samplerHints: {
             temperature: 0.3,
             top_p: 0.75,
@@ -687,7 +687,7 @@ export const BUILT_IN_PRESETS = [
         matchPatterns: ['grok-4', 'x-ai/grok-4'],
         systemPromptRole: 'system',
         promptOverrides: {},
-        notes: 'Defaults work; reduces refusal language naturally.',
+        notes: 'Grok 4 reduces refusal language naturally. Sampler hints follow xAI\'s tune-one-not-both guidance.',
         samplerHints: {
             temperature: 0.7,
             top_p: 0.95,
@@ -709,7 +709,7 @@ export const BUILT_IN_PRESETS = [
         matchPatterns: ['glm-5', 'zai-org/glm-5', 'z-ai/glm-5'],
         systemPromptRole: 'system',
         promptOverrides: {},
-        notes: 'Defaults work. Tune EITHER temperature OR top_p — Z.AI explicitly warns against tuning both at once.',
+        notes: 'Tune EITHER temperature OR top_p — Z.AI explicitly warns against tuning both at once. Sampler hints below default to temperature.',
         samplerHints: {
             temperature: 1.0,
             top_p: 0.95,
@@ -731,7 +731,7 @@ export const BUILT_IN_PRESETS = [
         matchPatterns: ['glm-5.1', 'zai-org/glm-5.1', 'z-ai/glm-5.1'],
         systemPromptRole: 'system',
         promptOverrides: {},
-        notes: 'Defaults work; GLM 5.1 benchmarks run at temp 0.7 / top_p 0.95 — that\'s a reasonable tracker config too.',
+        notes: 'GLM 5.1 benchmarks run at temp 0.7 / top_p 0.95 — those values translate well to structured tracker JSON.',
         samplerHints: {
             temperature: 0.7,
             top_p: 0.95,

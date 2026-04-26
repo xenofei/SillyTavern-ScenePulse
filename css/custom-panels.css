@@ -709,6 +709,17 @@
     text-transform: uppercase;
     font-feature-settings: "tnum";
 }
+.sp-psp-badge-stock {
+    background: rgba(120,200,140,0.14);
+    border-color: rgba(120,200,140,0.32);
+    color: #8fdfa1;
+    cursor: help;
+}
+.sp-psp-effect-muted {
+    color: var(--sp-text-dim);
+    font-style: italic;
+    opacity: 0.85;
+}
 .sp-psp-detect {
     margin: 0 0 8px;
     font-size: var(--sp-fs-xs);

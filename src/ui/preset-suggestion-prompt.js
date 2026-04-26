@@ -82,6 +82,7 @@ export function showPresetSuggestionPrompt(preset, activeModelId = '', activePro
         const slotList = slotCount
             ? Object.keys(preset.promptOverrides).join(', ')
             : '';
+        const isStockPrompts = slotCount === 0;
 
         const detectionLine = activeModelId
             ? t(`Detected <code>${esc(activeModelId)}</code> on your active connection.`)
@@ -99,6 +100,7 @@ export function showPresetSuggestionPrompt(preset, activeModelId = '', activePro
                         <span class="sp-psp-badge sp-psp-badge-family">${esc(preset.family || 'other')}</span>
                         <span class="sp-psp-badge sp-psp-badge-provider">${esc(preset.provider || 'other')}</span>
                         ${preset.contextWindow ? `<span class="sp-psp-badge sp-psp-badge-ctx">${(preset.contextWindow / 1000).toFixed(0)}K ${t('ctx')}</span>` : ''}
+                        ${isStockPrompts ? `<span class="sp-psp-badge sp-psp-badge-stock" title="${t('This template uses ScenePulse\'s default prompts unchanged. Its value is verified compatibility plus the sampler-hint guidance below.')}">✓ ${t('stock prompts')}</span>` : ''}
                     </div>
                     <p class="sp-psp-detect">${detectionLine}</p>
                     ${preset.notes ? `<p class="sp-psp-notes">${esc(preset.notes)}</p>` : ''}
@@ -106,7 +108,10 @@ export function showPresetSuggestionPrompt(preset, activeModelId = '', activePro
                     <div class="sp-psp-effects">
                         <div class="sp-psp-effect sp-psp-effect-touch">
                             <div class="sp-psp-effect-head">${t('Will update')}</div>
-                            <div class="sp-psp-effect-body">${slotCount ? t(`Prompt slots (${slotCount}): ${slotList}`) : t('System-prompt role only')}<br>${t('System-prompt role')}</div>
+                            <div class="sp-psp-effect-body">${isStockPrompts
+                                ? `${t('System-prompt role only')}<br><span class="sp-psp-effect-muted">${t('Default prompts unchanged')}</span>`
+                                : `${t(`${slotCount} prompt slot${slotCount === 1 ? '' : 's'}`)}: ${esc(slotList)}<br>${t('System-prompt role')}`
+                            }</div>
                         </div>
                         <div class="sp-psp-effect sp-psp-effect-keep">
                             <div class="sp-psp-effect-head">${t('Will preserve')}</div>

@@ -45,22 +45,22 @@ export function showOrConnectorPrompt() {
             <div class="sp-confirm-dialog sp-orc-dialog" role="dialog" aria-modal="true" aria-labelledby="sp-orc-title">
                 <div class="sp-orc-hero">
                     <div class="sp-orc-hero-icon">${heroSvg}</div>
-                    <div class="sp-orc-hero-eyebrow">${t('Optional · v6.27 update')}</div>
+                    <div class="sp-orc-hero-eyebrow">${t('Optional · model discovery')}</div>
                 </div>
                 <div class="sp-orc-body">
-                    <h2 class="sp-orc-title" id="sp-orc-title">${t('Live OpenRouter pricing &amp; context')}</h2>
-                    <p class="sp-orc-lede">${t('Keep your preset cards in sync with the latest model pricing and context windows. Popularity rankings stay static.')}</p>
+                    <h2 class="sp-orc-title" id="sp-orc-title">${t('See what else is out there')}</h2>
+                    <p class="sp-orc-lede">${t('When you browse the preset templates, ScenePulse can surface live OpenRouter pricing, context windows, and roleplay popularity beside each model — so you spot alternatives at a glance.')}</p>
                     <ul class="sp-orc-bullets">
+                        <li><span class="sp-orc-bullet-glyph">✓</span><span><strong>${t('Read-only by design')}</strong> — ${t('never touches your prompts, samplers, or generations')}</span></li>
                         <li><span class="sp-orc-bullet-glyph">⟳</span><span><strong>${t('One refresh per session')}</strong> — ${t('cached 24 hours locally')}</span></li>
                         <li><span class="sp-orc-bullet-glyph">↗</span><span><strong>${t('Public endpoint')}</strong> — ${t('no auth, no telemetry, ~30 KB')}</span></li>
-                        <li><span class="sp-orc-bullet-glyph">✦</span><span><strong>${t('Manual refresh button')}</strong> — ${t('forces a fresh pull anytime')}</span></li>
                     </ul>
-                    <div class="sp-orc-footnote">${t('Change this later under Settings → Generation.')}</div>
+                    <div class="sp-orc-footnote">${t('Disable anytime under Settings → Generation. Your bundled prompt presets work the same either way.')}</div>
                 </div>
                 <div class="sp-orc-actions">
-                    <button class="sp-confirm-btn sp-confirm-cancel sp-orc-btn-cancel" type="button">${t('Keep static')}</button>
+                    <button class="sp-confirm-btn sp-confirm-cancel sp-orc-btn-cancel" type="button">${t('Maybe later')}</button>
                     <button class="sp-confirm-btn sp-confirm-ok-safe sp-orc-btn-ok" type="button">
-                        <span class="sp-orc-btn-glyph">⟳</span> ${t('Enable refresh')}
+                        <span class="sp-orc-btn-glyph">↗</span> ${t('Enable')}
                     </button>
                 </div>
             </div>`;

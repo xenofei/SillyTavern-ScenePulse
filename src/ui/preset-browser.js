@@ -343,7 +343,7 @@ export function openPresetBrowser(opts = {}) {
             const isMatched = detectedPreset?.id === p.id;
             const slotCount = Object.keys(p.promptOverrides || {}).length;
             const overridesSummary = slotCount === 0
-                ? t('No slot overrides — preset only sets the role.')
+                ? t('Stock prompts — only the system-prompt role is set.')
                 : t(`Overrides ${slotCount} slot${slotCount === 1 ? '' : 's'}: ${Object.keys(p.promptOverrides).join(', ')}`);
             const orStats = statsByPresetId.get(p.id) || null;
             return `
@@ -353,6 +353,7 @@ export function openPresetBrowser(opts = {}) {
                             <span class="sp-pb-row-name">${esc(p.displayName)}</span>
                             <span class="sp-pb-row-family">${esc(p.family)}</span>
                             <span class="sp-pb-row-role" title="${t('System prompt sent as this role')}">${esc(p.systemPromptRole)}</span>
+                            ${slotCount === 0 ? `<span class="sp-pb-row-tag sp-pb-row-tag-stock" title="${t('This template uses ScenePulse\'s default prompts unchanged. Its value is verified compatibility plus the sampler-hint guidance below.')}">✓ ${t('stock prompts')}</span>` : ''}
                             ${isMatched ? `<span class="sp-pb-row-tag sp-pb-row-tag-matched">${t('matches your model')}</span>` : ''}
                             ${isApplied ? `<span class="sp-pb-row-tag sp-pb-row-tag-applied">${t('applied')}</span>` : ''}
                         </div>
