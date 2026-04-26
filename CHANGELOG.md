@@ -2,6 +2,64 @@
 
 All notable changes to ScenePulse are documented in this file.
 
+### [6.27.6] — 2026-04-26
+
+#### Added — Stock-prompts disclaimer + token-usage / cost / OR-ranking sorts
+
+**The contradiction**: v6.27.5 added a green ✓ stock-prompts badge to presets that don't override the default prompts. But the apply button still let users apply the template, which is a no-op when there are no slot overrides. Users could reasonably ask: "if it does nothing, why apply it?"
+
+**The disclaimer**: every stock-prompts preset card AND the suggestion dialog now show an amber footnote at the bottom: *"Informational only at this time. Applying this template will not modify your prompt slots — pending community-contributed overrides for this model. Sampler hints above remain advisory."* Honest about the no-op while leaving the door open for community PRs.
+
+**Three new sort modes** in the preset browser dropdown (now grouped via `<optgroup>`):
+
+| Group | Option | Behavior |
+|---|---|---|
+| (top) | Match first | Sticky-priority bucketing (default) |
+| **OpenRouter data** | Token usage | Highest weeklyTokens first |
+| | Cost (low → high) | input + output USD/M ascending; unpriced presets sink |
+| | OR ranking | Rank 1 first; unranked sink |
+| **Preset metadata** | Name / Family / Context size | Unchanged |
+
+The legacy `popularity` value persisted in user settings migrates silently to `token-usage` (semantically identical).
+
+### [6.27.5] — 2026-04-26
+
+#### Changed — OR connector reframed as discovery aid + stock-prompts badge
+
+**1) OR connector reframed.** Old framing ("Live OpenRouter pricing & context", "Keep your preset cards in sync") read as a sync/freshness feature. Actual purpose is helping users discover alternative models while browsing templates, without changing anything about generation. New copy says exactly that, leads with "Read-only by design," and uses softer CTAs (Maybe later / ↗ Enable). Aligned settings tab toggle and Setup Wizard step 5 to the same discovery framing.
+
+**2) Stock-prompts visual treatment.** Soft-green ✓ stock prompts badge appears on every preset card AND in the suggestion dialog when `slotCount === 0`. Tooltip explains the value proposition: verified compatibility plus sampler-hint guidance, not prompt overrides. Reworded 14 contradictory `notes` strings to drop the "Defaults work" framing and emphasize what each preset actually contributes (sampler hints, capability tips, integration notes).
+
+The "Will update" panel in the suggestion dialog now reads *"System-prompt role only / Default prompts unchanged"* (italic muted) instead of the previous repetitive duplication.
+
+### [6.27.4] — 2026-04-26
+
+#### Fixed — Force-trigger preset suggestion + match OR pulse animation
+
+`maybeSuggestPreset()` short-circuits when the active profile already has the matched preset applied — that was hiding the dialog from the Development trigger after the user accepted the suggestion once. New `forceShowPresetSuggestion()` variant ignores all gates (already applied / session shown / permanently dismissed) and always renders the dialog if a model match exists. Dev trigger now uses it and surfaces toasts for the non-popup outcomes.
+
+Hero icon swapped from constant rotation to the same `sp-orc-pulse` 3.4s ease-in-out scale-breathing the OR connector dialog uses, for animation parity across the two branded prompts.
+
+### [6.27.3] — 2026-04-26
+
+#### Added — Styled "Apply X preset?" dialog + locked Development section
+
+**1) "Apply X preset?" dialog** matches the v6.27.1 OR-connector visual register: gradient hero with hero icon, family/provider/context badges, sampler-hint chip row, two-column "Will update / Will preserve" effect summary, and a primary gradient CTA. Per-preset sampler hints render inline when the preset has them, including the guidance-only fallback for Claude 4.7 / GPT-5 reasoning families.
+
+**2) Advanced tab Development section** is now collapsed AND locked by default. Chevron header expands the section; an unlock confirm dialog gates the trigger buttons; a small "Lock again" button at the bottom of the unlocked card lets you reseal manually. Lock state intentionally NOT persisted — every settings open starts locked + collapsed so the reset button cannot be hit by muscle memory or accidental scroll-through.
+
+### [6.27.2] — 2026-04-26
+
+#### Added — Advanced tab Development section: trigger one-time popups
+
+New section at the bottom of the Advanced tab with buttons to manually re-trigger every one-time popup: Setup Guide, OR Connector Prompt, Preset Suggestion (per-model), and Update Banner. Plus a Reset all one-time popup state button that clears every "already shown" flag (`setupDismissed`, `_spOrConnectorPromptShown`, `sp:preset-shown`, `sp:preset-dismissed`) so popups behave as if you were a fresh install on next reload. Reset confirms via `spConfirm` so it can't fire by accident. Useful for verifying dialog rendering during QA without manually clearing localStorage / settings flags.
+
+### [6.27.1] — 2026-04-26
+
+#### Changed — Dedicated visual treatment for OR-connector opt-in dialog
+
+Replaces the plain `spConfirm` prompt with a feature-introduction dialog that matches the visual register of the rest of ScenePulse. New module [`src/ui/or-connector-prompt.js`](src/ui/or-connector-prompt.js): hero icon (concentric rings + signal arc), gradient header zone, accent eyebrow, benefit bullets, footnote callout, primary CTA with gradient + soft glow. The plain confirm dialog read as a system warning; this one introduces a new feature, which is what it is.
+
 ### [6.27.0] — 2026-04-25
 
 #### Added — OpenRouter Stats Connector (Phase 3, opt-in runtime refresh)

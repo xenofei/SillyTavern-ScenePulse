@@ -24,7 +24,7 @@ ScenePulse is a SillyTavern extension that automatically extracts and tracks sce
 > [!IMPORTANT]
 > ### 🤝 Help us improve LLM responses — contribute model presets!
 >
-> ScenePulse ships **30 built-in model presets** (DeepSeek, Claude, GPT, Gemini, Kimi, GLM, Llama/Mistral finetunes, etc.), but every model + provider + sampler combination has its own quirks. **If you've found settings that improve tracker JSON quality, narrative coherence, or structured-output reliability for your model, we want to ship them to every user.**
+> ScenePulse ships **39 built-in model presets** (DeepSeek, Claude 4.6/4.7, GPT-5.4, Gemini 2.5/3, Kimi, GLM 4.6/5/5.1, Grok 4, Cydonia, Magnum, Magidonia, Behemoth, Anubis-Pro, EVA-Llama, Midnight Miqu/Rose, MythoMax, etc.), but every model + provider + sampler combination has its own quirks. **If you've found settings that improve tracker JSON quality, narrative coherence, or structured-output reliability for your model, we want to ship them to every user.**
 >
 > **What helps most:**
 > - Sampler values (temperature / top_p / freq-penalty / presence-penalty) that improve JSON compliance on a specific model
@@ -455,13 +455,14 @@ Access settings via **Extensions** → **ScenePulse** in SillyTavern's settings 
 | **Injection method** | Together (inline) or Separate (dedicated API call) |
 | **Context messages** | How many recent messages to include (Separate mode) |
 | **Fallback profile** | Connection profile for auto-recovery |
+| **Model discovery (OpenRouter)** | Optional, off by default. When enabled, the preset browser pulls live OpenRouter pricing, context windows, and roleplay popularity for each model so you can compare alternatives at a glance. Read-only — never touches your prompts, samplers, or generations. One fetch per session, cached 24 h, ~30 KB |
 | **Lorebook filter** | How lorebooks are included in generation context |
 
 ### Prompts Tab
 | Setting | Description |
 |---------|-------------|
 | **Profile** | Active profile selector + new / duplicate / rename / export / import / delete / manage. Each profile bundles its own prompt + schema + panels |
-| **System prompt** | The instruction sent to the model (writes to the active profile) |
+| **Configure Prompts** | Unified modal with two tabs: **Slots** (per-slot editor — role, critical rules, language, name awareness, quest validation, delta mode) and **Templates** (browse all 39 bundled model presets with sort + search + family filter, sampler hints, OR pricing/context/popularity chips when discovery is enabled). Stock-prompts presets are flagged with an amber footnote so you know applying them is informational pending community overrides |
 | **JSON schema** | Output structure definition (writes to the active profile, lockable) |
 
 ### Advanced Tab
@@ -471,6 +472,7 @@ Access settings via **Extensions** → **ScenePulse** in SillyTavern's settings 
 | **Generate / Clear / Reset** | Manual generation, data clearing, settings reset |
 | **Export / Import Config** | Save/load ScenePulse configuration as JSON (includes profiles + per-chat panels) |
 | **Debug Inspector** | Tabbed overlay: Activity (live debug log), Last Response (raw LLM JSON), Crashes (persistent error log with "Report on GitHub") |
+| **Development** *(collapsed + locked by default)* | Manual triggers for one-time popups: Setup Guide, OR Connector Prompt, Preset Suggestion, Update Banner. Plus a Reset all one-time popup state button that clears every "already shown" flag so popups behave as if you were a fresh install on next reload. Section auto-relocks every settings open |
 
 ## Custom Panels
 
@@ -500,7 +502,7 @@ Custom fields are automatically included in the tracker prompt and extracted fro
 
 See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
-**Latest: v6.24.0** — Temporal validator (auto-corrects backward / implausible-forward time jumps from the LLM while respecting intentional plot-driven flashbacks via a new optional `temporalIntent` schema field). Eight prior v6.23.x fixes covered: streaming-hider element binding, blue-bleed class-name collision, fallback preset/sampler stop-swapping, stale "0" auto-migration, model-name reporting accuracy, and a Together-mode regression urgent fix. 1,411 tests passing.
+**Latest: v6.27.6** — Preset browser polish + OpenRouter model-discovery overlay. Three new sort modes (Token usage / Cost / OR ranking) grouped in the dropdown alongside the existing Match-first / Name / Family / Context. Soft-green ✓ stock-prompts badge identifies templates that don't override the default prompts, paired with an amber footnote explaining the apply is informational pending community overrides. The OpenRouter connector (opt-in, off by default) fetches live pricing, context windows, and roleplay popularity once per session for the preset browser — read-only, never touches generation. Two new branded dialog modules (`or-connector-prompt.js`, `preset-suggestion-prompt.js`) replace the plain confirm boxes for the model-match and connector opt-in moments. Advanced tab Development section (collapsed + locked by default) lets you re-trigger every one-time popup for QA. Earlier in 6.27.x: temporal validator (6.24.0) auto-corrects backward time jumps from the LLM while respecting intentional flashbacks. 1,485 tests passing.
 
 ## Contributing
 

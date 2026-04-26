@@ -142,13 +142,14 @@ The preset browser surfaces inline chips on each card showing OpenRouter Rolepla
 
 OpenRouter's `/api/v1/models` is CORS-permissive and could be fetched live, but exposes only pricing/context — not popularity. Popularity data lives only in the rendered HTML of the rankings/collections pages. Scraping HTML from every user's browser is fragile, slow, and rude. The sidecar approach is fast (zero network), reliable (works offline), and maintainable (one file the maintainer regenerates periodically).
 
-## Runtime pricing/context refresh (v6.27.0+, opt-in)
+## Model discovery overlay (v6.27.0+, opt-in)
 
-The static sidecar is the source of truth for popularity, but pricing and context windows drift between releases. v6.27.0 adds an opt-in **OpenRouter Stats Connector** that refreshes the pricing/context overlay live from `/api/v1/models` when the preset browser opens.
+The static sidecar is the source of truth for popularity, but pricing and context windows drift between releases. v6.27.0 adds an opt-in **model discovery overlay** that refreshes the pricing/context layer live from `/api/v1/models` when the preset browser opens. The framing is intentional: this is a discovery aid for users browsing alternative models, not a sync feature for ScenePulse's own behavior.
 
-- **Off by default** — users opt in via Setup Wizard step 5, the one-time prompt that fires after upgrade, or Settings → Generation → "Enable OpenRouter pricing/context refresh".
-- **One fetch per session, cached 24h** — opening the preset browser repeatedly does not spam the endpoint. A session-flag short-circuits silent auto-refreshes after the first attempt.
-- **Manual refresh** — a labeled `↻ Refresh stats` button appears on the preset browser toolbar when the connector is enabled. Bypasses session flag, cooldowns, and TTL.
+- **Read-only by design** — the overlay never touches your prompts, samplers, or generations. It only changes what numbers are shown beside each preset card.
+- **Off by default** — users opt in via Setup Wizard step 5, the one-time branded prompt that fires once after upgrade ([`src/ui/or-connector-prompt.js`](../src/ui/or-connector-prompt.js)), or Settings → Generation → "Enable model discovery overlay".
+- **One fetch per session, cached 24h** — opening the preset browser repeatedly does not spam the endpoint. A session flag short-circuits silent auto-refreshes after the first attempt.
+- **Manual refresh** — a labeled `↻ Refresh stats` button appears on the preset browser toolbar when the overlay is enabled. Bypasses session flag, cooldowns, and TTL.
 - **Failure modes**:
   - Offline / network error → silently skip, keep static stats. No cooldown.
   - 5xx / timeout (3s ceiling) → skip without cooldown so we retry next session.
@@ -158,3 +159,27 @@ The static sidecar is the source of truth for popularity, but pricing and contex
 - **Storage**: cache lives in `localStorage` under `sp_openrouter_cache_v1`. Clearing it forces a fresh fetch on the next preset-browser open.
 
 Source: [`src/presets/or-connector.js`](../src/presets/or-connector.js). Tests: [`tests/or-connector.test.mjs`](../tests/or-connector.test.mjs).
+
+## Sort modes (v6.27.6+)
+
+The preset browser dropdown supports seven sort modes, grouped:
+
+| Group | Option | Behavior |
+|---|---|---|
+| (top) | **Match first** | Sticky-priority bucketing — applied → matched → rest. Default |
+| **OpenRouter data** | **Token usage** | Highest `weeklyTokens` first |
+| | **Cost (low → high)** | input + output USD per million tokens, ascending. Unpriced presets sink |
+| | **OR ranking** | Rank 1 first. Unranked sink |
+| **Preset metadata** | **Name** | Pure A→Z, no sticky-priority bucketing |
+| | **Family** | Group by family, then name within group |
+| | **Context size** | Largest context first |
+
+Choice is persisted in `settings.presetBrowserSort`. The legacy `popularity` value (used pre-6.27.6) migrates silently to `token-usage` on next open — semantically identical.
+
+## Stock-prompts indicator (v6.27.5+)
+
+When a bundled preset has an empty `promptOverrides` block, it's flagged with a soft-green ✓ stock-prompts badge on its card and in the suggestion dialog. An amber footnote at the bottom of stock-prompts cards reads:
+
+> *Informational only at this time. Applying this template will not modify your prompt slots — pending community-contributed overrides for this model. Sampler hints above remain advisory.*
+
+The framing is honest: stock-prompts presets contribute verified compatibility plus sampler-hint guidance for the model, but applying them is currently a no-op until the community submits prompt overrides via PR. If you have model-specific tuning that improves tracker JSON for one of these models, [`built-in.js`](../src/presets/built-in.js) is the file to PR against.
