@@ -450,91 +450,6 @@
 }
 .sp-di-perf-verdict-warn-extra { color: #fcd34d; }
 
-/* v6.22.0: floating capture overlay — mounted to body so it survives if
-   the user closes the Debug Inspector mid-window. Top-right corner with
-   pulsing red accent so it reads as "active capture in progress, do not
-   close the tab". Cancel button stops the capture immediately. Polls
-   getCaptureMeta() every 500ms; auto-unmounts when capture ends. */
-.sp-perf-overlay {
-    position: fixed;
-    top: 16px; right: 16px;
-    z-index: 100150;
-    width: min(360px, calc(100vw - 32px));
-    background: rgba(8,10,16,0.96);
-    backdrop-filter: blur(14px);
-    border: 1px solid rgba(252,165,165,0.45);
-    border-left-width: 3px;
-    border-radius: 6px;
-    padding: 10px 14px;
-    box-shadow: 0 12px 40px rgba(0,0,0,0.5);
-    color: var(--sp-text);
-    font-family: var(--sp-font);
-    font-size: var(--sp-fs-xs);
-    display: flex; flex-direction: column; gap: 8px;
-    animation: sp-glass-in 0.18s ease-out;
-}
-.sp-perf-overlay-row {
-    display: flex; align-items: center; gap: 10px;
-}
-.sp-perf-overlay-pulse {
-    flex-shrink: 0;
-    width: 10px; height: 10px;
-    border-radius: 50%;
-    background: #fca5a5;
-    box-shadow: 0 0 6px rgba(252,165,165,0.6);
-    animation: sp-perf-overlay-blink 1.2s ease-in-out infinite;
-}
-@keyframes sp-perf-overlay-blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.35; }
-}
-.sp-perf-overlay-title {
-    flex: 1;
-    font-weight: 700;
-    color: #fca5a5;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    font-size: 11px;
-}
-.sp-perf-overlay-cancel {
-    flex-shrink: 0;
-    background: transparent;
-    color: #fca5a5;
-    border: 1px solid rgba(252,165,165,0.5);
-    border-radius: 4px;
-    padding: 3px 12px;
-    font-size: 11px;
-    font-family: inherit;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.15s ease;
-}
-.sp-perf-overlay-cancel:hover {
-    background: rgba(212,80,80,0.18);
-    color: #fff;
-    border-color: #fca5a5;
-}
-/* v6.23.1: progress bar removed (capture has no fixed duration). */
-.sp-perf-overlay-meta {
-    display: flex; flex-direction: column; gap: 4px;
-}
-.sp-perf-overlay-countdown {
-    color: var(--sp-text);
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-}
-.sp-perf-overlay-hint {
-    color: var(--sp-text-dim);
-    font-size: 10px;
-    line-height: 1.4;
-    font-style: italic;
-}
-@media (max-width: 560px) {
-    .sp-perf-overlay {
-        top: auto; bottom: 16px; right: 8px; left: 8px;
-        width: auto;
-    }
-}
 
 /* v6.21.0: LIVE badge on the meta line during a capture-in-progress so the
    user sees that what they're looking at is a partial, not a final, result. */
@@ -1474,17 +1389,6 @@ body.sp-reduce-effects #sp-btn-debug-inspector.sp-di-flash { animation: none; }
     background: rgba(212,80,80,0.1);
 }
 
-/* v6.13.2: Profile Manager — active row highlight + tag pill */
-.sp-pm-row-active {
-    border-left-color: var(--sp-accent) !important;
-    background: rgba(77,184,164,0.04);
-}
-.sp-pm-tag {
-    display: inline-block; padding: 1px 6px; border-radius: 3px;
-    background: rgba(77,184,164,0.12); color: var(--sp-accent);
-    font-size: 9px; font-weight: 700; letter-spacing: 0.04em;
-    text-transform: uppercase; margin-left: 4px; cursor: help;
-}
 
 /* ── v6.17.1: Inspector responsive cascade (720 / 700 / 560 / 420) ─────
    Audit pass — keep the inspector usable down to phone widths. The 560

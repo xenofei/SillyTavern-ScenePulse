@@ -29,6 +29,7 @@
 @import url('./css/accessibility.css');
 @import url('./css/analytics.css');
 @import url('./css/crash-log.css');
+@import url('./css/perf-overlay.css');
 @import url('./css/prompt-editor.css');
 @import url('./css/preset-browser.css');
 
