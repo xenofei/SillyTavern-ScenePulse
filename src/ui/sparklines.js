@@ -3,6 +3,7 @@
 
 import { getTrackerData } from '../settings.js';
 import { t } from '../i18n.js';
+import { esc } from '../utils.js';
 
 /**
  * Highlight a message element with glow, pulse, and graceful fade — driven by JS to bypass CSS overrides.
@@ -361,15 +362,14 @@ function showExpandedGraph(charName, focusMeter) {
         function _buildTip(key, dot) {
             const snap = data.snapshots[String(key)];
             if (!snap) return null;
-            const _e = (s) => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
             let msgPreview = '';
             try { const msg = SillyTavern.getContext().chat[key]; if (msg && !msg.is_user) { msgPreview = (msg.mes||'').substring(0,150).trim(); if ((msg.mes||'').length>150) msgPreview+='...'; } } catch {}
             const tip = document.createElement('div');
             tip.className = 'sp-graph-tooltip';
-            tip.innerHTML = `<div class="sp-graph-tip-header"><strong>#${key}</strong> ${_e(snap.time||'')} \u00B7 ${_e(snap.sceneTension||'')}</div>
-                <div class="sp-graph-tip-loc">${_e(snap.location||'')}</div>
-                <div class="sp-graph-tip-topic">${_e(snap.sceneTopic||'')}</div>
-                ${msgPreview?`<div class="sp-graph-tip-msg">${_e(msgPreview)}</div>`:''}
+            tip.innerHTML = `<div class="sp-graph-tip-header"><strong>#${key}</strong> ${esc(snap.time||'')} \u00B7 ${esc(snap.sceneTension||'')}</div>
+                <div class="sp-graph-tip-loc">${esc(snap.location||'')}</div>
+                <div class="sp-graph-tip-topic">${esc(snap.sceneTopic||'')}</div>
+                ${msgPreview?`<div class="sp-graph-tip-msg">${esc(msgPreview)}</div>`:''}
                 <div class="sp-graph-tip-val">${dot.dataset.meter}: <strong>${dot.dataset.value}</strong></div>
                 ${isMobile?`<button class="sp-graph-tip-goto">${t('Go to message')} #${key}</button>`:`<div class="sp-graph-tip-hint">${t('Click to go to message')}</div>`}`;
             return tip;

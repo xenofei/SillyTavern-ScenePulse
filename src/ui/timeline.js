@@ -7,6 +7,7 @@ import { normalizeTracker } from '../normalize.js';
 import { updatePanel } from './update-panel.js';
 import { showPanel } from './panel.js';
 import { _scrollToMessage } from './sparklines.js';
+import { esc } from '../utils.js';
 
 export function renderTimeline(){
     const _tlStart=performance.now();
@@ -178,7 +179,6 @@ export function renderTimeline(){
 function _showSnapshotBrowser(all,sorted){
     document.querySelectorAll('.sp-browse-overlay').forEach(el=>el.remove());
     const overlay=document.createElement('div');overlay.className='sp-browse-overlay';
-    const _esc=(s)=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     const PER_PAGE=10;
     const totalPages=Math.ceil(sorted.length/PER_PAGE);
     let page=totalPages-1; // Start on the last page (most recent)
@@ -200,10 +200,10 @@ function _showSnapshotBrowser(all,sorted){
             const elapsed=meta.elapsed||0;
             const isSelected=k===currentSnapshotMesIdx;
             listHtml+=`<div class="sp-browse-item${isSelected?' sp-browse-selected':''}" data-key="${k}">
-                <div class="sp-browse-row1"><span class="sp-browse-idx">#${k}</span><span class="sp-browse-time">${_esc(time)}${date?' \u00B7 '+_esc(date):''}</span><span class="sp-browse-tension sp-browse-tension-${tension}">${_esc(tension)}</span></div>
-                <div class="sp-browse-row2"><span class="sp-browse-loc">${_esc(loc||'\u2014')}</span></div>
-                <div class="sp-browse-row3"><span class="sp-browse-topic">${_esc(topic)}</span>${mood?'<span class="sp-browse-mood">\u00B7 '+_esc(mood)+'</span>':''}</div>
-                <div class="sp-browse-row4"><span>${charNames?_esc(charNames):'no characters'}</span><span>${relCount} rel${relCount!==1?'s':''} \u00B7 ${questCount} quest${questCount!==1?'s':''}</span>${tokens?'<span>~'+tokens+'t'+(elapsed?' \u00B7 '+elapsed.toFixed(1)+'s':'')+'</span>':''}</div>
+                <div class="sp-browse-row1"><span class="sp-browse-idx">#${k}</span><span class="sp-browse-time">${esc(time)}${date?' \u00B7 '+esc(date):''}</span><span class="sp-browse-tension sp-browse-tension-${tension}">${esc(tension)}</span></div>
+                <div class="sp-browse-row2"><span class="sp-browse-loc">${esc(loc||'\u2014')}</span></div>
+                <div class="sp-browse-row3"><span class="sp-browse-topic">${esc(topic)}</span>${mood?'<span class="sp-browse-mood">\u00B7 '+esc(mood)+'</span>':''}</div>
+                <div class="sp-browse-row4"><span>${charNames?esc(charNames):'no characters'}</span><span>${relCount} rel${relCount!==1?'s':''} \u00B7 ${questCount} quest${questCount!==1?'s':''}</span>${tokens?'<span>~'+tokens+'t'+(elapsed?' \u00B7 '+elapsed.toFixed(1)+'s':'')+'</span>':''}</div>
             </div>`;
         }
         // Pagination controls
