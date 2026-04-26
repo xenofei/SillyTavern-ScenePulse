@@ -63,12 +63,35 @@ export function createSettings(){
 <div class="sp-tab-panel" data-tab="advanced">
 <div class="sp-sh">${t('Storage')}</div><div class="sp-fi"><label>${t('Max snapshots')}</label><input type="number" id="sp-max-snapshots" min="0" max="9999" style="width:70px"><span style="font-size:10px;color:var(--sp-text-dim);margin-left:4px">${t('0 = unlimited')}</span></div><div class="sp-hint">${t('Maximum number of scene snapshots stored per chat. Set to 0 for unlimited storage. Higher values use more chat metadata space.')}</div>
 <div class="sp-sh">${t('Actions')}</div><div class="sp-fi" style="gap:4px"><button class="sp-btn sp-btn-primary" id="sp-btn-gen" style="flex:1">⟳ ${t('Generate')}</button><button class="sp-btn" id="sp-btn-clear" style="flex:1">🗑 ${t('Clear Data')}</button><button class="sp-btn" id="sp-btn-reset" style="flex:1">↺ ${t('Reset Settings')}</button></div><div class="sp-fi" style="gap:4px;margin-top:4px"><button class="sp-btn" id="sp-btn-export-config" style="flex:1">${t('Export Config')}</button><button class="sp-btn" id="sp-btn-import-config" style="flex:1">${t('Import Config')}</button><input type="file" id="sp-import-file" accept=".json" style="display:none"></div><div class="sp-hint"><strong>${t('Export Config')}</strong> — ${t('Save all ScenePulse settings (panels, toggles, custom panels, theme) as a shareable JSON file.')}<br><strong>${t('Import Config')}</strong> — ${t('Load settings from a previously exported file.')}</div><div class="sp-hint"><strong>${t('Clear Data')}</strong> — ${t('Removes all tracker snapshots from this chat. Settings preserved.')}<br><strong>${t('Reset Settings')}</strong> — ${t('Resets injection method, profiles, lorebook mode, etc. to defaults. Tracker data preserved.')}</div><div class="sp-sh">${t('Debug')}</div><div class="sp-fi" style="gap:4px"><button class="sp-btn sp-btn-primary" id="sp-btn-debug-inspector" style="flex:1">🔍 ${t('Debug Inspector')} <span id="sp-crash-log-count" style="opacity:0.6;font-size:9px;margin-left:4px"></span></button></div><div class="sp-hint">${t('Unified inspector with three tabs:')} <strong>${t('Activity')}</strong> ${t('(in-memory log, current session)')}, <strong>${t('Last Response')}</strong> ${t('(raw LLM output for the most recent generation)')}, <strong>${t('Crashes')}</strong> ${t('(persistent error log shared across sessions, ScenePulse + SillyTavern).')}</div>
-<div class="sp-sh" style="margin-top:14px;border-top:1px dashed var(--sp-border);padding-top:10px">${t('Development')}</div>
-<div class="sp-hint" style="margin:-2px 0 6px 0">${t('Manually re-trigger one-time popups for troubleshooting. These bypass session/dismissal flags so you can verify dialogs render correctly without clearing state by hand.')}</div>
-<div class="sp-fi" style="gap:4px;flex-wrap:wrap"><button class="sp-btn" id="sp-dev-trigger-setup" style="flex:1 1 calc(50% - 2px)">📋 ${t('Setup Guide')}</button><button class="sp-btn" id="sp-dev-trigger-or" style="flex:1 1 calc(50% - 2px)">⟳ ${t('OR Connector Prompt')}</button></div>
-<div class="sp-fi" style="gap:4px;flex-wrap:wrap;margin-top:4px"><button class="sp-btn" id="sp-dev-trigger-preset" style="flex:1 1 calc(50% - 2px)">✦ ${t('Preset Suggestion')}</button><button class="sp-btn" id="sp-dev-trigger-update" style="flex:1 1 calc(50% - 2px)">⬆ ${t('Update Banner')}</button></div>
-<div class="sp-fi" style="gap:4px;margin-top:6px"><button class="sp-btn sp-btn-danger" id="sp-dev-reset-popups" style="flex:1">↺ ${t('Reset all one-time popup state')}</button></div>
-<div class="sp-hint"><strong>${t('Setup Guide')}</strong> — ${t('Reopens the multi-step setup wizard.')}<br><strong>${t('OR Connector Prompt')}</strong> — ${t('Re-shows the v6.27 OpenRouter opt-in dialog.')}<br><strong>${t('Preset Suggestion')}</strong> — ${t('Clears suggestion-shown state for your active model and re-runs the matcher.')}<br><strong>${t('Update Banner')}</strong> — ${t('Renders the update banner regardless of current version state.')}<br><strong>${t('Reset all one-time popup state')}</strong> — ${t('Clears every stored “already shown” flag so popups behave as if you were a fresh install on the next reload. Does not delete your settings or tracker data.')}</div>
+<!-- v6.27.3: Development section is collapsed AND locked by default.
+     The chevron header toggles visibility; the inner card requires an
+     explicit unlock click before the trigger buttons render. Two-step
+     gate so the reset button can't be hit by an idle scroll-through. -->
+<div class="sp-devsec sp-devsec-collapsed sp-devsec-locked" id="sp-devsec">
+    <button type="button" class="sp-devsec-header" id="sp-devsec-toggle" aria-expanded="false" aria-controls="sp-devsec-body">
+        <span class="sp-devsec-chevron">▶</span>
+        <span class="sp-devsec-label">${t('Development')}</span>
+        <span class="sp-devsec-status" id="sp-devsec-status">🔒 ${t('Locked')}</span>
+    </button>
+    <div class="sp-devsec-body" id="sp-devsec-body">
+        <div class="sp-devsec-locked-card" id="sp-devsec-locked-card">
+            <div class="sp-devsec-lock-icon">🔒</div>
+            <div class="sp-devsec-lock-text">
+                <div class="sp-devsec-lock-title">${t('Developer tools are locked')}</div>
+                <div class="sp-devsec-lock-msg">${t('This section can re-trigger one-time popups and reset state. Locked by default so the reset button is not pressed accidentally.')}</div>
+            </div>
+            <button type="button" class="sp-btn sp-devsec-unlock-btn" id="sp-devsec-unlock">🔓 ${t('Unlock developer tools')}</button>
+        </div>
+        <div class="sp-devsec-unlocked-card" id="sp-devsec-unlocked-card">
+            <div class="sp-hint" style="margin:0 0 8px 0">${t('Manually re-trigger one-time popups for troubleshooting. These bypass session/dismissal flags so you can verify dialogs render correctly without clearing state by hand.')}</div>
+            <div class="sp-fi" style="gap:4px;flex-wrap:wrap"><button class="sp-btn" id="sp-dev-trigger-setup" style="flex:1 1 calc(50% - 2px)">📋 ${t('Setup Guide')}</button><button class="sp-btn" id="sp-dev-trigger-or" style="flex:1 1 calc(50% - 2px)">⟳ ${t('OR Connector Prompt')}</button></div>
+            <div class="sp-fi" style="gap:4px;flex-wrap:wrap;margin-top:4px"><button class="sp-btn" id="sp-dev-trigger-preset" style="flex:1 1 calc(50% - 2px)">✦ ${t('Preset Suggestion')}</button><button class="sp-btn" id="sp-dev-trigger-update" style="flex:1 1 calc(50% - 2px)">⬆ ${t('Update Banner')}</button></div>
+            <div class="sp-fi" style="gap:4px;margin-top:6px"><button class="sp-btn sp-btn-danger" id="sp-dev-reset-popups" style="flex:1">↺ ${t('Reset all one-time popup state')}</button></div>
+            <div class="sp-hint" style="margin-top:6px"><strong>${t('Setup Guide')}</strong> — ${t('Reopens the multi-step setup wizard.')}<br><strong>${t('OR Connector Prompt')}</strong> — ${t('Re-shows the v6.27 OpenRouter opt-in dialog.')}<br><strong>${t('Preset Suggestion')}</strong> — ${t('Clears suggestion-shown state for your active model and re-runs the matcher.')}<br><strong>${t('Update Banner')}</strong> — ${t('Renders the update banner regardless of current version state.')}<br><strong>${t('Reset all one-time popup state')}</strong> — ${t('Clears every stored "already shown" flag so popups behave as if you were a fresh install on the next reload. Does not delete your settings or tracker data.')}</div>
+            <div style="display:flex;justify-content:flex-end;margin-top:8px"><button type="button" class="sp-btn sp-devsec-relock-btn" id="sp-devsec-relock">🔒 ${t('Lock again')}</button></div>
+        </div>
+    </div>
+</div>
 </div><!-- /advanced tab -->
 </div></div></div>`;
     const $t=$('#extensions_settings2').length?$('#extensions_settings2'):$('#extensions_settings');

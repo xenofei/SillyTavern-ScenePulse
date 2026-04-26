@@ -18,10 +18,10 @@
 // toastr buttons render unstyled and don't survive ST's toast pruner.
 
 import { t } from '../i18n.js';
-import { spConfirm } from '../utils.js';
 import { getSettings, saveSettings } from '../settings.js';
 import { getActiveProfile, updateActiveProfile } from '../profiles.js';
 import { findMatchingPreset, getActiveModelId, buildPresetPatch } from '../presets/registry.js';
+import { showPresetSuggestionPrompt } from './preset-suggestion-prompt.js';
 
 const _SHOWN_KEY     = 'sp:preset-shown';
 const _DISMISSED_KEY = 'sp:preset-dismissed';
@@ -83,11 +83,7 @@ export async function maybeSuggestPreset() {
     if (_isPermanentlyDismissed(preset.id)) return;
     _markShownThisSession(preset.id);
 
-    const choice = await spConfirm(
-        t(`Apply ${preset.displayName} preset?`),
-        t(`We detected your active model matches our ${preset.displayName} preset.\n\n${preset.notes}\n\nApplying will update your active profile's prompt slot overrides + system-prompt role. Your panels, schema, and other settings are not touched. You can revert at any time from the prompt editor.`),
-        { okLabel: t('Apply preset'), cancelLabel: t('Not now'), danger: false }
-    );
+    const choice = await showPresetSuggestionPrompt(preset, modelId, profile.name || '');
     if (!choice) return;
 
     // Apply

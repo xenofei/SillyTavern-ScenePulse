@@ -417,6 +417,35 @@ export function bindUI(){const s=getSettings();
             m.openDebugInspector();
         } catch (e) { warn('Debug inspector:', e?.message); }
     });
+    // v6.27.3: Development section collapse + lock state. Header click
+    // toggles the body; unlock/relock buttons gate the trigger buttons.
+    // Lock state is intentionally NOT persisted — every settings open
+    // starts locked + collapsed so the reset button can't be hit by
+    // muscle memory or accidental scroll-through.
+    $('#sp-devsec-toggle').on('click',function(){
+        const wrap=document.getElementById('sp-devsec');
+        const wasCollapsed=wrap.classList.toggle('sp-devsec-collapsed');
+        this.setAttribute('aria-expanded', wasCollapsed?'false':'true');
+    });
+    $('#sp-devsec-unlock').on('click',async()=>{
+        const { spConfirm } = await import('../utils.js');
+        const ok = await spConfirm(
+            'Unlock developer tools?',
+            'These tools can re-trigger one-time popups and reset state. Use them only if you know what you are doing.\n\nThe section auto-relocks the next time you open ScenePulse settings.',
+            { okLabel: 'Unlock', cancelLabel: 'Keep locked', danger: false }
+        );
+        if (!ok) return;
+        const wrap=document.getElementById('sp-devsec');
+        wrap.classList.remove('sp-devsec-locked');
+        const status=document.getElementById('sp-devsec-status');
+        if(status)status.innerHTML='🔓 Unlocked';
+    });
+    $('#sp-devsec-relock').on('click',function(){
+        const wrap=document.getElementById('sp-devsec');
+        wrap.classList.add('sp-devsec-locked');
+        const status=document.getElementById('sp-devsec-status');
+        if(status)status.innerHTML='🔒 Locked';
+    });
     // v6.27.2: Development section — manual triggers for one-time popups.
     // These bypass session/dismissal flags so a maintainer can verify each
     // dialog renders without clearing state by hand. Lazy-imports keep the
