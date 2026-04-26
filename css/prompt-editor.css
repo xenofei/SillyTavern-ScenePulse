@@ -413,7 +413,10 @@
     font-family: var(--sp-font-mono); font-size: 10px;
     line-height: 1.55;
     white-space: pre-wrap; word-break: break-word;
-    max-height: 360px; overflow-y: auto;
+    /* v6.25.2: was max-height: 360px with internal scroll, which clipped the
+       full assembled prompt (~15k chars, ~250 lines) at ~22 visible lines.
+       Users mistook the clip for missing content. Now: no internal scroll;
+       the parent .sp-pe-body's existing scroll handles overflow naturally. */
     border-radius: 0 0 6px 6px;
 }
 

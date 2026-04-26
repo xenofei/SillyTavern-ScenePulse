@@ -294,13 +294,15 @@ export function openPresetBrowser(opts = {}) {
         });
     });
     // v6.23.0: Slots tab switches to the prompt editor modal.
-    // v6.25.1: open the NEW modal first, then close the old one in the
-    // next animation frame to prevent the visible flash where ST's UI
-    // briefly shows through with no overlay layered above it.
+    // v6.25.2: opening the new modal first + a single rAF wasn't enough —
+    // the new modal's `sp-glass-in 0.18s` entrance animation means it's
+    // still semi-transparent for ~180ms. Closing the old one during that
+    // window exposes ST through the stack. Wait 200ms (full animation)
+    // before closing.
     overlay.querySelector('.sp-cp-tab[data-cp-tab="slots"]')?.addEventListener('click', async () => {
         const ed = await import('./prompt-editor.js');
         ed.openPromptEditor();
-        requestAnimationFrame(() => _close());
+        setTimeout(() => _close(), 200);
     });
 
     function _close() {

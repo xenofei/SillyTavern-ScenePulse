@@ -191,13 +191,15 @@ export function openPromptEditor() {
     // on the empty-preset row to the same swap action.
     const _swapToTemplates = async () => {
         const ov = await import('./preset-browser.js');
-        // v6.25.1: open the NEW modal first, then close the old one in the
-        // next animation frame. Pre-v6.25.1 we closed the editor first which
-        // briefly tore down the only over-ST overlay, exposing the bare
-        // SillyTavern UI for a frame and producing a visible flash. Opening
-        // first keeps something layered above ST at every moment.
+        // v6.25.2: opening the new modal first + a single rAF wasn't enough
+        // because both overlays use the `sp-glass-in 0.18s` entrance
+        // animation. During those ~180ms the new modal is fading in from
+        // opacity:0; closing the old one immediately exposes ST through the
+        // semi-transparent stack. Wait 200ms (full fade-in duration) before
+        // closing — the new modal is fully opaque by then, so the close is
+        // invisible to the user.
         ov.openPresetBrowser();
-        requestAnimationFrame(() => _close({ skipDirtyCheck: true }));
+        setTimeout(() => _close({ skipDirtyCheck: true }), 200);
     };
     const _maybeSwap = async () => {
         if (_dirty) {
