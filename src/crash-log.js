@@ -79,6 +79,49 @@ function _stVersionFromContext() {
 // message index, character name, model name. Each lookup is independently
 // try/catched so a single missing global doesn't suppress the rest. Caller
 // can override or extend by passing their own context to captureError().
+//
+// v6.23.10: model-name lookup is now source-aware. Pre-v6.23.10 we hardcoded
+// `chatCompletionSettings.openai_model`, which only updates when the user is
+// on the OpenAI source — for Claude / DeepSeek / Mistral / etc. the field
+// stays at whatever the last OpenAI session left in it. Result: a user on
+// DeepSeek v4 saw their crash log say "claude-sonnet-4-6-thinking" because
+// that's what was last in openai_model from a prior session. The new logic
+// mirrors src/presets/registry.js getActiveModelId(): pick the *_model key
+// that matches the current chat_completion_source, then scan all *_model
+// keys, then fall back to textgen settings, then the visible DOM dropdown.
+function _readActiveModel(ctx) {
+    try {
+        const cc = ctx?.chatCompletionSettings || {};
+        // Source-specific lookup (e.g. claude_model when source is claude)
+        const source = cc.chat_completion_source;
+        if (source && typeof cc[source + '_model'] === 'string' && cc[source + '_model'].trim()) {
+            return cc[source + '_model'].trim();
+        }
+        // Scan every *_model key so sources added after this code shipped still resolve
+        for (const [k, v] of Object.entries(cc)) {
+            if (k.endsWith('_model') && typeof v === 'string' && v.trim()) return v.trim();
+        }
+        // textgen webui / KoboldCpp / Ollama / etc.
+        const tg = ctx?.textGenerationSettings || {};
+        if (typeof tg.online_status_model === 'string' && tg.online_status_model.trim()) return tg.online_status_model.trim();
+        if (typeof tg.model === 'string' && tg.model.trim()) return tg.model.trim();
+        // DOM fallback — visible model dropdown picks up unsaved changes
+        if (typeof document !== 'undefined') {
+            const sels = document.querySelectorAll(
+                'select[id^="model_"][id$="_select"], #custom_model_id, #openrouter_model'
+            );
+            for (const sel of sels) {
+                const v = sel?.value || sel?.options?.[sel.selectedIndex]?.value;
+                if (typeof v === 'string' && v.trim()) return v.trim();
+            }
+        }
+        // Legacy / textgen catch-all
+        if (typeof ctx?.model === 'string' && ctx.model.trim()) return ctx.model.trim();
+        if (typeof ctx?.onlineStatus === 'string' && ctx.onlineStatus.trim()) return ctx.onlineStatus.trim();
+    } catch {}
+    return '';
+}
+
 function _autoContext() {
     const out = {};
     try {
@@ -89,9 +132,7 @@ function _autoContext() {
             try { if (Array.isArray(ctx.chat)) out.mesIdx = ctx.chat.length - 1; } catch {}
             try { if (ctx.name2) out.character = String(ctx.name2).slice(0, 60); } catch {}
             try {
-                const model = ctx.chatCompletionSettings?.openai_model
-                    || ctx.textGenerationSettings?.preset
-                    || ctx.mainApi || '';
+                const model = _readActiveModel(ctx);
                 if (model) out.model = String(model).slice(0, 80);
             } catch {}
             try { if (ctx.groupId) out.groupChat = true; } catch {}
