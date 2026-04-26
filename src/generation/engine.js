@@ -104,6 +104,13 @@ export function cancelGeneration(){
     // ANOTHER extension (MemoryBooks memory insertion, etc.) would be misattributed
     // to our still-pending generation and extraction would run on foreign content.
     setInlineGenStartMs(0);setInlineExtractionDone(false);setPendingInlineIdx(-1);
+    // v6.27.18: also tear down the visible regen UI (loading overlay,
+    // elapsed timer, Stop button). Previously this only fired when doGen
+    // completed naturally, so a user-initiated cancel left the loading
+    // overlay visible until the underlying await eventually resolved —
+    // which can be never on ECONNRESET. Calling cleanupGenUI here makes
+    // Stop reliably unlock the UI.
+    try { cleanupGenUI(); } catch {}
     log('CANCEL: nonce',oldNonce,'\u2192',genNonce,'— generation unlocked');
 
     // Abort SillyTavern's in-flight HTTP request — try every known method
@@ -415,8 +422,31 @@ export async function generateTracker(mesIdx,partKey,opts){
         return null;
     };
     let result;
-    try{result=await withProfileAndPreset(profileOverride,presetOverride,doGen)}
-    catch(e){err('Gen:',e)}
+    // v6.27.18: cap the entire doGen run at 180s. SillyTavern's
+    // generateQuietPrompt / generateRaw awaits sometimes never settle
+    // when the upstream provider drops the connection (ECONNRESET on
+    // NanoGPT under load was the user-reported case) — ST shows its
+    // own API-error toast but the promise neither resolves nor rejects.
+    // 180s is generous (Claude Opus 4.7 effort=high tops out around 90-
+    // 120s on complex prompts) while still catching hung connections.
+    // On timeout the catch below logs and result stays undefined; the
+    // cleanup at line 432 then runs normally and the UI unlocks.
+    const ENGINE_TIMEOUT_MS = 180000;
+    try{
+        result = await Promise.race([
+            withProfileAndPreset(profileOverride,presetOverride,doGen),
+            new Promise((_, reject) => setTimeout(
+                () => reject(new Error('TIMEOUT: tracker generation exceeded ' + (ENGINE_TIMEOUT_MS / 1000) + 's with no completion (network drop or upstream hang?)')),
+                ENGINE_TIMEOUT_MS
+            )),
+        ]);
+    }
+    catch(e){
+        err('Gen:',e);
+        if (e?.message?.startsWith('TIMEOUT')) {
+            try { toastr.warning(e.message + ' UI unlocked.', 'ScenePulse'); } catch {}
+        }
+    }
     // Only the CURRENT generation is allowed to touch state
     if(myNonce!==genNonce){
         log('POST-GEN: stale nonce',myNonce,'(current',genNonce+') \u2014 result discarded, state untouched');
@@ -617,7 +647,21 @@ Output the JSON object now:`;
         }catch(e){err('Continuation parse fail:',e?.message||String(e)); try { markLastPairParseFailed(e?.message || String(e)); } catch {} return null}
     };
     let result;
-    try{result=await withProfileAndPreset(profileOverride,presetOverride,doGen)}
+    // v6.27.18: 60s timeout. Continuation is meant to be a cheap fast-path
+    // (~10-15s typical, ~30s upper bound on slow models); if it hangs past
+    // 60s it's almost certainly an upstream drop, not legitimate slowness.
+    // The full-separate-generation fallback at the caller will retry with
+    // its own 180s budget.
+    const CONTINUATION_TIMEOUT_MS = 60000;
+    try{
+        result = await Promise.race([
+            withProfileAndPreset(profileOverride,presetOverride,doGen),
+            new Promise((_, reject) => setTimeout(
+                () => reject(new Error('TIMEOUT: continuation reprompt exceeded ' + (CONTINUATION_TIMEOUT_MS / 1000) + 's')),
+                CONTINUATION_TIMEOUT_MS
+            )),
+        ]);
+    }
     catch(e){err('Continuation:',e)}
     if(myNonce!==genNonce){
         log('CONTINUATION POST: stale nonce',myNonce,'(current',genNonce+') — discarded');
