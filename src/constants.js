@@ -6,7 +6,7 @@ export const MODULE_NAME='scenepulse';
 // v6.12.3 — every release bumped manifest.json but missed this. Activity
 // log + diagnostic version field were misreporting. Keep in sync with
 // manifest.json on every version bump going forward.
-export const VERSION = '6.23.8';
+export const VERSION = '6.23.9';
 
 // v6.8.19: canonical list of character archetype enum values.
 // Shared between schema validation, normalize, prompt builder, UI filter,

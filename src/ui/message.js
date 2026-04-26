@@ -161,12 +161,16 @@ export async function onCharMsg(idx){
             if(msgLen>100&&s.autoGenerate&&!generating&&s.fallbackEnabled!==false){
                 const fbProfile=s.fallbackProfile||s.connectionProfile||'';
                 const fbPreset=s.fallbackPreset||s.chatPreset||'';
-                if(!fbProfile&&!fbPreset){
-                    // No fallback profile configured -- show recovery card in panel
-                    stopStreamingHider();
-                    warn('Together mode: tracker extraction failed ('+msgLen+' chars, '+_failureKind+'). No fallback profile configured.');
-                    _showRecoveryCard(idx);
-                } else {
+                // v6.23.9: removed the `if(!fbProfile && !fbPreset) showRecoveryCard`
+                // early-return. v6.23.7's "(Same as current)" dropdown made empty a
+                // valid configuration meaning "use current preset, no switch" — but
+                // this branch still treated empty as "user hasn't configured anything,
+                // skip auto-fallback." After v6.23.8's migration cleared stale "0"
+                // values to "" the user's auto-fallback stopped firing entirely.
+                // withProfileAndPreset('', '', fn) is now a clean no-op pass-through,
+                // so always run the recovery chain. Recovery card still appears in
+                // the Tier 2 failure branch below.
+                {
                     stopStreamingHider(); // Stop the hider since we're switching to recovery
                     const panel=document.getElementById('sp-panel');
                     if(panel){spAutoShow();showLoadingOverlay(document.getElementById('sp-panel-body'),t('Generating Scene'),t('Analyzing context'));showStopButton();startElapsedTimer()}
