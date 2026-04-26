@@ -12,8 +12,9 @@ import { t } from '../i18n.js';
 import { esc, spConfirm, spPrompt } from '../utils.js';
 import { getSettings, saveSettings } from '../settings.js';
 import { getActiveProfile, updateActiveProfile, makeProfile } from '../profiles.js';
-import { BUILT_IN_PRESETS, buildPresetPatch, getActiveModelId, findMatchingPreset, getOrStats, getStatsTimestamp, hasOrStats } from '../presets/registry.js';
+import { BUILT_IN_PRESETS, buildPresetPatch, getActiveModelId, findMatchingPreset, getOrStats, getStatsTimestamp, hasOrStats, _resetOrStatsCache } from '../presets/registry.js';
 import { getPresetFamilies } from '../presets/built-in.js';
+import { refreshStats as orRefreshStats, getLastRefreshAt } from '../presets/or-connector.js';
 
 let _activeBrowser = null;
 
@@ -251,6 +252,7 @@ export function openPresetBrowser(opts = {}) {
                                 <option value="context">${t('Context size')}</option>
                             </select>
                         </label>
+                        ${s.orConnectorEnabled ? `<button class="sp-pb-refresh-btn" type="button" title="${t('Fetch fresh pricing and context-window data from OpenRouter. Popularity rankings stay static.')}">↻ ${t('Refresh stats')}</button>` : ''}
                     </div>
                 </div>
                 <ol class="sp-pb-list"></ol>
@@ -285,6 +287,25 @@ export function openPresetBrowser(opts = {}) {
         }
     }
 
+    // v6.27.0: footer shows static baseline date + (when the runtime
+    // connector has refreshed pricing/context this session or within the
+    // 24h cache TTL) a freshness suffix. The user toggles the connector
+    // in Generation tab settings; without it, only the static baseline
+    // date renders.
+    function _formatRelative(iso) {
+        try {
+            const ms = Date.now() - new Date(iso).getTime();
+            if (!Number.isFinite(ms) || ms < 0) return '';
+            const min = Math.round(ms / 60000);
+            if (min < 1) return t('just now');
+            if (min < 60) return t(`${min} minute${min === 1 ? '' : 's'} ago`);
+            const hr = Math.round(min / 60);
+            if (hr < 24) return t(`${hr} hour${hr === 1 ? '' : 's'} ago`);
+            const day = Math.round(hr / 24);
+            return t(`${day} day${day === 1 ? '' : 's'} ago`);
+        } catch { return ''; }
+    }
+
     async function _renderFooter() {
         if (!footerEl) return;
         const has = await hasOrStats();
@@ -294,7 +315,11 @@ export function openPresetBrowser(opts = {}) {
         }
         const ts = await getStatsTimestamp();
         const dateStr = ts ? new Date(ts).toISOString().slice(0, 10) : t('unknown');
-        footerEl.innerHTML = `<span class="sp-pb-stats-footer-text">${t('Stats from OpenRouter, last refreshed:')} ${esc(dateStr)}</span>`;
+        const liveAt = getLastRefreshAt();
+        const liveSuffix = liveAt
+            ? ` · <span class="sp-pb-stats-footer-live">${t('pricing/context refreshed')} ${esc(_formatRelative(liveAt))}</span>`
+            : '';
+        footerEl.innerHTML = `<span class="sp-pb-stats-footer-text">${t('Popularity baseline:')} ${esc(dateStr)}${liveSuffix}</span>`;
     }
 
     async function _renderList() {
@@ -434,6 +459,48 @@ export function openPresetBrowser(opts = {}) {
 
     _renderList();
     _renderFooter();
+
+    // v6.27.0: opt-in runtime refresh. `refreshStats` is a no-op when the
+    // toggle is off, when a refresh already ran this session, or when the
+    // 24h TTL hasn't expired. After a successful fetch we reset the
+    // registry's lazy cache and re-render so the live overlay flows in.
+    (async () => {
+        try {
+            const r = await orRefreshStats({ silent: true });
+            if (r?.refreshed) {
+                _resetOrStatsCache();
+                await _renderList();
+                await _renderFooter();
+            }
+        } catch (e) { /* never block the browser on connector errors */ }
+    })();
+
+    // Manual refresh — bypass session flag, cooldowns, and TTL. Toast
+    // wins/losses so the user has visible feedback.
+    overlay.querySelector('.sp-pb-refresh-btn')?.addEventListener('click', async function () {
+        const btn = this;
+        const originalLabel = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = '⟳ ' + t('Refreshing…');
+        try {
+            const r = await orRefreshStats({ silent: false, force: true });
+            if (r?.refreshed) {
+                _resetOrStatsCache();
+                await _renderList();
+                await _renderFooter();
+                try { toastr.success(t(`Refreshed ${r.count} models from OpenRouter`)); } catch {}
+            } else if (r?.ok === false) {
+                try { toastr.warning(t('Refresh failed: ') + (r.reason || 'unknown')); } catch {}
+            } else {
+                try { toastr.info(t('Cache already fresh — no refresh needed')); } catch {}
+            }
+        } catch (e) {
+            try { toastr.error(t('Refresh error: ') + (e?.message || e)); } catch {}
+        } finally {
+            btn.disabled = false;
+            btn.textContent = originalLabel;
+        }
+    });
 
     // Toolbar wiring
     overlay.querySelector('.sp-pb-search').addEventListener('input', function () {

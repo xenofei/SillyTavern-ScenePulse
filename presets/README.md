@@ -142,4 +142,19 @@ The preset browser surfaces inline chips on each card showing OpenRouter Rolepla
 
 OpenRouter's `/api/v1/models` is CORS-permissive and could be fetched live, but exposes only pricing/context — not popularity. Popularity data lives only in the rendered HTML of the rankings/collections pages. Scraping HTML from every user's browser is fragile, slow, and rude. The sidecar approach is fast (zero network), reliable (works offline), and maintainable (one file the maintainer regenerates periodically).
 
-A future v6.27.0+ may add a lightweight runtime refresh that updates pricing/context only (popularity stays static), behind an opt-in toggle.
+## Runtime pricing/context refresh (v6.27.0+, opt-in)
+
+The static sidecar is the source of truth for popularity, but pricing and context windows drift between releases. v6.27.0 adds an opt-in **OpenRouter Stats Connector** that refreshes the pricing/context overlay live from `/api/v1/models` when the preset browser opens.
+
+- **Off by default** — users opt in via Setup Wizard step 5, the one-time prompt that fires after upgrade, or Settings → Generation → "Enable OpenRouter pricing/context refresh".
+- **One fetch per session, cached 24h** — opening the preset browser repeatedly does not spam the endpoint. A session-flag short-circuits silent auto-refreshes after the first attempt.
+- **Manual refresh** — a labeled `↻ Refresh stats` button appears on the preset browser toolbar when the connector is enabled. Bypasses session flag, cooldowns, and TTL.
+- **Failure modes**:
+  - Offline / network error → silently skip, keep static stats. No cooldown.
+  - 5xx / timeout (3s ceiling) → skip without cooldown so we retry next session.
+  - 429 → 1-hour cooldown (rate-limit etiquette).
+  - 4xx / shape mismatch / parse failure → 1-day cooldown (probably CORS or upstream change — back off and retry tomorrow).
+- **What changes**: per-preset `pricing` and `contextLength` come from the live API; popularity (`rank`, `weeklyTokens`, `collections`) stays static. The footer shows both: `Popularity baseline: 2026-04-26 · pricing/context refreshed 4 hours ago`.
+- **Storage**: cache lives in `localStorage` under `sp_openrouter_cache_v1`. Clearing it forces a fresh fetch on the next preset-browser open.
+
+Source: [`src/presets/or-connector.js`](../src/presets/or-connector.js). Tests: [`tests/or-connector.test.mjs`](../tests/or-connector.test.mjs).

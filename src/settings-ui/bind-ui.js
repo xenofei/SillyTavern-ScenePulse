@@ -117,6 +117,8 @@ export function loadUI(){const s=getSettings();$('#sp-enabled').prop('checked',s
     $('#sp-fallback-preset').html(fpre);s.fallbackPreset=_smartVal('#sp-fallback-preset',s.fallbackPreset,presets,'fallbackPreset');
     $('#sp-fallback-enabled').prop('checked',s.fallbackEnabled!==false);
     $('#sp-fallback-settings').toggle(s.fallbackEnabled!==false);
+    // v6.27.0: OR connector toggle
+    $('#sp-or-connector-enabled').prop('checked',!!s.orConnectorEnabled);
 
     // Show/hide built-in preset info based on selection
     const presetVal=s.chatPreset||'';
@@ -255,6 +257,14 @@ export function bindUI(){const s=getSettings();
     $('#sp-fallback-enabled').on('change',function(){s.fallbackEnabled=this.checked;saveSettings();_spSaveLS();$('#sp-fallback-settings').toggle(this.checked);});
     $('#sp-fallback-profile').on('change',function(){s.fallbackProfile=this.value;saveSettings();_spSaveLS();});
     $('#sp-fallback-preset').on('change',function(){s.fallbackPreset=this.value;saveSettings();_spSaveLS()});
+    // v6.27.0: OR connector toggle. Setting this also clears the
+    // _spOrConnectorPromptShown flag so disabling+re-enabling doesn't
+    // re-prompt — the user has explicitly chosen here.
+    $('#sp-or-connector-enabled').on('change',function(){
+        s.orConnectorEnabled=this.checked;
+        s._spOrConnectorPromptShown=true;
+        saveSettings();
+    });
     $('#sp-btn-setup').on('click',()=>showSetupGuide());
     $('#sp-btn-tour').on('click',()=>startGuidedTour());
     $('#sp-embed-n').on('change',function(){s.embedSnapshots=clamp(+this.value,0,5);saveSettings();_spSaveLS()});

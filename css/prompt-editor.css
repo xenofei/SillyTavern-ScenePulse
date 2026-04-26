@@ -518,6 +518,24 @@
     transition: border-color 0.15s ease;
 }
 .sp-pb-sort:hover, .sp-pb-sort:focus { outline: none; border-color: var(--sp-accent); }
+/* v6.27.0: manual ↻ Refresh stats button — only renders when the OR
+   connector toggle is on. Sits next to the sort dropdown so it shares
+   the same toolbar row. Compact pill-style to match the family pills. */
+.sp-pb-refresh-btn {
+    flex-shrink: 0;
+    background: transparent; color: var(--sp-text-dim);
+    border: 1px solid var(--sp-border); border-radius: 4px;
+    padding: 4px 10px; font-size: var(--sp-fs-xs); font-family: inherit;
+    cursor: pointer; transition: all 0.12s ease;
+}
+.sp-pb-refresh-btn:hover:not(:disabled) {
+    color: var(--sp-accent); border-color: var(--sp-accent);
+    background: rgba(77,184,164,0.08);
+}
+.sp-pb-refresh-btn:disabled { opacity: 0.55; cursor: progress; }
+.sp-pb-stats-footer-live {
+    color: var(--sp-accent); font-weight: 500;
+}
 .sp-pb-search {
     width: 100%; box-sizing: border-box;
     background: var(--sp-surface); color: var(--sp-text);

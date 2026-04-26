@@ -93,6 +93,17 @@ export function showSetupGuide(){
                     <label class="sp-setup-radio"><input type="radio" name="sp-setup-fb-enable" value="yes" ${s.fallbackEnabled!==false?'checked':''}> <strong>Yes</strong> — automatically recover missing tracker data <span style="color:var(--sp-text-dim)">(recommended)</span></label>
                     <label class="sp-setup-radio"><input type="radio" name="sp-setup-fb-enable" value="no" ${s.fallbackEnabled===false?'checked':''}> <strong>No</strong> — skip it, I'll regenerate manually if needed</label>
                     <div class="sp-setup-note" id="sp-setup-no-warn" style="display:${s.fallbackEnabled===false?'block':'none'};color:var(--sp-amber)">With fallback disabled, you may occasionally see empty scene data when the AI omits the tracker. Use the ⟳ button in the panel to regenerate manually.</div>
+                    <div class="sp-setup-nav"><button class="sp-setup-btn" data-goto="3">← Back</button><button class="sp-setup-btn sp-setup-btn-primary" data-goto="5">Next →</button></div>
+                </div>
+            </div>
+            <div class="sp-setup-step" data-step="5">
+                <div class="sp-setup-step-num">5</div>
+                <div class="sp-setup-step-content">
+                    <div class="sp-setup-step-title">OpenRouter Stats Connector <span style="color:var(--sp-text-dim);font-size:11px;font-weight:normal">(optional)</span></div>
+                    <p>The preset browser shows OpenRouter pricing, context window, and roleplay popularity on each preset card. Pricing changes between releases — would you like ScenePulse to refresh the live pricing/context data from OpenRouter's public API when you open the preset browser?</p>
+                    <label class="sp-setup-radio"><input type="radio" name="sp-setup-or-enable" value="yes" ${s.orConnectorEnabled?'checked':''}> <strong>Yes</strong> — auto-refresh pricing/context once per session <span style="color:var(--sp-text-dim)">(~30 KB, cached 24h)</span></label>
+                    <label class="sp-setup-radio"><input type="radio" name="sp-setup-or-enable" value="no" ${!s.orConnectorEnabled?'checked':''}> <strong>No</strong> — use the static baseline only <span style="color:var(--sp-text-dim)">(default)</span></label>
+                    <div class="sp-setup-note" style="margin-top:6px;color:var(--sp-text-dim)">Public endpoint (<code>openrouter.ai/api/v1/models</code>). No auth, no telemetry. Popularity rankings stay static either way. You can change this later under Settings → Generation.</div>
                     <div class="sp-setup-tips">
                         <div class="sp-setup-tips-title">Tips & Hidden Features</div>
                         <div class="sp-setup-tip">Type <strong>/sp help</strong> for all slash commands (/sp regen, /sp refresh, /sp export, /sp debug)</div>
@@ -101,13 +112,13 @@ export function showSetupGuide(){
                         <div class="sp-setup-tip">Open the <strong>Character Wiki</strong> (book icon) and click the <strong>web graph button</strong> to see the <strong>Relationship Web</strong> — force-directed NPC graph</div>
                         <div class="sp-setup-tip">Use <strong>Custom Panels</strong> (Panel Manager → +) to track anything: health, mana, reputation, inventory</div>
                     </div>
-                    <div class="sp-setup-nav"><button class="sp-setup-btn" data-goto="3">← Back</button><button class="sp-setup-btn sp-setup-btn-primary sp-setup-btn-finish" data-finish="true">✓ Finish Setup</button></div>
+                    <div class="sp-setup-nav"><button class="sp-setup-btn" data-goto="4">← Back</button><button class="sp-setup-btn sp-setup-btn-primary sp-setup-btn-finish" data-finish="true">✓ Finish Setup</button></div>
                     <div style="text-align:center;margin-top:8px"><button class="sp-setup-btn sp-setup-btn-tour" data-tour="true">✦ Take a Guided Tour</button></div>
                 </div>
             </div>
         </div>
         <div class="sp-setup-progress">
-            <div class="sp-setup-dots"><span class="sp-setup-dot sp-dot-active" data-dot="1"></span><span class="sp-setup-dot" data-dot="2"></span><span class="sp-setup-dot" data-dot="3"></span><span class="sp-setup-dot" data-dot="4"></span></div>
+            <div class="sp-setup-dots"><span class="sp-setup-dot sp-dot-active" data-dot="1"></span><span class="sp-setup-dot" data-dot="2"></span><span class="sp-setup-dot" data-dot="3"></span><span class="sp-setup-dot" data-dot="4"></span><span class="sp-setup-dot" data-dot="5"></span></div>
         </div>
     </div>`;
     document.body.appendChild(ov);
@@ -130,7 +141,10 @@ export function showSetupGuide(){
             const prof=ov.querySelector('#sp-setup-fb-profile')?.value||'';
             const pre=ov.querySelector('#sp-setup-fb-preset')?.value||'';
             const enabled=ov.querySelector('input[name="sp-setup-fb-enable"]:checked')?.value!=='no';
+            // v6.27.0: OR connector opt-in choice from step 5
+            const orEnabled=ov.querySelector('input[name="sp-setup-or-enable"]:checked')?.value==='yes';
             s.fallbackProfile=prof;s.fallbackPreset=pre;s.fallbackEnabled=enabled;s.setupDismissed=true;
+            s.orConnectorEnabled=orEnabled;s._spOrConnectorPromptShown=true;
             saveSettings();_spSaveLS();loadUI();
             ov.remove();
             if(enabled&&prof)toastr.success('Fallback configured with profile: '+prof,'ScenePulse Setup');
@@ -143,7 +157,9 @@ export function showSetupGuide(){
             const prof=ov.querySelector('#sp-setup-fb-profile')?.value||'';
             const pre=ov.querySelector('#sp-setup-fb-preset')?.value||'';
             const enabled=ov.querySelector('input[name="sp-setup-fb-enable"]:checked')?.value!=='no';
+            const orEnabled=ov.querySelector('input[name="sp-setup-or-enable"]:checked')?.value==='yes';
             s.fallbackProfile=prof;s.fallbackPreset=pre;s.fallbackEnabled=enabled;s.setupDismissed=true;
+            s.orConnectorEnabled=orEnabled;s._spOrConnectorPromptShown=true;
             saveSettings();_spSaveLS();loadUI();ov.remove();
             startGuidedTour();
         }

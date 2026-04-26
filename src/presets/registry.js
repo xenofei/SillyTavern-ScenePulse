@@ -187,18 +187,51 @@ export { BUILT_IN_PRESETS };
 
 let _orStatsCache = null;
 
-async function _loadOrStats() {
-    if (_orStatsCache !== null) return _orStatsCache;
+async function _loadStaticOrStats() {
     try {
         const url = new URL('../../presets/or-stats.json', import.meta.url);
         const res = await fetch(url);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        _orStatsCache = await res.json();
+        return await res.json();
     } catch {
         // No or-stats.json shipped, or fetch failed. UI degrades to
         // sampler-chips-only with no popularity / cost / collection chips.
-        _orStatsCache = { stats: {}, fetchedAt: null };
+        return { stats: {}, fetchedAt: null };
     }
+}
+
+// v6.27.0: merge live runtime overlay (pricing + contextLength only —
+// popularity stays static) onto the static base. The connector only
+// fires when `s.orConnectorEnabled` is on; with it off we read static
+// data verbatim. Match by `orSlug` because that's what the maintainer
+// script captured from the canonical OR slug at baseline time, and the
+// runtime cache keys by the same canonical_slug.
+function _applyRuntimeOverlay(staticData, overlay) {
+    if (!overlay?.bySlug) return staticData;
+    const stats = staticData.stats || {};
+    const merged = { stats: {}, fetchedAt: staticData.fetchedAt };
+    for (const [k, v] of Object.entries(stats)) {
+        const slug = v?.orSlug ? String(v.orSlug).toLowerCase() : null;
+        const live = slug ? overlay.bySlug[slug] : null;
+        merged.stats[k] = live
+            ? { ...v, contextLength: live.contextLength ?? v.contextLength, pricing: live.pricing ?? v.pricing }
+            : v;
+    }
+    merged.runtimeRefreshedAt = overlay.fetchedAt || null;
+    return merged;
+}
+
+async function _loadOrStats() {
+    if (_orStatsCache !== null) return _orStatsCache;
+    const staticData = await _loadStaticOrStats();
+    // v6.27.0: lazy import so tests + non-browser callers can use the
+    // registry without dragging the connector's localStorage dependency.
+    let overlay = null;
+    try {
+        const mod = await import('./or-connector.js');
+        overlay = mod.getRuntimeOverlay?.() || null;
+    } catch {}
+    _orStatsCache = overlay ? _applyRuntimeOverlay(staticData, overlay) : staticData;
     return _orStatsCache;
 }
 

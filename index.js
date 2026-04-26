@@ -100,6 +100,28 @@ eventSource.on(event_types.APP_READY, async () => { try {
             .then(m => m.maybeSuggestPreset?.())
             .catch(e => warn('preset-suggestion:', e?.message || e));
     }, 3000);
+    // v6.27.0: one-time prompt for the OpenRouter stats connector. Fires
+    // for existing users who already dismissed the setup wizard before
+    // step 5 existed — the wizard handles new installs. Gated by
+    // `_spOrConnectorPromptShown` so it never re-prompts. Skipped for
+    // fresh installs (the wizard's step 5 handles them).
+    setTimeout(async () => {
+        try {
+            const _s = getSettings();
+            if (_s._spOrConnectorPromptShown || !_s.setupDismissed) return;
+            const utils = await import('./src/utils.js');
+            const i18n = await import('./src/i18n.js');
+            const ok = await utils.spConfirm(
+                i18n.t('OpenRouter Stats Connector'),
+                i18n.t('ScenePulse can now refresh OpenRouter pricing and context-window data live when you open the preset browser. Popularity rankings stay static. One quick request per day max — uses ~30 KB. Enable it?'),
+                { okLabel: i18n.t('Enable'), cancelLabel: i18n.t('Keep static'), danger: false }
+            );
+            _s.orConnectorEnabled = !!ok;
+            _s._spOrConnectorPromptShown = true;
+            try { (await import('./src/settings.js')).saveSettings(); } catch {}
+            try { (await import('./src/settings-ui/bind-ui.js')).loadUI(); } catch {}
+        } catch (e) { warn('or-connector prompt:', e?.message || e); }
+    }, 4500);
     // Apply saved theme
     try {
         const _ts = getSettings();
