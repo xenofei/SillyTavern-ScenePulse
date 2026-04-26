@@ -21,6 +21,25 @@
 
 ScenePulse is a SillyTavern extension that automatically extracts and tracks scene data from AI responses — characters, relationships, quests, mood, tension, and more — all displayed in a real-time dashboard alongside your roleplay.
 
+> [!IMPORTANT]
+> ### 🤝 Help us improve LLM responses — contribute model presets!
+>
+> ScenePulse ships **30 built-in model presets** (DeepSeek, Claude, GPT, Gemini, Kimi, GLM, Llama/Mistral finetunes, etc.), but every model + provider + sampler combination has its own quirks. **If you've found settings that improve tracker JSON quality, narrative coherence, or structured-output reliability for your model, we want to ship them to every user.**
+>
+> **What helps most:**
+> - Sampler values (temperature / top_p / freq-penalty / presence-penalty) that improve JSON compliance on a specific model
+> - System-prompt role tweaks (e.g., `user` vs `system` for Claude / DeepSeek thinking models)
+> - Prompt-slot overrides that fix prose-instead-of-JSON failures, especially on NSFW / long-context / reasoning models
+> - Anti-stagnation tunings, anti-`charactersPresent`-carry-forward fixes, name-awareness improvements
+> - New presets for models we don't ship — finetunes, niche providers, jailbreak variants, local models
+>
+> **How to contribute (pick whichever is easier):**
+> - 💬 **Quick suggestion** → [open an issue](https://github.com/xenofei/SillyTavern-ScenePulse/issues/new) describing your model + the change that worked. Even one-line tips are valuable.
+> - 📁 **Tested preset** → submit a PR adding a `.json` file to [`presets/`](presets/) — see [`presets/README.md`](presets/README.md) for the schema and [`presets/_examples/`](presets/_examples/) for working examples.
+> - 🛠️ **Built-in tuning improvement** → if you'd improve one of the 30 bundled presets, open a PR against [`src/presets/built-in.js`](src/presets/built-in.js) with the model id and the rationale.
+>
+> Your contributions ship to every user. The more real-world tunings we collect, the better ScenePulse works out-of-the-box for everyone.
+
 ## Table of Contents
 
 - [Features](#features)
