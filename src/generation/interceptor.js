@@ -30,6 +30,69 @@ import { startStreamingHider, stopStreamingHider } from './streaming.js';
 import { showChatBanner, cleanupGenUI } from '../ui/loading.js';
 import { getActiveProfile } from '../profiles.js';
 
+// ── Stall watchdog (v6.27.16) ─────────────────────────────────────
+//
+// Module-scoped because state lives across event handlers in different
+// files. The flow:
+//   1. interceptor schedules a watchdog when generation starts (90s)
+//   2. STREAM_TOKEN_RECEIVED handler (in index.js) calls noteStreamProgress
+//      which (a) flips _streamStarted true (b) re-arms with the tighter
+//      15s threshold
+//   3. GENERATION_ENDED / GENERATION_STOPPED / successful extraction
+//      handlers call clearStallWatchdog
+//
+// Closure-captures the genStart timestamp so a new generation can't be
+// reset by a stale watchdog from a prior generation.
+const STALL_PRE_STREAM_MS = 90000;
+const STALL_POST_STREAM_MS = 15000;
+let _stallWatchdogId = null;
+let _stallGenStart = 0;
+let _streamStarted = false;
+
+function _onStallFire(genStart){
+    if (!generating || inlineGenStartMs !== genStart || genStart <= 0) return;
+    const elapsed = Math.round((Date.now() - genStart) / 1000);
+    warn('Stall watchdog: stream went silent (' + elapsed + 's elapsed, streamStarted=' + _streamStarted + ') — force-resetting');
+    setGenerating(false);
+    spSetGenerating(false);
+    setInlineGenStartMs(0);
+    setInlineExtractionDone(false);
+    setPendingInlineIdx(-1);
+    try { stopStreamingHider(); } catch {}
+    try { cleanupGenUI(); } catch {}
+    try {
+        toastr.warning(
+            _streamStarted
+                ? 'Stream went silent (network drop?). Tracker UI unlocked after ' + elapsed + 's.'
+                : 'No response from server (network drop?). Tracker UI unlocked after ' + elapsed + 's.',
+            'ScenePulse'
+        );
+    } catch {}
+}
+
+export function startStallWatchdog(genStart){
+    clearStallWatchdog();
+    _stallGenStart = genStart;
+    _streamStarted = false;
+    _stallWatchdogId = setTimeout(() => _onStallFire(genStart), STALL_PRE_STREAM_MS);
+}
+
+/** Re-arm with the tighter post-stream threshold. Idempotent. Safe to
+ *  call from STREAM_TOKEN_RECEIVED for every token. */
+export function noteStreamProgress(){
+    if (!_stallGenStart || _stallGenStart !== inlineGenStartMs) return;
+    _streamStarted = true;
+    if (_stallWatchdogId) clearTimeout(_stallWatchdogId);
+    const captured = _stallGenStart;
+    _stallWatchdogId = setTimeout(() => _onStallFire(captured), STALL_POST_STREAM_MS);
+}
+
+export function clearStallWatchdog(){
+    if (_stallWatchdogId) { clearTimeout(_stallWatchdogId); _stallWatchdogId = null; }
+    _stallGenStart = 0;
+    _streamStarted = false;
+}
+
 // Build compact inline prompt for "together" mode — tells the AI to append tracker JSON
 export function buildInlineTrackerPrompt(){
     const s=getSettings();
@@ -219,28 +282,24 @@ export const scenePulseInterceptor=async function(chat,cs,abort,type){
         setPendingInlineIdx(-1);
         spSetGenerating(true);
 
-        // v6.27.14: hung-generation watchdog. ECONNRESET / ETIMEDOUT / TLS
+        // v6.27.14 → v6.27.16: stall watchdog. ECONNRESET / ETIMEDOUT / TLS
         // failures from upstream providers (NanoGPT under load with large
         // models was the user-reported case) sometimes leave SillyTavern
-        // without firing GENERATION_ENDED or GENERATION_STOPPED at all.
-        // ScenePulse's "generating…" pill then hangs until the user
-        // reloads. The watchdog force-resets state if the same generation
-        // is still flagged as in-flight after 3 minutes. The closure
-        // captures _genStart so a new generation that begins inside the
-        // watchdog window doesn't get reset by the prior watchdog.
-        setTimeout(() => {
-            if (generating && inlineGenStartMs === _genStart && _genStart > 0) {
-                warn('Watchdog: generation hung 180s without completion event — force-resetting');
-                setGenerating(false);
-                spSetGenerating(false);
-                setInlineGenStartMs(0);
-                setInlineExtractionDone(false);
-                setPendingInlineIdx(-1);
-                try { stopStreamingHider(); } catch {}
-                try { cleanupGenUI(); } catch {}
-                try { toastr.warning('Tracker generation timed out (no response from server). UI unlocked.', 'ScenePulse'); } catch {}
-            }
-        }, 180000);
+        // without firing GENERATION_ENDED or GENERATION_STOPPED at all,
+        // so ScenePulse's "generating…" pill hangs.
+        //
+        // Previous v6.27.14 used a flat 180s blanket. v6.27.16 makes it
+        // tighter by tracking stream activity: STREAM_TOKEN_RECEIVED
+        // events refresh the watchdog (see index.js handler), so we only
+        // fire when the stream has gone silent. Two thresholds:
+        //   - 90s before the first token (tolerates pre-stream thinking
+        //     time on reasoning models — Claude 4.7 effort=high can pause
+        //     this long before streaming begins)
+        //   - 15s after the first token (mid-stream stalls are normally
+        //     <2s; 15s of dead air = the connection dropped)
+        // The closure captures _genStart so a new generation beginning
+        // inside the watchdog window doesn't get reset by the prior one.
+        startStallWatchdog(_genStart);
 
         // ── TOGETHER MODE: Inject inline tracker prompt ──
         {

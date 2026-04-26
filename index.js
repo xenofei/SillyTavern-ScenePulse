@@ -31,7 +31,7 @@ import { initI18n } from './src/i18n.js';
 import { extractInlineTracker } from './src/generation/extraction.js';
 import { stopStreamingHider } from './src/generation/streaming.js';
 import { cancelGeneration } from './src/generation/engine.js';
-import { scenePulseInterceptor } from './src/generation/interceptor.js';
+import { scenePulseInterceptor, noteStreamProgress, clearStallWatchdog } from './src/generation/interceptor.js';
 import { processExtraction } from './src/generation/pipeline.js';
 
 // ── UI ──
@@ -183,11 +183,24 @@ eventSource.on(event_types.APP_READY, async () => { try {
 
 eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, idx => onCharMsg(idx));
 
+// v6.27.16: stream-stall detector. Each token received refreshes the
+// stall watchdog (see src/generation/interceptor.js). When the stream
+// goes silent for 15s mid-generation (or 90s before any token), the
+// watchdog force-resets state — much faster than the v6.27.14 blanket
+// 180s timeout. Only fires for inline/together-mode generations
+// because the watchdog is keyed on inlineGenStartMs.
+eventSource.on(event_types.STREAM_TOKEN_RECEIVED, () => {
+    try { noteStreamProgress(); } catch {}
+});
+
 // CRITICAL: Save chat the INSTANT generation ends, BEFORE other extensions
 // can trigger profile switches that cause CHAT_CHANGED → chat reload → message loss.
 eventSource.on(event_types.GENERATION_ENDED, async () => {
     try { if(_inlineWaitTimerId){clearInterval(_inlineWaitTimerId);set_inlineWaitTimerId(null)} const w = document.getElementById('sp-inline-wait'); if (w) w.remove(); } catch {}
     clearThoughtLoading();
+    // v6.27.16: ST signaled normal completion — disarm the stall watchdog
+    // so it can't fire late and reset a generation that finished cleanly.
+    try { clearStallWatchdog(); } catch {}
     // ── PRIMARY EXTRACTION for Together/Inline mode ──
     // Guard: only extract when ScenePulse actually injected a prompt (inlineGenStartMs > 0).
     // Other extensions (e.g. MemoryBooks) may trigger GENERATION_ENDED for their own quiet
@@ -253,6 +266,10 @@ eventSource.on(event_types.GENERATION_ENDED, async () => {
 
 // If user clicks ST's own stop button, cancel our generation too
 eventSource.on(event_types.GENERATION_STOPPED, () => {
+    // v6.27.16: user-initiated stop — disarm the stall watchdog regardless
+    // of whether `generating` is true (defensive: guards against a
+    // late-firing watchdog after manual stop already cleared state).
+    try { clearStallWatchdog(); } catch {}
     if (generating) {
         log('ST generation_stopped event — cancelling ScenePulse generation');
         const oldNonce = genNonce;
