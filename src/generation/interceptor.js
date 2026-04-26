@@ -1,6 +1,6 @@
 // ── interceptor.js — Chat interceptor for inline/together and separate injection modes ──
 
-import { log } from '../logger.js';
+import { log, warn } from '../logger.js';
 import { DEFAULTS } from '../constants.js';
 import { getSettings, getActiveSchema, getActivePrompt, getLatestSnapshot, getLanguage, shouldUseDelta, getActivePanels } from '../settings.js';
 import { anyPanelsActive } from '../settings.js';
@@ -11,8 +11,8 @@ import {
     _inlineWaitTimerId, set_inlineWaitTimerId
 } from '../state.js';
 import { spSetGenerating } from '../ui/mobile.js';
-import { startStreamingHider } from './streaming.js';
-import { showChatBanner } from '../ui/loading.js';
+import { startStreamingHider, stopStreamingHider } from './streaming.js';
+import { showChatBanner, cleanupGenUI } from '../ui/loading.js';
 import { getActiveProfile } from '../profiles.js';
 
 // Build compact inline prompt for "together" mode — tells the AI to append tracker JSON
@@ -198,10 +198,34 @@ export const scenePulseInterceptor=async function(chat,cs,abort,type){
     if(!anyPanelsActive()){log('Interceptor: skipped \u2014 all panels disabled, no custom panels');return}
 
     if(s.injectionMethod==='inline'){
-        setInlineGenStartMs(Date.now());
+        const _genStart = Date.now();
+        setInlineGenStartMs(_genStart);
         setInlineExtractionDone(false);
         setPendingInlineIdx(-1);
         spSetGenerating(true);
+
+        // v6.27.14: hung-generation watchdog. ECONNRESET / ETIMEDOUT / TLS
+        // failures from upstream providers (NanoGPT under load with large
+        // models was the user-reported case) sometimes leave SillyTavern
+        // without firing GENERATION_ENDED or GENERATION_STOPPED at all.
+        // ScenePulse's "generating…" pill then hangs until the user
+        // reloads. The watchdog force-resets state if the same generation
+        // is still flagged as in-flight after 3 minutes. The closure
+        // captures _genStart so a new generation that begins inside the
+        // watchdog window doesn't get reset by the prior watchdog.
+        setTimeout(() => {
+            if (generating && inlineGenStartMs === _genStart && _genStart > 0) {
+                warn('Watchdog: generation hung 180s without completion event — force-resetting');
+                setGenerating(false);
+                spSetGenerating(false);
+                setInlineGenStartMs(0);
+                setInlineExtractionDone(false);
+                setPendingInlineIdx(-1);
+                try { stopStreamingHider(); } catch {}
+                try { cleanupGenUI(); } catch {}
+                try { toastr.warning('Tracker generation timed out (no response from server). UI unlocked.', 'ScenePulse'); } catch {}
+            }
+        }, 180000);
 
         // ── TOGETHER MODE: Inject inline tracker prompt ──
         {

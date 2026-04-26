@@ -222,9 +222,26 @@ eventSource.on(event_types.GENERATION_ENDED, async () => {
                 const msgLen = (chat[targetIdx]?.mes || '').length;
                 log('GENERATION_ENDED: primary extraction failed for message', targetIdx, '(' + msgLen + ' chars), deferring to onCharMsg');
                 setPendingInlineIdx(targetIdx);
+                // v6.27.14: also release the UI lock here. Previously this
+                // branch ONLY set pendingInlineIdx, leaving spSetGenerating
+                // active until onCharMsg eventually unlocked. But on
+                // ECONNRESET / provider drops (NanoGPT under load was the
+                // user-reported case), the assistant message never reaches
+                // a renderable state, onCharMsg never fires, and the
+                // "generating…" pill hangs forever. The deferred extraction
+                // continues to be retried in onCharMsg if a message does
+                // eventually render — that path doesn't need the UI to
+                // stay locked while it waits.
+                spSetGenerating(false);
+                stopStreamingHider();
             }
         } else {
             log('GENERATION_ENDED: no assistant message found, deferring to onCharMsg');
+            // v6.27.14: same logic — no message to extract from, no reason
+            // to keep the UI locked. onCharMsg can still fire later if a
+            // delayed renderer pushes the message in.
+            spSetGenerating(false);
+            stopStreamingHider();
         }
     } else {
         spSetGenerating(false);
