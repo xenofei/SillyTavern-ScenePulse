@@ -614,6 +614,21 @@
     border: 1px solid rgba(120,200,140,0.3);
     cursor: help;
 }
+/* v6.27.6: yellow disclaimer for stock-prompts presets — clarifies
+   that applying the template is a no-op until community overrides
+   land for this model. Sits at the bottom of the row card so it
+   reads as a footnote, not a primary message. */
+.sp-pb-row-stock-notice {
+    margin-top: 8px;
+    padding: 7px 10px;
+    background: rgba(212,168,85,0.10);
+    border: 1px solid rgba(212,168,85,0.32);
+    border-left-width: 3px;
+    border-radius: 4px;
+    font-size: 10px;
+    line-height: 1.5;
+    color: #d4a855;
+}
 .sp-pb-apply {
     flex-shrink: 0;
 }

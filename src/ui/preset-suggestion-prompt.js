@@ -118,6 +118,7 @@ export function showPresetSuggestionPrompt(preset, activeModelId = '', activePro
                             <div class="sp-psp-effect-body">${t('Panels, schema')}<br>${t('Custom panels, theme')}</div>
                         </div>
                     </div>
+                    ${isStockPrompts ? `<div class="sp-psp-stock-notice" role="note">${t('Informational only at this time. Applying this template will not modify your prompt slots — pending community-contributed overrides for this model. Sampler hints above remain advisory.')}</div>` : ''}
                     ${activeProfileName ? `<div class="sp-psp-footnote">${t('Applies to active profile: ')}<strong>${esc(activeProfileName)}</strong>. ${t('Reversible from the prompt editor.')}</div>` : ''}
                 </div>
                 <div class="sp-psp-actions">

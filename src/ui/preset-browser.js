@@ -165,21 +165,45 @@ function _sortPresets(presets, mode, profile, detectedPreset, statsByPresetId) {
         (a.family || '').localeCompare(b.family || '') || compareName(a, b);
     const compareContext = (a, b) =>
         (b.contextWindow || 0) - (a.contextWindow || 0) || compareName(a, b);
-    const comparePopularity = (a, b) => {
+    const compareTokenUsage = (a, b) => {
+        // Highest weekly token volume first; presets without OR data sink.
         const aw = statsByPresetId.get(a.id)?.weeklyTokens || 0;
         const bw = statsByPresetId.get(b.id)?.weeklyTokens || 0;
         if (aw !== bw) return bw - aw;
         return compareName(a, b);
     };
+    // v6.27.6: combined cost = input+output USD per million tokens. Cheapest
+    // first; free-tier (0/0) leads. Presets with no pricing data (local
+    // finetunes, models OR doesn't list) sink to the bottom via Infinity.
+    const compareCost = (a, b) => {
+        const ap = statsByPresetId.get(a.id)?.pricing;
+        const bp = statsByPresetId.get(b.id)?.pricing;
+        const ac = ap ? (ap.input || 0) + (ap.output || 0) : Number.POSITIVE_INFINITY;
+        const bc = bp ? (bp.input || 0) + (bp.output || 0) : Number.POSITIVE_INFINITY;
+        if (ac !== bc) return ac - bc;
+        return compareName(a, b);
+    };
+    // v6.27.6: OR roleplay-collection rank. Rank 1 first; unranked sink.
+    const compareOrRank = (a, b) => {
+        const ar = statsByPresetId.get(a.id)?.rank ?? Number.POSITIVE_INFINITY;
+        const br = statsByPresetId.get(b.id)?.rank ?? Number.POSITIVE_INFINITY;
+        if (ar !== br) return ar - br;
+        return compareName(a, b);
+    };
 
     let secondary;
     switch (mode) {
-        case 'popularity': secondary = comparePopularity; break;
-        case 'name':       secondary = compareName; break;
-        case 'family':     secondary = compareFamily; break;
-        case 'context':    secondary = compareContext; break;
+        // v6.27.6: legacy 'popularity' value persisted in some user settings —
+        // treat as 'token-usage' (semantically the same: weekly token volume).
+        case 'popularity':
+        case 'token-usage': secondary = compareTokenUsage; break;
+        case 'cost':        secondary = compareCost; break;
+        case 'or-rank':     secondary = compareOrRank; break;
+        case 'name':        secondary = compareName; break;
+        case 'family':      secondary = compareFamily; break;
+        case 'context':     secondary = compareContext; break;
         case 'match-first':
-        default:           secondary = compareName; break;
+        default:            secondary = compareName; break;
     }
 
     return [...presets].sort((a, b) => {
@@ -246,10 +270,16 @@ export function openPresetBrowser(opts = {}) {
                             <span class="sp-pb-sort-label">${t('Sort')}:</span>
                             <select class="sp-pb-sort">
                                 <option value="match-first">${t('Match first')}</option>
-                                <option value="popularity">${t('Popularity')}</option>
-                                <option value="name">${t('Name')}</option>
-                                <option value="family">${t('Family')}</option>
-                                <option value="context">${t('Context size')}</option>
+                                <optgroup label="${t('OpenRouter data')}">
+                                    <option value="token-usage">${t('Token usage')}</option>
+                                    <option value="cost">${t('Cost (low → high)')}</option>
+                                    <option value="or-rank">${t('OR ranking')}</option>
+                                </optgroup>
+                                <optgroup label="${t('Preset metadata')}">
+                                    <option value="name">${t('Name')}</option>
+                                    <option value="family">${t('Family')}</option>
+                                    <option value="context">${t('Context size')}</option>
+                                </optgroup>
                             </select>
                         </label>
                         ${s.orConnectorEnabled ? `<button class="sp-pb-refresh-btn" type="button" title="${t('Fetch fresh pricing and context-window data from OpenRouter. Popularity rankings stay static.')}">↻ ${t('Refresh stats')}</button>` : ''}
@@ -268,8 +298,10 @@ export function openPresetBrowser(opts = {}) {
     let searchQ = '';
     // v6.26.0: sort mode persisted in settings.presetBrowserSort.
     // Default 'match-first' per user direction.
-    let sortMode = (s.presetBrowserSort && ['match-first','popularity','name','family','context'].includes(s.presetBrowserSort))
-        ? s.presetBrowserSort : 'match-first';
+    // v6.27.6: legacy 'popularity' migrates silently to 'token-usage'.
+    const VALID_SORTS = ['match-first','token-usage','cost','or-rank','name','family','context'];
+    let sortMode = s.presetBrowserSort === 'popularity' ? 'token-usage'
+        : (VALID_SORTS.includes(s.presetBrowserSort) ? s.presetBrowserSort : 'match-first');
     if (sortEl) sortEl.value = sortMode;
 
     // v6.26.0: prefetch OR stats once per browser open. Map of preset.id →
@@ -373,6 +405,7 @@ export function openPresetBrowser(opts = {}) {
                     </div>
                     ${_renderOrChips(orStats)}
                     ${_renderSamplerHints(p.samplerHints)}
+                    ${slotCount === 0 ? `<div class="sp-pb-row-stock-notice" role="note">${t('Informational only at this time. Applying this template will not modify your prompt slots — pending community-contributed overrides for this model. Sampler hints above remain advisory.')}</div>` : ''}
                 </li>`;
         }).join('');
         // Wire action buttons

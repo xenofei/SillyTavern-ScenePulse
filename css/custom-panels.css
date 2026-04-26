@@ -720,6 +720,21 @@
     font-style: italic;
     opacity: 0.85;
 }
+/* v6.27.6: yellow disclaimer in the suggestion dialog when slotCount=0.
+   Mirrors the .sp-pb-row-stock-notice on the card but tuned to fit the
+   dialog's tighter typography. Sits between the effects grid and the
+   footnote. */
+.sp-psp-stock-notice {
+    margin: 0 0 10px;
+    padding: 8px 11px;
+    background: rgba(212,168,85,0.10);
+    border: 1px solid rgba(212,168,85,0.32);
+    border-left-width: 3px;
+    border-radius: 4px;
+    font-size: 10px;
+    line-height: 1.55;
+    color: #d4a855;
+}
 .sp-psp-detect {
     margin: 0 0 8px;
     font-size: var(--sp-fs-xs);
