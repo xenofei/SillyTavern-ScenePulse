@@ -1,5 +1,18 @@
 /* ── Crash Log overlay (issue #13) ── */
-/* Same modal pattern as character-wiki / snapshot browser. */
+/* Same modal pattern as character-wiki / snapshot browser.
+ *
+ * MISNAMED FILE: this holds the entire debug-overlay system, not just
+ * crash-log. Concretely: ~82 .sp-cl-* (crash log), ~186 .sp-di-* (debug
+ * inspector + doctor + perf-tab), plus shared @media blocks and overlay
+ * shell. A v6.27.10 audit attempted a feature-split and deferred it —
+ * the .sp-di-* rules are interleaved with .sp-cl-* infrastructure
+ * (shared @media wrappers at 720/700/560/420 breakpoints, shared
+ * overlay shell), so cascade-safe extraction would require duplicating
+ * the wrappers per file. Rule of thumb: add new debug/perf/inspector
+ * rules HERE, not in css/debug.css. The standalone perf-capture floating
+ * pill (.sp-perf-overlay-*) was extracted to css/perf-overlay.css in
+ * v6.27.10 — that one was contiguous and safe.
+ */
 
 .sp-cl-overlay {
     position: fixed; inset: 0; z-index: 100001;

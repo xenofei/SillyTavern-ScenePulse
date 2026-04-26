@@ -3,9 +3,16 @@
 // single state object. External exports are preserved as thin wrappers
 // for backward compatibility — no import sites need changing.
 //
-// The state object is the single source of truth. Direct property
+// The state object is the single source of truth for RUNTIME state
+// (generation flags, timers, ephemeral UI state). Direct property
 // access (state.generating = true) works from within this module;
 // external consumers use the exported setter functions as before.
+//
+// SETTINGS state lives elsewhere: see src/settings.js + src/profiles.js.
+// The active profile is the source of truth for persisted settings
+// (post-v6.13.0); root settings under SillyTavern's extensionSettings
+// are legacy mirrors. New code should always go through
+// `getActiveProfile(s)` and `buildProfileView(s, profile)`.
 
 const state = {
     // ── Generation ──

@@ -1,4 +1,19 @@
 // ── interceptor.js — Chat interceptor for inline/together and separate injection modes ──
+//
+// IN-FLIGHT GENERATION TUPLE (load-bearing across the codebase):
+//   `generating === true  &&  inlineGenStartMs > 0`
+// is the canonical "ScenePulse is mid-generation" condition. BOTH flags
+// must be cleared atomically on every termination path. Half-clearing
+// caused the v6.23.x Together-mode skip regression chain. Termination
+// paths that clear the tuple correctly:
+//   - GENERATION_ENDED handler (success or extraction-failure deferral)
+//   - GENERATION_STOPPED handler (user-initiated abort)
+//   - 180s watchdog below (catches network drops where ST never fires
+//     a termination event, e.g. ECONNRESET on overloaded providers)
+//   - Stuck-detection guard at the top of the interceptor (last-resort
+//     recovery on the next generate event)
+// See ARCHITECTURE.md → "In-flight generation contract" for the
+// cross-cutting picture.
 
 import { log, warn } from '../logger.js';
 import { DEFAULTS } from '../constants.js';
