@@ -44,15 +44,39 @@ Each preset is a single `.json` file with this shape:
   "sources": [
     "https://link.to.thread/where/this/was/discussed",
     "https://huggingface.co/model/id"
-  ]
+  ],
+  "samplerHints": {
+    "temperature": 0.85,
+    "top_p": 0.95,
+    "top_k": 40,
+    "min_p": 0.05,
+    "frequency_penalty": 0.0,
+    "presence_penalty": 0.0,
+    "repetition_penalty": 1.05,
+    "guidance": "Optional: prose hint for models that don't accept the standard samplers (e.g. Claude 4.7, GPT-5 reasoning, DeepSeek thinking).",
+    "confidence": "high",
+    "sources": [
+      "https://docs.vendor.com/sampler-recommendations",
+      "https://huggingface.co/model-card-discussion"
+    ]
+  }
 }
 ```
 
 **Required fields:** `id`, `displayName`, `family`, `provider`, `matchPatterns`, `notes`.
 **Recommended fields:** `systemPromptRole`, `promptOverrides`, `strength`, `contextWindow`.
-**Optional metadata:** `author`, `sources`.
+**Optional metadata:** `author`, `sources`, `samplerHints`.
 
 The `fields` slot is **NOT** overridable — it's auto-generated from your panel + field-toggle settings. Don't include it.
+
+### About `samplerHints` (v6.25.0+)
+
+`samplerHints` is **DISPLAY-ONLY advisory** — ScenePulse never auto-applies these values to your sampler sliders. They appear on the preset card so users can manually match them in their ST connection settings if they wish. (Per v6.23.7, SP no longer mutates user sampler state.)
+
+- All numeric fields are optional; include only what's documented for the model.
+- `guidance` is a prose alternative for models that don't accept the standard samplers — Claude 4.7 family (no temp/top_p/top_k), GPT-5 reasoning (use `reasoning_effort` instead), DeepSeek thinking variants (samplers silently ignored). You can include both numeric fields AND a guidance string.
+- `confidence` is one of `"high" | "medium" | "low"` — high means vendor docs, medium means well-tested community thread, low means anecdotal.
+- `sources` should cite the URLs that justify the values: model card discussions, vendor sampling docs, r/SillyTavern threads.
 
 ## Submitting a preset
 

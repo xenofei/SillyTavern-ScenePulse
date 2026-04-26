@@ -56,7 +56,10 @@ const VALID_ROLES = ['system', 'user', 'assistant'];
 const VALID_FAMILIES = ['claude', 'gpt', 'gemini', 'deepseek', 'kimi', 'glm', 'qwen', 'mistral-finetune', 'llama-finetune', 'gemma-finetune', 'command-r', 'grok', 'legacy'];
 const VALID_SLOT_IDS = new Set(['role', 'criticalRules', 'language', 'nameAwareness', 'questValidation', 'deltaMode']);
 
-assertEq('30 bundled presets', BUILT_IN_PRESETS.length, 30);
+// v6.25.0: count grew from 30 → 39 (added GLM-5, GLM-5.1, Claude Opus 4.7,
+// Claude Sonnet 4.7, Anubis-Pro 70B, EVA-Llama 3.33 70B, Cydonia 24B v4,
+// Magidonia 24B v4.3, Cydonia-R1 24B v4.1).
+assertEq('39 bundled presets', BUILT_IN_PRESETS.length, 39);
 
 for (const p of BUILT_IN_PRESETS) {
     for (const k of REQUIRED_KEYS) {
@@ -103,8 +106,10 @@ console.log('\n── findMatchingPreset ──');
     const claude = findMatchingPreset('anthropic/claude-sonnet-4-6');
     assertEq('claude sonnet matches preset id', claude?.id, 'claude-sonnet-4-6');
 
+    // v6.25.0: claude-opus-4-7 now has its own dedicated preset (effort-based,
+    // no temp/top_p/top_k samplers). Pre-v6.25.0 it fell through to claude-opus-4-6.
     const opus = findMatchingPreset('claude-opus-4-7');
-    assertEq('claude opus 4.7 matches opus preset id', opus?.id, 'claude-opus-4-6');
+    assertEq('claude opus 4.7 matches its own preset', opus?.id, 'claude-opus-4-7');
 
     const ds = findMatchingPreset('deepseek/deepseek-v3.2');
     assertEq('deepseek v3.2 matches', ds?.id, 'deepseek-v3-2');
@@ -125,8 +130,9 @@ console.log('\n── findMatchingPreset ──');
     const dsThinking = findMatchingPreset('deepseek/deepseek-v4-pro:thinking');
     assertEq('deepseek-v4-pro:thinking → deepseek-v4-pro preset', dsThinking?.id, 'deepseek-v4-pro');
 
+    // v6.25.0: 4-7-thinking now resolves to the dedicated 4.7 preset, not 4.6
     const claudeThinking = findMatchingPreset('claude-opus-4-7-thinking');
-    assertEq('claude-opus-4-7-thinking → claude-opus-4-6 preset', claudeThinking?.id, 'claude-opus-4-6');
+    assertEq('claude-opus-4-7-thinking → claude-opus-4-7 preset', claudeThinking?.id, 'claude-opus-4-7');
 }
 
 // ═══════════════════════════════════════════════════════════════════════

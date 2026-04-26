@@ -17,6 +17,54 @@ import { getPresetFamilies } from '../presets/built-in.js';
 
 let _activeBrowser = null;
 
+// v6.25.0: render the optional samplerHints row on a preset card.
+// Hints are DISPLAY-ONLY — never auto-applied (per v6.23.7). The user can
+// manually match these in their ST connection settings if they choose.
+//
+// Two display modes (mutually exclusive in practice but both supported):
+//   - Numeric chips: "temp 1.0 · top_p 0.95 · min_p 0.05"
+//   - Guidance text: italic prose for models that don't accept the standard
+//     samplers (Claude 4.7 family, GPT-5 reasoning, DeepSeek thinking)
+//
+// Confidence dot color-codes the source quality (high=green, medium=amber,
+// low=gray). Sources resolve to a clickable "?" icon linking to the first
+// citation; remaining citations show in the title tooltip.
+function _renderSamplerHints(hints) {
+    if (!hints) return '';
+    const NUMERIC_FIELDS = [
+        ['temperature', 'temp'],
+        ['top_p', 'top_p'],
+        ['top_k', 'top_k'],
+        ['min_p', 'min_p'],
+        ['frequency_penalty', 'freq'],
+        ['presence_penalty', 'pres'],
+        ['repetition_penalty', 'rep'],
+    ];
+    const chips = [];
+    for (const [key, label] of NUMERIC_FIELDS) {
+        if (typeof hints[key] === 'number') {
+            chips.push(`<span class="sp-pb-schip">${esc(label)} <strong>${esc(String(hints[key]))}</strong></span>`);
+        }
+    }
+    const conf = hints.confidence;
+    const confDot = conf
+        ? `<span class="sp-pb-conf sp-pb-conf-${esc(conf)}" title="${t('Confidence')}: ${esc(conf)}" aria-label="${t('Confidence')}: ${esc(conf)}"></span>`
+        : '';
+    const sources = Array.isArray(hints.sources) ? hints.sources : [];
+    const sourcesIcon = sources.length
+        ? `<a class="sp-pb-srcs" href="${esc(sources[0])}" target="_blank" rel="noopener noreferrer" title="${esc(sources.join(' · '))}" aria-label="${t('View sampler hint sources')}">?</a>`
+        : '';
+    let inner = `<span class="sp-pb-srow-label">${confDot}${t('Samplers')}:</span>`;
+    if (chips.length) {
+        inner += `<span class="sp-pb-srow-chips">${chips.join('')}</span>`;
+    }
+    if (hints.guidance) {
+        inner += `<span class="sp-pb-srow-guidance">${esc(hints.guidance)}</span>`;
+    }
+    inner += sourcesIcon;
+    return `<div class="sp-pb-row-samplers">${inner}</div>`;
+}
+
 /**
  * @param {object} [opts]
  * @param {boolean} [opts.createNewMode]  When true, the default Apply behavior
@@ -122,6 +170,7 @@ export function openPresetBrowser(opts = {}) {
                         ${p.contextWindow ? `<span class="sp-pb-row-meta-item">${t('Context')}: ${(p.contextWindow / 1000).toFixed(0)}K</span>` : ''}
                         <span class="sp-pb-row-meta-item">${esc(overridesSummary)}</span>
                     </div>
+                    ${_renderSamplerHints(p.samplerHints)}
                 </li>`;
         }).join('');
         // Wire action buttons

@@ -586,12 +586,101 @@
 }
 .sp-pb-row-meta-item { white-space: nowrap; }
 
+/* ── v6.25.0: sampler hints row ─────────────────────────────────────────
+ * Display-only advisory sampler values (temperature, top_p, etc.) shown
+ * below the meta row on each preset card. NEVER auto-applied — the user
+ * may copy values manually into their ST connection settings if they
+ * choose. See src/ui/preset-browser.js _renderSamplerHints for shape. */
+.sp-pb-row-samplers {
+    display: flex; flex-wrap: wrap; align-items: center;
+    gap: 6px 10px;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px dashed rgba(255,255,255,0.06);
+    color: var(--sp-text-dim);
+    font-size: 10px;
+    line-height: 1.5;
+}
+.sp-pb-srow-label {
+    display: inline-flex; align-items: center; gap: 5px;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    font-weight: 700;
+    color: var(--sp-text-dim);
+    flex-shrink: 0;
+}
+.sp-pb-srow-chips {
+    display: inline-flex; flex-wrap: wrap; gap: 4px;
+}
+.sp-pb-schip {
+    display: inline-flex; align-items: baseline; gap: 3px;
+    padding: 1px 6px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--sp-border);
+    border-radius: 10px;
+    font-family: var(--sp-font-mono, ui-monospace, monospace);
+    font-size: 10px;
+    color: var(--sp-text-dim);
+    white-space: nowrap;
+}
+.sp-pb-schip strong {
+    color: var(--sp-text);
+    font-weight: 600;
+}
+.sp-pb-srow-guidance {
+    flex: 1 1 100%;
+    color: var(--sp-text);
+    font-style: italic;
+    font-size: 10.5px;
+    line-height: 1.45;
+    padding-top: 2px;
+}
+.sp-pb-conf {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.sp-pb-conf-high   { background: #5bc47a; box-shadow: 0 0 4px rgba(91,196,122,0.5); }
+.sp-pb-conf-medium { background: #e8b341; box-shadow: 0 0 4px rgba(232,179,65,0.5); }
+.sp-pb-conf-low    { background: #8490a0; }
+.sp-pb-srcs {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 16px; height: 16px;
+    border: 1px solid var(--sp-border);
+    border-radius: 50%;
+    color: var(--sp-text-dim);
+    font-size: 10px;
+    font-weight: 700;
+    text-decoration: none;
+    flex-shrink: 0;
+    transition: color 0.15s ease, border-color 0.15s ease;
+}
+.sp-pb-srcs:hover, .sp-pb-srcs:focus-visible {
+    color: var(--sp-accent);
+    border-color: var(--sp-accent);
+    text-decoration: none;
+    outline: none;
+}
+
 @media (max-width: 720px) {
     .sp-pb-row-head { flex-wrap: wrap; }
     .sp-pb-apply { margin-left: auto; }
     .sp-pb-row-meta { gap: 8px; }
+    /* Sampler row at tablet width: tighten chip spacing, allow chips to wrap */
+    .sp-pb-row-samplers { gap: 4px 8px; font-size: 9.5px; }
+    .sp-pb-schip { padding: 1px 5px; font-size: 9.5px; }
+    .sp-pb-srow-guidance { font-size: 10px; }
+}
+@media (max-width: 560px) {
+    /* Sampler row at narrow width: label on its own line so chips have full width */
+    .sp-pb-row-samplers { flex-direction: column; align-items: flex-start; gap: 4px; }
+    .sp-pb-srow-chips { gap: 3px; }
+    .sp-pb-srow-guidance { padding-top: 0; }
 }
 @media (max-width: 420px) {
     .sp-pb-container { width: calc(100vw - 8px); max-height: calc(100vh - 8px); }
     .sp-pb-body { padding: 10px 12px 20px; gap: 8px; }
+    /* Phone: chips slightly smaller still; confidence dot drops shadow for perf */
+    .sp-pb-schip { padding: 1px 4px; font-size: 9px; }
+    .sp-pb-conf-high, .sp-pb-conf-medium, .sp-pb-conf-low { box-shadow: none; }
 }
