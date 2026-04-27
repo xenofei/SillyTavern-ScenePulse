@@ -30,6 +30,7 @@ import { startStreamingHider, stopStreamingHider } from './streaming.js';
 import { showChatBanner, cleanupGenUI } from '../ui/loading.js';
 import { startStWatchdog } from './st-watchdog.js';
 import { getActiveProfile } from '../profiles.js';
+import { getActivePromptRole } from '../prompts/role.js';
 
 // ── Stall watchdog (v6.27.16) ─────────────────────────────────────
 //
@@ -312,27 +313,47 @@ export const scenePulseInterceptor=async function(chat,cs,abort,type){
         // ── TOGETHER MODE: Inject inline tracker prompt ──
         {
         const prompt=buildInlineTrackerPrompt();
+        // v6.27.20 (issue #16 followup): apply the active profile's
+        // systemPromptRole to the three injected messages. Pre-v6.27.20
+        // these were hardcoded to is_system:true regardless of the
+        // user's choice — applyPromptRole() handled separate-mode but
+        // never applied to the together-mode injection. Reported by
+        // rgwb10 against v6.27.6: "changed setting to User, prompt
+        // inspector still shows system."
+        const _spRole = getActivePromptRole();
+        const _isSys = _spRole === 'system';
+        const _isUsr = _spRole === 'user';
+        // 'assistant' role: both flags false. ST treats it as an
+        // assistant turn — rarely useful, shipped for parity with the
+        // separate-mode applyPromptRole() helper.
+        const _flags = {
+            is_user: _isUsr,
+            is_system: _isSys,
+            name: _isSys ? 'System' : (_isUsr ? 'ScenePulse' : 'Assistant'),
+        };
+        const _extra = { isSmallSys: _isSys };
+
         // Head anchor — short planning reminder at the START of the context.
         // Counters lost-in-the-middle behavior on long prompts: as the injected schema spec
         // grows past ~3k tokens, the appendix instruction at the end loses attention weight.
         // A 30-token reminder near the start primes the model's planning phase to know
         // structured output is required *before* it begins narrative generation.
         chat.unshift({
-            is_user:false,is_system:true,name:'System',
+            ..._flags,
             mes:'IMPORTANT: This turn requires structured output. After your narrative response, you MUST append a tracker JSON block wrapped in <!--SP_TRACKER_START--> and <!--SP_TRACKER_END--> markers. Full schema is provided later in the context. This is non-negotiable — the response is incomplete without it.',
-            extra:{isSmallSys:true}
+            extra: _extra,
         });
         chat.splice(Math.max(0,chat.length-1),0,{
-            is_user:false,is_system:true,name:'System',
+            ..._flags,
             mes:prompt,
-            extra:{isSmallSys:true}
+            extra: _extra,
         });
         chat.push({
-            is_user:false,is_system:true,name:'System',
+            ..._flags,
             mes:'Your response must end with <!--SP_TRACKER_START-->{ tracker JSON }<!--SP_TRACKER_END--> after the narrative. Do not repeat these instructions in your output.',
-            extra:{isSmallSys:true}
+            extra: _extra,
         });
-        log('Interceptor [inline/together]: injected tracker prompt (~'+Math.round(prompt.length/4)+' tokens) + head/tail anchors',
+        log('Interceptor [inline/together]: injected tracker prompt (~'+Math.round(prompt.length/4)+' tokens) + head/tail anchors as role='+_spRole,
             'state: extDone=',inlineExtractionDone,'pendingIdx=',pendingInlineIdx,'generating=',generating);
         startStreamingHider();
         }
