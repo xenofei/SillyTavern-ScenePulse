@@ -33,6 +33,7 @@ import { spSetGenerating, spPostGenShow } from '../ui/mobile.js';
 import { updatePanel } from '../ui/update-panel.js';
 import { cleanupGenUI } from '../ui/loading.js';
 import { setBrandState } from '../ui/panel.js';
+import { startStWatchdog } from './st-watchdog.js';
 
 // Apply built-in preset values by temporarily adjusting ST's sampler sliders
 export function applyBuiltinPreset(){
@@ -218,6 +219,11 @@ export async function generateTracker(mesIdx,partKey,opts){
     if(!getSettings().enabled){log('generateTracker: extension disabled, skipping');return null}
     if(generating){warn('Busy, nonce=',genNonce);return null}
     setGenerating(true);setCancelRequested(false);spSetGenerating(true);setBrandState('generating');
+    // v6.27.19: ST DOM watchdog (poll #mes_stop visibility every 3s).
+    // Catches ECONNRESET-class hangs in ~6-9s where ST has stopped
+    // generating but our await chain didn't reject. Auto-stops when
+    // SP's `generating` goes false (cleanup at line 432 / 656).
+    startStWatchdog();
     const myNonce=genNonce+1;setGenNonce(myNonce);
     const genStartMs=Date.now();
     const settings=getSettings();const schema=getActiveSchema();const sysPr=getActivePrompt({ hasPrevState: !!getLatestSnapshot(), isDelta: shouldUseDelta() });
@@ -577,6 +583,11 @@ export async function continuationReprompt(narrativeText, opts){
     if(!getSettings().enabled){log('continuationReprompt: extension disabled, skipping');return null}
     if(generating){warn('continuationReprompt: busy, nonce=',genNonce);return null}
     setGenerating(true);setCancelRequested(false);spSetGenerating(true);setBrandState('generating');
+    // v6.27.19: ST DOM watchdog (poll #mes_stop visibility every 3s).
+    // Catches ECONNRESET-class hangs in ~6-9s where ST has stopped
+    // generating but our await chain didn't reject. Auto-stops when
+    // SP's `generating` goes false (cleanup at line 432 / 656).
+    startStWatchdog();
     const myNonce=genNonce+1;setGenNonce(myNonce);
     const startMs=Date.now();
     const settings=getSettings();

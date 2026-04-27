@@ -28,6 +28,7 @@ import {
 import { spSetGenerating } from '../ui/mobile.js';
 import { startStreamingHider, stopStreamingHider } from './streaming.js';
 import { showChatBanner, cleanupGenUI } from '../ui/loading.js';
+import { startStWatchdog } from './st-watchdog.js';
 import { getActiveProfile } from '../profiles.js';
 
 // ── Stall watchdog (v6.27.16) ─────────────────────────────────────
@@ -300,6 +301,13 @@ export const scenePulseInterceptor=async function(chat,cs,abort,type){
         // The closure captures _genStart so a new generation beginning
         // inside the watchdog window doesn't get reset by the prior one.
         startStallWatchdog(_genStart);
+
+        // v6.27.19: ALSO start the DOM-poll watchdog. Faster detection
+        // (~6-9s) for the ECONNRESET case where ST hides its stop button
+        // but the underlying fetch never rejects up our await chain.
+        // Both watchdogs cooperate: stall watchdog handles "tokens
+        // stopped streaming"; ST watchdog handles "ST itself stopped."
+        startStWatchdog();
 
         // ── TOGETHER MODE: Inject inline tracker prompt ──
         {
